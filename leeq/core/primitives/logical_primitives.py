@@ -17,7 +17,7 @@ class LogicalPrimitiveCombinable(object):
         """
         Syntax sugar for combining two logical primitives in series.
         """
-        assert issubclass(other,
+        assert issubclass(type(other),
                           LogicalPrimitiveCombinable), f"The other object is not a logical primitive, got {type(other)}."
 
         if isinstance(other, LogicalPrimitiveBlockSerial):
@@ -30,7 +30,7 @@ class LogicalPrimitiveCombinable(object):
         """
         Syntax sugar for combining two logical primitives in parallel.
         """
-        assert issubclass(other,
+        assert issubclass(type(other),
                           LogicalPrimitiveCombinable), f"The other object is not a logical primitive, got {type(other)}."
 
         if isinstance(other, LogicalPrimitiveBlockParallel):
@@ -52,6 +52,7 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
             name (str): The name of the logical primitive.
             parameters (dict): The parameters of the logical primitive.
         """
+        self._validate_parameters(parameters)
         super().__init__(name, parameters)
 
     def clone(self):
@@ -63,6 +64,13 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         """
         clone_name = self._name + f'_clone_{uuid.uuid4()}'
         return self.__class__(clone_name, copy.deepcopy(self._parameters))
+
+    @staticmethod
+    def _validate_parameters(parameters: dict):
+        """
+        Validate the parameters of the logical primitive.
+        """
+        raise NotImplementedError()
 
 
 class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
@@ -100,7 +108,7 @@ class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
         for child in self._children:
             cloned_children.append(child.clone())
 
-        return self.__class__(clone_name, children=cloned_children)
+        return self.__class__(name=clone_name, children=cloned_children)
 
 
 class LogicalPrimitiveBlockParallel(LogicalPrimitiveBlock):
@@ -108,11 +116,12 @@ class LogicalPrimitiveBlockParallel(LogicalPrimitiveBlock):
     A logical primitive block that is composed in parallel.
     """
 
-    def __init__(self, children):
+    def __init__(self, children=None, name=None):
         """
         Initialize the logical primitive block.
         """
-        name = f"Parallel LPB: {len(children)} : {str(uuid.uuid4())}"
+        if name is None:
+            name = f"Parallel LPB: {len(children)} : {str(uuid.uuid4())}"
         super().__init__(name, children)
 
     def __mul__(self, other):
@@ -123,7 +132,7 @@ class LogicalPrimitiveBlockParallel(LogicalPrimitiveBlock):
                           LogicalPrimitiveBlock), f"The other object is not a logical primitive block, got {type(other)}."
 
         if isinstance(other, LogicalPrimitiveBlockParallel):
-            return LogicalPrimitiveBlockParallel(self._children + other._children)
+            return LogicalPrimitiveBlockParallel(children=self._children + other._children)
 
         self._children.append(other)
         return self
@@ -134,11 +143,12 @@ class LogicalPrimitiveBlockSerial(LogicalPrimitiveBlock):
     A logical primitive block that is composed in serial.
     """
 
-    def __init__(self, children):
+    def __init__(self, children, name=None):
         """
         Initialize the logical primitive block.
         """
-        name = f"SerialLPB: {len(children)} : {str(uuid.uuid4())}"
+        if name is None:
+            name = f"SerialLPB: {len(children)} : {str(uuid.uuid4())}"
         super().__init__(name, children)
 
     def __add__(self, other):
