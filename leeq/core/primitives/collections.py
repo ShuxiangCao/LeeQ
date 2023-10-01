@@ -28,13 +28,14 @@ class LogicalPrimitiveCollection(SharedParameterObject):
         super().__init__(name, parameters)
         self._primitives = {}
 
-    def _build_primitives(self):
+    def _build_primitives(self, primitives_params: dict):
         """
         Build the logical primitives of the collection.
         """
         factory = LogicalPrimitiveFactory()
-        for primitive_name, primitive_type in self._parameters['primitives'].items():
-            self._primitives[primitive_name] = factory(primitive_type, self._parametersp)
+        for primitive_name, primitive_type in primitives_params.items():
+            self._primitives[primitive_name] = factory(name=primitive_name, class_name=primitive_type,
+                                                       parameters=self._parameters)
 
     def __getitem__(self, item):
         """
@@ -46,7 +47,7 @@ class LogicalPrimitiveCollection(SharedParameterObject):
         Returns:
             LogicalPrimitive: The logical primitive.
 
-        Raises:
+        Raises
             KeyError: If the logical primitive is not found.
         """
         if item not in self._primitives:
@@ -55,6 +56,29 @@ class LogicalPrimitiveCollection(SharedParameterObject):
             raise KeyError(msg)
 
         return self._primitives[item]
+
+    def __getattribute__(self, item):
+        """
+        Get the value of the parameter.
+
+        Parameters:
+            item (str): The name of the parameter.
+
+        Returns:
+            The value of the parameter.
+
+        Raises:
+            AttributeError: If the parameter is not found.
+        """
+
+        reserved_names = ['_parameters', '__dict__']
+
+        if item not in reserved_names:
+            if '_parameters' in self.__dict__:
+                if item in self._parameters:
+                    return self._parameters[item]
+
+        return super(LogicalPrimitiveCollection, self).__getattribute__(item)
 
 
 class LogicalPrimitiveCollectionFactory(ObjectFactory):

@@ -55,6 +55,29 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         self._validate_parameters(parameters)
         super().__init__(name, parameters)
 
+    def __getattribute__(self, item):
+        """
+        Get the value of the parameter.
+
+        Parameters:
+            item (str): The name of the parameter.
+
+        Returns:
+            The value of the parameter.
+
+        Raises:
+            AttributeError: If the parameter is not found.
+        """
+
+        reserved_names = ['_parameters', '__dict__']
+
+        if item not in reserved_names:
+            if '_parameters' in self.__dict__:
+                if item in self._parameters:
+                    return self._parameters[item]
+
+        return super(LogicalPrimitive, self).__getattribute__(item)
+
     def clone(self):
         """
         Clone the object. The returned object is safe to modify.
@@ -64,6 +87,21 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         """
         clone_name = self._name + f'_clone_{uuid.uuid4()}'
         return self.__class__(clone_name, copy.deepcopy(self._parameters))
+
+    def copy_with_parameters(self, parameters: dict):
+        """
+        Copy the logical primitive with new parameters.
+
+        Parameters:
+            parameters (dict): The new parameters.
+
+        Returns:
+            LogicalPrimitive: The copied logical primitive.
+        """
+
+        new_parameters = copy.deepcopy(self._parameters)
+        elementwise_update_dict(new_parameters, parameters)
+        return self.__class__(self._name + f'_modified_copy_{uuid.uuid4()}', new_parameters)
 
     @staticmethod
     def _validate_parameters(parameters: dict):

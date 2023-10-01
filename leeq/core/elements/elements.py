@@ -9,7 +9,9 @@ from leeq.utils import get_calibration_log_path
 from leeq.core.primitives import LogicalPrimitiveCollectionFactory, LogicalPrimitiveFactory
 
 from leeq.utils import setup_logging
+
 logger = setup_logging(__name__)
+
 
 class Element(LeeQObject):
     """
@@ -50,11 +52,24 @@ class Element(LeeQObject):
                 'measurement_primitives': {}
             }
 
+        self._validate_parameters(self._parameters)
+
         self._lpb_collections = {}
         self._measurement_primitives = {}
 
         self._build_lpb_collections()
         self._build_measurement_primitives()
+
+    @staticmethod
+    def _validate_parameters(parameters: dict):
+        """
+        Validate the parameters of the element.
+
+        Parameters:
+            parameters (dict): The parameters of the element.
+        """
+        assert 'lpb_collections' in parameters, 'LPB collections not found in the parameters.'
+        assert 'measurement_primitives' in parameters, 'Measurement primitives not found in the parameters.'
 
     def _build_lpb_collections(self):
         """
@@ -62,7 +77,9 @@ class Element(LeeQObject):
         """
         factory = LogicalPrimitiveCollectionFactory()
         for collection_name, collection_parameters in self._parameters['lpb_collections'].items():
-            self._lpb_collections[collection_name] = factory(collection_parameters['type'], collection_parameters)
+            self._lpb_collections[collection_name] = factory(name=collection_name,
+                                                             class_name=collection_parameters['type'],
+                                                             parameters=collection_parameters)
 
     def _build_measurement_primitives(self):
         """
@@ -80,7 +97,7 @@ class Element(LeeQObject):
         Returns:
             dict: The gate collections of the element.
         """
-        raise NotImplementedError()
+        return self._parameters['lpb_collections']
 
     def _dump_measurement_primitives(self):
         """
@@ -89,7 +106,7 @@ class Element(LeeQObject):
         Returns:
             dict: The measurement primitives of the element.
         """
-        raise NotImplementedError()
+        return self._parameters['measurement_primitives']
 
     def save_calibration_log(self):
         """
@@ -166,7 +183,7 @@ class Element(LeeQObject):
         return base_path / latest_file_name
 
     @classmethod
-    def load_from_calibration_log(cls, name: str, path: Optional[Union[str, Path]]=None):
+    def load_from_calibration_log(cls, name: str, path: Optional[Union[str, Path]] = None):
         """
         Load the calibration log and generate the element object.
         If the path is not specified, load the latest calibration log.
@@ -217,3 +234,33 @@ class Element(LeeQObject):
         assert 'lpb_collections' in calibration, 'LPB collections not found in the calibration dictionary.'
         assert 'measurement_primitives' in calibration, \
             'Measurement primitives not found in the calibration dictionary.'
+
+    def get_lpb_collection(self, name: str):
+        """
+        Get the gate collection with the specified name.
+
+        Parameters:
+            name (str): The name of the gate collection.
+
+        Returns:
+            collection (LogicalPrimitiveCollection): The gate collection.
+        """
+        return self._lpb_collections[name]
+
+    def get_measurement_primitive(self, name: str):
+        """
+        Get the measurement primitive with the specified name.
+
+        Parameters:
+            name (str): The name of the measurement primitive.
+
+        Returns:
+            primitive (LogicalPrimitive): The measurement primitive.
+        """
+        return self._measurement_primitives[name]
+
+    def get_c1(self, name: str):
+        """
+        Same as get lpb_collection. To ensure compatibility with the old version.
+        """
+        return self.get_lpb_collection(name)

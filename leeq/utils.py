@@ -117,9 +117,14 @@ class ObjectFactory(Singleton):
         Parameters:
             accepted_template (list): The list of accepted types.
         """
-        super(Singleton, self).__init__()
+
+        if self._initialized:
+            return
+
         self._registered_template = {}
         self._accepted_template = accepted_template
+
+        super(ObjectFactory, self).__init__()
 
     def register_collection_template(self, collection_class: Any):
         """
