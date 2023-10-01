@@ -178,6 +178,58 @@ class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
         return self.__class__(name=clone_name, children=cloned_children)
 
 
+class LogicalPrimitiveBlockSweep(LogicalPrimitiveBlock):
+    """
+    A logical primitive block that is composed in serial.
+    """
+
+    def __init__(self, children=None, name=None):
+        """
+        Initialize the logical primitive block.
+        """
+        if name is None:
+            name = f"Sweep LPB: {len(children)} : {str(uuid.uuid4())}"
+        super().__init__(name, children)
+        self._selected = 0
+
+    def set_selected(self, selected):
+        """
+        Set the selected child of the logical primitive block.
+        The selected child is the child that will be executed.
+
+        Parameters:
+            selected (int): The index of the selected child.
+        """
+        self._selected = selected
+
+    @property
+    def selected(self):
+        """
+        Get the selected child of the logical primitive block.
+        The selected child is the child that will be executed.
+
+        Returns:
+            int: The index of the selected child.
+        """
+        return self._selected
+
+    @property
+    def current_lpb(self):
+        """
+        Get the current logical primitive block.
+
+        Returns:
+            LogicalPrimitiveBlock: The current logical primitive block.
+        """
+        return self._children[self._selected]
+
+    def __len__(self):
+        """
+        Get the number of children.
+        """
+        return len(self._children)
+
+
 class LogicalPrimitiveBlockParallel(LogicalPrimitiveBlock):
     """
     A logical primitive block that is composed in parallel.
