@@ -20,9 +20,6 @@ def test_element_creation():
     }, 'measurement_primitives': {}})
     assert isinstance(qubit, TransmonElement)
     assert qubit._name == 'test_element'
-    # assert element._parameters == {'lpb_collections': [], 'measurement_primitives': []}
-
-    # assert element._lpb_collections == {}
     c1 = qubit.get_c1('f01')
     assert c1['X'].freq == 4144.417053428905
 

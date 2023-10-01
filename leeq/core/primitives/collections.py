@@ -34,7 +34,8 @@ class LogicalPrimitiveCollection(SharedParameterObject):
         """
         factory = LogicalPrimitiveFactory()
         for primitive_name, primitive_type in primitives_params.items():
-            self._primitives[primitive_name] = factory(name=primitive_name, class_name=primitive_type,
+            self._primitives[primitive_name] = factory(name=self._name + '.' + primitive_name,
+                                                       class_name=primitive_type,
                                                        parameters=self._parameters)
 
     def __getitem__(self, item):

@@ -41,6 +41,7 @@ class SimpleDrive(LogicalPrimitive):
         for parameter_name in SimpleDrive._parameter_names:
             assert parameter_name in parameters, f"The parameter {parameter_name} is not found."
 
+
 class SimpleDriveCollection(LogicalPrimitiveCollection):
 
     def __init__(self, name: str, parameters: dict):
@@ -72,16 +73,18 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
         if item == 'X':
             return self._primitives['drive']
         elif item == 'Y':
-            return self._primitives['drive'].copy_with_parameters({'phase': np.pi / 2})
+            return self._primitives['drive'].copy_with_parameters({'phase': np.pi / 2}, name_postfix='_Y')
         elif item == 'Xp':
-            return self._primitives['drive'].copy_with_parameters({'amp': self._parameters['amp'] / 2})
+            return self._primitives['drive'].copy_with_parameters({'amp': self._parameters['amp'] / 2},
+                                                                  name_postfix='_Xp')
         elif item == 'Yp':
             return self._primitives['drive'].copy_with_parameters(
-                {'amp': self._parameters['amp'] / 2, 'phase': np.pi / 2})
+                {'amp': self._parameters['amp'] / 2, 'phase': np.pi / 2}, name_postfix='_Yp')
         elif item == 'Xm':
-            return self._primitives['drive'].copy_with_parameters({'amp': -self._parameters['amp'] / 2})
+            return self._primitives['drive'].copy_with_parameters({'amp': -self._parameters['amp'] / 2},
+                                                                  name_postfix='_Xm')
         elif item == 'Ym':
             return self._primitives['drive'].copy_with_parameters(
-                {'amp': -self._parameters['amp'] / 2, 'phase': np.pi / 2})
+                {'amp': -self._parameters['amp'] / 2, 'phase': np.pi / 2}, name_postfix='_Ym')
 
         return super(SimpleDriveCollection).__getitem__(item)

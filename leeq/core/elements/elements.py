@@ -77,7 +77,7 @@ class Element(LeeQObject):
         """
         factory = LogicalPrimitiveCollectionFactory()
         for collection_name, collection_parameters in self._parameters['lpb_collections'].items():
-            self._lpb_collections[collection_name] = factory(name=collection_name,
+            self._lpb_collections[collection_name] = factory(name=self._name + '.' + collection_name,
                                                              class_name=collection_parameters['type'],
                                                              parameters=collection_parameters)
 

@@ -88,12 +88,13 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         clone_name = self._name + f'_clone_{uuid.uuid4()}'
         return self.__class__(clone_name, copy.deepcopy(self._parameters))
 
-    def copy_with_parameters(self, parameters: dict):
+    def copy_with_parameters(self, parameters: dict, name_postfix=None):
         """
         Copy the logical primitive with new parameters.
 
         Parameters:
             parameters (dict): The new parameters.
+            name_postfix (str, Optional): The postfix of the name of the copied logical primitive.
 
         Returns:
             LogicalPrimitive: The copied logical primitive.
@@ -101,7 +102,9 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
 
         new_parameters = copy.deepcopy(self._parameters)
         elementwise_update_dict(new_parameters, parameters)
-        return self.__class__(self._name + f'_modified_copy_{uuid.uuid4()}', new_parameters)
+        if name_postfix is None:
+            name_postfix = f'_modified_{uuid.uuid4()}'
+        return self.__class__(self._name + name_postfix, new_parameters)
 
     @staticmethod
     def _validate_parameters(parameters: dict):
