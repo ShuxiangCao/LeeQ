@@ -6,6 +6,8 @@ from typing import Union, Iterable, Callable, Dict, Optional, List
 from leeq.core import LeeQObject
 from functools import partial
 
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
+
 
 class SweepParametersSideEffectFunction(LeeQObject):
     """
@@ -257,3 +259,17 @@ class Sweeper(LeeQObject):
         """
         for param in self._params:
             param(parameter)
+
+    @classmethod
+    def from_sweep_lpb(cls, slpb: LogicalPrimitiveBlockSweep):
+        """
+        Create a sweeper from a logical primitive block sweep.
+
+        Parameters:
+            slpb (LogicalPrimitiveBlockSweep): The logical primitive block sweep.
+
+        Returns:
+            Sweeper: The sweeper.
+        """
+        return cls(range(len(slpb)), params=[SweepParametersSideEffectFactory.func(
+            slpb.set_selected, {}, 'value')])
