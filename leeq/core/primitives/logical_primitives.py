@@ -1,3 +1,4 @@
+import copy
 import uuid
 
 from leeq.core import LeeQObject
@@ -10,8 +11,35 @@ logger = setup_logging(__name__)
 
 # TODO: Add conditional blocks for fast feedback
 
+class LogicalPrimitiveCombinable(object):
 
-class LogicalPrimitive(SharedParameterObject):
+    def __add__(self, other):
+        """
+        Syntax sugar for combining two logical primitives in series.
+        """
+        assert issubclass(other,
+                          LogicalPrimitiveCombinable), f"The other object is not a logical primitive, got {type(other)}."
+
+        if isinstance(other, LogicalPrimitiveBlockSerial):
+            other._children.insert(0, self)
+            return other
+
+        return LogicalPrimitiveBlockSerial([self, other])
+
+    def __mul__(self, other):
+        """
+        Syntax sugar for combining two logical primitives in parallel.
+        """
+        assert issubclass(other,
+                          LogicalPrimitiveCombinable), f"The other object is not a logical primitive, got {type(other)}."
+
+        if isinstance(other, LogicalPrimitiveBlockParallel):
+            other._children.insert(0, self)
+
+        return LogicalPrimitiveBlockParallel([self, other])
+
+
+class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
     """
     A logical primitive is the basic building block of the experiment sequence.
     """
@@ -26,22 +54,18 @@ class LogicalPrimitive(SharedParameterObject):
         """
         super().__init__(name, parameters)
 
-    def __add__(self, other):
+    def clone(self):
         """
-        Syntax sugar for combining two logical primitives in series.
-        """
-        assert isinstance(other, LogicalPrimitive), f"The other object is not a logical primitive, got {type(other)}."
-        return LogicalPrimitiveBlockSerial([self, other])
+        Clone the object. The returned object is safe to modify.
 
-    def __mul__(self, other):
+        Returns:
+            SharedParameterObject: The cloned object.
         """
-        Syntax sugar for combining two logical primitives in parallel.
-        """
-        assert isinstance(other, LogicalPrimitive), f"The other object is not a logical primitive, got {type(other)}."
-        return LogicalPrimitiveBlockParallel([self, other])
+        clone_name = self._name + f'_clone_{uuid.uuid4()}'
+        return self.__class__(clone_name, copy.deepcopy(self._parameters))
 
 
-class LogicalPrimitiveBlock(LogicalPrimitive):
+class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
     """
     A logical primitive block is a tree structure set of logical primitives, composed in series or in parallel.
     Each logical primitive block can be composed of other logical primitive blocks, or logical primitives.
@@ -61,6 +85,22 @@ class LogicalPrimitiveBlock(LogicalPrimitive):
             self._children = children
         else:
             self._children = []
+
+    def clone(self):
+        """
+        Clone the object. The returned object is safe to modify. For a block, the children are also cloned.
+
+        Returns:
+            SharedParameterObject: The cloned object.
+        """
+        clone_name = self._name + f'_clone_{uuid.uuid4()}'
+
+        # Clone the children
+        cloned_children = []
+        for child in self._children:
+            cloned_children.append(child.clone())
+
+        return self.__class__(clone_name, children=cloned_children)
 
 
 class LogicalPrimitiveBlockParallel(LogicalPrimitiveBlock):

@@ -6,7 +6,10 @@ from typing import Union, Optional
 from labchronicle import LoggableObject
 from leeq.core import LeeQObject
 from leeq.utils import get_calibration_log_path
+from leeq.core.primitives import LogicalPrimitiveCollectionFactory, LogicalPrimitiveFactory
 
+from leeq.utils import setup_logging
+logger = setup_logging(__name__)
 
 class Element(LeeQObject):
     """
@@ -25,7 +28,7 @@ class Element(LeeQObject):
     """
 
     # The time format string for the calibration log file name
-    _time_format_str = "%Y.%m.%d.%H.%M.%S"
+    _time_format_str = "%Y_%m_%d_%H_%M_%S"
 
     def __init__(self, name: str, parameters: dict = None):
         """
@@ -57,13 +60,18 @@ class Element(LeeQObject):
         """
         Initiate the gate collections of the element.
         """
-        raise NotImplementedError()
+        factory = LogicalPrimitiveCollectionFactory()
+        for collection_name, collection_parameters in self._parameters['lpb_collections'].items():
+            self._lpb_collections[collection_name] = factory(collection_parameters['type'], collection_parameters)
 
     def _build_measurement_primitives(self):
         """
         Initiate the measurement primitives of the element.
         """
-        raise NotImplementedError()
+
+        factory = LogicalPrimitiveFactory()
+        for primitive_name, primitive_parameters in self._parameters['measurement_primitives'].items():
+            self._measurement_primitives[primitive_name] = factory(primitive_parameters['type'], primitive_parameters)
 
     def _dump_lpb_collections(self):
         """
@@ -89,7 +97,7 @@ class Element(LeeQObject):
         """
 
         calibration_log = {
-            'gate_collections': self._dump_gate_collections(),
+            'lpb_collections': self._dump_lpb_collections(),
             'measurement_primitives': self._dump_measurement_primitives()
         }
 
@@ -138,11 +146,11 @@ class Element(LeeQObject):
 
             prefix = 'calibration_log_' + name
 
-            if postfix != 'json' or prefix != prefix_read:
+            if postfix != 'json' or not prefix_read.endswith(prefix):
                 continue
 
             try:
-                parsed_time = datetime.strptime(timestr, cls.time_format_str)
+                parsed_time = datetime.strptime(timestr, cls._time_format_str)
             except ValueError:
                 continue
 
@@ -152,13 +160,13 @@ class Element(LeeQObject):
 
         if latest_file_name is None:
             msg = f'No calibration log found for {name} at {base_path}.'
-            cls.logger.error(msg)
+            logger.error(msg)
             raise FileNotFoundError(msg)
 
         return base_path / latest_file_name
 
     @classmethod
-    def load_from_calibration_log(cls, name: str, path: Optional[Union[str, Path]]):
+    def load_from_calibration_log(cls, name: str, path: Optional[Union[str, Path]]=None):
         """
         Load the calibration log and generate the element object.
         If the path is not specified, load the latest calibration log.
@@ -206,6 +214,6 @@ class Element(LeeQObject):
             calibration (dict): The calibration dictionary.
         """
 
-        assert 'gate_collections' in calibration, 'Gate collections not found in the calibration dictionary.'
+        assert 'lpb_collections' in calibration, 'LPB collections not found in the calibration dictionary.'
         assert 'measurement_primitives' in calibration, \
             'Measurement primitives not found in the calibration dictionary.'
