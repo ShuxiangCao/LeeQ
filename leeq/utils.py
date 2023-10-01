@@ -3,6 +3,7 @@ import logging
 import pathlib
 import getpass
 import inspect
+import sys
 from pathlib import Path
 import os
 from typing import Any
@@ -189,3 +190,15 @@ def elementwise_update_dict(original_dict: dict, update_value: dict):
             elementwise_update_dict(original_dict[key], value)
         else:
             original_dict[key] = value
+
+
+def is_running_in_jupyter():
+    """
+    Check if the code is running in Jupyter notebook.
+
+    Returns:
+        bool: True if running in Jupyter notebook.
+    """
+
+    # Just a dirty hack, but works for most of the time
+    return sys.argv[-1].endswith('json')

@@ -153,8 +153,18 @@ class Sweeper(LeeQObject):
             sweep_parameters = sweep_parameters(**n_kwargs)
         self._sweep_parameters = sweep_parameters
         self._params = params
-        self._step = 0  # The current step of the sweeper
-        self._child_initialized = True
+        # self._step = 0  # The current step of the sweeper
+        # self._child_initialized = True
+
+    @property
+    def child(self):
+        """
+        The child sweeper in the chain.
+
+        Returns:
+            Sweeper: The child sweeper in the chain.
+        """
+        return self._child
 
     @property
     def shape(self):
@@ -211,12 +221,12 @@ class Sweeper(LeeQObject):
         obj._child_initialized = True
         return obj
 
-    #def __iter__(self):
+    # def __iter__(self):
     #    self.reset()
     #    self._child_initialized = False
     #    return self
 
-    #def __next__(self):
+    # def __next__(self):
     #    child_finished = False
     #    if self._child is not None:
     #        if not self._child_initialized:
@@ -241,7 +251,7 @@ class Sweeper(LeeQObject):
     #    self._execute_side_effects(self._sweep_parameters[self._step])
     #    return (self._step,) + child_value
 
-    #def reset(self):
+    # def reset(self):
     #    self._step = 0
     #    self._execute_side_effects(self._sweep_parameters[self._step])
     #    result = (self._step,)
@@ -259,6 +269,26 @@ class Sweeper(LeeQObject):
         """
         for param in self._params:
             param(parameter)
+
+    def execute_side_effects_by_step_no(self, step_no):
+        """
+        Execute the side effects of the parameter being swept.
+
+        Parameters:
+            step_no (int, list): The step no of the parameter.
+        """
+
+        if isinstance(step_no, int):
+            self._execute_side_effects(self._sweep_parameters[step_no])
+
+        assert len(step_no) == len(
+            self.shape), f'The length of step_no {len(step_no)} must be equal to the length of shape {len(self.shape)}.'
+
+        result = [self._execute_side_effects(self._sweep_parameters[step_no[0]])]
+
+        if self._child is None:
+            return result
+        return result + self._child.execute_side_effects_by_step_no(step_no[1:])
 
     @classmethod
     def from_sweep_lpb(cls, slpb: LogicalPrimitiveBlockSweep):
