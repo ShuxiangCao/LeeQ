@@ -1,6 +1,9 @@
 import copy
 import uuid
 
+import numpy
+from labchronicle import log_event
+
 from leeq.core import LeeQObject
 from leeq.utils import ObjectFactory, setup_logging
 from leeq.utils import elementwise_update_dict
@@ -54,6 +57,7 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         """
         self._validate_parameters(parameters)
         super().__init__(name, parameters)
+        self._tags = {}
 
     def __getattribute__(self, item):
         """
@@ -112,6 +116,28 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         Validate the parameters of the logical primitive.
         """
         raise NotImplementedError()
+
+    @log_event
+    def tag(self, key, val):
+        """
+        Add a tag to the logical primitive. This is for the user to add additional information to the logical primitive.
+        Especially for the backend to use.
+
+        Parameters:
+            key (str): The name of the tag.
+            val (object): The value of the tag.
+        """
+        self._tags[key] = val
+
+    @property
+    def tags(self):
+        """
+        Get the tags of the logical primitive.
+
+        Returns:
+            dict: The tags of the logical primitive.
+        """
+        return self._tags.copy()
 
 
 class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
@@ -213,3 +239,202 @@ class LogicalPrimitiveFactory(ObjectFactory):
 
     def __init__(self):
         super().__init__([LogicalPrimitive])
+
+
+class MeasurementPrimitive(LogicalPrimitive):
+    """
+    A measurement primitive is a logical primitive that is used to perform measurements.
+    """
+
+    def __init__(self, name: str, parameters: dict):
+        """
+        Initialize the measurement primitive.
+
+        Parameters:
+            name (str): The name of the measurement primitive.
+            parameters (dict): The parameters of the measurement primitive.
+        """
+        super().__init__(name, parameters)
+
+        self._results = []
+        self._results_raw = []
+        self._transform_function = None
+        self._transform_function_kwargs = None
+        self._default_result_id = 0
+        self._result_id_offset = 0
+
+    @staticmethod
+    def _validate_parameters(parameters: dict):
+        """
+        Validate the parameters of the measurement primitive.
+        """
+        raise NotImplementedError()
+
+    @log_event
+    def set_transform_function(self, func: callable, **kwargs):
+        """
+        Set the transform function of the measurement primitive.
+        When a measurement finish, the transform function will be called to transform the measurement result.
+        For instance, the transform function can be implemented as using a GMM model to distinguish the measurement
+        state, and return the distinguished label instead of raw data.
+
+        When set to None, raw data will be returned.
+
+        Parameters:
+            func (callable): The transform function.
+            kwargs: The keyword arguments of the transform function.
+        """
+
+        self._transform_function = func
+        self._transform_function_kwargs = kwargs
+
+    def get_transform_function(self):
+        """
+        Get the transform function of the measurement primitive.
+
+        Returns:
+            callable: The transform function.
+            dict: The keyword arguments of the transform function.
+        """
+        return self._transform_function, self._transform_function_kwargs
+
+    def result(self, result_id: int = None, raw_data: bool = False):
+        """
+        Retrieve the result of the measurement primitive.
+        The result is the output of the transform function, available after the measurement is finished.
+
+        Parameters:
+            result_id (int, Optional): The id of the measurement result.
+            raw_data (bool, Optional): Whether to return the raw data (the data before transformation).
+
+        Note :
+            Now we move to the concept of result ids. The result ids are used to identify the measurement results.
+            When the measurement primitive is supplied into an experiment multiple times, then the first measurement
+            result will have id 0, the second will have id 1, and so on. When retrieving the result, the result id
+            will be used to identify the result.
+        """
+
+        if result_id is None:
+            result_id = self._default_result_id
+
+        result_data = self._results if not raw_data else self._results_raw
+
+        if len(result_data) == 0:
+            msg = f'No measurement result is available for {self._name}.'
+            logger.error(msg)
+            raise RuntimeError(msg)
+
+        if result_id + self._result_id_offset >= len(result_data):
+            msg = (f'The result id {result_id} is out of range, '
+                   f'the maximum result id is {len(result_data) - 1 - self._result_id_offset}.'
+                   f'Current result number is {len(result_data)}, '
+                   f'Current result id offset is {self._result_id_offset}')
+            logger.error(msg)
+            raise ValueError(msg)
+
+        return result_data[result_id]
+
+    def set_default_result_id(self, result_id: int):
+        """
+        Set the default result id of the measurement primitive.
+        The default result id is the id of the measurement result that will be returned when multiple results are
+        available, but no result id is specified. The default result id is 0.
+
+        The default result id is used when the measurement primitive is supplied into an experiment multiple times, and
+        the user wants to retrieve the result of a specific measurement. The rest of the measurement could be just
+        active reset.
+
+        Parameters:
+            result_id (int): The default result id.
+        """
+        self._default_result_id = result_id
+
+    def get_default_result_id(self):
+        """
+        Get the default result id of the measurement primitive.
+
+        Returns:
+            int: The default result id.
+        """
+        return self._default_result_id
+
+    def set_result_id_offset(self, offset: int):
+        """
+        Set the result id offset of the measurement primitive.
+
+        The result id offset is used to offset the result id of the measurement primitive. For instance, if the result
+        id offset is 1, then the first measurement result will have id 1, the second will have id 2, and so on. This
+        is particularly useful when the user wants to have multiple active reset at the beginning, and then start a
+        complex experiment. With this offset the user will not have to change the result id of the measurement in the
+        experiment script.
+
+        Parameters:
+            offset (int): The result id offset.
+        """
+        self._result_id_offset = offset
+
+    def get_result_id_offset(self):
+        """
+        Get the result id offset of the measurement primitive.
+
+        Returns:
+            int: The result id offset.
+        """
+        return self._result_id_offset
+
+    def result_ids(self):
+        """
+        Get the ids of the measurement results.
+
+        Returns:
+            list: The ids of the measurement results.
+        """
+        return [key - self._result_id_offset for key in self._results]
+
+    def result_raw(self, result_id: int = None):
+        """
+        Retrieve the raw data of the measurement primitive. Same as `result` with `raw_data` set to True.
+        For compatibility with the old version.
+
+        Parameters:
+            result_id (int, Optional): The id of the measurement result.
+
+        Returns:
+            The raw data of the measurement result.
+        """
+        return self.result(result_id, raw_data=True)
+
+    def clear_results(self):
+        """
+        Clear the measurement results of the measurement primitive.
+        """
+        self._results = []
+        self._results_raw = []
+
+    def commit_measurement(self, step_no: int, data: numpy.ndarray):
+        """
+        Commit a measurement result to the measurement primitive.
+
+        Parameters:
+            step_no (int): The step number of the measurement.
+            data (numpy.ndarray): The measurement result.
+        """
+
+        data_raw = data
+
+        if self._transform_function is not None:
+            data_transformed = self._transform_function(data, **self._transform_function_kwargs)
+        else:
+            data_transformed = data
+
+        self._results_raw.append((step_no, data_raw))
+        self._results.append((step_no, data))
+
+
+class MeasurementPrimitiveFactory(ObjectFactory):
+    """
+    The factory class for measurement primitives.
+    """
+
+    def __init__(self):
+        super().__init__([MeasurementPrimitive])
