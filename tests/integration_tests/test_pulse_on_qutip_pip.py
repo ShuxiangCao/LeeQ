@@ -6,6 +6,7 @@ from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.experiments.experiments import Experiment
 from leeq.experiments.experiments import setup
 from leeq.experiments.experiments import basic_run as basic
+from leeq.setups.built_in.setup_qutip_qip_local import QuTipQIPLocalSetup
 
 
 class DummyObject(object):
@@ -87,6 +88,9 @@ class SimpleSampleExperiment(Experiment):
 
 def test_pulse_on_qutip_pip(qubit):
     # Prepare some lpb to prepare a non-trivial distribution
+
+    exp_setup = QuTipQIPLocalSetup()
+    setup().register_setup(exp_setup)
 
     lpb = qubit.get_lpb_collection('f01')['Xp']
     lpb += qubit.get_measurement_primitive('0')

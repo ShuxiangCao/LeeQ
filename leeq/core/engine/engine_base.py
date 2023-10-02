@@ -4,6 +4,7 @@ from leeq.backend.backend_base import BackendBase
 from leeq.core import LeeQObject
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import Sweeper
+from leeq.setups.setup_base import ExperimentalSetup
 
 
 class EngineBase(LeeQObject):
@@ -12,18 +13,21 @@ class EngineBase(LeeQObject):
     implement the sweep in series, find those modified lpbs and call the backend to implement the experiment.
     """
 
-    def __init__(self, name: str, backend: Any):
+    def __init__(self, name: str, backend: Any, setup: Any):
         """
         Initialize the GridSweepEngine class.
 
         Parameters:
             name (str): The name of the engine.
             backend (Any): The backend to use.
+            setup (Any): The instrument setup to use.
         """
 
         assert isinstance(backend, BackendBase), "The backend should be a subclass of BackendBase."
+        assert isinstance(setup, ExperimentalSetup), "The setup should be a subclass of LeeQObject."
 
         self._backend = backend
+        self._setup = setup
 
         super().__init__(name)
 
@@ -66,7 +70,7 @@ class EngineBase(LeeQObject):
         Parameters:
             instructions (Any): The instructions to be executed.
         """
-        self._backend.update_setup_parameters(instructions)
+        self._setup.update_setup_parameters(instructions)
 
     def _fire_experiment(self, instructions=None):
         """
@@ -75,10 +79,10 @@ class EngineBase(LeeQObject):
         Parameters:
             instructions (Any, Optional): The instructions to be executed.
         """
-        self._backend.fire_experiment(instructions)
+        self._setup.fire_experiment(instructions)
 
-    def _collect_data(self):
+    def _collect_data(self, context=None):
         """
         Collect the data from the backend and commit it to the measurement primitives.
         """
-        return self._backend.collect_data()
+        return self._setup.collect_data(context)

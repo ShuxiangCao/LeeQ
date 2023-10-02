@@ -1,4 +1,6 @@
 from leeq.core import LeeQObject
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable
+from leeq.experiments.sweeper import Sweeper
 from leeq.utils import Singleton, setup_logging
 
 logger = setup_logging(__name__)
@@ -83,11 +85,12 @@ def setup():
     return ExperimentManager()
 
 
-def basic_run(*args, **kwargs):
+def basic_run(lpb: LogicalPrimitiveCombinable, swp: Sweeper, basis: str):
     """
-    A shortcut for compatibility.
+    A shortcut for compatibility. In this version we ignore the basis, as it should be specified in the transformation
+    function.
     """
-    return setup().run(*args, **kwargs)
+    return setup().run(lpb, swp)
 
 
 class Experiment(LeeQObject):

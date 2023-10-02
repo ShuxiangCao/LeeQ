@@ -36,22 +36,28 @@ class GridSerialSweepEngine(EngineBase):
             sweep (Sweeper): The sweeper to use.
         """
 
-        shape = sweep.shape
-        iterator_list = [range(shape[i]) for i in range(len(shape))]
+        def _run_single_step():
+            context = self._compile_lpb(lpb)
+            self._update_setup_parameters(context)
+            self._fire_experiment(context)
+            data = self._collect_data(context)
 
-        # Calculate the total size by shape
-        total_size = reduce(lambda x, y: x * y, shape)
+            # TODO: Commit the data to the measurement primitives
 
-        with tqdm(total=total_size) as pbar:
-            for i, indices in enumerate(itertools.product(*iterator_list)):
-                # Call the side effect callbacks
-                sweep.execute_side_effects_by_step_no(indices)
-                compiled_instructions = self._compile_lpb(lpb)
-                self._update_setup_parameters(compiled_instructions)
-                self._fire_experiment(compiled_instructions)
-                data = self._collect_data()
+        if sweep is None:
+            _run_single_step()
+        else:
+            shape = sweep.shape
 
-                # TODO: Commit the data to the measurement primitives
+            iterator_list = [range(shape[i]) for i in range(len(shape))]
 
-                # Update the progress bar
-                pbar.update(1)
+            # Calculate the total size by shape
+            total_size = reduce(lambda x, y: x * y, shape)
+
+            with tqdm(total=total_size) as pbar:
+                for i, indices in enumerate(itertools.product(*iterator_list)):
+                    # Call the side effect callbacks
+                    sweep.execute_side_effects_by_step_no(indices)
+                    _run_single_step()
+                    # Update the progress bar
+                    pbar.update(1)
