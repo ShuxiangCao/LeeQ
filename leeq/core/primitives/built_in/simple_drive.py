@@ -1,5 +1,6 @@
 import numpy as np
 
+from leeq.core.primitives.built_in.common import PhaseShift
 from leeq.core.primitives.logical_primitives import LogicalPrimitive, LogicalPrimitiveFactory
 from leeq.core.primitives.collections import LogicalPrimitiveCollection
 
@@ -70,7 +71,9 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
             KeyError: If the logical primitive is not found.
         """
 
-        if item == 'X':
+        if item == 'I':
+            return self._primitives['drive'].copy_with_parameters({'amp': 0}, name_postfix='_I')
+        elif item == 'X':
             return self._primitives['drive']
         elif item == 'Y':
             return self._primitives['drive'].copy_with_parameters({'phase': np.pi / 2}, name_postfix='_Y')
@@ -88,3 +91,128 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
                 {'amp': -self._parameters['amp'] / 2, 'phase': np.pi / 2}, name_postfix='_Ym')
 
         return super(SimpleDriveCollection).__getitem__(item)
+
+    def _get_amp_modified_primitive(self, gate_pi, angle):
+        """
+        Get the parameter modified primitive.
+
+        Parameters:
+            gate_pi (LogicalPrimitive): The gate to be modified.
+            angle (float): The angle of the gate.
+        """
+        start_level = int(self.transition_name[1])
+        end_level = int(self.transition_name[2])
+        level_diff = end_level - start_level
+
+        # Multi-photon transition will have different amplitude scaling
+        new_amp = gate_pi.amp * (angle / np.pi) ** (1 / level_diff)
+        return gate_pi.copy_with_parameters({'amp': new_amp}, name_postfix=f'_{angle}')
+
+    def hadamard(self):
+        """
+        Get the hadamard gate.
+        """
+
+        return self['Ym'] + self.z(angle=np.pi)
+
+    def x(self, angle):
+        """
+        Get a X(angle) gate.
+
+        Parameters:
+            angle (float): The angle of the gate.
+
+        Returns:
+            LogicalPrimitive: The X(angle) gate.
+        """
+        return self._get_amp_modified_primitive(self['X'], angle)
+
+    def y(self, angle):
+        """
+        Get a Y(angle) gate.
+
+        Parameters:
+            angle (float): The angle of the gate.
+
+        Returns:
+            LogicalPrimitive: The Y(angle) gate.
+        """
+        return self._get_amp_modified_primitive(self['Y'], angle)
+
+    def z(self, angle):
+        """
+        Get a Z(angle) gate. Note this gate is not compatible to qutrits or qudits vz gates.
+
+        Parameters:
+            angle (float): The angle of the gate.
+        """
+
+        return PhaseShift(name=self._name + '.Z', parameters={
+            'type': 'PhaseShift',
+            'channel': self.channel,  # Which channel to apply the phase shift
+            'phase_shift': -angle,  # The phase shift value, note that adding a phase is equivalent to displacing
+            # a negative phase to the reference frame, so we have minus sign here.
+            'transition_multiplier': {
+                # There is a trick to determine the sign of the phase shift for different
+                # transitions. If the level you want to change is the earlier letter, that's
+                # positive.
+                'f01': -1,
+            }})
+
+
+class QuditVirtualZCollection(LogicalPrimitiveCollection):
+
+    @classmethod
+    def _validate_parameters(cls, parameters: dict):
+        """
+        Validate the parameters of the logical primitive.
+        """
+        assert 'channel' in parameters, "The channel is not specified."
+
+    def z1(self, angle):
+        """
+        Get a Z1(angle) gate, adding a phase to the |1> state.
+        """
+
+        return PhaseShift(name=self._name + '.Z1', parameters={
+            'type': 'PhaseShift',
+            'channel': self.channel,  # Which channel to apply the phase shift
+            'phase_shift': -angle,  # The phase shift value, note that adding a phase is equivalent to displacing
+            # a negative phase to the reference frame, so we have minus sign here.
+            'transition_multiplier': {
+                # There is a trick to determine the sign of the phase shift for different
+                # transitions. If the level you want to change is the earlier letter, that's
+                # positive.
+                'f01': -1,
+                'f12': 1,
+                'f13': 1
+            }})
+
+    def z2(self, angle):
+        """
+        Get a Z2(angle) gate, adding a phase to the |2> state.
+        """
+        return PhaseShift(name=self._name + '.Z2', parameters={
+            'type': 'PhaseShift',
+            'channel': self.channel,
+            'phase_shift': -angle,
+            'transition_multiplier': {
+                'f02': -1,
+                'f12': -1,
+                'f23': 1
+            }})
+
+    def z3(self, angle):
+        """
+        Get a Z3(angle) gate, adding a phase to the |3> state.
+        """
+
+        return PhaseShift(name=self._name + '.Z3', parameters={
+            'type': 'PhaseShift',
+            'channel': self.channel,
+            'phase_shift': -angle,
+            'transition_multiplier': {
+                'f03': -1,
+                'f13': -1,
+                'f23': -1
+            }})
