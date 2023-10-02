@@ -1,5 +1,6 @@
 import numpy as np
 
+from leeq.core import LogicalPrimitiveFactory
 from leeq.core.elements import Element
 from leeq.core.primitives import LogicalPrimitiveCollectionFactory
 
@@ -18,9 +19,13 @@ class TransmonElement(Element):
         # Register necessary factory classes
         from leeq.core.primitives.built_in.simple_drive import SimpleDriveCollection
         from leeq.core.primitives.built_in.simple_drive import QuditVirtualZCollection
+        from leeq.core.primitives.built_in.simple_drive import SimpleDispersiveMeasurement
 
         factory = LogicalPrimitiveCollectionFactory()
         factory.register_collection_template(SimpleDriveCollection)
+
+        primitive_factory = LogicalPrimitiveFactory()
+        primitive_factory.register_collection_template(SimpleDispersiveMeasurement)
 
         # Build the element
         super().__init__(name, parameters)
@@ -38,6 +43,26 @@ class TransmonElement(Element):
                                                                         'channel': first_lpb_configuration['channel']
                                                                     })
 
+        self._default_measurement_primitive_name = '0'
+
+    def set_default_measurement_primitive_name(self, name: str):
+        """
+        Set the default measurement primitive name.
+
+        Parameters:
+            name (str): The name of the default measurement primitive.
+        """
+        self._default_measurement_primitive_name = name
+
+    def get_default_measurement_primitive_name(self):
+        """
+        Get the default measurement primitive name.
+
+        Returns:
+            str: The name of the default measurement primitive.
+        """
+        return self._default_measurement_primitive_name
+
     def _validate_parameters(self, parameters: dict):
         """
         Validate the parameters of the element.
@@ -46,7 +71,7 @@ class TransmonElement(Element):
             parameters (dict): The parameters of the element.
         """
 
-        from leeq.core.primitives.built_in.simple_drive import SimpleDriveCollection
+        from leeq.core.primitives.built_in.simple_drive import SimpleDriveCollection, SimpleDispersiveMeasurement
 
         for name, lpb_parameter in parameters['lpb_collections'].items():
             assert 'type' in lpb_parameter, 'The type of the lpb collection is not specified.'
@@ -54,8 +79,8 @@ class TransmonElement(Element):
                 f"The lpb collection {lpb_parameter['name']} is not supported."
 
         for name, measurement_parameter in parameters['measurement_primitives'].items():
-            assert 'name' in measurement_parameter, 'The name of the measurement parameter is not specified.'
-            assert measurement_parameter['name'] in ['simple_drive_measurement']
+            assert 'type' in measurement_parameter, 'The type of the measurement parameter is not specified.'
+            assert measurement_parameter['type'] in [SimpleDispersiveMeasurement.__qualname__]
 
     def get_gate(self, gate_name, transition_name='f01', angle=None):
         """
@@ -132,3 +157,46 @@ class TransmonElement(Element):
             return c1.hadamard()
 
         raise ValueError()
+
+    def get_measurement_prim_intlist(self, name: str):
+        """
+        For compatibility reasons, a shortcut for returning a measurement primitive with the return value type
+        tagged to be list of values, usually means a list of points on the IQ plane, each denote a single shot readout.
+        """
+        return self.get_measurement_primitive(name).shallow_copy().tag(return_value_type='list_of_values')
+
+    def get_measurement_prim_trace(self, name: str):
+        """
+        For compatibility reasons, a shortcut for returning a measurement primitive with the return value type
+        tagged to be traces of the sampled signal.
+        """
+        return self.get_measurement_primitive(name).shallow_copy().tag(return_value_type='trace')
+
+    def get_measurement_prim_int(self, name: str):
+        """
+        For compatibility reasons, a shortcut for returning a measurement primitive with the return value type
+        tagged to be a value, usually means averaged result among all shots.
+        """
+        return self.get_measurement_primitive(name).shallow_copy().tag(return_value_type='value')
+
+    def get_default_measurement_prim_intlist(self):
+        """
+        For compatibility reasons, a shortcut for returning the defatul measurement primitive with the return
+         value type tagged to be list of values, usually means a list of points on the IQ plane, each denote
+          a single shot readout.
+        """
+        return self.get_measurement_prim_intlist(self._default_measurement_primitive_name)
+
+    def get_default_measurement_prim_trace(self, name: str):
+        """
+        For compatibility reasons, a shortcut for returning the default measurement primitive with the
+         return value type tagged to be traces of the sampled signal.
+        """
+        return self.get_measurement_prim_trace(self._default_measurement_primitive_name)
+
+    def get_default_measurement_prim_int(self, name: str):
+        """
+        For compatibility reasons, a shortcut for returning the default measurement primitive with the return
+         value type tagged to be a value, usually means averaged result among all shots.
+        """
+        return self.get_measurement_prim_int(self._default_measurement_primitive_name)

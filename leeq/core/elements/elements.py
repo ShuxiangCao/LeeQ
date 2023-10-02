@@ -88,7 +88,9 @@ class Element(LeeQObject):
 
         factory = LogicalPrimitiveFactory()
         for primitive_name, primitive_parameters in self._parameters['measurement_primitives'].items():
-            self._measurement_primitives[primitive_name] = factory(primitive_parameters['type'], primitive_parameters)
+            self._measurement_primitives[primitive_name] = factory(name=self._name + '.measurement.' + str(primitive_name),
+                                                                   class_name=primitive_parameters['type'],
+                                                                   parameters=primitive_parameters)
 
     def _dump_lpb_collections(self):
         """
@@ -257,6 +259,12 @@ class Element(LeeQObject):
         Returns:
             primitive (LogicalPrimitive): The measurement primitive.
         """
+
+        if name not in self._measurement_primitives:
+            name = str(name)
+            if name not in self._measurement_primitives:
+                raise KeyError(f"Measurement primitive {name} not found.")
+
         return self._measurement_primitives[name]
 
     def get_c1(self, name: str):

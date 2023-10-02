@@ -1,7 +1,7 @@
 import numpy as np
 
 from leeq.core.primitives.built_in.common import PhaseShift
-from leeq.core.primitives.logical_primitives import LogicalPrimitive, LogicalPrimitiveFactory
+from leeq.core.primitives.logical_primitives import LogicalPrimitive, LogicalPrimitiveFactory, MeasurementPrimitive
 from leeq.core.primitives.collections import LogicalPrimitiveCollection
 
 
@@ -220,3 +220,13 @@ class QuditVirtualZCollection(LogicalPrimitiveCollection):
                 'f13': -1,
                 'f23': -1
             }})
+
+
+class SimpleDispersiveMeasurement(MeasurementPrimitive):
+    """
+    Describes a simple dispersive measurement which send a single frequency pulse and look at the reflected signal.
+    """
+
+    @classmethod
+    def _validate_parameters(cls, parameters: dict):
+        assert 'distinguishable_states' in parameters, 'The distinguishable states are not specified.'

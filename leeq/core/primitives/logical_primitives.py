@@ -92,6 +92,18 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         clone_name = self._name + f'_clone_{uuid.uuid4()}'
         return self.__class__(clone_name, copy.deepcopy(self._parameters))
 
+    def shallow_copy(self):
+        """
+        Copy the logical primitive without copying the parameters. Updating
+        the parameters of the copied logical primitive will also update the
+        parameters of the original logical primitive, and the full element
+        configuration. The tags will not be copied.
+
+        Returns:
+            LogicalPrimitive: The copied logical primitive.
+        """
+        return self.__class__(self._name, self._parameters)
+
     def copy_with_parameters(self, parameters: dict, name_postfix=None):
         """
         Copy the logical primitive with new parameters.
@@ -118,16 +130,16 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         raise NotImplementedError()
 
     @log_event
-    def tag(self, key, val):
+    def tag(self, **kwargs):
         """
         Add a tag to the logical primitive. This is for the user to add additional information to the logical primitive.
         Especially for the backend to use.
 
         Parameters:
-            key (str): The name of the tag.
-            val (object): The value of the tag.
+            kwargs: The tags to be added to the logical primitive.
         """
-        self._tags[key] = val
+        self._tags.update(kwargs)
+        return self
 
     @property
     def tags(self):
