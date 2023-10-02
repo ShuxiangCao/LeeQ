@@ -275,7 +275,7 @@ class LogicalPrimitiveBlockSerial(LogicalPrimitiveBlock):
         Syntax sugar for combining two logical primitive blocks in serial.
         """
         assert isinstance(other,
-                          LogicalPrimitiveBlock), f"The other object is not a logical primitive block, got {type(other)}."
+                          LogicalPrimitiveCombinable), f"The other object is not a logical primitive block, got {type(other)}."
 
         if isinstance(other, LogicalPrimitiveBlockSerial):
             return LogicalPrimitiveBlockSerial(self._children + other._children)

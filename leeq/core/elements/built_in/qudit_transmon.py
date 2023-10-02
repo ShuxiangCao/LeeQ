@@ -27,14 +27,15 @@ class TransmonElement(Element):
 
         # Manually build the virtual z logical primitive collection
         # assert all the channels in lpb configurations are the same
-        lpb_configurations = self._parameters['lpb_configurations']
+        lpb_configurations = self._parameters['lpb_collections']
         assert len(set([lpb_configuration['channel'] for lpb_configuration in lpb_configurations.values()])) == 1
+
+        first_lpb_configuration = list(lpb_configurations.values())[0]
 
         # Build the virtual z logical primitive collection
         self._lpb_collections['qudit_vz'] = QuditVirtualZCollection(name=self._name + '.' + 'qudit_vz',
                                                                     parameters={
-                                                                        'channel': lpb_configurations.values[0][
-                                                                            'channel']
+                                                                        'channel': first_lpb_configuration['channel']
                                                                     })
 
     def _validate_parameters(self, parameters: dict):

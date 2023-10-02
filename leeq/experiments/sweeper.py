@@ -214,7 +214,6 @@ class Sweeper(LeeQObject):
             Sweeper: The copy of the sweeper.
         """
         obj = self.__new__(Sweeper)
-        obj._step = self._step
         obj._params = self._params
         obj._child = copy.copy(self._child)
         obj._sweep_parameters = copy.copy(self._sweep_parameters)

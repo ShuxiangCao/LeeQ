@@ -52,6 +52,10 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
             'drive': 'SimpleDrive'
         }
 
+        # If the transition name is not specified, we will use the name of the collection
+        if 'transition_name' not in 'parameters':
+            self.transition_name = name.split('.')[-1]
+
         factory = LogicalPrimitiveFactory()
         factory.register_collection_template(SimpleDrive)
 
