@@ -65,11 +65,6 @@ def test_logical_primitive_block_serial_clone():
                zip(cloned_block._children, block_serial._children))
 
 
-# def test_logical_primitive_factory_creation():
-#    factory = LogicalPrimitiveFactory()
-#    assert factory.create_object(LogicalPrimitive, name='primitive', parameters={})
-
-
 def test_logical_primitive_add_assertion():
     lp1 = MockLogicalPrimitive(name='primitive1', parameters={})
     with pytest.raises(AssertionError):
