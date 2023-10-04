@@ -125,10 +125,10 @@ def test_compile_lpb_to_full_sequence_integration(qubit_q1, qubit_q2):
 
     compiler = FullSequencingCompiler(
         sampling_rate={
-            1: 1e6,
-            2: 1e6,
-            3: 1e6,
-            4: 1e6
+            1: 1e2,
+            2: 1e2,
+            3: 1e2,
+            4: 1e2
         }
     )
 
