@@ -209,7 +209,6 @@ class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
 
         return self.__class__(name=clone_name, children=cloned_children)
 
-
     @property
     def children(self):
         """

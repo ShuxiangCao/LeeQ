@@ -23,17 +23,17 @@ class GridSerialSweepEngine(EngineBase):
     implement the sweep in series, find those modified lpbs and call the compiler to implement the experiment.
     """
 
-    def __init__(self, name: str, backend: Any, setup: Any):
+    def __init__(self, name: str, compiler: Any, setup: Any):
         """
         Initialize the GridSweepEngine class.
 
         Parameters:
             name (str): The name of the engine.
-            backend (Any): The compiler to use.
+            compiler (Any): The compiler to use.
             setup (Any): The instrument setup to use.
         """
 
-        super().__init__(name=name, backend=backend, setup=setup)
+        super().__init__(name=name, compiler=compiler, setup=setup)
         self._context = ExperimentContext(self._name + '.context')
 
     def run(self, lpb: LogicalPrimitiveBlock, sweep: Sweeper):
@@ -87,7 +87,7 @@ class GridSerialSweepEngine(EngineBase):
         Returns:
             Any: The compiled instructions.
         """
-        return self._backend.compile_lpb(self._context, lpb)
+        return self._compiler.compile_lpb(self._context, lpb)
 
     def _update_setup_parameters(self):
         """
@@ -111,4 +111,4 @@ class GridSerialSweepEngine(EngineBase):
         """
         Commit the measurement primitives to the compiler.
         """
-        self._backend.commit_measurement(self._context)
+        self._compiler.commit_measurement(self._context)

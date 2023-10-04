@@ -1,25 +1,63 @@
+import numpy as np
+
+from leeq.core.context import ExperimentContext
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import ExperimentalSetup
+from leeq.theory.simulation.qutip.pulsed_simulator import QutipPulsedSimulator
 
 
-class QuTipQIPLocalSetup(ExperimentalSetup):
+class QuTip2QLocalSetup(ExperimentalSetup):
     """
-    The QuTipQIPLocalSetup class defines a local setup for for using the qutip package to simulate the experiment
+    The QuTipLocalSetup class defines a local setup for for using the qutip package to simulate the experiment
     at pulse level, at the local machine.
     """
 
-    def __init__(self):
+    def __init__(self, sampling_rate=1e4, backend=None):
         """
         Initialize the QuTipQIPLocalSetup class.
+
+        Parameters:
+            sampling_rate (float): The sampling rate of the experiment. In Msps unit.
         """
-        name = 'qutip_qip_local'
-        from leeq.compiler.qutip.backend_qutip import BackendQutipQIP
+        name = 'qutip_2q_local'
+        from leeq.compiler.full_sequecing.full_sequencing import FullSequencingCompiler
         from leeq.core.engine.grid_sweep_engine import GridSerialSweepEngine
-        self._backend = BackendQutipQIP()
-        self._engine = GridSerialSweepEngine(backend=self._backend, setup=self, name=name + '.engine')
+        self._compiler = FullSequencingCompiler(sampling_rate={
+            0: sampling_rate,
+            1: sampling_rate,
+            2: sampling_rate,
+            3: sampling_rate,
+        })
+        self._engine = GridSerialSweepEngine(compiler=self._compiler, setup=self, name=name + '.engine')
         self._current_context = None
+        self._sampling_rate = sampling_rate
+
+        self._simulator = QutipPulsedSimulator()
+        self._simulator.add_qubit(
+            name='q0',
+            frequency=4000,
+            anharmonicity=-200,
+            t1=100,
+            t2=100,
+        )
+        self._simulator.add_qubit(
+            name='q1',
+            frequency=4100,
+            anharmonicity=-200,
+            t1=100,
+            t2=100,
+        )
+        self._simulator.build_system()
+
         super().__init__(name)
+
+        self._channel_to_qubit = {
+            0: 'q0',
+            1: 'q0_r',
+            2: 'q1',
+            3: 'q1_r',
+        }
 
     def run(self, lpb: LogicalPrimitiveBlock, sweep: Sweeper):
         """
@@ -53,7 +91,7 @@ class QuTipQIPLocalSetup(ExperimentalSetup):
         """
         return self._engine.run(lpb, sweep)
 
-    def update_setup_parameters(self, context):
+    def update_setup_parameters(self, context: ExperimentContext):
         """
         Update the setup parameters of the compiler. It accepts the compiled instructions from the compiler, and update
         the local cache first. then use push_instrument_settings to push the settings to the instruments.
@@ -63,6 +101,36 @@ class QuTipQIPLocalSetup(ExperimentalSetup):
         """
         self._current_context = context
 
+        self._simulator.reset()
+
+        total_time = len(list(context.instructions['pulse_sequence'].values())[-1]) / self._sampling_rate
+        measurement_time = [v[0] / self._sampling_rate for v in context.instructions['measurement_sequence']]
+
+        self._simulator.set_measurement_time(measurement_time=measurement_time)
+
+        self._simulator.setup_clock(
+            total_time=total_time,
+            time_resolution=1 / self._sampling_rate,
+        )
+
+        for (channel, freq), buffer in context.instructions['pulse_sequence'].items():
+
+            if channel not in self._channel_to_qubit:
+                msg = f'Channel {channel} is not mapped to any qubit.'
+                self.logger.error(msg)
+                raise ValueError(msg)
+
+            if 'r' in self._channel_to_qubit[channel]:
+                # Ignore the readout signals
+                continue
+
+            pulse = np.exp(1j * 2 * np.pi * freq * np.arange(len(buffer)) / self._sampling_rate) * buffer
+
+            self._simulator.set_drive_buffer(
+                qubit_name=self._channel_to_qubit[channel],
+                pulse=pulse,
+            )
+
     def fire_experiment(self, context=None):
         """
         Fire the experiment and wait for it to finish.
@@ -71,7 +139,7 @@ class QuTipQIPLocalSetup(ExperimentalSetup):
         if context is not None:
             self._current_context = context
 
-        # TODO: Actually run the simulation here
+        self._result = self._simulator.run()
 
         pass
 

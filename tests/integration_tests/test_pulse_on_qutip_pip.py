@@ -6,7 +6,7 @@ from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.experiments.experiments import Experiment
 from leeq.experiments.experiments import setup
 from leeq.experiments.experiments import basic_run as basic
-from leeq.setups.built_in.setup_qutip_qip_local import QuTipQIPLocalSetup
+from leeq.setups.built_in.setup_qutip_2q_local import QuTip2QLocalSetup
 
 
 class DummyObject(object):
@@ -22,7 +22,7 @@ configuration = {
             'type': 'SimpleDriveCollection',
             'freq': 4144.417053428905,
             'channel': 2,
-            'shape': 'BlackmanDRAG',
+            'shape': 'blackman_drag',
             'amp': 0.21323904814245054 / 5 * 4,
             'phase': 0.,
             'width': 0.025,
@@ -33,7 +33,7 @@ configuration = {
             'type': 'SimpleDriveCollection',
             'freq': 4144.417053428905,
             'channel': 2,
-            'shape': 'BlackmanDRAG',
+            'shape': 'blackman_drag',
             'amp': 0.21323904814245054 / 5 * 4,
             'phase': 0.,
             'width': 0.025,
@@ -46,7 +46,7 @@ configuration = {
             'type': 'SimpleDispersiveMeasurement',
             'freq': 9144.41,
             'channel': 1,
-            'shape': 'Square',
+            'shape': 'square',
             'amp': 0.21323904814245054 / 5 * 4,
             'phase': 0.,
             'width': 1,
@@ -89,7 +89,7 @@ class SimpleSampleExperiment(Experiment):
 def test_pulse_on_qutip_pip(qubit):
     # Prepare some lpb to prepare a non-trivial distribution
 
-    exp_setup = QuTipQIPLocalSetup()
+    exp_setup = QuTip2QLocalSetup()
     setup().register_setup(exp_setup)
 
     lpb = qubit.get_lpb_collection('f01')['Xp']

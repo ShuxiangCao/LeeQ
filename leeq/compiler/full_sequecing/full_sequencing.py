@@ -135,8 +135,11 @@ class FullSequencingCompiler(CompilerBase):
                                                   **pulse_shape_parameters)
 
         if isinstance(lpb, MeasurementPrimitive):
+            tags = lpb.tags
+            tags.update(pulse_shape_parameters)
+
             # If the logical primitive is a measurement primitive, then return the measurement sequence
-            self._measurement_sequence.add_measurement(current_position, (pulse_channel, lpb.freq), lpb.tags)
+            self._measurement_sequence.add_measurement(current_position, (pulse_channel, lpb.freq), tags)
 
         self._pulse_fragments.append(((pulse_channel, lpb.freq), current_position, pulse_shape))
 
@@ -156,7 +159,8 @@ class FullSequencingCompiler(CompilerBase):
         max_time_span = max([v / self._sampling_rate[channel] for (channel, freq), v in self._lengths.items()])
 
         for (channel, freq), v in self._lengths.items():
-            sequences[(channel, freq)] = np.zeros(int(max_time_span * self._sampling_rate[channel]), dtype=np.complex64)
+            sequences[(channel, freq)] = np.zeros(int(max_time_span * self._sampling_rate[channel] + 0.5),
+                                                  dtype=np.complex64)
 
         for (channel, freq), position, pulse_shape_data in self._pulse_fragments:
             sequences[(channel, freq)][position:position + len(pulse_shape_data)] += pulse_shape_data

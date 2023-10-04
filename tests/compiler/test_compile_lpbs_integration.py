@@ -138,12 +138,12 @@ def test_compile_lpb_to_full_sequence_integration(qubit_q1, qubit_q2):
     pulses = result.instructions['pulse_sequence']
     assert len(pulses) == 4
 
-    from matplotlib import pyplot as plt
-    for key, val in pulses.items():
-        plt.plot(val.real, label=str(key) + ' real')
-        plt.plot(val.imag, label=str(key) + ' imag')
-    plt.legend()
-    plt.show()
+    # from matplotlib import pyplot as plt
+    # for key, val in pulses.items():
+    #    plt.plot(val.real, label=str(key) + ' real')
+    #    plt.plot(val.imag, label=str(key) + ' imag')
+    # plt.legend()
+    # plt.show()
 
     # Assert all the pulses has the same length
     length = pulses[(4, 5144.1)].shape

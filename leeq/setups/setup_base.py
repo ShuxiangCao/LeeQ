@@ -14,7 +14,7 @@ class ExperimentalSetup(LeeQObject):
         """
         Initialize the ExperimentalSetup class. Use init to define all the equipments in the setup.
         """
-        assert '_backend' in self.__dict__, 'The compiler is not defined in the setup, please define it in the __init__.'
+        assert '_compiler' in self.__dict__, 'The compiler is not defined in the setup, please define it in the __init__.'
         assert '_engine' in self.__dict__, 'The engine is not defined in the setup, please define it in the __init__.'
         super().__init__(name)
         self._active = False
