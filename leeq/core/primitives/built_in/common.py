@@ -90,7 +90,7 @@ class PhaseShift(LogicalPrimitive):
 
         When the transition name is something like 'f02', which indicates a multi-photon transition, the phase shift
         will be divided by the number of transition photons to make it logically corresponds to the shift the user
-         would like to obtain. This feature needs to be implemented at the backend level.
+         would like to obtain. This feature needs to be implemented at the compiler level.
         """
 
         super().__init__(name, parameters)

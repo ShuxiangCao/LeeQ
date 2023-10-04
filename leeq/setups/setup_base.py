@@ -14,7 +14,7 @@ class ExperimentalSetup(LeeQObject):
         """
         Initialize the ExperimentalSetup class. Use init to define all the equipments in the setup.
         """
-        assert '_backend' in self.__dict__, 'The backend is not defined in the setup, please define it in the __init__.'
+        assert '_backend' in self.__dict__, 'The compiler is not defined in the setup, please define it in the __init__.'
         assert '_engine' in self.__dict__, 'The engine is not defined in the setup, please define it in the __init__.'
         super().__init__(name)
         self._active = False
@@ -56,13 +56,13 @@ class ExperimentalSetup(LeeQObject):
         Run the experiment.
 
         Note that the setup mainly maintains the instruments, so the compiling from lpb to instructions should be done
-        by the backend.
+        by the compiler.
         """
         raise NotImplementedError()
 
     def update_setup_parameters(self, instructions):
         """
-        Update the setup parameters of the backend. It accepts the compiled instructions from the backend, and update
+        Update the setup parameters of the compiler. It accepts the compiled instructions from the compiler, and update
         the local cache first. then use push_instrument_settings to push the settings to the instruments.
 
         Parameters:
@@ -81,7 +81,7 @@ class ExperimentalSetup(LeeQObject):
 
     def collect_data(self, instructions):
         """
-        Collect the data from the backend and commit it to the measurement primitives.
+        Collect the data from the compiler and commit it to the measurement primitives.
 
         Parameters:
             instructions (Any): The instructions to be executed.

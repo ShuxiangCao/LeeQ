@@ -6,7 +6,7 @@ from leeq.core.primitives.collections import LogicalPrimitiveCollection
 
 
 class SimpleDrive(LogicalPrimitive):
-    _parameter_names = ['freq', 'channel', 'shape', 'amp', 'phase', 'width', 'alpha', 'trunc']
+    _parameter_names = ['freq', 'channel', 'shape', 'amp', 'phase', 'width']
 
     def __init__(self, name: str, parameters: dict):
         super().__init__(name, parameters)

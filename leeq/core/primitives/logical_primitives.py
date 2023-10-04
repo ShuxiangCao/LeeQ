@@ -133,7 +133,7 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
     def tag(self, **kwargs):
         """
         Add a tag to the logical primitive. This is for the user to add additional information to the logical primitive.
-        Especially for the backend to use.
+        Especially for the compiler to use.
 
         Parameters:
             kwargs: The tags to be added to the logical primitive.
@@ -150,6 +150,26 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
             dict: The tags of the logical primitive.
         """
         return self._tags.copy()
+
+    @property
+    def children(self):
+        """
+        Get the children of the logical primitive.
+
+        Returns:
+            list: The children of the logical primitive.
+        """
+        return None
+
+    def get_parameters(self):
+        """
+        Get the parameters of the logical primitive.
+
+        Returns:
+            dict: The parameters of the logical primitive.
+        """
+        params = copy.deepcopy(self._parameters)
+        return params
 
 
 class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
@@ -188,6 +208,17 @@ class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
             cloned_children.append(child.clone())
 
         return self.__class__(name=clone_name, children=cloned_children)
+
+
+    @property
+    def children(self):
+        """
+        Get the children of the logical primitive block.
+
+        Returns:
+            list: The children of the logical primitive block.
+        """
+        return self._children
 
 
 class LogicalPrimitiveBlockSweep(LogicalPrimitiveBlock):
@@ -240,6 +271,15 @@ class LogicalPrimitiveBlockSweep(LogicalPrimitiveBlock):
         Get the number of children.
         """
         return len(self._children)
+
+    def children(self):
+        """
+        Get the children of the logical primitive block. For sweep block are the selected block.
+
+        Returns:
+            list: The children of the logical primitive block.
+        """
+        return [self._children[self._selected]]
 
 
 class LogicalPrimitiveBlockParallel(LogicalPrimitiveBlock):

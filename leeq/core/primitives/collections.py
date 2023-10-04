@@ -25,6 +25,9 @@ class LogicalPrimitiveCollection(SharedParameterObject):
             parameters (dict): The parameters of the lpb collection.
         """
 
+        if 'transition_name' not in parameters:
+            parameters['transition_name'] = name.split('.')[-1]
+
         super().__init__(name, parameters)
         self._primitives = {}
 
