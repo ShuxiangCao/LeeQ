@@ -28,7 +28,7 @@ def gaussian(sampling_rate: int, amp: float, phase: float, width: float, trunc: 
 
     # Generate and return the Gaussian wave packet.
     # You may extend the function to incorporate it in the future.
-    return amp * np.exp(1.0j * phase) * np.exp(-(t / gauss_width) ** 2).astype('complex64')
+    return amp * np.exp(1.0j * phase) * np.exp(-((t - gauss_width) / gauss_width) ** 2).astype('complex64')
 
 
 def gaussian_drag(sampling_rate: int,
@@ -70,7 +70,7 @@ def gaussian_drag(sampling_rate: int,
     t = get_t_list(sampling_rate, width * trunc)
 
     # Compute the real part of the pulse shape using a Gaussian function
-    shape = np.exp(-(t / gauss_width) ** 2, dtype='cfloat')
+    shape = np.exp(-((t - gauss_width) / gauss_width) ** 2, dtype='cfloat')
 
     # Compute the imaginary part using the derivative of the Gaussian
     shape.imag = shape.real * 2.0 * t / (2.0 * np.pi * alpha2) / gauss_width ** 2
@@ -117,7 +117,7 @@ def blackman(sampling_rate: int,
     midshape = shape[offset:offset + len(t)]
 
     # Update the real part of midshape based on the Blackman window formula
-    midshape += (
+    midshape += 1 - (
             a0
             - a1 * np.cos((2.0 * np.pi * (t + width / 2.)) / width, dtype='cfloat')
             + a2 * np.cos(4.0 * np.pi * (t + width / 2.) / width, dtype='cfloat')
@@ -179,17 +179,17 @@ def blackman_drag(sampling_rate: int, amp: float, phase: float = None, width: fl
     midshape = shape[offset:offset + len(t)]
 
     # Apply the Blackman function
-    midshape += a0 - a1 * np.cos((2.0 * np.pi * (t + width / 2.)) / width) + a2 * np.cos(
-        4.0 * np.pi * (t + width / 2.) / width)
+    midshape += 1 - (a0 - a1 * np.cos((2.0 * np.pi * (t + width / 2.)) / width, dtype='cfloat') + a2 * np.cos(
+        4.0 * np.pi * (t + width / 2.) / width, dtype='cfloat'))
 
     # Handle imaginary part with a DRAG correction term
     alpha2 = alpha * 2.
-    midshape.imag = - (a1 * 2.0 * np.pi / width * np.sin((2.0 * np.pi * (t + width / 2.)) / width) -
-                       a2 * 4.0 * np.pi / width * np.sin(4.0 * np.pi * (t + width / 2.) / width)) / (
-                            2. * np.pi * alpha2)
+    midshape.imag = - (a1 * 2.0 * np.pi / width * np.sin(
+        (2.0 * np.pi * (t + width / 2.)) / width) - a2 * 4.0 * np.pi / width * np.sin(
+        4.0 * np.pi * (t + width / 2.) / width)) / (2. * np.pi * alpha2)
 
     # Return the pulse shaped with phase and amplitude
-    return amp * np.exp(1.0j * (phase)) * shape
+    return amp * np.exp(1.0j * phase) * shape
 
 
 def soft_square(

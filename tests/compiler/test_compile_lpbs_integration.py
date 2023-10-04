@@ -38,7 +38,7 @@ def qubit_q1():
                 'shape': 'square',
                 'amp': 0.2323904814245054 / 5 * 4,
                 'phase': 0.,
-                'width': 3,
+                'width': 0.5,
                 'trunc': 1.2,
                 'distinguishable_states': [0, 1]
             }
@@ -67,7 +67,7 @@ def qubit_q2():
                 'type': 'SimpleDriveCollection',
                 'freq': 4144.417053428905,
                 'channel': 2,
-                'shape': 'blackman_drag',
+                'shape': 'gaussian_drag',
                 'amp': 0.21323904814245054 / 5 * 4,
                 'phase': 0.,
                 'width': 0.025,
@@ -110,13 +110,13 @@ def test_compile_primitive_to_sequence_integration(qubit_q1):
     result = compiler.compile_lpb(context=context, lpb=hq1)
 
     assert result.instructions['pulse_sequence'][(4, 5144.1)].shape == (25000,)
-    assert result.instructions['pulse_sequence'][(4, 5144.1)].dtype == complex
+    assert result.instructions['pulse_sequence'][(4, 5144.1)].dtype == 'complex64'
 
 
 def test_compile_lpb_to_full_sequence_integration(qubit_q1, qubit_q2):
     hq1 = qubit_q1.get_gate('qutrit_hadamard')
 
-    hq2 = qubit_q2.get_lpb_collection('f01')['Yp']
+    hq2 = qubit_q2.get_lpb_collection('f01')['Yp'] + qubit_q2.get_lpb_collection('f12')['Xp']
 
     mprim_1 = qubit_q1.get_measurement_primitive('0')
     mprim_2 = qubit_q1.get_measurement_primitive('0')
@@ -133,10 +133,17 @@ def test_compile_lpb_to_full_sequence_integration(qubit_q1, qubit_q2):
     )
 
     context = ExperimentContext(name='test_compile_primitive_to_sequence_integration')
-    result = compiler.compile_lpb(context=context, lpb=hq1)
+    result = compiler.compile_lpb(context=context, lpb=lpb)
 
     pulses = result.instructions['pulse_sequence']
     assert len(pulses) == 4
+
+    from matplotlib import pyplot as plt
+    for key, val in pulses.items():
+        plt.plot(val.real, label=str(key) + ' real')
+        plt.plot(val.imag, label=str(key) + ' imag')
+    plt.legend()
+    plt.show()
 
     # Assert all the pulses has the same length
     length = pulses[(4, 5144.1)].shape
