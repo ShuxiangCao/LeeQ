@@ -211,13 +211,13 @@ class QuTip2QLocalSetup(ExperimentalSetup):
 
         for uuid, results in ordered_results.items():
             results.sort(key=lambda x: x[0])
-            result_array = np.asarray([v[1] for v in results])
-
-            assert len(result_array.shape) == 2
-            assert result_array.shape[0] == len(results)
+            result_array = [v[1] for v in results]
 
             m_result = MeasurementResult(
-                step_no=self._current_context.step_no, data=result_array, mprim_uuid=uuid)
+                step_no=self._current_context.step_no, data=result_array[0], mprim_uuid=uuid)
+
+            for i in range(1, len(result_array)):
+                m_result.append(result_array[i])
 
             self._measurement_results.append(m_result)
 
