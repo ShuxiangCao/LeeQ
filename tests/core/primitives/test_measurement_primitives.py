@@ -46,14 +46,14 @@ def test_result_id_offset_setting_and_getting(primitive):
 def test_commit_and_result_methods(primitive):
     import numpy as np
     data = np.array([1, 2, 3])
-    primitive.commit_measurement(step_no=0, data=data)
-    assert np.array_equal(primitive.result(result_id=0, raw_data=True)[1], data)
+    primitive.commit_measurement(data=data)
+    assert np.array_equal(primitive.result(result_id=0, raw_data=True), data)
 
 
 def test_clear_results_method(primitive):
     import numpy as np
     data = np.array([1, 2, 3])
-    primitive.commit_measurement(step_no=0, data=data)
+    primitive.commit_measurement(data=data)
     primitive.clear_results()
     with pytest.raises(RuntimeError):
         primitive.result(result_id=0, raw_data=True)

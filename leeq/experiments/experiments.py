@@ -121,16 +121,19 @@ class Experiment(LeeQObject):
         """
         Initialize the experiment.
         """
-        super().__init__(name=f'Experiment: {self.__class__.__name__}')
+        super(Experiment, self).__init__(
+            name=f'Experiment: {self.__class__.__name__}'
+        )
 
         # Run the experiment
         self.run(*args, **kwargs)
 
         # Check if we need to plot
         # TODO: implement the check after the environment is set up.
-        for func, f_args, f_kwargs in self._browse_functions:
+        for name, func in self.get_browser_functions():
+            f_args, f_kwargs = func._browser_function_args, func._browser_function_kwargs
             try:
-                func(self, *f_args, **f_kwargs)
+                func(*f_args, **f_kwargs)
             except Exception as e:
                 self.logger.warning(
                     f'Error when executing {func.__qualname__} with parameters ({f_args},{f_kwargs}): {e}')

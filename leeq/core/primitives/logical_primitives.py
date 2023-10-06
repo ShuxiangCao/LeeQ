@@ -25,6 +25,7 @@ class LogicalPrimitiveCombinable(object):
 
         if isinstance(other, LogicalPrimitiveBlockSerial):
             other._children.insert(0, self)
+            other._uuid_to_nodes.update(self.nodes)
             return other
 
         return LogicalPrimitiveBlockSerial([self, other])
@@ -38,6 +39,8 @@ class LogicalPrimitiveCombinable(object):
 
         if isinstance(other, LogicalPrimitiveBlockParallel):
             other._children.insert(0, self)
+            other._uuid_to_nodes.update(self.nodes)
+            return other
 
         return LogicalPrimitiveBlockParallel([self, other])
 
@@ -75,12 +78,14 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
 
         reserved_names = ['_parameters', '__dict__']
 
-        if item not in reserved_names:
-            if '_parameters' in self.__dict__:
-                if item in self._parameters:
-                    return self._parameters[item]
+        get_attribute = super(LogicalPrimitive, self).__getattribute__
 
-        return super(LogicalPrimitive, self).__getattribute__(item)
+        if item not in reserved_names:
+            if '_parameters' in get_attribute('__dict__'):
+                if item in get_attribute('_parameters'):
+                    return get_attribute('_parameters')[item]
+
+        return get_attribute(item)
 
     def clone(self):
         """
@@ -171,6 +176,15 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         params = copy.deepcopy(self._parameters)
         return params
 
+    @property
+    def nodes(self):
+        """
+        Get the nodes of the logical primitive.
+        """
+        return {
+            self.uuid: self
+        }
+
 
 class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
     """
@@ -193,6 +207,10 @@ class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
         else:
             self._children = []
 
+        self._uuid_to_nodes = {}
+        for child in children:
+            self._uuid_to_nodes.update(child.nodes)
+
     def clone(self):
         """
         Clone the object. The returned object is safe to modify. For a block, the children are also cloned.
@@ -200,7 +218,7 @@ class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
         Returns:
             SharedParameterObject: The cloned object.
         """
-        clone_name = self._name + f'_clone_{uuid.uuid4()}'
+        clone_name = self._name + f'_clone'
 
         # Clone the children
         cloned_children = []
@@ -218,6 +236,13 @@ class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
             list: The children of the logical primitive block.
         """
         return self._children
+
+    @property
+    def nodes(self):
+        """
+        Get the nodes of the logical primitive block.
+        """
+        return self._uuid_to_nodes
 
 
 class LogicalPrimitiveBlockSweep(LogicalPrimitiveBlock):
@@ -280,6 +305,12 @@ class LogicalPrimitiveBlockSweep(LogicalPrimitiveBlock):
         """
         return [self._children[self._selected]]
 
+    def nodes(self):
+        """
+        Get the nodes of the logical primitive block. For sweep block are the selected block.
+        """
+        return self._children[self._selected].nodes
+
 
 class LogicalPrimitiveBlockParallel(LogicalPrimitiveBlock):
     """
@@ -299,12 +330,14 @@ class LogicalPrimitiveBlockParallel(LogicalPrimitiveBlock):
         Syntax sugar for combining two logical primitive blocks in parallel.
         """
         assert isinstance(other,
-                          LogicalPrimitiveBlock), f"The other object is not a logical primitive block, got {type(other)}."
+                          LogicalPrimitiveCombinable), \
+            f"The other object is not a logical primitive or a block, got {type(other)}."
 
         if isinstance(other, LogicalPrimitiveBlockParallel):
             return LogicalPrimitiveBlockParallel(children=self._children + other._children)
 
         self._children.append(other)
+        self._uuid_to_nodes.update(other.nodes)
         return self
 
 
@@ -332,6 +365,7 @@ class LogicalPrimitiveBlockSerial(LogicalPrimitiveBlock):
             return LogicalPrimitiveBlockSerial(self._children + other._children)
 
         self._children.append(other)
+        self._uuid_to_nodes.update(other.nodes)
         return self
 
 
@@ -514,12 +548,16 @@ class MeasurementPrimitive(LogicalPrimitive):
         self._results = []
         self._results_raw = []
 
-    def commit_measurement(self, step_no: int, data: numpy.ndarray):
+    def commit_measurement(self, data: numpy.ndarray):
         """
         Commit a measurement result to the measurement primitive.
 
+        The data is supplied in the following shape:
+        [sweep index,  data]
+
+        For different result id, it needs to be committed in sequence
+
         Parameters:
-            step_no (int): The step number of the measurement.
             data (numpy.ndarray): The measurement result.
         """
 
@@ -530,8 +568,8 @@ class MeasurementPrimitive(LogicalPrimitive):
         else:
             data_transformed = data
 
-        self._results_raw.append((step_no, data_raw))
-        self._results.append((step_no, data))
+        self._results_raw.append(data_raw)
+        self._results.append(data)
 
 
 class MeasurementPrimitiveFactory(ObjectFactory):

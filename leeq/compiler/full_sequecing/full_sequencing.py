@@ -11,7 +11,7 @@ from leeq.core.primitives.logical_primitives import (LogicalPrimitiveCombinable,
                                                      LogicalPrimitiveBlockParallel,
                                                      LogicalPrimitiveBlockSerial,
                                                      LogicalPrimitiveBlockSweep,
-                                                     MeasurementPrimitive
+                                                     MeasurementPrimitive, LogicalPrimitiveBlock
                                                      )
 
 import numpy as np
@@ -137,6 +137,9 @@ class FullSequencingCompiler(CompilerBase):
         if isinstance(lpb, MeasurementPrimitive):
             tags = lpb.tags
             tags.update(pulse_shape_parameters)
+            tags.update({
+                'uuid': lpb.uuid,
+            })
 
             # If the logical primitive is a measurement primitive, then return the measurement sequence
             self._measurement_sequence.add_measurement(current_position, (pulse_channel, lpb.freq), tags)
@@ -205,8 +208,16 @@ class FullSequencingCompiler(CompilerBase):
     def _(self, lpb: LogicalPrimitiveBlockSweep, current_position: int):
         return self._compile_lpb(lpb.children[0], current_position)
 
-    def commit_measurement(self, context: ExperimentContext):
+    def commit_measurement(self, context: ExperimentContext, lpb: LogicalPrimitiveBlock):
         """
         Commit the measurement result to the measurement primitives.
         """
+
+        measurement_keys = [k for k in context.results.keys()]
+        measurement_keys.sort(key=lambda x: x[1])
+
+        for i, (uuid, position_point) in enumerate(measurement_keys):
+            measurement_primitive = lpb.nodes[uuid]
+            measurement_primitive.commit_result(context.results[(uuid, position_point)])
+
         pass

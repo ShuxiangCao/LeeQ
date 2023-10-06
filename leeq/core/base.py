@@ -1,3 +1,5 @@
+import uuid
+
 from labchronicle import LoggableObject
 
 
@@ -9,7 +11,8 @@ class LeeQObject(LoggableObject):
 
     def __init__(self, name):
         self._name = name
-        super(LoggableObject, self).__init__()
+        self._uuid = uuid.uuid4()
+        super(LeeQObject, self).__init__()
 
     @property
     def hrid(self):
@@ -20,3 +23,13 @@ class LeeQObject(LoggableObject):
             str: The human readable id of the object.
         """
         return self._name
+
+    @property
+    def uuid(self):
+        """
+        Get the uuid of the object.
+
+        Returns:
+            str: The uuid of the object.
+        """
+        return self._uuid

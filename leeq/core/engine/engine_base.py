@@ -6,7 +6,6 @@ from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import ExperimentalSetup
 
-
 class EngineBase(LeeQObject):
     """
     The GridSweepEngine class is a class that is used to drive the experiment. It simply takes a lpb and a sweep, and

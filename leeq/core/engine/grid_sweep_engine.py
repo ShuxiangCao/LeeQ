@@ -1,7 +1,10 @@
 from functools import reduce
-from typing import Any
+from typing import Any, List
+
+import numpy as np
 
 from leeq.core.context import ExperimentContext
+from leeq.core.engine.measurement_result import MeasurementResult
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import Sweeper
 from leeq.core.engine.engine_base import EngineBase
@@ -35,6 +38,8 @@ class GridSerialSweepEngine(EngineBase):
 
         super().__init__(name=name, compiler=compiler, setup=setup)
         self._context = ExperimentContext(self._name + '.context')
+        self._sweep_shape = None
+        self._measurement_results = {}
 
     def run(self, lpb: LogicalPrimitiveBlock, sweep: Sweeper):
         """
@@ -56,12 +61,14 @@ class GridSerialSweepEngine(EngineBase):
             self._update_setup_parameters()
             self._fire_experiment()
             self._collect_data()
-            self._commit_measurement()
+            self._commit_measurement(lpb=lpb)
 
         if sweep is None:
+            self._sweep_shape = [1]
             _run_single_step(0)
         else:
             shape = sweep.shape
+            self._sweep_shape = shape
 
             iterator_list = [range(shape[i]) for i in range(len(shape))]
 
@@ -107,8 +114,42 @@ class GridSerialSweepEngine(EngineBase):
         """
         return self._setup.collect_data(self._context)
 
-    def _commit_measurement(self):
+    def _commit_measurement(self, lpb):
         """
         Commit the measurement primitives to the compiler.
+
+        First the measurement buffer in the engine will be cleared, then the measurement results will be committed to
+        the engine. If the memory buffer is not allocated yet, it will be allocated first with the size infered from
+        the first measurement commit and the sweep shape. Then each new commit will be written to the buffer.
+
+        Finally each measurement result will be committed to the measurement primitives.
+
+        Parameters:
+            lpb (LogicalPrimitiveBlock): The logical primitive block to run.
         """
-        self._compiler.commit_measurement(self._context)
+
+        measurement_results: List[MeasurementResult] = self._context.results
+
+        sweep_shape = self._sweep_shape
+
+        for measurement_result in measurement_results:
+            if measurement_result.uuid not in self._measurement_results:
+                # Allocate new buffer
+                buffer_shape = list(sweep_shape) + list(measurement_result.shape)
+                assert (len(measurement_result.shape) > 1), (
+                    "The shape of the measurement result should be at least 2D,"
+                    " one dimension for the result id another one for the data.")
+
+                self._measurement_results[measurement_result.mprim_uuid] = np.zeros(buffer_shape, dtype=np.complex128)
+
+                # Write to buffer
+            indices = self._context.step_no
+            self._measurement_results[measurement_result.mprim_uuid][indices] = measurement_result.data
+
+        # Commit to measurement primitives
+        for uuid, measurement_result in self._measurement_results.items():
+            mprim = lpb.nodes[uuid]
+            total_dim = len(measurement_result.shape)
+            for i in range(measurement_result.shape[-2]):
+                slice_idx = tuple(slice(None) if dim != total_dim - 2 else i for dim in range(total_dim))
+                mprim.commit_measurement(data=measurement_result[slice_idx])

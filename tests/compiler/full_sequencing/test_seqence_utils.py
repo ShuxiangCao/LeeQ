@@ -12,5 +12,5 @@ def test_measurement_sequence_initialization():
 
 def test_add_measurement():
     ms = MeasurementSequence()
-    ms.add_measurement(0, 'ch1', ['tag1', 'tag2'])
+    ms.add_measurement(0, 'ch1', ['tag1', 'tag2'] )
     assert ms.get_measurements() == [(0, 'ch1', ['tag1', 'tag2'])]

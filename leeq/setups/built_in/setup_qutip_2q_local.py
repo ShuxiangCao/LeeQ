@@ -1,6 +1,9 @@
+from typing import List
+
 import numpy as np
 
 from leeq.core.context import ExperimentContext
+from leeq.core.engine.measurement_result import MeasurementResult
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import ExperimentalSetup
@@ -13,7 +16,7 @@ class QuTip2QLocalSetup(ExperimentalSetup):
     at pulse level, at the local machine.
     """
 
-    def __init__(self, sampling_rate=1e4, backend=None):
+    def __init__(self, sampling_rate=1e5, backend=None):
         """
         Initialize the QuTipQIPLocalSetup class.
 
@@ -32,6 +35,9 @@ class QuTip2QLocalSetup(ExperimentalSetup):
         self._engine = GridSerialSweepEngine(compiler=self._compiler, setup=self, name=name + '.engine')
         self._current_context = None
         self._sampling_rate = sampling_rate
+        self._expectation_result = None
+        self._sampled_results = {}
+        self._measurement_results: List[MeasurementResult] = []
 
         self._simulator = QutipPulsedSimulator()
         self._simulator.add_qubit(
@@ -131,7 +137,48 @@ class QuTip2QLocalSetup(ExperimentalSetup):
                 pulse=pulse,
             )
 
+    def _collect_one_measurement(self, measurement_entry: dict):
+        """
+        Collect the data for one measurement.
+        """
+        position, (channel, freq), tags = measurement_entry
+        uuid = tags['uuid']
+
+        results = {
+            'II': self._expectation_result[0][position],
+            'IZ': self._expectation_result[1][position],
+            'ZI': self._expectation_result[2][position],
+            'ZZ': self._expectation_result[3][position],
+        }
+
+        self._sampled_results[(uuid, position)] = results
+
+        prob_0_q0 = (1 + results['ZI']) / 2
+        prob_same_parity = (1 + results['ZZ']) / 2
+
+        # shot number by default 1000
+        shot_num = tags.get('shot_num', 1000)
+
+        # Now we mock the single shot data from the expectation results
+        # First we sample the data from the expectation results of ZI.
+        # Then we sample the data from the expectation results of ZZ.
+        # Finally we combine the two results to get the single shot data.
+        sample_0_q0 = np.random.choice([-1, 1], size=(shot_num,), p=[1 - prob_0_q0, prob_0_q0])
+        sample_same_parity = np.random.choice([-1, 1], size=(shot_num,), p=[1 - prob_same_parity, prob_same_parity])
+        sample_0_q1 = sample_0_q0 * sample_same_parity
+        sample_0_q0 = (sample_0_q0 + 1) / 2
+        sample_0_q1 = (sample_0_q1 + 1) / 2
+
+        if 'q0' in self._channel_to_qubit[channel]:
+            result = sample_0_q0
+        else:
+            result = sample_0_q0
+            self._sampled_results[(uuid, position)] = sample_0_q1
+
+        self._sampled_results[(uuid, position)] = result
+
     def fire_experiment(self, context=None):
+
         """
         Fire the experiment and wait for it to finish.
         """
@@ -139,11 +186,14 @@ class QuTip2QLocalSetup(ExperimentalSetup):
         if context is not None:
             self._current_context = context
 
-        self._result = self._simulator.run()
+        self._sampled_results = {}
 
-        pass
+        self._expectation_result = self._simulator.run()
 
-    def collect_data(self, context):
+        for entry in context.instructions['measurement_sequence']:
+            self._collect_one_measurement(entry)
+
+    def collect_data(self, context: ExperimentContext):
         """
         Collect the data from the compiler and commit it to the measurement primitives.
         """
@@ -151,4 +201,26 @@ class QuTip2QLocalSetup(ExperimentalSetup):
         if context is not None:
             self._current_context = context
 
-        # TODO: actually collect the data here
+        ordered_results = {}
+
+        for (uuid, position) in self._sampled_results.keys():
+            if uuid in ordered_results:
+                ordered_results[uuid].append((position, self._sampled_results[(uuid, position)]))
+            else:
+                ordered_results[uuid] = [(position, self._sampled_results[(uuid, position)])]
+
+        for uuid, results in ordered_results.items():
+            results.sort(key=lambda x: x[0])
+            result_array = np.asarray([v[1] for v in results])
+
+            assert len(result_array.shape) == 2
+            assert result_array.shape[0] == len(results)
+
+            m_result = MeasurementResult(
+                step_no=self._current_context.step_no, data=result_array, mprim_uuid=uuid)
+
+            self._measurement_results.append(m_result)
+
+        self._current_context.results = self._measurement_results
+
+        return context

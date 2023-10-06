@@ -75,12 +75,16 @@ class SimpleSampleExperiment(Experiment):
     def run(self, dut, lpb, mprim_index=0):
         mprim = dut.get_measurement_prim_intlist(mprim_index)
 
-        basic(lpb + mprim, None, '<zs>')
+        lpb = lpb + mprim
+
+        assert mprim.uuid in lpb.nodes
+
+        basic(lpb, None, '<zs>')
 
         self.results = mprim.result()
         self.raw_values = mprim.result_raw()
 
-    @register_browser_function
+    @register_browser_function()
     def plot(self):
         dummy_obj.result = self.results
         dummy_obj.result_raw = self.raw_values
@@ -89,11 +93,14 @@ class SimpleSampleExperiment(Experiment):
 def test_pulse_on_qutip_pip(qubit):
     # Prepare some lpb to prepare a non-trivial distribution
 
-    exp_setup = QuTip2QLocalSetup()
+    exp_setup = QuTip2QLocalSetup(sampling_rate=1e3)
     setup().register_setup(exp_setup)
 
     lpb = qubit.get_lpb_collection('f01')['Xp']
-    lpb += qubit.get_measurement_primitive('0')
+    mprim = qubit.get_measurement_primitive('0')
+    lpb += mprim
+
+    assert mprim.uuid in lpb.nodes
 
     result = SimpleSampleExperiment(qubit, lpb=lpb)
 

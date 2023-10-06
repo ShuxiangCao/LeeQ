@@ -18,11 +18,12 @@ class CompilerBase(LeeQObject):
         """
         raise NotImplementedError()
 
-    def commit_measurement(self, context: ExperimentContext):
+    def commit_measurement(self, context: ExperimentContext, lpb: LogicalPrimitiveBlock):
         """
         Commit the measurement primitives to the compiler.
 
         Parameters:
             context (ExperimentContext): The context between setup and compiler.
+            lpb (LogicalPrimitiveBlock): The logical primitive block to run.
         """
         raise NotImplementedError()
