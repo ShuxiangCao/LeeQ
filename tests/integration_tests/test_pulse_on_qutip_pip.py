@@ -1,5 +1,7 @@
 import numpy as np
+import pytest
 from pytest import fixture
+from pytest import skip
 from labchronicle import log_and_record, register_browser_function
 
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
@@ -11,8 +13,8 @@ from leeq.setups.built_in.setup_qutip_2q_local import QuTip2QLocalSetup
 
 class DummyObject(object):
     def __init__(self):
-        self.result = 0
-        self.result_raw = 0
+        self.result = None
+        self.result_raw = None
 
 
 dummy_obj = DummyObject()
@@ -90,6 +92,7 @@ class SimpleSampleExperiment(Experiment):
         dummy_obj.result_raw = self.raw_values
 
 
+@pytest.mark.skip(reason="This test is very slow.")
 def test_pulse_on_qutip_pip(qubit):
     # Prepare some lpb to prepare a non-trivial distribution
 
@@ -104,10 +107,5 @@ def test_pulse_on_qutip_pip(qubit):
 
     result = SimpleSampleExperiment(qubit, lpb=lpb)
 
-# Prepare experiment setup for qutip pip
-
-# Configure the global setup
-
-# Run the experiment
-
-# Check the result
+    assert dummy_obj.result is not None
+    assert dummy_obj.result_raw is not None

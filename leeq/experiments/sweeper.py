@@ -220,45 +220,6 @@ class Sweeper(LeeQObject):
         obj._child_initialized = True
         return obj
 
-    # def __iter__(self):
-    #    self.reset()
-    #    self._child_initialized = False
-    #    return self
-
-    # def __next__(self):
-    #    child_finished = False
-    #    if self._child is not None:
-    #        if not self._child_initialized:
-    #            child_value = self._child.reset()
-    #            self._child_initialized = True
-    #        else:
-    #            try:
-    #                child_value = next(self._child)
-    #            except StopIteration:
-    #                child_value = self._child.reset()
-    #                self._child_initialized = True
-    #                child_finished = True
-    #    else:
-    #        child_value = ()
-    #        child_finished = True
-
-    #    if child_finished:
-    #        self._step += 1
-    #        if self._step >= len(self._sweep_parameters):
-    #            raise StopIteration
-
-    #    self._execute_side_effects(self._sweep_parameters[self._step])
-    #    return (self._step,) + child_value
-
-    # def reset(self):
-    #    self._step = 0
-    #    self._execute_side_effects(self._sweep_parameters[self._step])
-    #    result = (self._step,)
-    #    if self._child is not None:
-    #        result = result + self._child.reset()
-
-    #    return result
-
     def _execute_side_effects(self, parameter):
         """
         Execute the side effects of the parameter being swept.
