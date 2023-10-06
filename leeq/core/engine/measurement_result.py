@@ -12,7 +12,7 @@ class MeasurementResult(LeeQObject):
         super().__init__(name=f"MeasurementResult: {mprim_uuid}, step_no: {step_no}")
 
         self._step_no = step_no
-        self._data = data
+        self._data = [data]
         self._mprim_uuid = mprim_uuid
 
     @property
@@ -27,7 +27,13 @@ class MeasurementResult(LeeQObject):
         """
         Get the data.
         """
-        return self._data
+        return np.asarray(self._data)
+
+    def append_data(self, new_data):
+        """
+        Append new data to the data.
+        """
+        self._data.append(new_data)
 
     @property
     def mprim_uuid(self):
@@ -38,4 +44,4 @@ class MeasurementResult(LeeQObject):
 
     @property
     def shape(self):
-        return self._data.shape
+        return self.data.shape

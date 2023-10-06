@@ -24,7 +24,7 @@ class QuTip2QLocalSetup(ExperimentalSetup):
             sampling_rate (float): The sampling rate of the experiment. In Msps unit.
         """
         name = 'qutip_2q_local'
-        from leeq.compiler.full_sequecing.full_sequencing import FullSequencingCompiler
+        from leeq.compiler.full_sequencing_compiler import FullSequencingCompiler
         from leeq.core.engine.grid_sweep_engine import GridSerialSweepEngine
         self._compiler = FullSequencingCompiler(sampling_rate={
             0: sampling_rate,

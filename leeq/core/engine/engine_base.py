@@ -1,6 +1,6 @@
 from typing import Any
 
-from leeq.compiler.compiler_base import CompilerBase
+from leeq.compiler.compiler_base import LPBCompiler
 from leeq.core import LeeQObject
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import Sweeper
@@ -22,7 +22,7 @@ class EngineBase(LeeQObject):
             setup (Any): The instrument setup to use.
         """
 
-        assert isinstance(compiler, CompilerBase), "The compiler should be a subclass of CompilerBase."
+        assert isinstance(compiler, LPBCompiler), "The compiler should be a subclass of LPBCompiler."
         assert isinstance(setup, ExperimentalSetup), "The setup should be a subclass of LeeQObject."
 
         self._compiler = compiler
@@ -49,3 +49,39 @@ class EngineBase(LeeQObject):
         """
 
         raise NotImplementedError()
+
+
+    def _compile_lpb(self, lpb: LogicalPrimitiveBlock):
+        """
+        Compile the logical primitive block to instructions that going to be passed to the compiler.
+
+        Parameters:
+            lpb (LogicalPrimitiveBlock): The logical primitive block to run.
+
+        Returns:
+            Any: The compiled instructions.
+        """
+
+        if self._compiler is None:
+            # No compling, directly use the lpb
+            self._context.instructions = lpb
+
+        return self._compiler.compile_lpb(self._context, lpb)
+
+    def _update_setup_parameters(self):
+        """
+        Update the setup parameters of the compiler.
+        """
+        self._setup.update_setup_parameters(self._context)
+
+    def _fire_experiment(self):
+        """
+        Fire the experiment and wait for it to finish.
+        """
+        self._setup.fire_experiment(self._context)
+
+    def _collect_data(self):
+        """
+        Collect the data from the compiler and commit it to the measurement primitives.
+        """
+        return self._setup.collect_data(self._context)

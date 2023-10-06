@@ -154,7 +154,7 @@ def test_integration_mock_IQ_single_shot(mock_qubit):
 
 def test_integration_mock_drive(mock_qubit):
     mock_qubit.apply_drive(
-        frequency=5000, pulse_shape=np.ones(10)*0.01, sampling_rate=1
+        frequency=5000, pulse_shape=np.ones(10) * 0.01, sampling_rate=1
     )
 
     result = mock_qubit.apply_readout(

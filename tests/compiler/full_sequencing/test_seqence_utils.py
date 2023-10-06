@@ -1,7 +1,4 @@
-import pytest
-import numpy as np
-
-from leeq.compiler.full_sequecing.full_sequencing import MeasurementSequence
+from leeq.compiler.full_sequencing_compiler import MeasurementSequence
 
 
 # Test cases for MeasurementSequence

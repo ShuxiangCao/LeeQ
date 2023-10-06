@@ -90,7 +90,7 @@ class VirtualTransmon(object):
         """
 
         single_photon_transition_frequencies = [self.qubit_frequency + i * self.anharmonicity for i in
-                                                range(self.truncate_level-1)
+                                                range(self.truncate_level - 1)
                                                 ]
 
         level_energies = [0] + list(np.cumsum(single_photon_transition_frequencies))
@@ -268,68 +268,3 @@ class VirtualTransmon(object):
         else:
             self._density_matrix = np.zeros((self.truncate_level, self.truncate_level), dtype=np.complex128)
             self._density_matrix[0, 0] = 1
-
-
-class VirtualTransmonDevice(object):
-    """
-    A class that represents a device, recording the parameters.
-    """
-
-    def __init__(self, name: str, transmons: List[VirtualTransmon]):
-        """
-        Initialize the Device class.
-
-        Parameters:
-            name (str): The name of the device.
-            transmons (List[VirtualTransmon]): The transmons in the device.
-        """
-        self._name = name
-        self.transmons = transmons
-
-    @property
-    def name(self):
-        """
-        The name of the device.
-
-        Returns:
-            str: The name of the device.
-        """
-        return self._name
-
-    def __repr__(self):
-        return f'Device(name={self._name})'
-
-    def __str__(self):
-        return self.__repr__()
-
-
-class TransmonRotatedFrameSimulator(object):
-    """
-    A simulator that simplify the dynamics and simulate behaviour in the rotated frame, as a fast simulator mainly for
-    experiment code testing purpose. The simulator does not simulate multiple qubit interactions, however it does
-    simulate the spectroscopy experiment and multilevel behaviour of a transmon, therefore pretty useful for testing
-    the automated tune up code.
-
-    Note that if you send two signal to a same transmon at the same time, the simulator will not simulate the correct
-    behaviour, instead it treat that the pulse is applied one after another.
-
-    The simulator simulates the behaviour of the quantum system and the measurement separately.
-
-    For simulating the behaviour of the quantum system, we assume the following:
-    1. We assume all the pulses can be converted into a single interaction terms, and therefore generate one
-         unitary term.
-    2. We appy the unitary to the state obtain the state.
-
-    For simulating the measurement, we assume the following:
-    1. We assume the measurement is a projective measurement.
-    2. We return a point on the IQ plane, with noise, based on the state of the system.
-    """
-
-    def __init__(self, device: VirtualTransmonDevice):
-        """
-        Initialize the TransmonRotatedFrameSimulator class.
-
-        Parameters:
-            device (VirtualTransmonDevice): The device to be simulated.
-        """
-        self._device = device

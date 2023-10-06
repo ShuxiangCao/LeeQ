@@ -56,6 +56,7 @@ class GridSerialSweepEngine(EngineBase):
         def _run_single_step(step_no):
             """ Run a single step of the experiment. Should be fairly clear :)"""
             self._context.reset()
+            self._context.set_lpb(lpb=lpb)
             self._context.set_step_no(step_no)
             self._compile_lpb(lpb=lpb)
             self._update_setup_parameters()
@@ -84,36 +85,6 @@ class GridSerialSweepEngine(EngineBase):
                     # Update the progress bar
                     pbar.update(1)
 
-    def _compile_lpb(self, lpb: LogicalPrimitiveBlock):
-        """
-        Compile the logical primitive block to instructions that going to be passed to the compiler.
-
-        Parameters:
-            lpb (LogicalPrimitiveBlock): The logical primitive block to run.
-
-        Returns:
-            Any: The compiled instructions.
-        """
-        return self._compiler.compile_lpb(self._context, lpb)
-
-    def _update_setup_parameters(self):
-        """
-        Update the setup parameters of the compiler.
-        """
-        self._setup.update_setup_parameters(self._context)
-
-    def _fire_experiment(self):
-        """
-        Fire the experiment and wait for it to finish.
-        """
-        self._setup.fire_experiment(self._context)
-
-    def _collect_data(self):
-        """
-        Collect the data from the compiler and commit it to the measurement primitives.
-        """
-        return self._setup.collect_data(self._context)
-
     def _commit_measurement(self, lpb):
         """
         Commit the measurement primitives to the compiler.
@@ -137,8 +108,8 @@ class GridSerialSweepEngine(EngineBase):
                 # Allocate new buffer
                 buffer_shape = list(sweep_shape) + list(measurement_result.shape)
                 assert (len(measurement_result.shape) > 1), (
-                    "The shape of the measurement result should be at least 2D,"
-                    " one dimension for the result id another one for the data.")
+                    f"The shape of the measurement result {measurement_result.shape} should be at least 2D,"
+                    f" one dimension for the result id another one for the data.")
 
                 self._measurement_results[measurement_result.mprim_uuid] = np.zeros(buffer_shape, dtype=np.complex128)
 

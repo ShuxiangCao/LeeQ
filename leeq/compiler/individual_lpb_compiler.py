@@ -3,7 +3,7 @@ import functools
 import numpy as np
 from functools import singledispatchmethod
 
-from leeq.compiler.compiler_base import CompilerBase
+from leeq.compiler.compiler_base import LPBCompiler, MeasurementSequence
 from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
 from leeq.core.context import ExperimentContext
 from leeq.core.primitives.built_in.common import PhaseShift
@@ -21,41 +21,17 @@ from leeq.utils import setup_logging
 logger = setup_logging(__name__)
 
 
-class MeasurementSequence:
-    """
-    The MeasurementSequence class is used to annotate when to start the aquisition of the signal.
-    """
-
-    def __init__(self):
-        """
-        Initialize the MeasurementSequence class.
-        """
-        self._measurements = []
-
-    def add_measurement(self, position, channel, tags):
-        """
-        Add a measurement to the measurement sequence.
-        """
-        self._measurements.append((position, channel, tags))
-
-    def get_measurements(self):
-        """
-        Get the measurements.
-        """
-        return self._measurements
-
-
-class FullSequencingCompiler(CompilerBase):
+class IndividualLPBCompiler(LPBCompiler):
 
     def __init__(self, sampling_rate: dict[float]):
         """
-        Initialize the FullSequencingCompiler class.
+        Initialize the IndividualLPBCompiler class.
 
         Parameters:
             sampling_rate (Dict[float]): The sampling rate of the compiler, indexed by the channel number.
                 In Mega samples per second.
         """
-        super().__init__("FullSequencingCompiler: Msps" + str(sampling_rate))
+        super().__init__("IndividualLPBCompiler: Msps" + str(sampling_rate))
         self._measurement_sequence = None
         self._phase_shift = None
         self._sampling_rate = sampling_rate
@@ -78,7 +54,8 @@ class FullSequencingCompiler(CompilerBase):
         self._compile_lpb(lpb, 0)
         context.instructions = {
             "measurement_sequence": self._measurement_sequence.get_measurements(),
-            'pulse_sequence': self._assemble_pulse_fragments()
+            'pulse_sequence': self._pulse_fragments,
+            'lengths': self._lengths,
         }
 
         self._measurement_sequence = None
@@ -144,31 +121,13 @@ class FullSequencingCompiler(CompilerBase):
             # If the logical primitive is a measurement primitive, then return the measurement sequence
             self._measurement_sequence.add_measurement(current_position, (pulse_channel, lpb.freq), tags)
 
-        self._pulse_fragments.append(((pulse_channel, lpb.freq), current_position, pulse_shape))
+        self._pulse_fragments.append(((pulse_channel, lpb.freq), current_position, pulse_shape, lpb.uuid))
 
         length = len(pulse_shape)  # Always 1D
 
         self._update_lengths(pulse_channel, lpb.freq, length + current_position)
 
         return length
-
-    def _assemble_pulse_fragments(self):
-        """
-        Assemble the pulse fragments into a full pulse sequence.
-        """
-
-        sequences = {}
-
-        max_time_span = max([v / self._sampling_rate[channel] for (channel, freq), v in self._lengths.items()])
-
-        for (channel, freq), v in self._lengths.items():
-            sequences[(channel, freq)] = np.zeros(int(max_time_span * self._sampling_rate[channel] + 0.5),
-                                                  dtype=np.complex64)
-
-        for (channel, freq), position, pulse_shape_data in self._pulse_fragments:
-            sequences[(channel, freq)][position:position + len(pulse_shape_data)] += pulse_shape_data
-
-        return sequences
 
     @_compile_lpb.register
     def _(self, lpb: PhaseShift, current_position: int):
@@ -206,18 +165,4 @@ class FullSequencingCompiler(CompilerBase):
 
     @_compile_lpb.register
     def _(self, lpb: LogicalPrimitiveBlockSweep, current_position: int):
-        return self._compile_lpb(lpb.children[0], current_position)
-
-    def commit_measurement(self, context: ExperimentContext, lpb: LogicalPrimitiveBlock):
-        """
-        Commit the measurement result to the measurement primitives.
-        """
-
-        measurement_keys = [k for k in context.results.keys()]
-        measurement_keys.sort(key=lambda x: x[1])
-
-        for i, (uuid, position_point) in enumerate(measurement_keys):
-            measurement_primitive = lpb.nodes[uuid]
-            measurement_primitive.commit_result(context.results[(uuid, position_point)])
-
-        pass
+        return self._compile_lpb(lpb.current_lpb, current_position)

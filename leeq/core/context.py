@@ -1,4 +1,4 @@
-from leeq.core import LeeQObject
+from leeq.core import LeeQObject, LogicalPrimitive
 
 
 class ExperimentContext(LeeQObject):
@@ -14,6 +14,7 @@ class ExperimentContext(LeeQObject):
         self._instructions = None
         self._results = None
         self._step_no = None
+        self._lpb = None
 
     @property
     def instructions(self):
@@ -57,3 +58,16 @@ class ExperimentContext(LeeQObject):
         Get the step number.
         """
         return self._step_no
+
+    @property
+    def lpb(self):
+        """
+        Get the logical primitive block.
+        """
+        return self._lpb
+
+    def set_lpb(self, lpb):
+        """
+        Set the logical primitive block.
+        """
+        self._lpb = lpb

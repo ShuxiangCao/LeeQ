@@ -1,6 +1,6 @@
 from pytest import fixture
 
-from leeq.compiler.full_sequecing.full_sequencing import FullSequencingCompiler
+from leeq.compiler.full_sequencing_compiler import FullSequencingCompiler
 from leeq.core.context import ExperimentContext
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 
