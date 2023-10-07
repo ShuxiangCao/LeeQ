@@ -4,8 +4,14 @@ from typing import Union
 from leeq.compiler.compiler_base import LPBCompiler
 from leeq.core.context import ExperimentContext
 from leeq.core.primitives.built_in.common import DelayPrimitive, PhaseShift
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable, LogicalPrimitiveBlockParallel, \
-    LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockSweep, MeasurementPrimitive, LogicalPrimitive
+from leeq.core.primitives.logical_primitives import (
+    LogicalPrimitiveCombinable,
+    LogicalPrimitiveBlockParallel,
+    LogicalPrimitiveBlockSerial,
+    LogicalPrimitiveBlockSweep,
+    MeasurementPrimitive,
+    LogicalPrimitive,
+)
 from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
@@ -16,7 +22,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
     The QubiCCircuitListLPBCompiler class defines a compiler that is used to compile the logical primitive block to
     instructions that going to be passed to the compiler. It aims to translate the LPB tree structure into the QubiC
     circuit list structure.
-    
+
     QubiC is an open source quantum control system developed by AQT at LBNL and UC Berkeley. Please refer to the
     QubiC project for more information: https://gitlab.com/LBL-QubiC
     """
@@ -35,7 +41,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         self._current_context = None
         self._leeq_channel_to_qubic_channel = leeq_channel_to_qubic_channel
 
-    def compile_lpb(self, context: ExperimentContext, lpb: LogicalPrimitiveCombinable):
+    def compile_lpb(self, context: ExperimentContext,
+                    lpb: LogicalPrimitiveCombinable):
         """
         Compile the logical primitive block to instructions that going to be passed to the setup.
         The compiled instructions are a list of dictionary, follows the QubiC circuit definition.
@@ -79,7 +86,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         """
         Compile the logical primitive block to instructions.
         """
-        msg = "The compiler does not support the logical primitive block type " + str(type(lpb))
+        msg = "The compiler does not support the logical primitive block type " + \
+            str(type(lpb))
         logger.error(msg)
         raise NotImplementedError(msg)
 
@@ -108,29 +116,29 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         """
 
         primitive_scope = self._leeq_channel_to_qubic_channel[lpb.channel]
-        qubic_dest = primitive_scope + '.qdrv'
+        qubic_dest = primitive_scope + ".qdrv"
 
         parameters = lpb.get_parameters()
 
         phase_shift = 0
 
-        if 'phase' in parameters and lpb.channel in self._phase_shift and \
-                parameters['transition_name'] in self._phase_shift[lpb.channel]:
+        if (
+            "phase" in parameters
+            and lpb.channel in self._phase_shift
+            and parameters["transition_name"] in self._phase_shift[lpb.channel]
+        ):
             phase_shift += self._phase_shift[lpb.channel][lpb.transition_name]
 
-        env = {
-            'env_func': lpb.shape,
-            'paradict': lpb.get_parameters()
-        }
+        env = {"env_func": lpb.shape, "paradict": lpb.get_parameters()}
 
         qubic_pulse_dict = {
-            'name': 'pulse',
-            'phase': phase_shift + parameters['phase'],
-            'freq': int(lpb.freq * 1e6),  # In Hz
-            'amp': lpb.amp,
-            'twidth': lpb.width / 1e6,  # In seconds
-            'env': env,
-            'dest': qubic_dest  # The channel name
+            "name": "pulse",
+            "phase": phase_shift + parameters["phase"],
+            "freq": int(lpb.freq * 1e6),  # In Hz
+            "amp": lpb.amp,
+            "twidth": lpb.width / 1e6,  # In seconds
+            "env": env,
+            "dest": qubic_dest,  # The channel name
         }
 
         return [qubic_pulse_dict], {primitive_scope}
@@ -139,9 +147,9 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
     def _(self, lpb: MeasurementPrimitive):
         """
         Compile the logical primitive block to instructions.
-        
+
         For measurement primitive we need to compile the measurement pulse and the demodulation pulse.
-        
+
         Example from QubiC:
         ```
         [
@@ -198,12 +206,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             "twidth": lpb.width / 1e6,
             "t0": 0.0,  # TODO: make it a parameter
             "amp": lpb.amp,
-            "env": [
-                {
-                    "env_func": lpb.shape,
-                    "paradict": lpb.get_parameters()
-                }
-            ]
+            "env": [{"env_func": lpb.shape, "paradict": lpb.get_parameters()}],
         }
 
         demodulate_pulse = {
@@ -216,17 +219,16 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             "env": [
                 {
                     "env_func": "square",
-                    # Here we use square pulse for demodulation, which means no window function is applied
-                    "paradict": {
-                        "phase": 0.0,
-                        "amplitude": 1.0,
-                        "twidth": lpb.width
-                    }
+                    # Here we use square pulse for demodulation, which means no
+                    # window function is applied
+                    "paradict": {"phase": 0.0, "amplitude": 1.0, "twidth": lpb.width},
                 }
-            ]
+            ],
         }
 
-        return [drive_pulse, demodulate_pulse], set(primitive_scope, )
+        return [drive_pulse, demodulate_pulse], set(
+            primitive_scope,
+        )
 
     @_compile_lpb.register
     def _(self, lpb: LogicalPrimitiveBlockSerial):
@@ -262,28 +264,28 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
         # If the first child is a delay primitive, we need to modify
         # the delay primitive to have the entire scope of the block.
-        if len(child_circuits[0]) == 1 and child_circuits[0][0]['name'] == 'delay':
-            child_circuits[0][0]['scope'] = list(block_scope)
+        if len(
+                child_circuits[0]) == 1 and child_circuits[0][0]["name"] == "delay":
+            child_circuits[0][0]["scope"] = list(block_scope)
             child_scopes[0] = block_scope
 
         compiled_circuit.extend(child_circuits[0])
 
         # The middle children
         for i in range(1, len(child_circuits)):
-
             # If the child is a delay primitive, we need to modify its scope to be the previous child's scope.
             # For this operation we do not need a barrier.
-            if len(child_circuits[i]) == 1 and child_circuits[i][0]['name'] == 'delay':
-                child_circuits[i][0]['scope'] = list(child_scopes[i - 1])
+            if len(
+                    child_circuits[i]) == 1 and child_circuits[i][0]["name"] == "delay":
+                child_circuits[i][0]["scope"] = list(child_scopes[i - 1])
             else:
                 # If we are only dealing with one channel, and the previous and current child are on the same channel,
                 # we do not need a barrier.
                 union_scope = child_scopes[i - 1].union(child_scopes[i])
                 if len(block_scope) > 1 and len(union_scope) > 1:
-                    compiled_circuit.append({
-                        'name': 'barrier',
-                        'scope': list(union_scope)
-                    })
+                    compiled_circuit.append(
+                        {"name": "barrier", "scope": list(union_scope)}
+                    )
 
             compiled_circuit.extend(child_circuits[i])
 
@@ -315,28 +317,28 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         # Make sure the children are not running on the same channel
         block_scope = []
         for i in range(len(child_scopes)):
-
-            # Check if the child is a lonely delay primitive. If so we raise an error.
-            if len(child_circuits[i]) == 1 and child_circuits[i][0]['name'] == 'delay':
-                msg = "Parallel blocks do not support delay primitives (yet). Try to attach the delay primitive to a " \
-                      "serial block. "
+            # Check if the child is a lonely delay primitive. If so we raise an
+            # error.
+            if len(
+                    child_circuits[i]) == 1 and child_circuits[i][0]["name"] == "delay":
+                msg = (
+                    "Parallel blocks do not support delay primitives (yet). Try to attach the delay primitive to a "
+                    "serial block. ")
                 logger.error(msg)
                 raise NotImplementedError(msg)
 
             block_scope.extend(child_scopes[i])
 
-        assert len(block_scope) == len(set(block_scope)), ("Parallel blocks do not support "
-                                                           "running pulses on the same channel (yet).")
+        assert len(block_scope) == len(set(block_scope)), (
+            "Parallel blocks do not support "
+            "running pulses on the same channel (yet)."
+        )
 
         # Assemble the circuit
         compiled_circuit = sum(child_circuits, [])
         block_scope = set(block_scope)
         compiled_circuit.append(
-            {
-                'name': 'barrier',
-                'scope': list(block_scope)
-            }
-        )
+            {"name": "barrier", "scope": list(block_scope)})
 
         return compiled_circuit, block_scope
 
@@ -356,10 +358,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         process.
         """
 
-        return {
-            'name': 'delay',
-            't': lpb.get_delay_time() / 1e6  # In seconds
-        }, set()
+        return {"name": "delay", "t": lpb.get_delay_time() /
+                1e6}, set()  # In seconds
 
     @_compile_lpb.register
     def _(self, lpb: PhaseShift):
@@ -367,10 +367,12 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         if lpb.channel not in self._phase_shift:
             self._phase_shift[lpb.channel] = {}
 
-        for k, m in parameters['transition_multiplier'].items():
+        for k, m in parameters["transition_multiplier"].items():
             if k not in self._phase_shift[lpb.channel]:
-                self._phase_shift[lpb.channel][k] = m * parameters['phase_shift']
+                self._phase_shift[lpb.channel][k] = m * \
+                    parameters["phase_shift"]
             else:
-                self._phase_shift[lpb.channel][k] += m * parameters['phase_shift']
+                self._phase_shift[lpb.channel][k] += m * \
+                    parameters["phase_shift"]
 
         return [], set()

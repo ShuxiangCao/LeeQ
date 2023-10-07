@@ -33,7 +33,9 @@ class LPBCompiler(LeeQObject):
     going to be passed to the compiler.
     """
 
-    def commit_measurement(self, context: ExperimentContext, lpb: LogicalPrimitiveBlock):
+    def commit_measurement(
+        self, context: ExperimentContext, lpb: LogicalPrimitiveBlock
+    ):
         """
         Commit the measurement result to the measurement primitives.
         """
@@ -43,7 +45,8 @@ class LPBCompiler(LeeQObject):
 
         for i, (uuid, position_point) in enumerate(measurement_keys):
             measurement_primitive = lpb.nodes[uuid]
-            measurement_primitive.commit_result(context.results[(uuid, position_point)])
+            measurement_primitive.commit_result(
+                context.results[(uuid, position_point)])
 
         return context
 

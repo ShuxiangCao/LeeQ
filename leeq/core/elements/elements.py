@@ -6,7 +6,10 @@ from typing import Union, Optional
 from labchronicle import LoggableObject
 from leeq.core import LeeQObject
 from leeq.utils import get_calibration_log_path
-from leeq.core.primitives import LogicalPrimitiveCollectionFactory, LogicalPrimitiveFactory
+from leeq.core.primitives import (
+    LogicalPrimitiveCollectionFactory,
+    LogicalPrimitiveFactory,
+)
 
 from leeq.utils import setup_logging
 
@@ -48,9 +51,8 @@ class Element(LeeQObject):
             self._parameters = parameters
         else:
             self._parameters = {
-                'lpb_collections': {},
-                'measurement_primitives': {}
-            }
+                "lpb_collections": {},
+                "measurement_primitives": {}}
 
         self._validate_parameters(self._parameters)
 
@@ -68,18 +70,26 @@ class Element(LeeQObject):
         Parameters:
             parameters (dict): The parameters of the element.
         """
-        assert 'lpb_collections' in parameters, 'LPB collections not found in the parameters.'
-        assert 'measurement_primitives' in parameters, 'Measurement primitives not found in the parameters.'
+        assert (
+            "lpb_collections" in parameters
+        ), "LPB collections not found in the parameters."
+        assert (
+            "measurement_primitives" in parameters
+        ), "Measurement primitives not found in the parameters."
 
     def _build_lpb_collections(self):
         """
         Initiate the gate collections of the element.
         """
         factory = LogicalPrimitiveCollectionFactory()
-        for collection_name, collection_parameters in self._parameters['lpb_collections'].items():
-            self._lpb_collections[collection_name] = factory(name=self._name + '.' + collection_name,
-                                                             class_name=collection_parameters['type'],
-                                                             parameters=collection_parameters)
+        for collection_name, collection_parameters in self._parameters[
+            "lpb_collections"
+        ].items():
+            self._lpb_collections[collection_name] = factory(
+                name=self._name + "." + collection_name,
+                class_name=collection_parameters["type"],
+                parameters=collection_parameters,
+            )
 
     def _build_measurement_primitives(self):
         """
@@ -87,10 +97,14 @@ class Element(LeeQObject):
         """
 
         factory = LogicalPrimitiveFactory()
-        for primitive_name, primitive_parameters in self._parameters['measurement_primitives'].items():
-            self._measurement_primitives[primitive_name] = factory(name=self._name + '.measurement.' + str(primitive_name),
-                                                                   class_name=primitive_parameters['type'],
-                                                                   parameters=primitive_parameters)
+        for primitive_name, primitive_parameters in self._parameters[
+            "measurement_primitives"
+        ].items():
+            self._measurement_primitives[primitive_name] = factory(
+                name=self._name + ".measurement." + str(primitive_name),
+                class_name=primitive_parameters["type"],
+                parameters=primitive_parameters,
+            )
 
     def _dump_lpb_collections(self):
         """
@@ -99,7 +113,7 @@ class Element(LeeQObject):
         Returns:
             dict: The gate collections of the element.
         """
-        return self._parameters['lpb_collections']
+        return self._parameters["lpb_collections"]
 
     def _dump_measurement_primitives(self):
         """
@@ -108,7 +122,7 @@ class Element(LeeQObject):
         Returns:
             dict: The measurement primitives of the element.
         """
-        return self._parameters['measurement_primitives']
+        return self._parameters["measurement_primitives"]
 
     def save_calibration_log(self):
         """
@@ -116,8 +130,8 @@ class Element(LeeQObject):
         """
 
         calibration_log = {
-            'lpb_collections': self._dump_lpb_collections(),
-            'measurement_primitives': self._dump_measurement_primitives()
+            "lpb_collections": self._dump_lpb_collections(),
+            "measurement_primitives": self._dump_measurement_primitives(),
         }
 
         path = get_calibration_log_path()
@@ -125,11 +139,11 @@ class Element(LeeQObject):
         if not path.exists():
             path.mkdir(parents=True)
 
-        file_name = f'calibration_log_{self.hrid}.{datetime.now().strftime(self._time_format_str)}.json'
+        file_name = f"calibration_log_{self.hrid}.{datetime.now().strftime(self._time_format_str)}.json"
 
         path = path / file_name
 
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump(calibration_log, f)
 
     @classmethod
@@ -147,7 +161,7 @@ class Element(LeeQObject):
         base_path = get_calibration_log_path()
 
         if not base_path.exists():
-            msg = f'Calibration log not found at {base_path}.'
+            msg = f"Calibration log not found at {base_path}."
             cls.logger.error(msg)
             raise FileNotFoundError(msg)
 
@@ -155,17 +169,16 @@ class Element(LeeQObject):
         latest_time = None
 
         for file_name in base_path.iterdir():
-
-            splits = str(file_name).split('.')
+            splits = str(file_name).split(".")
 
             if len(splits) != 3:
                 continue
 
             prefix_read, timestr, postfix = splits
 
-            prefix = 'calibration_log_' + name
+            prefix = "calibration_log_" + name
 
-            if postfix != 'json' or not prefix_read.endswith(prefix):
+            if postfix != "json" or not prefix_read.endswith(prefix):
                 continue
 
             try:
@@ -178,14 +191,16 @@ class Element(LeeQObject):
                 latest_file_name = file_name
 
         if latest_file_name is None:
-            msg = f'No calibration log found for {name} at {base_path}.'
+            msg = f"No calibration log found for {name} at {base_path}."
             logger.error(msg)
             raise FileNotFoundError(msg)
 
         return base_path / latest_file_name
 
     @classmethod
-    def load_from_calibration_log(cls, name: str, path: Optional[Union[str, Path]] = None):
+    def load_from_calibration_log(
+        cls, name: str, path: Optional[Union[str, Path]] = None
+    ):
         """
         Load the calibration log and generate the element object.
         If the path is not specified, load the latest calibration log.
@@ -213,13 +228,14 @@ class Element(LeeQObject):
                 # If not, check if the path is relative to the base directory
                 path = base_directory / path
                 if not path.exists():
-                    raise FileNotFoundError(f'Calibration log not found at {path}.')
+                    raise FileNotFoundError(
+                        f"Calibration log not found at {path}.")
         else:
             # If the path is not specified, iterate through the base directory and find the latest calibration log
             # with the name specified.
             path = cls._find_latest_calibration_log(name)
 
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             calibration_log = json.load(f)
 
         return cls(name, calibration_log)
@@ -233,9 +249,12 @@ class Element(LeeQObject):
             calibration (dict): The calibration dictionary.
         """
 
-        assert 'lpb_collections' in calibration, 'LPB collections not found in the calibration dictionary.'
-        assert 'measurement_primitives' in calibration, \
-            'Measurement primitives not found in the calibration dictionary.'
+        assert (
+            "lpb_collections" in calibration
+        ), "LPB collections not found in the calibration dictionary."
+        assert (
+            "measurement_primitives" in calibration
+        ), "Measurement primitives not found in the calibration dictionary."
 
     def get_lpb_collection(self, name: str):
         """

@@ -19,8 +19,14 @@ class QubiCCircuitSetup(ExperimentalSetup):
     inherit from this class.
     """
 
-    def __init__(self, name: str, fpga_config: dict, channel_configs: dict, runner: Any,
-                 leeq_channel_to_qubic_channel: Dict[str, str]):
+    def __init__(
+        self,
+        name: str,
+        fpga_config: dict,
+        channel_configs: dict,
+        runner: Any,
+        leeq_channel_to_qubic_channel: Dict[str, str],
+    ):
         """
         Initialize the QubiCCircuitSetup class.
 
@@ -36,7 +42,9 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
         self._runner = runner
 
-        self._compiler = QubiCCircuitListLPBCompiler(leeq_channel_to_qubic_channel=leeq_channel_to_qubic_channel)
+        self._compiler = QubiCCircuitListLPBCompiler(
+            leeq_channel_to_qubic_channel=leeq_channel_to_qubic_channel
+        )
 
         self._current_context = None
         self._measurement_results: Dict[UUID, MeasurementResult] = {}
@@ -53,13 +61,14 @@ class QubiCCircuitSetup(ExperimentalSetup):
         try:
             # QubiC toolchain for compiling circuits
             import qubic.toolchain as tc
+
             # QubiC configuration management libraries
             import qubitconfig.qchip as qc
             from distproc.hwconfig import FPGAConfig, load_channel_configs
         except ImportError:
             raise ImportError(
-                'Importing QubiC toolchain failed. Please install the QubiC toolchain first.'
-                ' Refer to https://gitlab.com/LBL-QubiC')
+                "Importing QubiC toolchain failed. Please install the QubiC toolchain first."
+                " Refer to https://gitlab.com/LBL-QubiC")
 
         return tc, qc, FPGAConfig, load_channel_configs
 
@@ -112,27 +121,35 @@ class QubiCCircuitSetup(ExperimentalSetup):
         self._result = None
         tc, qc, FPGAConfig, load_channel_configs = self._load_qubic_package()
 
-        compiled_instructions = tc.run_compile_stage(context.instructions, fpga_config=self._fpga_config, qchip=None)
-        asm_prog = tc.run_assemble_stage(compiled_instructions, self._channel_configs)
+        compiled_instructions = tc.run_compile_stage(
+            context.instructions, fpga_config=self._fpga_config, qchip=None
+        )
+        asm_prog = tc.run_assemble_stage(
+            compiled_instructions, self._channel_configs)
 
-        acquisition_type = self._status.get_parameters('Acquisition_Type')
-        n_total_shots = self._status.get_parameters('Shot_Number')
-        delay_per_shot = self._status.get_parameters('Shot_Period') * 1e-6
+        acquisition_type = self._status.get_parameters("Acquisition_Type")
+        n_total_shots = self._status.get_parameters("Shot_Number")
+        delay_per_shot = self._status.get_parameters("Shot_Period") * 1e-6
 
-        assert acquisition_type in ['IQ', 'traces'], "Acquisition type should be either IQ or traces. Got " + \
-                                                     str(acquisition_type)
+        assert acquisition_type in [
+            "IQ",
+            "traces",
+        ], "Acquisition type should be either IQ or traces. Got " + str(
+            acquisition_type
+        )
 
-        if acquisition_type == 'IQ':
+        if acquisition_type == "IQ":
             self._result = self._runner.run_circuit(
                 n_total_shots=n_total_shots,
-                reads_per_shot=1,  # Number of values per shot per channel to read back from accbuf.
+                reads_per_shot=1,
+                # Number of values per shot per channel to read back from accbuf.
                 # Unless there is mid-circuit measurement involved this is typically 1
                 # TODO: add support for mid-circuit measurement
                 delay_per_shot=delay_per_shot,  # delay time (in seconds) per single shot of the circuit
                 from_server=False
                 # set to true if calling over RPC. If True, pack returned s11 arrays into byte objects
             )
-        elif acquisition_type == 'traces':
+        elif acquisition_type == "traces":
             # load_and_run_acq is to load the program given by raw_asm_prog and acquire raw
             # (or downconverted) adc traces.
             self._result = self._runner.load_and_run_acq(
@@ -140,7 +157,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
                 n_total_shots=1,  # number of shots to run. Program is restarted from
                 # the beginning for each new shot
                 nsamples=8192,  # number of samples to read from the acq buffer
-                acq_chans=['0'],  # list of channels to acquire
+                acq_chans=["0"],  # list of channels to acquire
                 # current channel mapping is:
                 # '0': ADC_237_2 (main readout ADC)
                 # '1': ADC_237_0 (other ADC connected in gateware)
@@ -161,7 +178,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
         Collect the data from the compiler and commit it to the measurement primitives.
         """
 
-        # TODO: Implement mapping from returned data to each measurement primitive
+        # TODO: Implement mapping from returned data to each measurement
+        # primitive
 
         context.results = self._result
 
@@ -171,14 +189,18 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
 
 class QubiCSingleBoardRemoteRPCSetup(QubiCCircuitSetup):
-
-    def __init__(self, name: str, fpga_config: dict, channel_configs: dict, rpc_uri: str,
-                 leeq_channel_to_qubic_channel: Dict[str, str]):
-
+    def __init__(
+        self,
+        name: str,
+        fpga_config: dict,
+        channel_configs: dict,
+        rpc_uri: str,
+        leeq_channel_to_qubic_channel: Dict[str, str],
+    ):
         try:
             from qubic.rpc_client import CircuitRunnerClient
         except ImportError:
-            msg = 'Importing QubiC RPC client failed. Please install the QubiC toolchain first.'
+            msg = "Importing QubiC RPC client failed. Please install the QubiC toolchain first."
             logger.error(msg)
             raise ImportError(msg)
 
@@ -189,5 +211,10 @@ class QubiCSingleBoardRemoteRPCSetup(QubiCCircuitSetup):
             port=parsed_uri.port,
         )
 
-        super().__init__(name=name, fpga_config=fpga_config, channel_configs=channel_configs, runner=runner,
-                         leeq_channel_to_qubic_channel=leeq_channel_to_qubic_channel)
+        super().__init__(
+            name=name,
+            fpga_config=fpga_config,
+            channel_configs=channel_configs,
+            runner=runner,
+            leeq_channel_to_qubic_channel=leeq_channel_to_qubic_channel,
+        )

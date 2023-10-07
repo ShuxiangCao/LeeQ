@@ -9,7 +9,8 @@ class MeasurementResult(LeeQObject):
     """
 
     def __init__(self, step_no: int, data: np.ndarray, mprim_uuid: str):
-        super().__init__(name=f"MeasurementResult: {mprim_uuid}, step_no: {step_no}")
+        super().__init__(
+            name=f"MeasurementResult: {mprim_uuid}, step_no: {step_no}")
 
         self._step_no = step_no
         self._data = [data]

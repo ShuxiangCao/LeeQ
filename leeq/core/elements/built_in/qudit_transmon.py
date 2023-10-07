@@ -6,7 +6,6 @@ from leeq.core.primitives import LogicalPrimitiveCollectionFactory
 
 
 class TransmonElement(Element):
-
     def __init__(self, name: str, parameters: dict = None):
         """
         Initialize the transmon element.
@@ -19,31 +18,44 @@ class TransmonElement(Element):
         # Register necessary factory classes
         from leeq.core.primitives.built_in.simple_drive import SimpleDriveCollection
         from leeq.core.primitives.built_in.simple_drive import QuditVirtualZCollection
-        from leeq.core.primitives.built_in.simple_drive import SimpleDispersiveMeasurement
+        from leeq.core.primitives.built_in.simple_drive import (
+            SimpleDispersiveMeasurement,
+        )
 
         factory = LogicalPrimitiveCollectionFactory()
         factory.register_collection_template(SimpleDriveCollection)
 
         primitive_factory = LogicalPrimitiveFactory()
-        primitive_factory.register_collection_template(SimpleDispersiveMeasurement)
+        primitive_factory.register_collection_template(
+            SimpleDispersiveMeasurement)
 
         # Build the element
         super().__init__(name, parameters)
 
         # Manually build the virtual z logical primitive collection
         # assert all the channels in lpb configurations are the same
-        lpb_configurations = self._parameters['lpb_collections']
-        assert len(set([lpb_configuration['channel'] for lpb_configuration in lpb_configurations.values()])) == 1
+        lpb_configurations = self._parameters["lpb_collections"]
+        assert (
+            len(
+                set(
+                    [
+                        lpb_configuration["channel"]
+                        for lpb_configuration in lpb_configurations.values()
+                    ]
+                )
+            )
+            == 1
+        )
 
         first_lpb_configuration = list(lpb_configurations.values())[0]
 
         # Build the virtual z logical primitive collection
-        self._lpb_collections['qudit_vz'] = QuditVirtualZCollection(name=self._name + '.' + 'qudit_vz',
-                                                                    parameters={
-                                                                        'channel': first_lpb_configuration['channel']
-                                                                    })
+        self._lpb_collections["qudit_vz"] = QuditVirtualZCollection(
+            name=self._name + "." + "qudit_vz",
+            parameters={"channel": first_lpb_configuration["channel"]},
+        )
 
-        self._default_measurement_primitive_name = '0'
+        self._default_measurement_primitive_name = "0"
 
     def set_default_measurement_primitive_name(self, name: str):
         """
@@ -71,18 +83,29 @@ class TransmonElement(Element):
             parameters (dict): The parameters of the element.
         """
 
-        from leeq.core.primitives.built_in.simple_drive import SimpleDriveCollection, SimpleDispersiveMeasurement
+        from leeq.core.primitives.built_in.simple_drive import (
+            SimpleDriveCollection,
+            SimpleDispersiveMeasurement,
+        )
 
-        for name, lpb_parameter in parameters['lpb_collections'].items():
-            assert 'type' in lpb_parameter, 'The type of the lpb collection is not specified.'
-            assert lpb_parameter['type'] in [SimpleDriveCollection.__qualname__], \
-                f"The lpb collection {lpb_parameter['name']} is not supported."
+        for name, lpb_parameter in parameters["lpb_collections"].items():
+            assert (
+                "type" in lpb_parameter
+            ), "The type of the lpb collection is not specified."
+            assert lpb_parameter["type"] in [
+                SimpleDriveCollection.__qualname__
+            ], f"The lpb collection {lpb_parameter['name']} is not supported."
 
-        for name, measurement_parameter in parameters['measurement_primitives'].items():
-            assert 'type' in measurement_parameter, 'The type of the measurement parameter is not specified.'
-            assert measurement_parameter['type'] in [SimpleDispersiveMeasurement.__qualname__]
+        for name, measurement_parameter in parameters["measurement_primitives"].items(
+        ):
+            assert (
+                "type" in measurement_parameter
+            ), "The type of the measurement parameter is not specified."
+            assert measurement_parameter["type"] in [
+                SimpleDispersiveMeasurement.__qualname__
+            ]
 
-    def get_gate(self, gate_name, transition_name='f01', angle=None):
+    def get_gate(self, gate_name, transition_name="f01", angle=None):
         """
         Get a specific gate For compatibility and convenience.
 
@@ -99,61 +122,79 @@ class TransmonElement(Element):
             angle (float, Optional): The angle of the gate.
         """
 
-        if gate_name == 'I':
-            return self.get_c1('f01')['I']
+        if gate_name == "I":
+            return self.get_c1("f01")["I"]
 
-        if gate_name == 'qutrit_clifford_green':
+        if gate_name == "qutrit_clifford_green":
             vz1, vz2 = angle
 
             vz1 *= np.pi * 2 / 3
             vz2 *= np.pi * 2 / 3
 
-            c1_vz = self.get_c1('qudit_vz')
+            c1_vz = self.get_c1("qudit_vz")
             return c1_vz.z1(vz1) + c1_vz.z2(vz2)
 
-        if gate_name == 'qutrit_clifford_red':
-            hadamard = self.get_gate('qutrit_hadamard')
-            hadamard_dag = self.get_gate('qutrit_hadamard_dag')
-            return hadamard_dag + self.get_gate('qutrit_clifford_green', angle=angle) + hadamard
+        if gate_name == "qutrit_clifford_red":
+            hadamard = self.get_gate("qutrit_hadamard")
+            hadamard_dag = self.get_gate("qutrit_hadamard_dag")
+            return (
+                hadamard_dag
+                + self.get_gate("qutrit_clifford_green", angle=angle)
+                + hadamard
+            )
 
-        if gate_name == 'qutrit_hadamard':
-            c1_01 = self.get_c1('f01')
-            c1_12 = self.get_c1('f12')
-            c1_vz = self.get_c1('qudit_vz')
+        if gate_name == "qutrit_hadamard":
+            c1_01 = self.get_c1("f01")
+            c1_12 = self.get_c1("f12")
+            c1_vz = self.get_c1("qudit_vz")
 
             magic_angle = np.arccos(1 / (np.sqrt(3))) * 2
             magic_y = c1_01.y(magic_angle)
 
-            hadamard_f12 = c1_12['Ym'] + c1_vz.z2(np.pi)
-            qth = hadamard_f12 + c1_vz.z2(np.pi / 2) + c1_vz.z1(np.pi) + magic_y + hadamard_f12
+            hadamard_f12 = c1_12["Ym"] + c1_vz.z2(np.pi)
+            qth = (
+                hadamard_f12
+                + c1_vz.z2(np.pi / 2)
+                + c1_vz.z1(np.pi)
+                + magic_y
+                + hadamard_f12
+            )
 
             return qth
 
-        if gate_name == 'qutrit_hadamard_dag':
-            c1_01 = self.get_c1('f01')
-            c1_12 = self.get_c1('f12')
-            c1_vz = self.get_c1('qudit_vz')
+        if gate_name == "qutrit_hadamard_dag":
+            c1_01 = self.get_c1("f01")
+            c1_12 = self.get_c1("f12")
+            c1_vz = self.get_c1("qudit_vz")
 
             magic_angle = np.arccos(1 / (np.sqrt(3))) * 2
             magic_y = c1_01.y(-magic_angle)
 
-            hadamard_f12 = c1_12['Ym'] + c1_vz.z2(np.pi)
-            qth = hadamard_f12 + magic_y + c1_vz.z2(-np.pi / 2) + c1_vz.z1(np.pi) + hadamard_f12
+            hadamard_f12 = c1_12["Ym"] + c1_vz.z2(np.pi)
+            qth = (
+                hadamard_f12
+                + magic_y
+                + c1_vz.z2(-np.pi / 2)
+                + c1_vz.z1(np.pi)
+                + hadamard_f12
+            )
 
             return qth
 
         c1 = self.get_c1(transition_name)
         if angle is not None:
-            if gate_name == 'Z':
+            if gate_name == "Z":
                 return c1.z(angle)
-            if gate_name == 'X':
+            if gate_name == "X":
                 return c1.x(angle)
-            if gate_name == 'Y':
+            if gate_name == "Y":
                 return c1.y(angle)
 
-        if gate_name in ['Xp', 'Xm', 'Yp', 'Ym'] or (gate_name in ['X', 'Y'] and angle is None):
+        if gate_name in ["Xp", "Xm", "Yp", "Ym"] or (
+            gate_name in ["X", "Y"] and angle is None
+        ):
             return c1[gate_name]
-        elif gate_name == 'hadamard':
+        elif gate_name == "hadamard":
             return c1.hadamard()
 
         raise ValueError()
@@ -163,21 +204,33 @@ class TransmonElement(Element):
         For compatibility reasons, a shortcut for returning a measurement primitive with the return value type
         tagged to be list of values, usually means a list of points on the IQ plane, each denote a single shot readout.
         """
-        return self.get_measurement_primitive(name).shallow_copy().tag(return_value_type='IQ')
+        return (
+            self.get_measurement_primitive(name)
+            .shallow_copy()
+            .tag(return_value_type="IQ")
+        )
 
     def get_measurement_prim_trace(self, name: str):
         """
         For compatibility reasons, a shortcut for returning a measurement primitive with the return value type
         tagged to be traces of the sampled signal.
         """
-        return self.get_measurement_primitive(name).shallow_copy().tag(return_value_type='trace')
+        return (
+            self.get_measurement_primitive(name)
+            .shallow_copy()
+            .tag(return_value_type="trace")
+        )
 
     def get_measurement_prim_int(self, name: str):
         """
         For compatibility reasons, a shortcut for returning a measurement primitive with the return value type
         tagged to be a value, usually means averaged result among all shots.
         """
-        return self.get_measurement_primitive(name).shallow_copy().tag(return_value_type='IQ_average')
+        return (
+            self.get_measurement_primitive(name)
+            .shallow_copy()
+            .tag(return_value_type="IQ_average")
+        )
 
     def get_default_measurement_prim_intlist(self):
         """
@@ -185,21 +238,25 @@ class TransmonElement(Element):
          value type tagged to be list of values, usually means a list of points on the IQ plane, each denote
           a single shot readout.
         """
-        return self.get_measurement_prim_intlist(self._default_measurement_primitive_name)
+        return self.get_measurement_prim_intlist(
+            self._default_measurement_primitive_name
+        )
 
     def get_default_measurement_prim_trace(self):
         """
         For compatibility reasons, a shortcut for returning the default measurement primitive with the
          return value type tagged to be traces of the sampled signal.
         """
-        return self.get_measurement_prim_trace(self._default_measurement_primitive_name)
+        return self.get_measurement_prim_trace(
+            self._default_measurement_primitive_name)
 
     def get_default_measurement_prim_int(self):
         """
         For compatibility reasons, a shortcut for returning the default measurement primitive with the return
          value type tagged to be a value, usually means averaged result among all shots.
         """
-        return self.get_measurement_prim_int(self._default_measurement_primitive_name)
+        return self.get_measurement_prim_int(
+            self._default_measurement_primitive_name)
 
     def get_default_measurement_prim(self):
         """

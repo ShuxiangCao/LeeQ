@@ -34,8 +34,10 @@ class DelayPrimitive(LogicalPrimitive):
 
     @staticmethod
     def _validate_parameters(parameters: dict):
-        assert 'delay_time' in parameters, "The delay time is not specified."
-        assert 'hardware_stall' in parameters, "Whether to use hardware stall is not specified."
+        assert "delay_time" in parameters, "The delay time is not specified."
+        assert (
+            "hardware_stall" in parameters
+        ), "Whether to use hardware stall is not specified."
 
     def get_delay_time(self):
         """
@@ -44,7 +46,7 @@ class DelayPrimitive(LogicalPrimitive):
         Returns:
             float: The delay time.
         """
-        return self._parameters['delay_time']
+        return self._parameters["delay_time"]
 
 
 class Delay(object):
@@ -63,7 +65,9 @@ class Delay(object):
         Returns:
             DelayPrimitive: The delay primitive.
         """
-        return DelayPrimitive(parameters={'delay_time': delay, 'hardware_stall': hardware_stall})
+        return DelayPrimitive(
+            parameters={"delay_time": delay, "hardware_stall": hardware_stall}
+        )
 
 
 class PhaseShift(LogicalPrimitive):
@@ -106,7 +110,11 @@ class PhaseShift(LogicalPrimitive):
 
     @staticmethod
     def _validate_parameters(parameters: dict):
-        assert 'channel' in parameters, "The channel is not specified."
-        assert 'phase_shift' in parameters, "The phase is not specified."
-        assert 'transition_multiplier' in parameters, "The transition multiplier is not specified."
-        assert isinstance(parameters['transition_multiplier'], dict), "The transition multiplier is not a dict."
+        assert "channel" in parameters, "The channel is not specified."
+        assert "phase_shift" in parameters, "The phase is not specified."
+        assert (
+            "transition_multiplier" in parameters
+        ), "The transition multiplier is not specified."
+        assert isinstance(
+            parameters["transition_multiplier"], dict
+        ), "The transition multiplier is not a dict."

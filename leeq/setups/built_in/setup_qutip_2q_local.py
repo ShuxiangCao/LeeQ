@@ -23,16 +23,21 @@ class QuTip2QLocalSetup(ExperimentalSetup):
         Parameters:
             sampling_rate (float): The sampling rate of the experiment. In Msps unit.
         """
-        name = 'qutip_2q_local'
+        name = "qutip_2q_local"
         from leeq.compiler.full_sequencing_compiler import FullSequencingCompiler
         from leeq.core.engine.grid_sweep_engine import GridSerialSweepEngine
-        self._compiler = FullSequencingCompiler(sampling_rate={
-            0: sampling_rate,
-            1: sampling_rate,
-            2: sampling_rate,
-            3: sampling_rate,
-        })
-        self._engine = GridSerialSweepEngine(compiler=self._compiler, setup=self, name=name + '.engine')
+
+        self._compiler = FullSequencingCompiler(
+            sampling_rate={
+                0: sampling_rate,
+                1: sampling_rate,
+                2: sampling_rate,
+                3: sampling_rate,
+            }
+        )
+        self._engine = GridSerialSweepEngine(
+            compiler=self._compiler, setup=self, name=name + ".engine"
+        )
         self._current_context = None
         self._sampling_rate = sampling_rate
         self._expectation_result = None
@@ -41,14 +46,14 @@ class QuTip2QLocalSetup(ExperimentalSetup):
 
         self._simulator = QutipPulsedSimulator()
         self._simulator.add_qubit(
-            name='q0',
+            name="q0",
             frequency=4000,
             anharmonicity=-200,
             t1=100,
             t2=100,
         )
         self._simulator.add_qubit(
-            name='q1',
+            name="q1",
             frequency=4100,
             anharmonicity=-200,
             t1=100,
@@ -59,10 +64,10 @@ class QuTip2QLocalSetup(ExperimentalSetup):
         super().__init__(name)
 
         self._channel_to_qubit = {
-            0: 'q0',
-            1: 'q0_r',
-            2: 'q1',
-            3: 'q1_r',
+            0: "q0",
+            1: "q0_r",
+            2: "q1",
+            3: "q1_r",
         }
 
     def run(self, lpb: LogicalPrimitiveBlock, sweep: Sweeper):
@@ -109,8 +114,14 @@ class QuTip2QLocalSetup(ExperimentalSetup):
 
         self._simulator.reset()
 
-        total_time = len(list(context.instructions['pulse_sequence'].values())[-1]) / self._sampling_rate
-        measurement_time = [v[0] / self._sampling_rate for v in context.instructions['measurement_sequence']]
+        total_time = (
+            len(list(context.instructions["pulse_sequence"].values())[-1])
+            / self._sampling_rate
+        )
+        measurement_time = [
+            v[0] / self._sampling_rate
+            for v in context.instructions["measurement_sequence"]
+        ]
 
         self._simulator.set_measurement_time(measurement_time=measurement_time)
 
@@ -119,18 +130,27 @@ class QuTip2QLocalSetup(ExperimentalSetup):
             time_resolution=1 / self._sampling_rate,
         )
 
-        for (channel, freq), buffer in context.instructions['pulse_sequence'].items():
-
+        for (
+                channel, freq), buffer in context.instructions["pulse_sequence"].items():
             if channel not in self._channel_to_qubit:
-                msg = f'Channel {channel} is not mapped to any qubit.'
+                msg = f"Channel {channel} is not mapped to any qubit."
                 self.logger.error(msg)
                 raise ValueError(msg)
 
-            if 'r' in self._channel_to_qubit[channel]:
+            if "r" in self._channel_to_qubit[channel]:
                 # Ignore the readout signals
                 continue
 
-            pulse = np.exp(1j * 2 * np.pi * freq * np.arange(len(buffer)) / self._sampling_rate) * buffer
+            pulse = (
+                np.exp(
+                    1j *
+                    2 *
+                    np.pi *
+                    freq *
+                    np.arange(
+                        len(buffer)) /
+                    self._sampling_rate) *
+                buffer)
 
             self._simulator.set_drive_buffer(
                 qubit_name=self._channel_to_qubit[channel],
@@ -142,34 +162,38 @@ class QuTip2QLocalSetup(ExperimentalSetup):
         Collect the data for one measurement.
         """
         position, (channel, freq), tags = measurement_entry
-        uuid = tags['uuid']
+        uuid = tags["uuid"]
 
         results = {
-            'II': self._expectation_result[0][position],
-            'IZ': self._expectation_result[1][position],
-            'ZI': self._expectation_result[2][position],
-            'ZZ': self._expectation_result[3][position],
+            "II": self._expectation_result[0][position],
+            "IZ": self._expectation_result[1][position],
+            "ZI": self._expectation_result[2][position],
+            "ZZ": self._expectation_result[3][position],
         }
 
         self._sampled_results[(uuid, position)] = results
 
-        prob_0_q0 = (1 + results['ZI']) / 2
-        prob_same_parity = (1 + results['ZZ']) / 2
+        prob_0_q0 = (1 + results["ZI"]) / 2
+        prob_same_parity = (1 + results["ZZ"]) / 2
 
         # shot number by default 1000
-        shot_num = tags.get('shot_num', 1000)
+        shot_num = tags.get("shot_num", 1000)
 
         # Now we mock the single shot data from the expectation results
         # First we sample the data from the expectation results of ZI.
         # Then we sample the data from the expectation results of ZZ.
         # Finally we combine the two results to get the single shot data.
-        sample_0_q0 = np.random.choice([-1, 1], size=(shot_num,), p=[1 - prob_0_q0, prob_0_q0])
-        sample_same_parity = np.random.choice([-1, 1], size=(shot_num,), p=[1 - prob_same_parity, prob_same_parity])
+        sample_0_q0 = np.random.choice(
+            [-1, 1], size=(shot_num,), p=[1 - prob_0_q0, prob_0_q0]
+        )
+        sample_same_parity = np.random.choice(
+            [-1, 1], size=(shot_num,), p=[1 - prob_same_parity, prob_same_parity]
+        )
         sample_0_q1 = sample_0_q0 * sample_same_parity
         sample_0_q0 = (sample_0_q0 + 1) / 2
         sample_0_q1 = (sample_0_q1 + 1) / 2
 
-        if 'q0' in self._channel_to_qubit[channel]:
+        if "q0" in self._channel_to_qubit[channel]:
             result = sample_0_q0
         else:
             result = sample_0_q0
@@ -178,7 +202,6 @@ class QuTip2QLocalSetup(ExperimentalSetup):
         self._sampled_results[(uuid, position)] = result
 
     def fire_experiment(self, context=None):
-
         """
         Fire the experiment and wait for it to finish.
         """
@@ -190,7 +213,7 @@ class QuTip2QLocalSetup(ExperimentalSetup):
 
         self._expectation_result = self._simulator.run()
 
-        for entry in context.instructions['measurement_sequence']:
+        for entry in context.instructions["measurement_sequence"]:
             self._collect_one_measurement(entry)
 
     def collect_data(self, context: ExperimentContext):
@@ -203,18 +226,25 @@ class QuTip2QLocalSetup(ExperimentalSetup):
 
         ordered_results = {}
 
-        for (uuid, position) in self._sampled_results.keys():
+        for uuid, position in self._sampled_results.keys():
             if uuid in ordered_results:
-                ordered_results[uuid].append((position, self._sampled_results[(uuid, position)]))
+                ordered_results[uuid].append(
+                    (position, self._sampled_results[(uuid, position)])
+                )
             else:
-                ordered_results[uuid] = [(position, self._sampled_results[(uuid, position)])]
+                ordered_results[uuid] = [
+                    (position, self._sampled_results[(uuid, position)])
+                ]
 
         for uuid, results in ordered_results.items():
             results.sort(key=lambda x: x[0])
             result_array = [v[1] for v in results]
 
             m_result = MeasurementResult(
-                step_no=self._current_context.step_no, data=result_array[0], mprim_uuid=uuid)
+                step_no=self._current_context.step_no,
+                data=result_array[0],
+                mprim_uuid=uuid,
+            )
 
             for i in range(1, len(result_array)):
                 m_result.append(result_array[i])

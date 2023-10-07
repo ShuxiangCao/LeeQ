@@ -1,20 +1,17 @@
 import functools
 
-import numpy as np
-from functools import singledispatchmethod
-
 from leeq.compiler.compiler_base import LPBCompiler, MeasurementSequence
 from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
 from leeq.core.context import ExperimentContext
 from leeq.core.primitives.built_in.common import PhaseShift, DelayPrimitive
-from leeq.core.primitives.logical_primitives import (LogicalPrimitiveCombinable,
-                                                     LogicalPrimitiveBlockParallel,
-                                                     LogicalPrimitiveBlockSerial,
-                                                     LogicalPrimitiveBlockSweep,
-                                                     MeasurementPrimitive, LogicalPrimitiveBlock
-                                                     )
+from leeq.core.primitives.logical_primitives import (
+    LogicalPrimitiveCombinable,
+    LogicalPrimitiveBlockParallel,
+    LogicalPrimitiveBlockSerial,
+    LogicalPrimitiveBlockSweep,
+    MeasurementPrimitive,
+)
 
-import numpy as np
 from typing import Dict
 from leeq.utils import setup_logging
 
@@ -22,7 +19,6 @@ logger = setup_logging(__name__)
 
 
 class IndividualLPBCompiler(LPBCompiler):
-
     def __init__(self, sampling_rate: dict[float]):
         """
         Initialize the IndividualLPBCompiler class.
@@ -38,7 +34,8 @@ class IndividualLPBCompiler(LPBCompiler):
         self._pulse_fragments = []
         self._lengths = {}
 
-    def compile_lpb(self, context: ExperimentContext, lpb: LogicalPrimitiveCombinable):
+    def compile_lpb(self, context: ExperimentContext,
+                    lpb: LogicalPrimitiveCombinable):
         """
         Compile the logical primitive block to instructions that going to be passed to the compiler.
         The compiled instructions are a buffer of pulse shape.
@@ -54,8 +51,8 @@ class IndividualLPBCompiler(LPBCompiler):
         self._compile_lpb(lpb, 0)
         context.instructions = {
             "measurement_sequence": self._measurement_sequence.get_measurements(),
-            'pulse_sequence': self._pulse_fragments,
-            'lengths': self._lengths,
+            "pulse_sequence": self._pulse_fragments,
+            "lengths": self._lengths,
         }
 
         self._measurement_sequence = None
@@ -71,17 +68,30 @@ class IndividualLPBCompiler(LPBCompiler):
             freq (float): The frequency of the pulse.
             length (int): The length of the pulse.
         """
-        if (channel, freq) in self._lengths and self._lengths[(channel, freq)] > length:
-            msg = "The pulse length is too short for channel " + str(channel) + " and frequency " + str(freq)
-            msg += ". The length is " + str(length) + " while the previous length is " + str(
-                self._lengths[(channel, freq)])
+        if (channel, freq) in self._lengths and self._lengths[(
+                channel, freq)] > length:
+            msg = (
+                "The pulse length is too short for channel "
+                + str(channel)
+                + " and frequency "
+                + str(freq)
+            )
+            msg += (
+                ". The length is "
+                + str(length)
+                + " while the previous length is "
+                + str(self._lengths[(channel, freq)])
+            )
             logger.error(msg)
             raise ValueError(msg)
 
         self._lengths[(channel, freq)] = length
 
     @functools.singledispatchmethod
-    def _compile_lpb(self, lpb: LogicalPrimitiveCombinable, current_position: float):
+    def _compile_lpb(
+            self,
+            lpb: LogicalPrimitiveCombinable,
+            current_position: float):
         """
         Compile the logical primitive block to instructions that going to be passed to the compiler.
         Recursively implement the compiling.
@@ -94,38 +104,59 @@ class IndividualLPBCompiler(LPBCompiler):
             PulseSequence: The compiled pulse sequence.
         """
 
-        assert lpb.children is None, "The children of the logical primitive block should be None. Got class " + \
-                                     str(lpb.__class__)
+        assert lpb.children is None, (
+            "The children of the logical primitive block should be None. Got class "
+            + str(lpb.__class__)
+        )
 
         # Get the parameters
         pulse_shape_name = lpb.shape
         pulse_channel = lpb.channel
         pulse_shape_parameters = lpb.get_parameters()
 
-        if 'phase' in pulse_shape_parameters and pulse_channel in self._phase_shift and \
-                pulse_shape_parameters['transition_name'] in self._phase_shift[pulse_channel]:
-            pulse_shape_parameters['phase'] += self._phase_shift[pulse_channel][lpb.transition_name]
+        if (
+            "phase" in pulse_shape_parameters
+            and pulse_channel in self._phase_shift
+            and pulse_shape_parameters["transition_name"]
+            in self._phase_shift[pulse_channel]
+        ):
+            pulse_shape_parameters["phase"] += self._phase_shift[pulse_channel][
+                lpb.transition_name
+            ]
 
         # Compile the pulse shape
         factory = PulseShapeFactory()
-        pulse_shape = factory.compile_pulse_shape(pulse_shape_name, sampling_rate=self._sampling_rate[lpb.channel],
-                                                  **pulse_shape_parameters)
+        pulse_shape = factory.compile_pulse_shape(
+            pulse_shape_name,
+            sampling_rate=self._sampling_rate[lpb.channel],
+            **pulse_shape_parameters
+        )
 
         if isinstance(lpb, MeasurementPrimitive):
             tags = lpb.tags
             tags.update(pulse_shape_parameters)
-            tags.update({
-                'uuid': lpb.uuid,
-            })
+            tags.update(
+                {
+                    "uuid": lpb.uuid,
+                }
+            )
 
-            # If the logical primitive is a measurement primitive, then return the measurement sequence
-            self._measurement_sequence.add_measurement(current_position, (pulse_channel, lpb.freq), tags)
+            # If the logical primitive is a measurement primitive, then return
+            # the measurement sequence
+            self._measurement_sequence.add_measurement(
+                current_position, (pulse_channel, lpb.freq), tags
+            )
 
-        self._pulse_fragments.append(((pulse_channel, lpb.freq), current_position, pulse_shape, lpb.uuid))
+        self._pulse_fragments.append(
+            ((pulse_channel, lpb.freq), current_position, pulse_shape, lpb.uuid))
 
         length = len(pulse_shape)  # Always 1D
 
-        self._update_lengths(pulse_channel, lpb.freq, length / self._sampling_rate[pulse_channel] + current_position)
+        self._update_lengths(
+            pulse_channel,
+            lpb.freq,
+            length / self._sampling_rate[pulse_channel] + current_position,
+        )
 
         return length
 
@@ -148,19 +179,22 @@ class IndividualLPBCompiler(LPBCompiler):
         if lpb.channel not in self._phase_shift:
             self._phase_shift[lpb.channel] = {}
 
-        for k, m in parameters['transition_multiplier'].items():
+        for k, m in parameters["transition_multiplier"].items():
             if k not in self._phase_shift[lpb.channel]:
-                self._phase_shift[lpb.channel][k] = m * parameters['phase_shift']
+                self._phase_shift[lpb.channel][k] = m * \
+                    parameters["phase_shift"]
             else:
-                self._phase_shift[lpb.channel][k] += m * parameters['phase_shift']
+                self._phase_shift[lpb.channel][k] += m * \
+                    parameters["phase_shift"]
 
         return 0
 
     @_compile_lpb.register
     def _(self, lpb: LogicalPrimitiveBlockParallel, current_position: float):
         lengths_list = [
-            self._compile_lpb(child, current_position) for child in lpb.children
-        ]
+            self._compile_lpb(
+                child,
+                current_position) for child in lpb.children]
 
         length = max(lengths_list)
 
@@ -168,11 +202,12 @@ class IndividualLPBCompiler(LPBCompiler):
 
     @_compile_lpb.register
     def _(self, lpb: LogicalPrimitiveBlockSerial, current_position: float):
-
         total_time = 0
 
         for i in range(len(lpb.children)):
-            total_time += self._compile_lpb(lpb.children[i], current_position + total_time)
+            total_time += self._compile_lpb(
+                lpb.children[i], current_position + total_time
+            )
 
         return total_time
 

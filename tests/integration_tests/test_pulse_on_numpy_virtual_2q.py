@@ -1,7 +1,4 @@
-import numpy as np
-import pytest
 from pytest import fixture
-from pytest import skip
 from labchronicle import log_and_record, register_browser_function
 
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
@@ -9,7 +6,6 @@ from leeq.experiments.experiments import Experiment
 from leeq.experiments.experiments import setup
 from leeq.experiments.experiments import basic_run as basic
 from leeq.setups.built_in.setup_numpy_2q_virtual_device import Numpy2QVirtualDeviceSetup
-from leeq.setups.built_in.setup_qutip_2q_local import QuTip2QLocalSetup
 
 
 class DummyObject(object):

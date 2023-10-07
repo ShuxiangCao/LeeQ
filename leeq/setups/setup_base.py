@@ -15,6 +15,7 @@ class SetupStatusParameters(LeeQObject):
     This class is used to store the experiment parameters such as the short number, shot period, etc. It is also used
     to store the configuration of the instruments, such as the channel configuration, etc.
     """
+
     pass
 
     def __init__(self, name):
@@ -33,7 +34,7 @@ class SetupStatusParameters(LeeQObject):
         if key in self._internal_dict:
             self._internal_dict[key] = value
         else:
-            msg = f'{self._name} may not accept parameter {key}.'
+            msg = f"{self._name} may not accept parameter {key}."
             logger.warning(msg)
 
     def add_parameter(self, key, default_value):
@@ -101,7 +102,7 @@ class SetupStatusParameters(LeeQObject):
         """
 
         if channel in self._channel_dict:
-            msg = f'{self._name} already configured channel {channel}.'
+            msg = f"{self._name} already configured channel {channel}."
             logger.error(msg)
             raise ValueError(msg)
 
@@ -112,7 +113,7 @@ class SetupStatusParameters(LeeQObject):
         Set the channel parameters.
         """
         if channel not in self._channel_dict:
-            msg = f'{self._name} does not have channel {channel}.'
+            msg = f"{self._name} does not have channel {channel}."
             logger.error(msg)
             raise ValueError(msg)
 
@@ -130,7 +131,7 @@ class SetupStatusParameters(LeeQObject):
         """
 
         if channel not in self._channel_dict:
-            msg = f'{self._name} does not have channel {channel}.'
+            msg = f"{self._name} does not have channel {channel}."
             logger.error(msg)
             raise ValueError(msg)
 
@@ -138,7 +139,7 @@ class SetupStatusParameters(LeeQObject):
             return self._channel_dict[channel].copy()
 
         if key not in self._channel_dict[channel]:
-            msg = f'{self._name} does not have channel {key}.'
+            msg = f"{self._name} does not have channel {key}."
             logger.error(msg)
             raise ValueError(msg)
 
@@ -166,34 +167,54 @@ class ExperimentalSetup(LeeQObject):
         """
         Initialize the ExperimentalSetup class. Use init to define all the equipments in the setup.
         """
-        assert '_compiler' in self.__dict__, 'The compiler is not defined in the setup, please define it in the __init__.'
-        assert '_engine' in self.__dict__, 'The engine is not defined in the setup, please define it in the __init__.'
+        assert (
+            "_compiler" in self.__dict__
+        ), "The compiler is not defined in the setup, please define it in the __init__."
+        assert (
+            "_engine" in self.__dict__
+        ), "The engine is not defined in the setup, please define it in the __init__."
         super().__init__(name)
         self._active = False
-        self._status = SetupStatusParameters(name + '.status')
+        self._status = SetupStatusParameters(name + ".status")
 
         # Add parameters that all setups should have
-        self._status.add_param("Shot_Number", 2000)  # The number of shots to be taken for each point
-        self._status.add_param("Shot_Period",
-                               500.)  # The period between each shot, usually should choose more than 3 T1
-        self._status.add_param("Acquisition_Type",
-                               'IQ')  # The type of data to be acquired, could be IQ, IQ_average, traces, etc.
-        self._status.add_param("Debug_Plotter", False)  # Plot the pulse sequence in the plotter
-        self._status.add_param("Debug_Plotter_Ignore_Readout", False)  # Ignore the readout in the plotter
-        self._status.add_param("In_Jupyter", is_running_in_jupyter())  # Whether the code is running in Jupyter
-        self._status.add_param("Plot_Result_In_Jupyter", True)  # Whether to plot the result in Jupyter
-        self._status.add_param("AMP_Warning", True)  # Whether to show the AMP warning
-        self._status.add_param("Ignore_Plot_Error", True)  # Whether to ignore the plot error
-        self._status.add_param("ResourceAutoReleaseTime",
-                               300)  # The time to wait before auto releasing the resources (disconnect the devices)
-        self._status.add_param("ResourceAutoRelease", True)  # Whether to auto release the resources
-        self._status.add_param("DisableSweepProgressBar", False)  # Whether to disable the sweep progress bar
-        self._status.add_param("LeaveSweepProgressBar", True)  # Whether to leave the sweep progress bar
-        self._status.add_param("SweepProgressBarDesc", "Sweep")  # The description of the sweep progress bar
-        self._status.add_param("GlobalPreLPB",
-                               None)  # The global logical primitive block that runs before any expreiment, # could be used for active reset for initial state preparation.
-        self._status.add_param("GlobalPostLPB",
-                               None)  # The global logical primitive block that attach to all runs, # could be used for active reset for fast cooling.
+        # The number of shots to be taken for each point
+        self._status.add_param("Shot_Number", 2000)
+        # The period between each shot, usually should choose more than 3 T1
+        self._status.add_param("Shot_Period", 500.0)
+        # The type of data to be acquired, could be IQ, IQ_average, traces,
+        # etc.
+        self._status.add_param("Acquisition_Type", "IQ")
+        # Plot the pulse sequence in the plotter
+        self._status.add_param("Debug_Plotter", False)
+        self._status.add_param(
+            "Debug_Plotter_Ignore_Readout", False
+        )  # Ignore the readout in the plotter
+        # Whether the code is running in Jupyter
+        self._status.add_param("In_Jupyter", is_running_in_jupyter())
+        # Whether to plot the result in Jupyter
+        self._status.add_param("Plot_Result_In_Jupyter", True)
+        # Whether to show the AMP warning
+        self._status.add_param("AMP_Warning", True)
+        # Whether to ignore the plot error
+        self._status.add_param("Ignore_Plot_Error", True)
+        # The time to wait before auto releasing the resources (disconnect the
+        # devices)
+        self._status.add_param("ResourceAutoReleaseTime", 300)
+        # Whether to auto release the resources
+        self._status.add_param("ResourceAutoRelease", True)
+        # Whether to disable the sweep progress bar
+        self._status.add_param("DisableSweepProgressBar", False)
+        # Whether to leave the sweep progress bar
+        self._status.add_param("LeaveSweepProgressBar", True)
+        # The description of the sweep progress bar
+        self._status.add_param("SweepProgressBarDesc", "Sweep")
+        # The global logical primitive block that runs before any expreiment, #
+        # could be used for active reset for initial state preparation.
+        self._status.add_param("GlobalPreLPB", None)
+        # The global logical primitive block that attach to all runs, # could
+        # be used for active reset for fast cooling.
+        self._status.add_param("GlobalPostLPB", None)
 
     @property
     def status(self):

@@ -8,8 +8,13 @@ from leeq.compiler.individual_lpb_compiler import IndividualLPBCompiler
 from leeq.core.context import ExperimentContext
 from leeq.core.engine.measurement_result import MeasurementResult
 from leeq.core.primitives.built_in.common import PhaseShift, DelayPrimitive
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock, LogicalPrimitiveBlockSerial, \
-    LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel, MeasurementPrimitive
+from leeq.core.primitives.logical_primitives import (
+    LogicalPrimitiveBlock,
+    LogicalPrimitiveBlockSerial,
+    LogicalPrimitiveBlockSweep,
+    LogicalPrimitiveBlockParallel,
+    MeasurementPrimitive,
+)
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import ExperimentalSetup
 from leeq.theory.simulation.numpy.rotated_frame_simulator import VirtualTransmon
@@ -28,43 +33,64 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
         Parameters:
             sampling_rate (float): The sampling rate of the experiment. In Msps unit.
         """
-        name = 'numpy_2q_fast_virtual_transmons'
+        name = "numpy_2q_fast_virtual_transmons"
         from leeq.core.engine.grid_sweep_engine import GridSerialSweepEngine
-        self._compiler = IndividualLPBCompiler(sampling_rate={
-            0: sampling_rate,
-            1: sampling_rate,
-            2: sampling_rate,
-            3: sampling_rate,
-        })
-        self._engine = GridSerialSweepEngine(compiler=self._compiler, setup=self, name=name + '.engine')
+
+        self._compiler = IndividualLPBCompiler(
+            sampling_rate={
+                0: sampling_rate,
+                1: sampling_rate,
+                2: sampling_rate,
+                3: sampling_rate,
+            }
+        )
+        self._engine = GridSerialSweepEngine(
+            compiler=self._compiler, setup=self, name=name + ".engine"
+        )
 
         self._current_context = None
         self._sampling_rate = sampling_rate
         self._measurement_results: Dict[UUID, MeasurementResult] = {}
         self._uuid_to_qubit_shape = None
         self._simulators = {
-            'q0': VirtualTransmon(
-                name='q0', qubit_frequency=4144, anharmonicity=-198, t1=102, t2=120,
-                readout_frequency=8818.23, readout_linewith=1, readout_dipsersive_shift=0.26,
-                truncate_level=4, quiescent_state_distribution=[0.9, 0.07, 0.03, 0]),
-            'q1': VirtualTransmon(
-                name='q1', qubit_frequency=4022, anharmonicity=-195, t1=88, t2=99,
-                readout_frequency=9518.23, readout_linewith=1, readout_dipsersive_shift=0.5,
-                truncate_level=4, quiescent_state_distribution=[0.85, 0.11, 0.04, 0]),
+            "q0": VirtualTransmon(
+                name="q0",
+                qubit_frequency=4144,
+                anharmonicity=-198,
+                t1=102,
+                t2=120,
+                readout_frequency=8818.23,
+                readout_linewith=1,
+                readout_dipsersive_shift=0.26,
+                truncate_level=4,
+                quiescent_state_distribution=[0.9, 0.07, 0.03, 0],
+            ),
+            "q1": VirtualTransmon(
+                name="q1",
+                qubit_frequency=4022,
+                anharmonicity=-195,
+                t1=88,
+                t2=99,
+                readout_frequency=9518.23,
+                readout_linewith=1,
+                readout_dipsersive_shift=0.5,
+                truncate_level=4,
+                quiescent_state_distribution=[0.85, 0.11, 0.04, 0],
+            ),
         }
 
         super().__init__(name)
 
-        self._status.add_channel(channel=0, name='q0_drive')
-        self._status.add_channel(channel=1, name='q0_read')
-        self._status.add_channel(channel=2, name='q1_drive')
-        self._status.add_channel(channel=3, name='q1_read')
+        self._status.add_channel(channel=0, name="q0_drive")
+        self._status.add_channel(channel=1, name="q0_read")
+        self._status.add_channel(channel=2, name="q1_drive")
+        self._status.add_channel(channel=3, name="q1_read")
 
         self._channel_to_qubit = {
-            0: 'q0',
-            1: 'q0',
-            2: 'q1',
-            3: 'q1',
+            0: "q0",
+            1: "q0",
+            2: "q1",
+            3: "q1",
         }
 
     def run(self, lpb: LogicalPrimitiveBlock, sweep: Sweeper):
@@ -105,27 +131,29 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
         applying it to the simulator.
         """
 
-        assert lpb.children is None, "The children of the logical primitive block should be None. Got class " + \
-                                     str(lpb.__class__)
+        assert lpb.children is None, (
+            "The children of the logical primitive block should be None. Got class "
+            + str(lpb.__class__)
+        )
 
         # Found the pulse shape etc
 
         if lpb.uuid not in self._uuid_to_qubit_shape:
-            msg = f'Cannot find the pulse shape for uuid {lpb.uuid}'
+            msg = f"Cannot find the pulse shape for uuid {lpb.uuid}"
             self.logger.error(msg)
             raise ValueError(msg)
 
         qubit, shape = self._uuid_to_qubit_shape[lpb.uuid]
 
         if lpb.channel not in self._channel_to_qubit:
-            msg = f'Channel {lpb.channel} is not mapped to any qubit.'
+            msg = f"Channel {lpb.channel} is not mapped to any qubit."
             self.logger.error(msg)
             raise ValueError(msg)
 
         qubit = self._channel_to_qubit[lpb.channel]
 
         if qubit not in self._simulators:
-            msg = f'Qubit {qubit} is not found in the simulator.'
+            msg = f"Qubit {qubit} is not found in the simulator."
             self.logger.error(msg)
             raise ValueError(msg)
 
@@ -145,7 +173,7 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
         qubit.apply_drive(
             frequency=lpb.freq,
             pulse_shape=self._uuid_to_qubit_shape[lpb.uuid][1],
-            sampling_rate=int(self._sampling_rate)
+            sampling_rate=int(self._sampling_rate),
         )
 
     @_apply_lpb.register
@@ -155,12 +183,16 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
         """
         self._validate_lpb(lpb)
 
-        qubit: VirtualTransmon = self._simulators[self._channel_to_qubit[lpb.channel].split('_')[0]]
+        qubit: VirtualTransmon = self._simulators[
+            self._channel_to_qubit[lpb.channel].split("_")[0]
+        ]
 
         result = qubit.apply_readout(
-            return_type=lpb.tags.get('return_value_type', 'IQ_average'),
-            sampling_number=self._status.get_parameters(key='Shot_Number'),
-            iq_noise_std=1, trace_noise_std=1, readout_frequency=lpb.freq,
+            return_type=lpb.tags.get("return_value_type", "IQ_average"),
+            sampling_number=self._status.get_parameters(key="Shot_Number"),
+            iq_noise_std=1,
+            trace_noise_std=1,
+            readout_frequency=lpb.freq,
             readout_width=lpb.width,
             readout_shape=self._uuid_to_qubit_shape[lpb.uuid][1],
         )
@@ -181,7 +213,8 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
         pass
 
     @_apply_lpb.register
-    def _(self, lpb: Union[LogicalPrimitiveBlockParallel, LogicalPrimitiveBlockSerial]):
+    def _(self, lpb: Union[LogicalPrimitiveBlockParallel,
+          LogicalPrimitiveBlockSerial]):
         for i in range(len(lpb.children)):
             self._apply_lpb(lpb.children[i])
 
@@ -192,7 +225,7 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
     @_apply_lpb.register
     def _(self, lpb: PhaseShift):
         """
-            Apply the phase shift to the simulator. Actually does nothing since phase has been applied in the compiler.
+        Apply the phase shift to the simulator. Actually does nothing since phase has been applied in the compiler.
         """
         pass
 
@@ -211,17 +244,20 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
 
         self._uuid_to_qubit_shape = {}
 
-        for (channel, freq), pos, shape_buffer, lp_uuid in context.instructions['pulse_sequence']:
-
+        for (channel, freq), pos, shape_buffer, lp_uuid in context.instructions[
+            "pulse_sequence"
+        ]:
             if channel not in self._channel_to_qubit:
-                msg = f'Channel {channel} is not mapped to any qubit.'
+                msg = f"Channel {channel} is not mapped to any qubit."
                 self.logger.error(msg)
                 raise ValueError(msg)
 
-            self._uuid_to_qubit_shape[lp_uuid] = self._channel_to_qubit[channel], shape_buffer.shape
+            self._uuid_to_qubit_shape[lp_uuid] = (
+                self._channel_to_qubit[channel],
+                shape_buffer.shape,
+            )
 
     def fire_experiment(self, context=None):
-
         """
         Fire the experiment and wait for it to finish.
         """
@@ -239,6 +275,7 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
         if context is not None:
             self._current_context = context
 
-        self._current_context.results = [x for x in self._measurement_results.values()]
+        self._current_context.results = [
+            x for x in self._measurement_results.values()]
 
         return context

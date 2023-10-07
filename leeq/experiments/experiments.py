@@ -29,7 +29,7 @@ class ExperimentManager(Singleton):
         Register a setup to the experiment manager.
         """
         if setup.name in self._setups:
-            msg = f'Setup with name {setup.name} already exists.'
+            msg = f"Setup with name {setup.name} already exists."
             logger.error(msg)
             raise RuntimeError(msg)
 
@@ -43,7 +43,7 @@ class ExperimentManager(Singleton):
         Set the default setup.
         """
         if name not in self._setups:
-            msg = f'Setup with name {name} does not exist.'
+            msg = f"Setup with name {name} does not exist."
             logger.error(msg)
             raise RuntimeError(msg)
 
@@ -55,7 +55,7 @@ class ExperimentManager(Singleton):
         """
 
         if self._default_setup is None:
-            msg = f'Default setup is not set. Available setups are {self.get_available_setup_names()}'
+            msg = f"Default setup is not set. Available setups are {self.get_available_setup_names()}"
             logger.error(msg)
             raise RuntimeError(msg)
 
@@ -136,34 +136,40 @@ class Experiment(LeeQObject):
         """
         Initialize the experiment.
         """
-        super(Experiment, self).__init__(
-            name=f'Experiment: {self.__class__.__name__}'
-        )
+        super(
+            Experiment, self).__init__(
+            name=f"Experiment: {self.__class__.__name__}")
 
         # Run the experiment
         self.run(*args, **kwargs)
 
         # Check if we need to plot
-        if setup().status().get_parameters('Plot_Result_In_Jupyter'):
+        if setup().status().get_parameters("Plot_Result_In_Jupyter"):
             for name, func in self.get_browser_functions():
-                f_args, f_kwargs = func._browser_function_args, func._browser_function_kwargs
+                f_args, f_kwargs = (
+                    func._browser_function_args,
+                    func._browser_function_kwargs,
+                )
 
-                # For compatibility, select the argument that the function accepts with inspect
+                # For compatibility, select the argument that the function
+                # accepts with inspect
                 sig = inspect.signature(func)
 
                 # Extract the parameter names that the function accepts
                 valid_parameter_names = set(sig.parameters.keys())
 
                 # Filter the kwargs
-                filtered_kwargs = {k: v for k, v in f_kwargs.items() if k in valid_parameter_names}
+                filtered_kwargs = {
+                    k: v for k, v in f_kwargs.items() if k in valid_parameter_names}
 
                 try:
                     func(*f_args, **filtered_kwargs)
                 except Exception as e:
                     self.logger.warning(
-                        f'Error when executing {func.__qualname__} with parameters ({f_args},{f_kwargs}): {e}')
-                    self.logger.warning(f'Ignore the error and continue.')
-                    self.logger.warning(f'{e}')
+                        f"Error when executing {func.__qualname__} with parameters ({f_args},{f_kwargs}): {e}"
+                    )
+                    self.logger.warning(f"Ignore the error and continue.")
+                    self.logger.warning(f"{e}")
 
     def run(self, *args, **kwargs):
         """

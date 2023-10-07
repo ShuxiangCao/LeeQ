@@ -2,12 +2,16 @@ import numpy as np
 
 from leeq.core.primitives.built_in.common import PhaseShift
 from leeq.core.primitives.built_in.compatibility import PulseArgsUpdatable
-from leeq.core.primitives.logical_primitives import LogicalPrimitive, LogicalPrimitiveFactory, MeasurementPrimitive
+from leeq.core.primitives.logical_primitives import (
+    LogicalPrimitive,
+    LogicalPrimitiveFactory,
+    MeasurementPrimitive,
+)
 from leeq.core.primitives.collections import LogicalPrimitiveCollection
 
 
 class SimpleDrive(LogicalPrimitive, PulseArgsUpdatable):
-    _parameter_names = ['freq', 'channel', 'shape', 'amp', 'phase', 'width']
+    _parameter_names = ["freq", "channel", "shape", "amp", "phase", "width"]
 
     def __init__(self, name: str, parameters: dict):
         super().__init__(name, parameters)
@@ -41,21 +45,21 @@ class SimpleDrive(LogicalPrimitive, PulseArgsUpdatable):
         """
 
         for parameter_name in SimpleDrive._parameter_names:
-            assert parameter_name in parameters, f"The parameter {parameter_name} is not found."
+            assert (
+                parameter_name in parameters
+            ), f"The parameter {parameter_name} is not found."
 
 
 class SimpleDriveCollection(LogicalPrimitiveCollection):
-
     def __init__(self, name: str, parameters: dict):
         super().__init__(name, parameters)
 
-        primitive_params = {
-            'drive': 'SimpleDrive'
-        }
+        primitive_params = {"drive": "SimpleDrive"}
 
-        # If the transition name is not specified, we will use the name of the collection
-        if 'transition_name' not in 'parameters':
-            self.transition_name = name.split('.')[-1]
+        # If the transition name is not specified, we will use the name of the
+        # collection
+        if "transition_name" not in "parameters":
+            self.transition_name = name.split(".")[-1]
 
         factory = LogicalPrimitiveFactory()
         factory.register_collection_template(SimpleDrive)
@@ -76,24 +80,34 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
             KeyError: If the logical primitive is not found.
         """
 
-        if item == 'I':
-            return self._primitives['drive'].copy_with_parameters({'amp': 0}, name_postfix='_I')
-        elif item == 'X':
-            return self._primitives['drive']
-        elif item == 'Y':
-            return self._primitives['drive'].copy_with_parameters({'phase': np.pi / 2}, name_postfix='_Y')
-        elif item == 'Xp':
-            return self._primitives['drive'].copy_with_parameters({'amp': self._parameters['amp'] / 2},
-                                                                  name_postfix='_Xp')
-        elif item == 'Yp':
-            return self._primitives['drive'].copy_with_parameters(
-                {'amp': self._parameters['amp'] / 2, 'phase': np.pi / 2}, name_postfix='_Yp')
-        elif item == 'Xm':
-            return self._primitives['drive'].copy_with_parameters({'amp': -self._parameters['amp'] / 2},
-                                                                  name_postfix='_Xm')
-        elif item == 'Ym':
-            return self._primitives['drive'].copy_with_parameters(
-                {'amp': -self._parameters['amp'] / 2, 'phase': np.pi / 2}, name_postfix='_Ym')
+        if item == "I":
+            return self._primitives["drive"].copy_with_parameters(
+                {"amp": 0}, name_postfix="_I"
+            )
+        elif item == "X":
+            return self._primitives["drive"]
+        elif item == "Y":
+            return self._primitives["drive"].copy_with_parameters(
+                {"phase": np.pi / 2}, name_postfix="_Y"
+            )
+        elif item == "Xp":
+            return self._primitives["drive"].copy_with_parameters(
+                {"amp": self._parameters["amp"] / 2}, name_postfix="_Xp"
+            )
+        elif item == "Yp":
+            return self._primitives["drive"].copy_with_parameters(
+                {"amp": self._parameters["amp"] / 2, "phase": np.pi / 2},
+                name_postfix="_Yp",
+            )
+        elif item == "Xm":
+            return self._primitives["drive"].copy_with_parameters(
+                {"amp": -self._parameters["amp"] / 2}, name_postfix="_Xm"
+            )
+        elif item == "Ym":
+            return self._primitives["drive"].copy_with_parameters(
+                {"amp": -self._parameters["amp"] / 2, "phase": np.pi / 2},
+                name_postfix="_Ym",
+            )
 
         return super(SimpleDriveCollection).__getitem__(item)
 
@@ -111,14 +125,15 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
 
         # Multi-photon transition will have different amplitude scaling
         new_amp = gate_pi.amp * (angle / np.pi) ** (1 / level_diff)
-        return gate_pi.copy_with_parameters({'amp': new_amp}, name_postfix=f'_{angle}')
+        return gate_pi.copy_with_parameters(
+            {"amp": new_amp}, name_postfix=f"_{angle}")
 
     def hadamard(self):
         """
         Get the hadamard gate.
         """
 
-        return self['Ym'] + self.z(angle=np.pi)
+        return self["Ym"] + self.z(angle=np.pi)
 
     def x(self, angle):
         """
@@ -130,7 +145,7 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
         Returns:
             LogicalPrimitive: The X(angle) gate.
         """
-        return self._get_amp_modified_primitive(self['X'], angle)
+        return self._get_amp_modified_primitive(self["X"], angle)
 
     def y(self, angle):
         """
@@ -142,7 +157,7 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
         Returns:
             LogicalPrimitive: The Y(angle) gate.
         """
-        return self._get_amp_modified_primitive(self['Y'], angle)
+        return self._get_amp_modified_primitive(self["Y"], angle)
 
     def z(self, angle):
         """
@@ -152,75 +167,88 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
             angle (float): The angle of the gate.
         """
 
-        return PhaseShift(name=self._name + '.Z', parameters={
-            'type': 'PhaseShift',
-            'channel': self.channel,  # Which channel to apply the phase shift
-            'phase_shift': -angle,  # The phase shift value, note that adding a phase is equivalent to displacing
-            # a negative phase to the reference frame, so we have minus sign here.
-            'transition_multiplier': {
-                # There is a trick to determine the sign of the phase shift for different
-                # transitions. If the level you want to change is the earlier letter, that's
-                # positive.
-                'f01': -1,
-            }})
+        return PhaseShift(
+            name=self._name + ".Z",
+            parameters={
+                "type": "PhaseShift",
+                "channel": self.channel,  # Which channel to apply the phase shift
+                # The phase shift value, note that adding a phase is equivalent to
+                # displacing
+                "phase_shift": -angle,
+                # a negative phase to the reference frame, so we have minus sign
+                # here.
+                "transition_multiplier": {
+                    # There is a trick to determine the sign of the phase shift for different
+                    # transitions. If the level you want to change is the earlier letter, that's
+                    # positive.
+                    "f01": -1,
+                },
+            },
+        )
 
 
 class QuditVirtualZCollection(LogicalPrimitiveCollection):
-
     @classmethod
     def _validate_parameters(cls, parameters: dict):
         """
         Validate the parameters of the logical primitive.
         """
-        assert 'channel' in parameters, "The channel is not specified."
+        assert "channel" in parameters, "The channel is not specified."
 
     def z1(self, angle):
         """
         Get a Z1(angle) gate, adding a phase to the |1> state.
         """
 
-        return PhaseShift(name=self._name + '.Z1', parameters={
-            'type': 'PhaseShift',
-            'channel': self.channel,  # Which channel to apply the phase shift
-            'phase_shift': -angle,  # The phase shift value, note that adding a phase is equivalent to displacing
-            # a negative phase to the reference frame, so we have minus sign here.
-            'transition_multiplier': {
-                # There is a trick to determine the sign of the phase shift for different
-                # transitions. If the level you want to change is the earlier letter, that's
-                # positive.
-                'f01': -1,
-                'f12': 1,
-                'f13': 1
-            }})
+        return PhaseShift(
+            name=self._name + ".Z1",
+            parameters={
+                "type": "PhaseShift",
+                "channel": self.channel,  # Which channel to apply the phase shift
+                # The phase shift value, note that adding a phase is equivalent to
+                # displacing
+                "phase_shift": -angle,
+                # a negative phase to the reference frame, so we have minus sign
+                # here.
+                "transition_multiplier": {
+                    # There is a trick to determine the sign of the phase shift for different
+                    # transitions. If the level you want to change is the earlier letter, that's
+                    # positive.
+                    "f01": -1,
+                    "f12": 1,
+                    "f13": 1,
+                },
+            },
+        )
 
     def z2(self, angle):
         """
         Get a Z2(angle) gate, adding a phase to the |2> state.
         """
-        return PhaseShift(name=self._name + '.Z2', parameters={
-            'type': 'PhaseShift',
-            'channel': self.channel,
-            'phase_shift': -angle,
-            'transition_multiplier': {
-                'f02': -1,
-                'f12': -1,
-                'f23': 1
-            }})
+        return PhaseShift(
+            name=self._name + ".Z2",
+            parameters={
+                "type": "PhaseShift",
+                "channel": self.channel,
+                "phase_shift": -angle,
+                "transition_multiplier": {"f02": -1, "f12": -1, "f23": 1},
+            },
+        )
 
     def z3(self, angle):
         """
         Get a Z3(angle) gate, adding a phase to the |3> state.
         """
 
-        return PhaseShift(name=self._name + '.Z3', parameters={
-            'type': 'PhaseShift',
-            'channel': self.channel,
-            'phase_shift': -angle,
-            'transition_multiplier': {
-                'f03': -1,
-                'f13': -1,
-                'f23': -1
-            }})
+        return PhaseShift(
+            name=self._name + ".Z3",
+            parameters={
+                "type": "PhaseShift",
+                "channel": self.channel,
+                "phase_shift": -angle,
+                "transition_multiplier": {"f03": -1, "f13": -1, "f23": -1},
+            },
+        )
 
 
 class SimpleDispersiveMeasurement(MeasurementPrimitive, PulseArgsUpdatable):
@@ -230,4 +258,6 @@ class SimpleDispersiveMeasurement(MeasurementPrimitive, PulseArgsUpdatable):
 
     @classmethod
     def _validate_parameters(cls, parameters: dict):
-        assert 'distinguishable_states' in parameters, 'The distinguishable states are not specified.'
+        assert (
+            "distinguishable_states" in parameters
+        ), "The distinguishable states are not specified."

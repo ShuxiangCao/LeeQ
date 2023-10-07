@@ -6,6 +6,7 @@ from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import ExperimentalSetup
 
+
 class EngineBase(LeeQObject):
     """
     The GridSweepEngine class is a class that is used to drive the experiment. It simply takes a lpb and a sweep, and
@@ -22,8 +23,12 @@ class EngineBase(LeeQObject):
             setup (Any): The instrument setup to use.
         """
 
-        assert isinstance(compiler, LPBCompiler), "The compiler should be a subclass of LPBCompiler."
-        assert isinstance(setup, ExperimentalSetup), "The setup should be a subclass of LeeQObject."
+        assert isinstance(
+            compiler, LPBCompiler
+        ), "The compiler should be a subclass of LPBCompiler."
+        assert isinstance(
+            setup, ExperimentalSetup
+        ), "The setup should be a subclass of LeeQObject."
 
         self._compiler = compiler
         self._setup = setup
@@ -49,7 +54,6 @@ class EngineBase(LeeQObject):
         """
 
         raise NotImplementedError()
-
 
     def _compile_lpb(self, lpb: LogicalPrimitiveBlock):
         """

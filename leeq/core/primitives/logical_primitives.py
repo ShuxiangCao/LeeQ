@@ -14,14 +14,15 @@ logger = setup_logging(__name__)
 
 # TODO: Add conditional blocks for fast feedback
 
-class LogicalPrimitiveCombinable(object):
 
+class LogicalPrimitiveCombinable(object):
     def __add__(self, other):
         """
         Syntax sugar for combining two logical primitives in series.
         """
-        assert issubclass(type(other),
-                          LogicalPrimitiveCombinable), f"The other object is not a logical primitive, got {type(other)}."
+        assert issubclass(
+            type(other), LogicalPrimitiveCombinable
+        ), f"The other object is not a logical primitive, got {type(other)}."
 
         if isinstance(other, LogicalPrimitiveBlockSerial):
             other._children.insert(0, self)
@@ -34,8 +35,9 @@ class LogicalPrimitiveCombinable(object):
         """
         Syntax sugar for combining two logical primitives in parallel.
         """
-        assert issubclass(type(other),
-                          LogicalPrimitiveCombinable), f"The other object is not a logical primitive, got {type(other)}."
+        assert issubclass(
+            type(other), LogicalPrimitiveCombinable
+        ), f"The other object is not a logical primitive, got {type(other)}."
 
         if isinstance(other, LogicalPrimitiveBlockParallel):
             other._children.insert(0, self)
@@ -76,14 +78,14 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
             AttributeError: If the parameter is not found.
         """
 
-        reserved_names = ['_parameters', '__dict__']
+        reserved_names = ["_parameters", "__dict__"]
 
         get_attribute = super(LogicalPrimitive, self).__getattribute__
 
         if item not in reserved_names:
-            if '_parameters' in get_attribute('__dict__'):
-                if item in get_attribute('_parameters'):
-                    return get_attribute('_parameters')[item]
+            if "_parameters" in get_attribute("__dict__"):
+                if item in get_attribute("_parameters"):
+                    return get_attribute("_parameters")[item]
 
         return get_attribute(item)
 
@@ -94,7 +96,7 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         Returns:
             SharedParameterObject: The cloned object.
         """
-        clone_name = self._name + f'_clone_{uuid.uuid4()}'
+        clone_name = self._name + f"_clone_{uuid.uuid4()}"
         return self.__class__(clone_name, copy.deepcopy(self._parameters))
 
     def shallow_copy(self):
@@ -124,7 +126,7 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         new_parameters = copy.deepcopy(self._parameters)
         elementwise_update_dict(new_parameters, parameters)
         if name_postfix is None:
-            name_postfix = f'_modified_{uuid.uuid4()}'
+            name_postfix = f"_modified_{uuid.uuid4()}"
         return self.__class__(self._name + name_postfix, new_parameters)
 
     @staticmethod
@@ -181,9 +183,7 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         """
         Get the nodes of the logical primitive.
         """
-        return {
-            self.uuid: self
-        }
+        return {self.uuid: self}
 
 
 class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
@@ -218,7 +218,7 @@ class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
         Returns:
             SharedParameterObject: The cloned object.
         """
-        clone_name = self._name + f'_clone'
+        clone_name = self._name + f"_clone"
 
         # Clone the children
         cloned_children = []
@@ -329,12 +329,14 @@ class LogicalPrimitiveBlockParallel(LogicalPrimitiveBlock):
         """
         Syntax sugar for combining two logical primitive blocks in parallel.
         """
-        assert isinstance(other,
-                          LogicalPrimitiveCombinable), \
-            f"The other object is not a logical primitive or a block, got {type(other)}."
+        assert isinstance(
+            other, LogicalPrimitiveCombinable
+        ), f"The other object is not a logical primitive or a block, got {type(other)}."
 
         if isinstance(other, LogicalPrimitiveBlockParallel):
-            return LogicalPrimitiveBlockParallel(children=self._children + other._children)
+            return LogicalPrimitiveBlockParallel(
+                children=self._children + other._children
+            )
 
         self._children.append(other)
         self._uuid_to_nodes.update(other.nodes)
@@ -358,11 +360,13 @@ class LogicalPrimitiveBlockSerial(LogicalPrimitiveBlock):
         """
         Syntax sugar for combining two logical primitive blocks in serial.
         """
-        assert isinstance(other,
-                          LogicalPrimitiveCombinable), f"The other object is not a logical primitive block, got {type(other)}."
+        assert isinstance(
+            other, LogicalPrimitiveCombinable
+        ), f"The other object is not a logical primitive block, got {type(other)}."
 
         if isinstance(other, LogicalPrimitiveBlockSerial):
-            return LogicalPrimitiveBlockSerial(self._children + other._children)
+            return LogicalPrimitiveBlockSerial(
+                self._children + other._children)
 
         self._children.append(other)
         self._uuid_to_nodes.update(other.nodes)
@@ -457,15 +461,16 @@ class MeasurementPrimitive(LogicalPrimitive):
         result_data = self._results if not raw_data else self._results_raw
 
         if len(result_data) == 0:
-            msg = f'No measurement result is available for {self._name}.'
+            msg = f"No measurement result is available for {self._name}."
             logger.error(msg)
             raise RuntimeError(msg)
 
         if result_id + self._result_id_offset >= len(result_data):
-            msg = (f'The result id {result_id} is out of range, '
-                   f'the maximum result id is {len(result_data) - 1 - self._result_id_offset}.'
-                   f'Current result number is {len(result_data)}, '
-                   f'Current result id offset is {self._result_id_offset}')
+            msg = (
+                f"The result id {result_id} is out of range, "
+                f"the maximum result id is {len(result_data) - 1 - self._result_id_offset}."
+                f"Current result number is {len(result_data)}, "
+                f"Current result id offset is {self._result_id_offset}")
             logger.error(msg)
             raise ValueError(msg)
 
@@ -564,7 +569,9 @@ class MeasurementPrimitive(LogicalPrimitive):
         data_raw = data
 
         if self._transform_function is not None:
-            data_transformed = self._transform_function(data, **self._transform_function_kwargs)
+            data_transformed = self._transform_function(
+                data, **self._transform_function_kwargs
+            )
         else:
             data_transformed = data
 

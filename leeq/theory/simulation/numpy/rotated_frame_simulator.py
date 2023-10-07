@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 import scipy
@@ -9,10 +9,20 @@ class VirtualTransmon(object):
     A virtual transmon device, recording the parameters and implement simulations.
     """
 
-    def __init__(self, name: str, qubit_frequency: float, anharmonicity: float, t1: float, t2: float,
-                 readout_frequency: float, readout_linewith: float = 1, readout_dipsersive_shift: float = 1,
-                 truncate_level=4, quiescent_state_distribution: Union[List[float], None] = None,
-                 frequency_selectivity_window: float = 50):
+    def __init__(
+        self,
+        name: str,
+        qubit_frequency: float,
+        anharmonicity: float,
+        t1: float,
+        t2: float,
+        readout_frequency: float,
+        readout_linewith: float = 1,
+        readout_dipsersive_shift: float = 1,
+        truncate_level=4,
+        quiescent_state_distribution: Union[List[float], None] = None,
+        frequency_selectivity_window: float = 50,
+    ):
         """
         Initialize the VirtualTransmon class.
 
@@ -61,7 +71,10 @@ class VirtualTransmon(object):
         Which consider the dispersive shift are the same.
         """
         self._resonator_frequencies = np.asarray(
-            [self.readout_frequency - i * self.readout_dipsersive_shift for i in range(self.truncate_level)]
+            [
+                self.readout_frequency - i * self.readout_dipsersive_shift
+                for i in range(self.truncate_level)
+            ]
         )
 
     def get_resonator_response(self, f: float):
@@ -75,7 +88,10 @@ class VirtualTransmon(object):
             np.ndarray: The resonator response.
         """
         Q = self.readout_frequency / self.readout_linewidth
-        s_11 = 1 - 2j * Q / (1 + 1.j * Q * (f - self._resonator_frequencies) / self._resonator_frequencies)
+        s_11 = 1 - 2j * Q / (
+            1
+            + 1.0j * Q * (f - self._resonator_frequencies) / self._resonator_frequencies
+        )
 
         return s_11
 
@@ -89,34 +105,53 @@ class VirtualTransmon(object):
         }
         """
 
-        single_photon_transition_frequencies = [self.qubit_frequency + i * self.anharmonicity for i in
-                                                range(self.truncate_level - 1)
-                                                ]
+        single_photon_transition_frequencies = [
+            self.qubit_frequency + i * self.anharmonicity
+            for i in range(self.truncate_level - 1)
+        ]
 
-        level_energies = [0] + list(np.cumsum(single_photon_transition_frequencies))
+        level_energies = [0] + \
+            list(np.cumsum(single_photon_transition_frequencies))
 
         for i in range(self.truncate_level - 1):
             for j in range(i + 1, self.truncate_level):
                 photon_number = j - i
-                frequency = (level_energies[j] - level_energies[i]) / photon_number
+                frequency = (
+                    level_energies[j] - level_energies[i]) / photon_number
 
-                X_term = np.zeros((self.truncate_level, self.truncate_level), dtype=np.complex128)
+                X_term = np.zeros(
+                    (self.truncate_level,
+                     self.truncate_level),
+                    dtype=np.complex128)
                 X_term[i, j] = 1
                 X_term[j, i] = 1
 
-                Y_term = np.zeros((self.truncate_level, self.truncate_level), dtype=np.complex128)
+                Y_term = np.zeros(
+                    (self.truncate_level,
+                     self.truncate_level),
+                    dtype=np.complex128)
                 Y_term[i, j] = -1.0j
                 Y_term[j, i] = 1.0j
 
                 X_term /= photon_number * np.sqrt(i + 1)
                 Y_term /= photon_number * np.sqrt(i + 1)
 
-                Z_term = np.zeros((self.truncate_level, self.truncate_level), dtype=np.complex128)
+                Z_term = np.zeros(
+                    (self.truncate_level,
+                     self.truncate_level),
+                    dtype=np.complex128)
                 Z_term[i, i] = 1
 
-                self._transition_ops[frequency / photon_number] = (j - i, X_term, Y_term, Z_term)
+                self._transition_ops[frequency / photon_number] = (
+                    j - i,
+                    X_term,
+                    Y_term,
+                    Z_term,
+                )
 
-    def apply_drive(self, frequency: float, pulse_shape: np.ndarray, sampling_rate: int):
+    def apply_drive(
+        self, frequency: float, pulse_shape: np.ndarray, sampling_rate: int
+    ):
         """
         Apply a drive to the transmon.
 
@@ -126,20 +161,27 @@ class VirtualTransmon(object):
             sampling_rate (int): The sampling rate of the drive, in Msps unit.
         """
 
-        transition_drives = [(transition_freq, transition_operators)
-                             for transition_freq, transition_operators in self._transition_ops.items() if
-                             np.abs(transition_freq - frequency) < self.frequency_selectivity_window / 2
-                             ]
+        transition_drives = [
+            (transition_freq, transition_operators)
+            for transition_freq, transition_operators in self._transition_ops.items()
+            if np.abs(transition_freq - frequency)
+            < self.frequency_selectivity_window / 2
+        ]
 
         if len(transition_drives) == 0:
             return
 
         if len(transition_drives) > 1:
             raise ValueError(
-                f'Transitions {[x[0] for x in transition_drives]} are too close, lower the frequency'
-                f' selectivity window, or the simulator does not suit your purpose.')
+                f"Transitions {[x[0] for x in transition_drives]} are too close, lower the frequency"
+                f" selectivity window, or the simulator does not suit your purpose.")
 
-        transition_frequency, (photon_number, operator_x, operator_y, operator_z) = transition_drives[0]
+        transition_frequency, (
+            photon_number,
+            operator_x,
+            operator_y,
+            operator_z,
+        ) = transition_drives[0]
         drive_frequency_difference = frequency - transition_frequency
 
         # Here for speed and simplicity we assume the Hamiltonian is almost
@@ -148,22 +190,36 @@ class VirtualTransmon(object):
         strength_x = np.real(drive_aggregate)
         strength_y = np.imag(drive_aggregate)
 
-        hamiltonian = np.pi * 2 * (
-                strength_x * operator_x + strength_y * operator_y +
-                drive_frequency_difference * photon_number * operator_z)
+        hamiltonian = (
+            np.pi
+            * 2
+            * (
+                strength_x * operator_x
+                + strength_y * operator_y
+                + drive_frequency_difference * photon_number * operator_z
+            )
+        )
 
-        unitary = scipy.linalg.expm(-1.0j * hamiltonian * len(pulse_shape) / sampling_rate)
+        unitary = scipy.linalg.expm(
+            -1.0j * hamiltonian * len(pulse_shape) / sampling_rate
+        )
 
         self._density_matrix = unitary @ self._density_matrix @ unitary.conj().T
 
         # Apply T1 and T2 noise
         # TODO: apply the noise
 
-    def apply_readout(self, return_type: str, sampling_number: int = 0, sampling_rate: int = None,
-                      iq_noise_std: float = 0, trace_noise_std: float = 0, readout_frequency: float = None,
-                      readout_width: float = None,
-                      readout_shape: np.ndarray = None):
-
+    def apply_readout(
+        self,
+        return_type: str,
+        sampling_number: int = 0,
+        sampling_rate: int = None,
+        iq_noise_std: float = 0,
+        trace_noise_std: float = 0,
+        readout_frequency: float = None,
+        readout_width: float = None,
+        readout_shape: np.ndarray = None,
+    ):
         """
         Apply the readout to the transmon.
 
@@ -182,31 +238,44 @@ class VirtualTransmon(object):
                 return value.
         """
 
-        assert return_type in ['population_distribution', 'IQ', 'IQ_average', 'traces'], \
-            (f'Invalid return type "{return_type}",'
-             f' acceptable types are "population_distribution", "IQ_average", "traces".')
+        assert return_type in [
+            "population_distribution",
+            "IQ",
+            "IQ_average",
+            "traces",
+        ], (
+            f'Invalid return type "{return_type}",'
+            f' acceptable types are "population_distribution", "IQ_average", "traces".'
+        )
 
-        if return_type == 'population_distribution':
-            population_distribution = np.diag(self._density_matrix).astype(np.float64)
+        if return_type == "population_distribution":
+            population_distribution = np.diag(
+                self._density_matrix).astype(
+                np.float64)
             return population_distribution
 
-        if return_type == 'IQ':
-            return self._apply_readout_iq(readout_frequency=readout_frequency,
-                                          sampling_number=sampling_number,
-                                          iq_noise_std=iq_noise_std,
-                                          readout_width=readout_width)
+        if return_type == "IQ":
+            return self._apply_readout_iq(
+                readout_frequency=readout_frequency,
+                sampling_number=sampling_number,
+                iq_noise_std=iq_noise_std,
+                readout_width=readout_width,
+            )
 
-        if return_type == 'IQ_average':
-            return self._apply_averaged_iq(readout_frequency=readout_frequency,
-                                           iq_noise_std=iq_noise_std,
-                                           readout_width=readout_width)
+        if return_type == "IQ_average":
+            return self._apply_averaged_iq(
+                readout_frequency=readout_frequency,
+                iq_noise_std=iq_noise_std,
+                readout_width=readout_width,
+            )
 
-        if return_type == 'traces':
+        if return_type == "traces":
             # TODO: implement the trace
             raise NotImplementedError()
 
-    def _apply_averaged_iq(self, readout_frequency: float, iq_noise_std: float,
-                           readout_width=None):
+    def _apply_averaged_iq(
+        self, readout_frequency: float, iq_noise_std: float, readout_width=None
+    ):
         """
         Apply the readout to the transmon and return the averaged IQ data.
 
@@ -219,12 +288,20 @@ class VirtualTransmon(object):
             np.ndarray: The averaged IQ data in complex value.
         """
 
-        population_distribution = np.diag(self._density_matrix).astype(np.float64)
+        population_distribution = np.diag(
+            self._density_matrix).astype(
+            np.float64)
         readout_response = self.get_resonator_response(readout_frequency)
-        return np.mean(population_distribution * readout_response) * readout_width
+        return np.mean(population_distribution *
+                       readout_response) * readout_width
 
-    def _apply_readout_iq(self, readout_frequency: float, sampling_number: int, iq_noise_std: float,
-                          readout_width=None):
+    def _apply_readout_iq(
+        self,
+        readout_frequency: float,
+        sampling_number: int,
+        iq_noise_std: float,
+        readout_width=None,
+    ):
         """
         Apply the readout to the transmon and return the IQ data.
 
@@ -235,7 +312,9 @@ class VirtualTransmon(object):
         Returns:
             np.ndarray: The IQ data in complex value.
         """
-        population_distribution = np.diag(self._density_matrix).astype(np.float64)
+        population_distribution = np.diag(
+            self._density_matrix).astype(
+            np.float64)
 
         # Set the mean and standard deviation for each axis
         mu, sigma = 0, iq_noise_std  # mean and standard deviation
@@ -244,11 +323,16 @@ class VirtualTransmon(object):
         noise_x = np.random.normal(mu, sigma, sampling_number)
         noise_y = np.random.normal(mu, sigma, sampling_number)
 
-        population_distribution = np.diag(self._density_matrix).astype(np.float64)
+        population_distribution = np.diag(
+            self._density_matrix).astype(
+            np.float64)
         readout_response = self.get_resonator_response(readout_frequency)
 
-        sampled_state = np.random.choice(np.arange(self.truncate_level), size=sampling_number,
-                                         p=population_distribution)
+        sampled_state = np.random.choice(
+            np.arange(self.truncate_level),
+            size=sampling_number,
+            p=population_distribution,
+        )
         single_shot_response = readout_response[sampled_state]
 
         noise = noise_x + 1j * noise_y
@@ -264,7 +348,11 @@ class VirtualTransmon(object):
         Returns:
         """
         if self.quiescent_state_distribution is not None:
-            self._density_matrix = np.diag(self.quiescent_state_distribution).astype(np.complex128)
+            self._density_matrix = np.diag(
+                self.quiescent_state_distribution).astype(
+                np.complex128)
         else:
-            self._density_matrix = np.zeros((self.truncate_level, self.truncate_level), dtype=np.complex128)
+            self._density_matrix = np.zeros(
+                (self.truncate_level, self.truncate_level), dtype=np.complex128
+            )
             self._density_matrix[0, 0] = 1

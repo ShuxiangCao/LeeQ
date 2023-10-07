@@ -29,18 +29,27 @@ class QutipPulsedSimulator(object):
         self._t_list = []
 
         self._ops = {
-            'a': destroy(self._level_truncate),
-            'n': destroy(self._level_truncate).dag() * destroy(self._level_truncate),
-            'I': qeye(self._level_truncate),
-            'g': basis(self._level_truncate, 0),  # ground state
-            'e': basis(self._level_truncate, 1),  # excited state
-            'X': basis(self._level_truncate, 0) * basis(self._level_truncate, 1).dag() + basis(self._level_truncate,
-                                                                                               1) * basis(
-                self._level_truncate, 0).dag(),
-            'Y': -1.0j * (basis(self._level_truncate, 0) * basis(self._level_truncate, 1).dag() - basis(
-                self._level_truncate, 1) * basis(self._level_truncate, 0).dag()),
-            'Z': -(basis(self._level_truncate, 1) * basis(self._level_truncate, 1).dag() - basis(
-                self._level_truncate, 0) * basis(self._level_truncate, 0).dag())
+            "a": destroy(self._level_truncate),
+            "n": destroy(self._level_truncate).dag() * destroy(self._level_truncate),
+            "I": qeye(self._level_truncate),
+            "g": basis(self._level_truncate, 0),  # ground state
+            "e": basis(self._level_truncate, 1),  # excited state
+            "X": basis(self._level_truncate, 0) * basis(self._level_truncate, 1).dag()
+            + basis(self._level_truncate, 1) * \
+            basis(self._level_truncate, 0).dag(),
+            "Y": -1.0j
+            * (
+                basis(self._level_truncate, 0) * \
+                basis(self._level_truncate, 1).dag()
+                - basis(self._level_truncate, 1) * \
+                basis(self._level_truncate, 0).dag()
+            ),
+            "Z": -(
+                basis(self._level_truncate, 1) * \
+                basis(self._level_truncate, 1).dag()
+                - basis(self._level_truncate, 0) * \
+                basis(self._level_truncate, 0).dag()
+            ),
         }
         self._name_to_id = {}
 
@@ -48,7 +57,13 @@ class QutipPulsedSimulator(object):
         self._time_resolution = 0
         self._time_steps = 0
 
-    def add_qubit(self, name: str, frequency: float, anharmonicity: float, t1: float, t2: float):
+    def add_qubit(
+            self,
+            name: str,
+            frequency: float,
+            anharmonicity: float,
+            t1: float,
+            t2: float):
         """
         Add a qubit to the simulator.
 
@@ -61,16 +76,18 @@ class QutipPulsedSimulator(object):
         """
 
         if name in self._qubits:
-            raise RuntimeError('Qubit already exists.')
+            raise RuntimeError("Qubit already exists.")
 
         self._qubits[name] = {
-            'f': frequency,
-            'alpha': anharmonicity,
-            't1': t1,
-            't2': t2
+            "f": frequency,
+            "alpha": anharmonicity,
+            "t1": t1,
+            "t2": t2,
         }
 
-    def add_connectivity(self, q1_name: str, q2_name: str, coupling: str, strength: float):
+    def add_connectivity(
+        self, q1_name: str, q2_name: str, coupling: str, strength: float
+    ):
         """
         Add a connectivity between two qubits.
 
@@ -81,18 +98,17 @@ class QutipPulsedSimulator(object):
             strength (float): The strength of the coupling.
         """
 
-        self._connectivity.append({
-            'q1': q1_name,
-            'q2': q2_name,
-            'coupling': coupling,
-            'J': strength
-        })
+        self._connectivity.append(
+            {"q1": q1_name, "q2": q2_name, "coupling": coupling, "J": strength}
+        )
 
     def build_system(self):
         """
         Build the quantum system master equations.
         """
-        self._name_to_id = {name: i for i, name in enumerate(self._qubits.keys())}
+        self._name_to_id = {
+            name: i for i, name in enumerate(
+                self._qubits.keys())}
         self._build_initial_state()
         self._build_hamiltonian()
         self._build_lindblad_operators()
@@ -105,31 +121,33 @@ class QutipPulsedSimulator(object):
         self._H0 = []
 
         for name, q in self._qubits.items():
-            H_1q = [self._ops['I']] * len(self._qubits)
+            H_1q = [self._ops["I"]] * len(self._qubits)
             if self._level_truncate == 2:
-                H_1q[self._name_to_id[name]] = q['f'] * self._ops['n']
+                H_1q[self._name_to_id[name]] = q["f"] * self._ops["n"]
             else:
-                H_1q[self._name_to_id[name]] += (q['f'] + q['alpha'] / 2 * (self._ops['n'] - 1)) * self._ops['n']
+                H_1q[self._name_to_id[name]] += (
+                    q["f"] + q["alpha"] / 2 * (self._ops["n"] - 1)
+                ) * self._ops["n"]
             self._H0 += [2 * np.pi * tensor(H_1q)]
 
         coupling_operators = {
-            'Z': self._ops['n'],
-            'X': self._ops['a'] + self._ops['a'].dag(),
+            "Z": self._ops["n"],
+            "X": self._ops["a"] + self._ops["a"].dag(),
         }
 
         for c in self._connectivity:
-            H_2q = [self._ops['I']] * len(self._qubits)
+            H_2q = [self._ops["I"]] * len(self._qubits)
 
-            q_id_1 = self._name_to_id[c['q1']]
-            q_id_2 = self._name_to_id[c['q2']]
+            q_id_1 = self._name_to_id[c["q1"]]
+            q_id_2 = self._name_to_id[c["q2"]]
 
-            pauli_1 = c['coupling'][0]
-            pauli_2 = c['coupling'][1]
+            pauli_1 = c["coupling"][0]
+            pauli_2 = c["coupling"][1]
 
             H_2q[q_id_1] = coupling_operators[pauli_1]
             H_2q[q_id_2] = coupling_operators[pauli_2]
 
-            self._H0 += [2 * np.pi * c['J'] * tensor(H_2q)]
+            self._H0 += [2 * np.pi * c["J"] * tensor(H_2q)]
 
     def _build_lindblad_operators(self):
         """
@@ -139,16 +157,16 @@ class QutipPulsedSimulator(object):
         # T1
         self._lindblad_T1s = 0
         for k, q in self._qubits.items():
-            t1_terms = [self._ops['I']] * len(self._qubits)
-            t1_terms[self._name_to_id[k]] = self._ops['a']
-            self._lindblad_T1s += np.sqrt(1 / q['t1']) * tensor(t1_terms)
+            t1_terms = [self._ops["I"]] * len(self._qubits)
+            t1_terms[self._name_to_id[k]] = self._ops["a"]
+            self._lindblad_T1s += np.sqrt(1 / q["t1"]) * tensor(t1_terms)
 
         # T2
         self._lindblad_T2s = 0
         for k, q in self._qubits.items():
-            t2_terms = [self._ops['I']] * len(self._qubits)
-            t2_terms[self._name_to_id[k]] = self._ops['n']
-            t_phi = 1. / (1. / q['t2'] - 1. / (q['t1'] * 2))
+            t2_terms = [self._ops["I"]] * len(self._qubits)
+            t2_terms[self._name_to_id[k]] = self._ops["n"]
+            t_phi = 1.0 / (1.0 / q["t2"] - 1.0 / (q["t1"] * 2))
             self._lindblad_T2s += np.sqrt(1 / t_phi) * tensor(t2_terms)
 
     def setup_clock(self, total_time: float, time_resolution: float):
@@ -181,7 +199,7 @@ class QutipPulsedSimulator(object):
         Build the initial state of the system.
         """
 
-        initial_state = [self._ops['g']] * len(self._qubits)
+        initial_state = [self._ops["g"]] * len(self._qubits)
         initial_state = tensor(initial_state)
 
         self._rho0 = initial_state * initial_state.dag()
@@ -197,8 +215,8 @@ class QutipPulsedSimulator(object):
 
         qubit_id = self._name_to_id[qubit_name]
 
-        Hd = [self._ops['I']] * len(self._qubits)
-        Hd[qubit_id] = self._ops['a'] + self._ops['a'].dag()
+        Hd = [self._ops["I"]] * len(self._qubits)
+        Hd[qubit_id] = self._ops["a"] + self._ops["a"].dag()
         self._H += [[tensor(Hd), pulse]]
 
         self._pulse_sequence[qubit_name] = pulse
@@ -222,14 +240,21 @@ class QutipPulsedSimulator(object):
         """
 
         # Find all permutations of Zs for the measurement
-        Z_ops = [tensor(list(p)) for p in itertools.product([self._ops['I'], self._ops['Z']], repeat=len(self._qubits))]
+        Z_ops = [
+            tensor(list(p))
+            for p in itertools.product(
+                [self._ops["I"], self._ops["Z"]], repeat=len(self._qubits)
+            )
+        ]
         self._t_list = np.linspace(0, self._total_time, self._time_steps)
 
         result = mesolve(
             H=self._H,
             rho0=self._rho0,
             tlist=self._t_list,
-            c_ops=[] if no_noise else [self._lindblad_T1s, self._lindblad_T2s], e_ops=Z_ops,
-            options=qutip.Options(gui=False))
+            c_ops=[] if no_noise else [self._lindblad_T1s, self._lindblad_T2s],
+            e_ops=Z_ops,
+            options=qutip.Options(gui=False),
+        )
 
         return result.expect

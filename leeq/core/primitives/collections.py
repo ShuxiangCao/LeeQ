@@ -25,8 +25,8 @@ class LogicalPrimitiveCollection(SharedParameterObject):
             parameters (dict): The parameters of the lpb collection.
         """
 
-        if 'transition_name' not in parameters:
-            parameters['transition_name'] = name.split('.')[-1]
+        if "transition_name" not in parameters:
+            parameters["transition_name"] = name.split(".")[-1]
 
         super().__init__(name, parameters)
         self._primitives = {}
@@ -37,9 +37,11 @@ class LogicalPrimitiveCollection(SharedParameterObject):
         """
         factory = LogicalPrimitiveFactory()
         for primitive_name, primitive_type in primitives_params.items():
-            self._primitives[primitive_name] = factory(name=self._name + '.' + primitive_name,
-                                                       class_name=primitive_type,
-                                                       parameters=self._parameters)
+            self._primitives[primitive_name] = factory(
+                name=self._name + "." + primitive_name,
+                class_name=primitive_type,
+                parameters=self._parameters,
+            )
 
     def __getitem__(self, item):
         """
@@ -75,10 +77,10 @@ class LogicalPrimitiveCollection(SharedParameterObject):
             AttributeError: If the parameter is not found.
         """
 
-        reserved_names = ['_parameters', '__dict__']
+        reserved_names = ["_parameters", "__dict__"]
 
         if item not in reserved_names:
-            if '_parameters' in self.__dict__:
+            if "_parameters" in self.__dict__:
                 if item in self._parameters:
                     return self._parameters[item]
 

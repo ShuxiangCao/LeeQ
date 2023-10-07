@@ -42,7 +42,7 @@ class PulseArgsUpdatable(SharedParameterObject):
         Get the shape of the pulse.
         """
         args = self.get_parameters()
-        return args['shape']
+        return args["shape"]
 
     def primary_kwargs(self):
         """
@@ -54,13 +54,13 @@ class PulseArgsUpdatable(SharedParameterObject):
         """
         Get the iq skew of the pulse.
         """
-        return self.get_parameters()['iq_skew']
+        return self.get_parameters()["iq_skew"]
 
     def primary_channel(self):
         """
         Get the channel of the pulse.
         """
-        return self.get_parameters()['channel']
+        return self.get_parameters()["channel"]
 
     def get_pulse_args(self):
         """

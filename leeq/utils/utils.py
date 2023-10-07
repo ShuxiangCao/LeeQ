@@ -1,6 +1,5 @@
 import logging
 
-import pathlib
 import getpass
 import inspect
 import sys
@@ -62,13 +61,17 @@ def get_calibration_log_path() -> Path:
         pathlib.Path: The path to the log file.
     """
 
-    user = os.environ.get("JUPYTERHUB_USER", getpass.getuser())  # Compatible to JupyterHub
+    user = os.environ.get(
+        "JUPYTERHUB_USER", getpass.getuser()
+    )  # Compatible to JupyterHub
 
-    if 'LEEQ_CALIBRATION_LOG_PATH' not in os.environ:
-        path = Path.cwd() / 'calibration_logs'
-        logger.warning(f'LEEQ_CALIBRATION_LOG_PATH not found in environment variables. Using default path at {path}.')
+    if "LEEQ_CALIBRATION_LOG_PATH" not in os.environ:
+        path = Path.cwd() / "calibration_logs"
+        logger.warning(
+            f"LEEQ_CALIBRATION_LOG_PATH not found in environment variables. Using default path at {path}."
+        )
     else:
-        path = os.environ['LEEQ_CALIBRATION_LOG_PATH']
+        path = os.environ["LEEQ_CALIBRATION_LOG_PATH"]
         path = Path(path)
 
     return path / user
@@ -78,6 +81,7 @@ class Singleton(object):
     """
     The singleton class is used to make sure that there is only one instance of the Chronicle class.
     """
+
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -141,9 +145,15 @@ class ObjectFactory(Singleton):
             raise RuntimeError(msg)
 
         # Check if collection class is at least one of the accepted types
-        if not any([issubclass(collection_class, accepted_type) for accepted_type in self._accepted_template]):
-            msg = (f"The collection class must be a subclass of at least one of the accepted types. Acceptable:"
-                   f"{self._accepted_template}. Got: {collection_class}.")
+        if not any(
+            [
+                issubclass(collection_class, accepted_type)
+                for accepted_type in self._accepted_template
+            ]
+        ):
+            msg = (
+                f"The collection class must be a subclass of at least one of the accepted types. Acceptable:"
+                f"{self._accepted_template}. Got: {collection_class}.")
             logger.error(msg)
             raise RuntimeError(msg)
 
@@ -201,4 +211,4 @@ def is_running_in_jupyter():
     """
 
     # Just a dirty hack, but works for most of the time
-    return sys.argv[-1].endswith('json')
+    return sys.argv[-1].endswith("json")

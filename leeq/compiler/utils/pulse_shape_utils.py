@@ -3,7 +3,10 @@ import inspect
 
 from leeq.utils import Singleton, setup_logging
 
-from leeq.core.primitives.logical_primitives import LogicalPrimitive, LogicalPrimitiveBlock
+from leeq.core.primitives.logical_primitives import (
+    LogicalPrimitive,
+    LogicalPrimitiveBlock,
+)
 
 logger = setup_logging(__name__)
 
@@ -21,7 +24,9 @@ class PulseShapeFactory(Singleton):
         self._pulse_shape_functions = {}
         self._load_built_in_pulse_shapes()
 
-    def register_pulse_shape(self, pulse_shape_name: str, pulse_shape_function: callable):
+    def register_pulse_shape(
+        self, pulse_shape_name: str, pulse_shape_function: callable
+    ):
         """
         Register a pulse shape to the factory.
 
@@ -47,15 +52,19 @@ class PulseShapeFactory(Singleton):
         # Check if the pulse shape function is compatible with inspect.signature. Make sure it contains
         # a parameter called: sampling_rate
 
-        if not PulseShapeFactory.is_valid_pulse_shape_function(pulse_shape_function):
-            msg = (f"The pulse shape function {pulse_shape_function.__name__} is not compatible."
-                   f" It must accept 'sampling_rate' parameter.")
+        if not PulseShapeFactory.is_valid_pulse_shape_function(
+                pulse_shape_function):
+            msg = (
+                f"The pulse shape function {pulse_shape_function.__name__} is not compatible."
+                f" It must accept 'sampling_rate' parameter.")
             logger.error(msg)
             raise RuntimeError(msg)
 
         # Check if the pulse shape name is already registered
         if pulse_shape_name in self._pulse_shape_functions:
-            msg = f"The pulse shape name {pulse_shape_name} has already been registered."
+            msg = (
+                f"The pulse shape name {pulse_shape_name} has already been registered."
+            )
             logger.warning(msg)
 
         # Register the pulse shape function
@@ -84,13 +93,17 @@ class PulseShapeFactory(Singleton):
         import leeq.compiler.utils.pulse_shapes
 
         # Get all the pulse shapes
-        pulse_shapes = inspect.getmembers(leeq.compiler.utils.pulse_shapes, inspect.isfunction)
+        pulse_shapes = inspect.getmembers(
+            leeq.compiler.utils.pulse_shapes, inspect.isfunction
+        )
 
         # Register all the pulse shapes
         for pulse_shape_name, pulse_shape_function in pulse_shapes:
             # Check they are compatible
-            if PulseShapeFactory.is_valid_pulse_shape_function(pulse_shape_function):
-                self.register_pulse_shape(pulse_shape_name, pulse_shape_function)
+            if PulseShapeFactory.is_valid_pulse_shape_function(
+                    pulse_shape_function):
+                self.register_pulse_shape(
+                    pulse_shape_name, pulse_shape_function)
 
     def compile_pulse_shape(self, pulse_shape_name: str, **kwargs):
         """
@@ -109,9 +122,13 @@ class PulseShapeFactory(Singleton):
             logger.error(msg)
             raise RuntimeError(msg)
 
-        # Filter the kwargs so that only the required parameters are passed to the fucntion
-        required_parameters = inspect.signature(self._pulse_shape_functions[pulse_shape_name]).parameters
-        kwargs_call = {key: kwargs[key] for key in required_parameters if key in kwargs}
+        # Filter the kwargs so that only the required parameters are passed to
+        # the fucntion
+        required_parameters = inspect.signature(
+            self._pulse_shape_functions[pulse_shape_name]
+        ).parameters
+        kwargs_call = {key: kwargs[key]
+                       for key in required_parameters if key in kwargs}
 
         return self._pulse_shape_functions[pulse_shape_name](**kwargs_call)
 
