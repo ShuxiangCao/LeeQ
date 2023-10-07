@@ -6,7 +6,7 @@ from functools import singledispatchmethod
 from leeq.compiler.compiler_base import LPBCompiler, MeasurementSequence
 from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
 from leeq.core.context import ExperimentContext
-from leeq.core.primitives.built_in.common import PhaseShift
+from leeq.core.primitives.built_in.common import PhaseShift, DelayPrimitive
 from leeq.core.primitives.logical_primitives import (LogicalPrimitiveCombinable,
                                                      LogicalPrimitiveBlockParallel,
                                                      LogicalPrimitiveBlockSerial,
@@ -81,14 +81,14 @@ class IndividualLPBCompiler(LPBCompiler):
         self._lengths[(channel, freq)] = length
 
     @functools.singledispatchmethod
-    def _compile_lpb(self, lpb: LogicalPrimitiveCombinable, current_position: int):
+    def _compile_lpb(self, lpb: LogicalPrimitiveCombinable, current_position: float):
         """
         Compile the logical primitive block to instructions that going to be passed to the compiler.
         Recursively implement the compiling.
 
         Parameters:
             lpb (LogicalPrimitiveCombinable): The logical primitive block to compile.
-            current_position (int): The current position (sample count) of the pulse sequence.
+            current_position (float): The current position (microseconds) of the pulse sequence.
 
         Returns:
             PulseSequence: The compiled pulse sequence.
@@ -125,12 +125,25 @@ class IndividualLPBCompiler(LPBCompiler):
 
         length = len(pulse_shape)  # Always 1D
 
-        self._update_lengths(pulse_channel, lpb.freq, length + current_position)
+        self._update_lengths(pulse_channel, lpb.freq, length / self._sampling_rate[pulse_channel] + current_position)
 
         return length
 
+    def clear(self):
+        """
+        Clear the compiler and release memomry.
+        """
+        self._measurement_sequence = None
+        self._phase_shift = None
+        self._pulse_fragments = []
+        self._lengths = {}
+
     @_compile_lpb.register
-    def _(self, lpb: PhaseShift, current_position: int):
+    def _(self, lpb: DelayPrimitive, current_position: float):
+        return lpb.get_delay_time()
+
+    @_compile_lpb.register
+    def _(self, lpb: PhaseShift, current_position: float):
         parameters = lpb.get_parameters()
         if lpb.channel not in self._phase_shift:
             self._phase_shift[lpb.channel] = {}
@@ -144,7 +157,7 @@ class IndividualLPBCompiler(LPBCompiler):
         return 0
 
     @_compile_lpb.register
-    def _(self, lpb: LogicalPrimitiveBlockParallel, current_position: int):
+    def _(self, lpb: LogicalPrimitiveBlockParallel, current_position: float):
         lengths_list = [
             self._compile_lpb(child, current_position) for child in lpb.children
         ]
@@ -154,15 +167,15 @@ class IndividualLPBCompiler(LPBCompiler):
         return length
 
     @_compile_lpb.register
-    def _(self, lpb: LogicalPrimitiveBlockSerial, current_position: int):
+    def _(self, lpb: LogicalPrimitiveBlockSerial, current_position: float):
 
-        size = 0
+        total_time = 0
 
         for i in range(len(lpb.children)):
-            size += self._compile_lpb(lpb.children[i], current_position + size)
+            total_time += self._compile_lpb(lpb.children[i], current_position + total_time)
 
-        return size
+        return total_time
 
     @_compile_lpb.register
-    def _(self, lpb: LogicalPrimitiveBlockSweep, current_position: int):
+    def _(self, lpb: LogicalPrimitiveBlockSweep, current_position: float):
         return self._compile_lpb(lpb.current_lpb, current_position)

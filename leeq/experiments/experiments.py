@@ -1,3 +1,5 @@
+import inspect
+
 from leeq.core import LeeQObject
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable
 from leeq.experiments.sweeper import Sweeper
@@ -77,6 +79,19 @@ class ExperimentManager(Singleton):
         """
         return self.get_default_setup().run(*args, **kwargs)
 
+    def status(self):
+        """
+        Get the status of the active setup.
+        """
+        return self.get_default_setup().status
+
+    def clear_setups(self):
+        """
+        Clear all the setups.
+        """
+        self._setups = {}
+        self._default_setup = None
+
 
 def setup():
     """
@@ -129,16 +144,26 @@ class Experiment(LeeQObject):
         self.run(*args, **kwargs)
 
         # Check if we need to plot
-        # TODO: implement the check after the environment is set up.
-        for name, func in self.get_browser_functions():
-            f_args, f_kwargs = func._browser_function_args, func._browser_function_kwargs
-            try:
-                func(*f_args, **f_kwargs)
-            except Exception as e:
-                self.logger.warning(
-                    f'Error when executing {func.__qualname__} with parameters ({f_args},{f_kwargs}): {e}')
-                self.logger.warning(f'Ignore the error and continue.')
-                self.logger.warning(f'{e}')
+        if setup().status().get_parameters('Plot_Result_In_Jupyter'):
+            for name, func in self.get_browser_functions():
+                f_args, f_kwargs = func._browser_function_args, func._browser_function_kwargs
+
+                # For compatibility, select the argument that the function accepts with inspect
+                sig = inspect.signature(func)
+
+                # Extract the parameter names that the function accepts
+                valid_parameter_names = set(sig.parameters.keys())
+
+                # Filter the kwargs
+                filtered_kwargs = {k: v for k, v in f_kwargs.items() if k in valid_parameter_names}
+
+                try:
+                    func(*f_args, **filtered_kwargs)
+                except Exception as e:
+                    self.logger.warning(
+                        f'Error when executing {func.__qualname__} with parameters ({f_args},{f_kwargs}): {e}')
+                    self.logger.warning(f'Ignore the error and continue.')
+                    self.logger.warning(f'{e}')
 
     def run(self, *args, **kwargs):
         """

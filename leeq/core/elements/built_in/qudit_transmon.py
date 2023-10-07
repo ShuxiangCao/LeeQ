@@ -163,7 +163,7 @@ class TransmonElement(Element):
         For compatibility reasons, a shortcut for returning a measurement primitive with the return value type
         tagged to be list of values, usually means a list of points on the IQ plane, each denote a single shot readout.
         """
-        return self.get_measurement_primitive(name).shallow_copy().tag(return_value_type='list_of_values')
+        return self.get_measurement_primitive(name).shallow_copy().tag(return_value_type='IQ')
 
     def get_measurement_prim_trace(self, name: str):
         """
@@ -177,7 +177,7 @@ class TransmonElement(Element):
         For compatibility reasons, a shortcut for returning a measurement primitive with the return value type
         tagged to be a value, usually means averaged result among all shots.
         """
-        return self.get_measurement_primitive(name).shallow_copy().tag(return_value_type='value')
+        return self.get_measurement_primitive(name).shallow_copy().tag(return_value_type='IQ_average')
 
     def get_default_measurement_prim_intlist(self):
         """
@@ -187,16 +187,22 @@ class TransmonElement(Element):
         """
         return self.get_measurement_prim_intlist(self._default_measurement_primitive_name)
 
-    def get_default_measurement_prim_trace(self, name: str):
+    def get_default_measurement_prim_trace(self):
         """
         For compatibility reasons, a shortcut for returning the default measurement primitive with the
          return value type tagged to be traces of the sampled signal.
         """
         return self.get_measurement_prim_trace(self._default_measurement_primitive_name)
 
-    def get_default_measurement_prim_int(self, name: str):
+    def get_default_measurement_prim_int(self):
         """
         For compatibility reasons, a shortcut for returning the default measurement primitive with the return
          value type tagged to be a value, usually means averaged result among all shots.
         """
         return self.get_measurement_prim_int(self._default_measurement_primitive_name)
+
+    def get_default_measurement_prim(self):
+        """
+        For compatibility reasons, a shortcut for returning the default measurement primitive.
+        """
+        return self.get_default_measurement_prim_int()

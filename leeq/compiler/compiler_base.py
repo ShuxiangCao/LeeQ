@@ -47,6 +47,11 @@ class LPBCompiler(LeeQObject):
 
         return context
 
+    def clear(self):
+        """
+        Clear the compiler.
+        """
+        pass
 
 
 # Dummy compiler simply returns the LPB as the compiled instructions

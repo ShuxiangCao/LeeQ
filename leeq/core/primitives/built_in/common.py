@@ -37,6 +37,15 @@ class DelayPrimitive(LogicalPrimitive):
         assert 'delay_time' in parameters, "The delay time is not specified."
         assert 'hardware_stall' in parameters, "Whether to use hardware stall is not specified."
 
+    def get_delay_time(self):
+        """
+        Get the delay time.
+
+        Returns:
+            float: The delay time.
+        """
+        return self._parameters['delay_time']
+
 
 class Delay(object):
     """

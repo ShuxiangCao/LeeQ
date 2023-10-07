@@ -55,6 +55,7 @@ class GridSerialSweepEngine(EngineBase):
 
         def _run_single_step(step_no):
             """ Run a single step of the experiment. Should be fairly clear :)"""
+            self._compiler.clear()
             self._context.reset()
             self._context.set_lpb(lpb=lpb)
             self._context.set_step_no(step_no)
@@ -63,6 +64,8 @@ class GridSerialSweepEngine(EngineBase):
             self._fire_experiment()
             self._collect_data()
             self._commit_measurement(lpb=lpb)
+            self._compiler.clear()
+            self._context.reset()
 
         if sweep is None:
             self._sweep_shape = [1]
@@ -84,6 +87,8 @@ class GridSerialSweepEngine(EngineBase):
 
                     # Update the progress bar
                     pbar.update(1)
+
+            pass
 
     def _commit_measurement(self, lpb):
         """

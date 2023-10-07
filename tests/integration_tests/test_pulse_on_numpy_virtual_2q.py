@@ -95,6 +95,7 @@ class SimpleSampleExperiment(Experiment):
 
 def test_pulse_on_virtual_2q(qubit):
     # Prepare some lpb to prepare a non-trivial distribution
+    setup().clear_setups()
 
     exp_setup = Numpy2QVirtualDeviceSetup()
     setup().register_setup(exp_setup)

@@ -7,7 +7,7 @@ import numpy as np
 from leeq.compiler.individual_lpb_compiler import IndividualLPBCompiler
 from leeq.core.context import ExperimentContext
 from leeq.core.engine.measurement_result import MeasurementResult
-from leeq.core.primitives.built_in.common import PhaseShift
+from leeq.core.primitives.built_in.common import PhaseShift, DelayPrimitive
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock, LogicalPrimitiveBlockSerial, \
     LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel, MeasurementPrimitive
 from leeq.experiments.sweeper import Sweeper
@@ -54,6 +54,11 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
         }
 
         super().__init__(name)
+
+        self._status.add_channel(channel=0, name='q0_drive')
+        self._status.add_channel(channel=1, name='q0_read')
+        self._status.add_channel(channel=2, name='q1_drive')
+        self._status.add_channel(channel=3, name='q1_read')
 
         self._channel_to_qubit = {
             0: 'q0',
@@ -153,12 +158,15 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
         qubit: VirtualTransmon = self._simulators[self._channel_to_qubit[lpb.channel].split('_')[0]]
 
         result = qubit.apply_readout(
-            return_type=lpb.tags.get('return_type', 'IQ'),
-            sampling_number=1000,  # TODO: make this a parameter
+            return_type=lpb.tags.get('return_value_type', 'IQ_average'),
+            sampling_number=self._status.get_parameters(key='Shot_Number'),
             iq_noise_std=1, trace_noise_std=1, readout_frequency=lpb.freq,
             readout_width=lpb.width,
             readout_shape=self._uuid_to_qubit_shape[lpb.uuid][1],
         )
+
+        if isinstance(result, complex):
+            result = np.asarray([result])
 
         if lpb.uuid not in self._measurement_results:
             measurement_result = MeasurementResult(
@@ -166,7 +174,11 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
             self._measurement_results[lpb.uuid] = measurement_result
         else:
             measurement_result = self._measurement_results[lpb.uuid]
-            measurement_result.append(result)
+            measurement_result.append_data(result)
+
+    @_apply_lpb.register
+    def _(self, lpb: DelayPrimitive):
+        pass
 
     @_apply_lpb.register
     def _(self, lpb: Union[LogicalPrimitiveBlockParallel, LogicalPrimitiveBlockSerial]):

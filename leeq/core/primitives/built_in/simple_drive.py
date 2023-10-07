@@ -1,11 +1,12 @@
 import numpy as np
 
 from leeq.core.primitives.built_in.common import PhaseShift
+from leeq.core.primitives.built_in.compatibility import PulseArgsUpdatable
 from leeq.core.primitives.logical_primitives import LogicalPrimitive, LogicalPrimitiveFactory, MeasurementPrimitive
 from leeq.core.primitives.collections import LogicalPrimitiveCollection
 
 
-class SimpleDrive(LogicalPrimitive):
+class SimpleDrive(LogicalPrimitive, PulseArgsUpdatable):
     _parameter_names = ['freq', 'channel', 'shape', 'amp', 'phase', 'width']
 
     def __init__(self, name: str, parameters: dict):
@@ -222,7 +223,7 @@ class QuditVirtualZCollection(LogicalPrimitiveCollection):
             }})
 
 
-class SimpleDispersiveMeasurement(MeasurementPrimitive):
+class SimpleDispersiveMeasurement(MeasurementPrimitive, PulseArgsUpdatable):
     """
     Describes a simple dispersive measurement which send a single frequency pulse and look at the reflected signal.
     """

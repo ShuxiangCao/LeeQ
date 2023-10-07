@@ -60,13 +60,20 @@ class FullSequencingCompiler(LPBCompiler):
 
         sequences = {}
 
-        max_time_span = max([v / self._sampling_rate[channel] for (channel, freq), v in lengths.items()])
+        max_time_span = max([v for (channel, freq), v in lengths.items()])
 
         for (channel, freq), v in lengths.items():
             sequences[(channel, freq)] = np.zeros(int(max_time_span * self._sampling_rate[channel] + 0.5),
                                                   dtype=np.complex64)
 
-        for (channel, freq), position, pulse_shape_data, lp_uuid in pulse_fragments:
+        for (channel, freq), start_time, pulse_shape_data, lp_uuid in pulse_fragments:
+            position = int(start_time * self._sampling_rate[channel])
             sequences[(channel, freq)][position:position + len(pulse_shape_data)] += pulse_shape_data
 
         return sequences
+
+    def clear(self):
+        """
+        Clear the compiler.
+        """
+        self._individual_lpb_compiler.clear()
