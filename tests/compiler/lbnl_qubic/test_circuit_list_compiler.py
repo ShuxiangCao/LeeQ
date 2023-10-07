@@ -166,7 +166,10 @@ def test_block_lpbs(qubit_1, qubit_2):
     parallel_lpbs = [
         qubit_1.get_gate('qutrit_hadamard') * qubit_2.get_gate('qutrit_hadamard'),
         (qubit_1.get_gate('qutrit_hadamard') * qubit_2.get_gate('qutrit_hadamard')) + qubit_2.get_measurement_primitive(
-            '0')]
+            '0'),
+        (qubit_1.get_gate('qutrit_hadamard') * qubit_2.get_gate('qutrit_hadamard')) + qubit_2.get_measurement_primitive(
+            '0') + (qubit_1.get_gate('qutrit_hadamard') * qubit_2.get_gate('qutrit_hadamard')),
+    ]
 
     for lpb in serial_lpbs:
         instructions = compile_lpb(lpb)

@@ -176,6 +176,8 @@ class ExperimentalSetup(LeeQObject):
         self._status.add_param("Shot_Number", 2000)  # The number of shots to be taken for each point
         self._status.add_param("Shot_Period",
                                500.)  # The period between each shot, usually should choose more than 3 T1
+        self._status.add_param("Acquisition_Type",
+                               'IQ')  # The type of data to be acquired, could be IQ, IQ_average, traces, etc.
         self._status.add_param("Debug_Plotter", False)  # Plot the pulse sequence in the plotter
         self._status.add_param("Debug_Plotter_Ignore_Readout", False)  # Ignore the readout in the plotter
         self._status.add_param("In_Jupyter", is_running_in_jupyter())  # Whether the code is running in Jupyter
