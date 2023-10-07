@@ -8,18 +8,21 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: main
+
+      - name: Checkout LabChronicle
+        uses: actions/checkout@v4
+        with:
+          repository: ShuxiangCao/LabChronicle
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v2
         with:
           python-version: 3.11
 
-      - name: Install lab chronicle
-        uses: actions/checkout@master
-        with:
-          name: ShuxiangCao/LabChronicle
-          ref: refs/heads/main
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
