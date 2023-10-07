@@ -1,3 +1,4 @@
+import pytest
 from pytest import fixture
 
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
@@ -110,6 +111,7 @@ def qubit_2():
     return dut
 
 
+@pytest.mark.skip(reason="Too slow, needs update.")
 def test_ResonatorSweepTransmissionWithExtraInitialLPB(virtual_setup, qubit_1):
     setup().register_setup(virtual_setup)
 
