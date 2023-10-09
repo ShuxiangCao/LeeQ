@@ -160,11 +160,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
             for key, val in _template_dict.items():
                 qubic_channel = f'Q{i}' + key
                 qubic_channel_setup = copy.deepcopy(val)
-                val['core_ind'] = i
+                qubic_channel_setup['core_ind'] = i
                 channel_config_dict[qubic_channel] = qubic_channel_setup
-
-        import pprint
-        pprint.pprint(channel_config_dict)
 
         return leeq_channel_to_qubic_map, channel_config_dict
 
@@ -234,15 +231,13 @@ class QubiCCircuitSetup(ExperimentalSetup):
         """
         Fire the experiment and wait for it to finish.
         """
-        self._result = None
+        self._measurement_results.clear()
+        self._result = {}
         tc, qc, FPGAConfig, load_channel_configs, ChannelConfig = self._load_qubic_package()
 
         compiled_instructions = tc.run_compile_stage(
             context.instructions['circuits'], fpga_config=self._fpga_config, qchip=None
         )
-
-        # from pprint import pprint
-        # pprint(compiled_instructions.program)
 
         asm_prog = tc.run_assemble_stage(
             compiled_instructions, self._channel_configs)
@@ -325,6 +320,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
             self._measurement_results.append(measurement)
 
         context.results = self._measurement_results
+
         return context
 
 

@@ -78,9 +78,10 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         """
         self._current_context = context
         self._qubic_channel_to_lpb_uuid = {}
+        self._circuit_list = []
+        self._phase_shift = {}
 
         circuit_list, scope = self._compile_lpb(lpb)
-        from pprint import pprint
         context.instructions = {
             'circuits': circuit_list,
             "qubic_channel_to_lpb_uuid": self._qubic_channel_to_lpb_uuid,

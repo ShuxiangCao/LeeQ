@@ -52,6 +52,7 @@ class GridSerialSweepEngine(EngineBase):
             lpb (LogicalPrimitiveBlock): The logical primitive block to run.
             sweep (Sweeper): The sweeper to use.
         """
+        self._measurement_results = {}
 
         def _run_single_step(step_no):
             """Run a single step of the experiment. Should be fairly clear :)"""
@@ -109,10 +110,10 @@ class GridSerialSweepEngine(EngineBase):
         sweep_shape = self._sweep_shape
 
         for measurement_result in measurement_results:
-            if measurement_result.uuid not in self._measurement_results:
+            if measurement_result.mprim_uuid not in self._measurement_results:
                 # Allocate new buffer
                 buffer_shape = list(sweep_shape) + \
-                    list(measurement_result.shape)
+                               list(measurement_result.shape)
                 assert len(measurement_result.shape) > 1, (
                     f"The shape of the measurement result {measurement_result.shape} should be at least 2D,"
                     f" one dimension for the result id another one for the data."
@@ -123,6 +124,7 @@ class GridSerialSweepEngine(EngineBase):
 
                 # Write to buffer
             indices = self._context.step_no
+
             self._measurement_results[measurement_result.mprim_uuid][
                 indices
             ] = measurement_result.data
