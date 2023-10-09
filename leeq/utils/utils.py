@@ -158,6 +158,7 @@ class ObjectFactory(Singleton):
             raise RuntimeError(msg)
 
         if collection_class.__qualname__ in self._registered_template:
+            return
             msg = f"The collection class {collection_class.__qualname__} has already been registered."
             logger.warning(msg)
 

@@ -1,7 +1,7 @@
 import functools
 from typing import Union
 
-from leeq.compiler.compiler_base import LPBCompiler
+from leeq.compiler.compiler_base import LPBCompiler, MeasurementSequence
 from leeq.core.context import ExperimentContext
 from leeq.core.primitives.built_in.common import DelayPrimitive, PhaseShift
 from leeq.core.primitives.logical_primitives import (
@@ -40,6 +40,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         self._phase_shift = {}
         self._current_context = None
         self._leeq_channel_to_qubic_channel = leeq_channel_to_qubic_channel
+        self._qubic_channel_to_lpb_uuid = {}
 
     def compile_lpb(self, context: ExperimentContext,
                     lpb: LogicalPrimitiveCombinable):
@@ -76,8 +77,15 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         The compiled circuits will be stored in the context.instructions and passes to the setup and engine.
         """
         self._current_context = context
+        self._qubic_channel_to_lpb_uuid = {}
+
         circuit_list, scope = self._compile_lpb(lpb)
-        context.instructions = circuit_list
+        from pprint import pprint
+        context.instructions = {
+            'circuits': circuit_list,
+            "qubic_channel_to_lpb_uuid": self._qubic_channel_to_lpb_uuid,
+        }
+
         self._current_context = None
         return context
 
@@ -87,7 +95,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         Compile the logical primitive block to instructions.
         """
         msg = "The compiler does not support the logical primitive block type " + \
-            str(type(lpb))
+              str(type(lpb))
         logger.error(msg)
         raise NotImplementedError(msg)
 
@@ -123,9 +131,9 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         phase_shift = 0
 
         if (
-            "phase" in parameters
-            and lpb.channel in self._phase_shift
-            and parameters["transition_name"] in self._phase_shift[lpb.channel]
+                "phase" in parameters
+                and lpb.channel in self._phase_shift
+                and parameters["transition_name"] in self._phase_shift[lpb.channel]
         ):
             phase_shift += self._phase_shift[lpb.channel][lpb.transition_name]
 
@@ -200,35 +208,45 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         # Compile the measurement pulse
 
         drive_pulse = {
+            "name": 'pulse',
             "freq": lpb.freq,
             "phase": lpb.phase,
             "dest": primitive_scope + ".rdrv",
-            "twidth": lpb.width / 1e6,
-            "t0": 0.0,  # TODO: make it a parameter
+            "twidth": lpb.twidth,
             "amp": lpb.amp,
             "env": [{"env_func": lpb.shape, "paradict": lpb.get_parameters()}],
         }
 
+        # TODO: Give attribute t, in FPGA clocks (FPGAConfig), take attribute to quantize time stamps
+        # go to the run_compiler_stage function, reimplement it with a different pass (remove schedule)
+        # specifiy parameter t, then do not require delay or barrier anymore.
+
         demodulate_pulse = {
+            "name": 'pulse',
             "freq": lpb.freq,
             "phase": lpb.phase,
             "dest": primitive_scope + ".rdlo",
-            "twidth": lpb.width / 1e6,
-            "t0": 6e-07,  # TODO: make it a parameter
+            "twidth": lpb.twidth,
             "amp": 1,  # Always use full amp for demodulation
             "env": [
                 {
                     "env_func": "square",
                     # Here we use square pulse for demodulation, which means no
                     # window function is applied
-                    "paradict": {"phase": 0.0, "amplitude": 1.0, "twidth": lpb.width},
+                    "paradict": {"phase": 0.0, "amplitude": 1.0, "twidth": lpb.twidth},
                 }
             ],
         }
 
-        return [drive_pulse, demodulate_pulse], set(
-            primitive_scope,
-        )
+        if primitive_scope in self._qubic_channel_to_lpb_uuid and self._qubic_channel_to_lpb_uuid[
+            primitive_scope] != lpb.uuid:
+            msg = "Two measurement primitives exists for a same channel, which is not supported."
+            logger.error(msg)
+            raise NotImplementedError(msg)
+
+        self._qubic_channel_to_lpb_uuid[primitive_scope] = lpb.uuid
+
+        return [drive_pulse, demodulate_pulse], {primitive_scope}
 
     @_compile_lpb.register
     def _(self, lpb: LogicalPrimitiveBlockSerial):
@@ -358,8 +376,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         process.
         """
 
-        return {"name": "delay", "t": lpb.get_delay_time() /
-                1e6}, set()  # In seconds
+        return [{"name": "delay", "t": lpb.get_delay_time() /
+                                       1e6}], set()  # In seconds
 
     @_compile_lpb.register
     def _(self, lpb: PhaseShift):
@@ -370,9 +388,9 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         for k, m in parameters["transition_multiplier"].items():
             if k not in self._phase_shift[lpb.channel]:
                 self._phase_shift[lpb.channel][k] = m * \
-                    parameters["phase_shift"]
+                                                    parameters["phase_shift"]
             else:
                 self._phase_shift[lpb.channel][k] += m * \
-                    parameters["phase_shift"]
+                                                     parameters["phase_shift"]
 
         return [], set()

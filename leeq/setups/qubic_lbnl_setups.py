@@ -1,7 +1,9 @@
+import copy
 from typing import List, Union, Dict, Any
 from uuid import UUID
 from leeq.compiler.lbnl_qubic.circuit_list_compiler import QubiCCircuitListLPBCompiler
 from leeq.core.context import ExperimentContext
+from leeq.core.engine.grid_sweep_engine import GridSerialSweepEngine
 from leeq.core.engine.measurement_result import MeasurementResult
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import Sweeper
@@ -20,12 +22,13 @@ class QubiCCircuitSetup(ExperimentalSetup):
     """
 
     def __init__(
-        self,
-        name: str,
-        fpga_config: dict,
-        channel_configs: dict,
-        runner: Any,
-        leeq_channel_to_qubic_channel: Dict[str, str],
+            self,
+            name: str,
+            runner: Any,
+            channel_configs: Any = None,
+            fpga_config: Any = None,
+            leeq_channel_to_qubic_channel: Dict[str, str] = None,
+            qubic_core_number: int = 8
     ):
         """
         Initialize the QubiCCircuitSetup class.
@@ -37,21 +40,133 @@ class QubiCCircuitSetup(ExperimentalSetup):
             runner (Any): The runner to use. Refer to QubiC documents.
             leeq_channel_to_qubic_channel (Dict[str, str]): The mapping from leeq channel to qubic channel.
         """
-        self._load_qubic_package()
-        super().__init__(name)
+        self._fpga_config = fpga_config
+        self._channel_configs = channel_configs
+        self._qubic_core_number = qubic_core_number
+        self._leeq_channel_to_qubic_channel = leeq_channel_to_qubic_channel
+
+        self._build_qubic_config()
+
+        assert self._leeq_channel_to_qubic_channel is not None, "Please specify leeq channel to qubic channel config " \
+                                                                "if you specified custom qubic channel config."
 
         self._runner = runner
 
         self._compiler = QubiCCircuitListLPBCompiler(
-            leeq_channel_to_qubic_channel=leeq_channel_to_qubic_channel
+            leeq_channel_to_qubic_channel=self._leeq_channel_to_qubic_channel
+        )
+        self._engine = GridSerialSweepEngine(
+            compiler=self._compiler, setup=self, name=name + ".engine"
         )
 
         self._current_context = None
-        self._measurement_results: Dict[UUID, MeasurementResult] = {}
+        self._measurement_results: List[MeasurementResult] = []
 
-        self._fpga_config = fpga_config
-        self._channel_configs = channel_configs
         self._result = None
+        self._core_to_channel_map = self._build_core_id_to_qubic_channel(self._channel_configs)
+
+        super().__init__(name)
+
+    def _build_qubic_config(self):
+        """
+        Build the channel config and FPGA config for QubiC
+        """
+        tc, qc, FPGAConfig, load_channel_configs, ChannelConfig = self._load_qubic_package()
+
+        if self._fpga_config is None:
+            self._fpga_config = FPGAConfig()  # Use the default config
+        if self._channel_configs is None:
+            self._leeq_channel_to_qubic_channel, self._channel_configs = self._build_default_channel_config(
+                core_number=self._qubic_core_number)
+
+        if isinstance(self._channel_configs, dict):
+            self._channel_configs = load_channel_configs(self._channel_configs)
+
+    @staticmethod
+    def _build_core_id_to_qubic_channel(configs):
+        """
+        Find the map from core id to qubic channel, for assigning readout result.
+        """
+
+        core_to_channel_map = {}
+
+        for name, config in configs.items():
+            if 'rdlo' not in name:
+                continue
+
+            qubic_channel_name = name.split('.')[0]
+            core_ind = config.core_ind
+            core_to_channel_map[core_ind] = qubic_channel_name
+
+        return core_to_channel_map
+
+    @staticmethod
+    def _build_default_channel_config(core_number: int = 8):
+        """
+        Build the default channel configs for qubic. Here we set the core
+        """
+
+        _template_dict = {
+            ".qdrv": {
+                "core_ind": 7,
+                "elem_ind": 0,
+                "elem_params": {
+                    "samples_per_clk": 16,
+                    "interp_ratio": 1
+                },
+                "env_mem_name": "qdrvenv{core_ind}",
+                "freq_mem_name": "qdrvfreq{core_ind}",
+                "acc_mem_name": "accbuf{core_ind}"
+            },
+
+            ".rdrv": {
+                "core_ind": 7,
+                "elem_ind": 1,
+                "elem_params": {
+                    "samples_per_clk": 16,
+                    "interp_ratio": 16
+                },
+                "env_mem_name": "rdrvenv{core_ind}",
+                "freq_mem_name": "rdrvfreq{core_ind}",
+                "acc_mem_name": "accbuf{core_ind}"
+            },
+
+            ".rdlo": {
+                "core_ind": 7,
+                "elem_ind": 2,
+                "elem_params": {
+                    "samples_per_clk": 4,
+                    "interp_ratio": 4
+                },
+                "env_mem_name": "rdloenv{core_ind}",
+                "freq_mem_name": "rdlofreq{core_ind}",
+                "acc_mem_name": "accbuf{core_ind}"
+            }
+        }
+
+        channel_config_dict = {}
+        channel_config_dict["fpga_clk_freq"] = 500e6  # 2ns per clock cycle for ZCU216 by default
+
+        leeq_channel_to_qubic_map = {}
+
+        for i in range(core_number):
+            # For the old convention we always set the odd number to resonators and even number for qubits
+            leeq_channel_qubit = 2 * i
+            leeq_channel_readout = 2 * i + 1
+            leeq_channel_to_qubic_map[leeq_channel_qubit] = f'Q{i}'
+            leeq_channel_to_qubic_map[leeq_channel_readout] = f'Q{i}'
+
+            # Now setup the channels
+            for key, val in _template_dict.items():
+                qubic_channel = f'Q{i}' + key
+                qubic_channel_setup = copy.deepcopy(val)
+                val['core_ind'] = i
+                channel_config_dict[qubic_channel] = qubic_channel_setup
+
+        import pprint
+        pprint.pprint(channel_config_dict)
+
+        return leeq_channel_to_qubic_map, channel_config_dict
 
     @staticmethod
     def _load_qubic_package():
@@ -64,13 +179,14 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
             # QubiC configuration management libraries
             import qubitconfig.qchip as qc
-            from distproc.hwconfig import FPGAConfig, load_channel_configs
+            from distproc.hwconfig import FPGAConfig, load_channel_configs, ChannelConfig
+
         except ImportError:
             raise ImportError(
                 "Importing QubiC toolchain failed. Please install the QubiC toolchain first."
                 " Refer to https://gitlab.com/LBL-QubiC")
 
-        return tc, qc, FPGAConfig, load_channel_configs
+        return tc, qc, FPGAConfig, load_channel_configs, ChannelConfig
 
     def run(self, lpb: LogicalPrimitiveBlock, sweep: Sweeper):
         """
@@ -112,24 +228,29 @@ class QubiCCircuitSetup(ExperimentalSetup):
         Parameters:
             context (Any): The context between setup and compiler. Generated by the compiler.
         """
-        raise NotImplementedError()
+        pass
 
     def fire_experiment(self, context=None):
         """
         Fire the experiment and wait for it to finish.
         """
         self._result = None
-        tc, qc, FPGAConfig, load_channel_configs = self._load_qubic_package()
+        tc, qc, FPGAConfig, load_channel_configs, ChannelConfig = self._load_qubic_package()
 
         compiled_instructions = tc.run_compile_stage(
-            context.instructions, fpga_config=self._fpga_config, qchip=None
+            context.instructions['circuits'], fpga_config=self._fpga_config, qchip=None
         )
+
+        # from pprint import pprint
+        # pprint(compiled_instructions.program)
+
         asm_prog = tc.run_assemble_stage(
             compiled_instructions, self._channel_configs)
 
         acquisition_type = self._status.get_parameters("Acquisition_Type")
         n_total_shots = self._status.get_parameters("Shot_Number")
         delay_per_shot = self._status.get_parameters("Shot_Period") * 1e-6
+        # TODO: Add customized delay at the beginning for this shot_period
 
         assert acquisition_type in [
             "IQ",
@@ -139,15 +260,20 @@ class QubiCCircuitSetup(ExperimentalSetup):
         )
 
         if acquisition_type == "IQ":
+            self._runner.load_circuit(
+                rawasm=asm_prog,
+                zero=True,  # if True, (default), zero out all cmd buffers before loading circuit
+                load_commands=True,  # load command buffers
+                load_freqs=True,  # load frequency buffers
+                load_envs=True  # load env buffers
+            )
             self._result = self._runner.run_circuit(
                 n_total_shots=n_total_shots,
                 reads_per_shot=1,
                 # Number of values per shot per channel to read back from accbuf.
                 # Unless there is mid-circuit measurement involved this is typically 1
                 # TODO: add support for mid-circuit measurement
-                delay_per_shot=delay_per_shot,  # delay time (in seconds) per single shot of the circuit
-                from_server=False
-                # set to true if calling over RPC. If True, pack returned s11 arrays into byte objects
+                delay_per_shot=0,  # Not used and not functionality
             )
         elif acquisition_type == "traces":
             # load_and_run_acq is to load the program given by raw_asm_prog and acquire raw
@@ -178,24 +304,39 @@ class QubiCCircuitSetup(ExperimentalSetup):
         Collect the data from the compiler and commit it to the measurement primitives.
         """
 
-        # TODO: Implement mapping from returned data to each measurement
-        # primitive
+        # We accept one readout per channel for now
+        qubic_channel_to_lpb_uuid = context.instructions['qubic_channel_to_lpb_uuid']
 
-        context.results = self._result
+        for core_ind, data in self._result.items():
+            qubic_channel = self._core_to_channel_map[int(core_ind)]
 
-        raise NotImplementedError()
+            if qubic_channel not in qubic_channel_to_lpb_uuid:
+                # Sometimes qubic returns default data from the board, which we are not measuring
+                continue
 
+            mprim_uuid = qubic_channel_to_lpb_uuid[qubic_channel]
+
+            measurement = MeasurementResult(
+                step_no=context.step_no,
+                data=data.transpose(),  # First index is different measurement, second index for data
+                mprim_uuid=mprim_uuid
+            )
+
+            self._measurement_results.append(measurement)
+
+        context.results = self._measurement_results
         return context
 
 
 class QubiCSingleBoardRemoteRPCSetup(QubiCCircuitSetup):
     def __init__(
-        self,
-        name: str,
-        fpga_config: dict,
-        channel_configs: dict,
-        rpc_uri: str,
-        leeq_channel_to_qubic_channel: Dict[str, str],
+            self,
+            name: str,
+            rpc_uri: str,
+            channel_configs: Any = None,
+            fpga_config: Any = None,
+            leeq_channel_to_qubic_channel: Dict[str, str] = None,
+            qubic_core_number: int = 8
     ):
         try:
             from qubic.rpc_client import CircuitRunnerClient
@@ -213,8 +354,9 @@ class QubiCSingleBoardRemoteRPCSetup(QubiCCircuitSetup):
 
         super().__init__(
             name=name,
-            fpga_config=fpga_config,
             channel_configs=channel_configs,
             runner=runner,
+            fpga_config=fpga_config,
             leeq_channel_to_qubic_channel=leeq_channel_to_qubic_channel,
+            qubic_core_number=qubic_core_number,
         )

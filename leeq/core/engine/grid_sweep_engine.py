@@ -15,7 +15,7 @@ from leeq.utils import is_running_in_jupyter
 _in_jupyter = is_running_in_jupyter()
 
 if _in_jupyter:
-    from tqdm import notebook as tqdm
+    from tqdm.notebook import tqdm
 else:
     from tqdm import tqdm
 
