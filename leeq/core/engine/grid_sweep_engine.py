@@ -89,8 +89,6 @@ class GridSerialSweepEngine(EngineBase):
                     # Update the progress bar
                     pbar.update(1)
 
-            pass
-
     def _commit_measurement(self, lpb):
         """
         Commit the measurement primitives to the compiler.

@@ -1,6 +1,9 @@
 import copy
 from typing import List, Union, Dict, Any
 from uuid import UUID
+
+import numpy as np
+
 from leeq.compiler.lbnl_qubic.circuit_list_compiler import QubiCCircuitListLPBCompiler
 from leeq.core.context import ExperimentContext
 from leeq.core.engine.grid_sweep_engine import GridSerialSweepEngine
@@ -249,12 +252,13 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
         assert acquisition_type in [
             "IQ",
+            "IQ_average",
             "traces",
         ], "Acquisition type should be either IQ or traces. Got " + str(
             acquisition_type
         )
 
-        if acquisition_type == "IQ":
+        if acquisition_type == "IQ" or acquisition_type == "IQ_average":
             self._runner.load_circuit(
                 rawasm=asm_prog,
                 zero=True,  # if True, (default), zero out all cmd buffers before loading circuit
@@ -299,6 +303,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
         Collect the data from the compiler and commit it to the measurement primitives.
         """
 
+        acquisition_type = self._status.get_parameters("Acquisition_Type")
+
         # We accept one readout per channel for now
         qubic_channel_to_lpb_uuid = context.instructions['qubic_channel_to_lpb_uuid']
 
@@ -311,9 +317,14 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
             mprim_uuid = qubic_channel_to_lpb_uuid[qubic_channel]
 
+            if acquisition_type == 'IQ_average':
+                data = np.asarray([data.mean(axis=0)])
+            elif acquisition_type == 'IQ':
+                data = data.transpose()
+
             measurement = MeasurementResult(
                 step_no=context.step_no,
-                data=data.transpose(),  # First index is different measurement, second index for data
+                data=data,  # First index is different measurement, second index for data
                 mprim_uuid=mprim_uuid
             )
 
