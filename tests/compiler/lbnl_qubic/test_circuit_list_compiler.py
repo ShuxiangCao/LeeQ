@@ -133,8 +133,9 @@ def test_atomic_lpb_compilation(qubit_1):
 
     for lpb in atomic_lpbs:
         instructions = compile_lpb(lpb)
-        assert len(instructions) == 1
-        assert instructions[0]['dest'] == leeq_channel_to_qubic_channel[lpb.channel] + '.qdrv'
+        circuits = instructions['circuits']
+        assert len(circuits) == 1
+        assert circuits[0]['dest'] == leeq_channel_to_qubic_channel[lpb.channel] + '.qdrv'
 
     atomic_lpbs = [
         qubit_1.get_lpb_collection('f12').z(0.1),
@@ -142,7 +143,8 @@ def test_atomic_lpb_compilation(qubit_1):
 
     for lpb in atomic_lpbs:
         instructions = compile_lpb(lpb)
-        assert len(instructions) == 0
+        circuits = instructions['circuits']
+        assert len(circuits) == 0
 
     atomic_lpbs = [
         qubit_1.get_measurement_primitive('0'),
@@ -150,9 +152,11 @@ def test_atomic_lpb_compilation(qubit_1):
 
     for lpb in atomic_lpbs:
         instructions = compile_lpb(lpb)
-        assert len(instructions) == 2
-        assert instructions[0]['dest'] == leeq_channel_to_qubic_channel[lpb.channel] + '.rdrv'
-        assert instructions[1]['dest'] == leeq_channel_to_qubic_channel[lpb.channel] + '.rdlo'
+        circuits = instructions['circuits']
+        assert len(circuits) == 2
+        assert circuits[0]['dest'] == leeq_channel_to_qubic_channel[lpb.channel] + '.rdrv'
+        assert circuits[1]['dest'] == leeq_channel_to_qubic_channel[lpb.channel] + '.rdlo'
+        assert len(instructions['qubic_channel_to_lpb_uuid']) == 1
 
 
 def test_block_lpbs(qubit_1, qubit_2):

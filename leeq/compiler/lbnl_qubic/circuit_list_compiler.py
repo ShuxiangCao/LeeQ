@@ -1,6 +1,7 @@
 import functools
 from typing import Union
 
+from leeq import setup
 from leeq.compiler.compiler_base import LPBCompiler, MeasurementSequence
 from leeq.core.context import ExperimentContext
 from leeq.core.primitives.built_in.common import DelayPrimitive, PhaseShift
@@ -12,6 +13,7 @@ from leeq.core.primitives.logical_primitives import (
     MeasurementPrimitive,
     LogicalPrimitive,
 )
+from leeq.experiments.experiments import ExperimentManager
 from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
@@ -127,7 +129,14 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         primitive_scope = self._leeq_channel_to_qubic_channel[lpb.channel]
         qubic_dest = primitive_scope + ".qdrv"
 
-        parameters = lpb.get_parameters()
+        # If there is no setup set, we don't update the parameters
+        exp_manager = ExperimentManager()
+        if exp_manager.get_default_setup() is None:
+            parameters = lpb.get_parameters()
+        else:
+            parameters = exp_manager.status().get_modified_lpb_parameters_from_channel_callback(
+                channel=lpb.channel, parameters=lpb.get_parameters()
+            )
 
         phase_shift = 0
 
@@ -143,9 +152,9 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         qubic_pulse_dict = {
             "name": "pulse",
             "phase": phase_shift + parameters["phase"],
-            "freq": int(lpb.freq * 1e6),  # In Hz
-            "amp": lpb.amp,
-            "twidth": lpb.width / 1e6,  # In seconds
+            "freq": int(parameters['freq'] * 1e6),  # In Hz
+            "amp": parameters['amp'],
+            "twidth": parameters['width'] / 1e6,  # In seconds
             "env": env,
             "dest": qubic_dest,  # The channel name
         }
@@ -208,14 +217,23 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         primitive_scope = self._leeq_channel_to_qubic_channel[lpb.channel]
         # Compile the measurement pulse
 
+        # If there is no setup set, we don't update the parameters
+        exp_manager = ExperimentManager()
+        if exp_manager.get_default_setup() is None:
+            modified_parameters = lpb.get_parameters()
+        else:
+            modified_parameters = exp_manager.status().get_modified_lpb_parameters_from_channel_callback(
+                channel=lpb.channel, parameters=lpb.get_parameters()
+            )
+
         drive_pulse = {
             "name": 'pulse',
-            "freq": (lpb.freq * 1e6), # In Hz,
-            "phase": lpb.phase,
+            "freq": (modified_parameters['freq'] * 1e6),  # In Hz,
+            "phase": modified_parameters['phase'],
             "dest": primitive_scope + ".rdrv",
-            "twidth": lpb.twidth,
-            "amp": lpb.amp,
-            "env": [{"env_func": lpb.shape, "paradict": lpb.get_parameters()}],
+            "twidth": modified_parameters['width'],
+            "amp": modified_parameters['amp'],
+            "env": [{"env_func": modified_parameters['shape'], "paradict": modified_parameters}],
         }
 
         # TODO: Give attribute t, in FPGA clocks (FPGAConfig), take attribute to quantize time stamps
@@ -224,17 +242,17 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
         demodulate_pulse = {
             "name": 'pulse',
-            "freq": (lpb.freq * 1e6), # In Hz,
-            "phase": lpb.phase,
+            "freq": (modified_parameters['freq'] * 1e6),  # In Hz,
+            "phase": modified_parameters['phase'],
             "dest": primitive_scope + ".rdlo",
-            "twidth": lpb.twidth,
+            "twidth": modified_parameters['width'],
             "amp": 1,  # Always use full amp for demodulation
             "env": [
                 {
                     "env_func": "square",
                     # Here we use square pulse for demodulation, which means no
                     # window function is applied
-                    "paradict": {"phase": 0.0, "amplitude": 1.0, "twidth": lpb.twidth},
+                    "paradict": {"phase": 0.0, "amplitude": 1.0, "twidth": modified_parameters['width']},
                 }
             ],
         }
@@ -382,7 +400,16 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
     @_compile_lpb.register
     def _(self, lpb: PhaseShift):
-        parameters = lpb.get_parameters()
+
+        # If there is no setup set, we don't update the parameters
+        exp_manager = ExperimentManager()
+        if exp_manager.get_default_setup() is None:
+            parameters = lpb.get_parameters()
+        else:
+            parameters = exp_manager.status().get_modified_lpb_parameters_from_channel_callback(
+                channel=lpb.channel, parameters=lpb.get_parameters()
+            )
+
         if lpb.channel not in self._phase_shift:
             self._phase_shift[lpb.channel] = {}
 

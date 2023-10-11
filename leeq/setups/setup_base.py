@@ -1,5 +1,5 @@
 import contextlib
-from typing import Any
+from typing import Any, Optional
 
 from labchronicle import log_event
 from leeq.core import LeeQObject
@@ -31,6 +31,7 @@ class SetupStatusParameters(LeeQObject):
         super().__init__(name)
         self._internal_dict = {}
         self._channel_dict = {}
+        self._channel_callbacks = {}
 
     def set_param(self, key: str, value: Any):
         """
@@ -145,6 +146,7 @@ class SetupStatusParameters(LeeQObject):
             raise ValueError(msg)
 
         self._channel_dict[channel] = kwargs
+        self._channel_callbacks[channel] = None
 
     def set_channel_parameters(self, channel, **kwargs):
         """
@@ -216,6 +218,64 @@ class SetupStatusParameters(LeeQObject):
         self.set_parameters(**kwargs)
         yield
         self.set_parameters(**original_parameters)
+
+    def register_compile_lpb_callback(self, channel: int, callback: Optional[callable] = None):
+        """
+        Register a callback function that will be called when the compiler
+        compiles the logical primitive block. If the callback is None, the callback will be removed.
+
+        This functionality allows the setup to make changes to the lpb parameters before them get compiled to
+        the instructions for backends. For instance, we could be using a frequency mixing on a specific channel,
+        therefore the driving frequency of the pulse needs to be subtracted by the mixing frequency (or added, based
+        on the sideband choice).
+
+        The callback function should accept the following parameters:
+            parameters (dict): The parameter of the lpb.
+        And returns the following parameters:
+            parameters (dict): The updated parameter of the lpb.
+
+        Parameters:
+            channel (int): The channel id.
+            callback (callable): The callback function.
+        """
+
+        if channel not in self._channel_dict:
+            msg = f"{self._name} does not have channel {channel}."
+            logger.error(msg)
+            raise ValueError(msg)
+
+        if not callable(callback):
+            msg = f"Callback is not callable."
+            logger.error(msg)
+            raise ValueError(msg)
+
+        if self._channel_callbacks[channel] is not None:
+            msg = f"Callback for channel {channel} has now been overwritten."
+            logger.warning(msg)
+
+        self._channel_callbacks[channel] = callback
+
+    def get_modified_lpb_parameters_from_channel_callback(self, channel: int, parameters: dict):
+        """
+            Get the modified lpb parameters from the channel callback. If the callback is not registered,
+            return the original parameters.
+
+            Parameters:
+                channel (int): The channel id.
+                parameters (dict): The original parameters.
+
+            Returns:
+                dict: The modified parameters.
+        """
+        if channel not in self._channel_dict:
+            msg = f"{self._name} does not have channel {channel}."
+            logger.error(msg)
+            raise ValueError(msg)
+
+        if self._channel_callbacks[channel] is None:
+            return parameters
+
+        return self._channel_callbacks[channel](parameters)
 
 
 class ExperimentalSetup(LeeQObject):

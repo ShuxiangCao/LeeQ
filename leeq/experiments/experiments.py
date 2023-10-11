@@ -1,8 +1,10 @@
+import datetime
 import inspect
 
 from leeq.core import LeeQObject
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable
 from leeq.experiments.sweeper import Sweeper
+from leeq.setups.setup_base import SetupStatusParameters
 from leeq.utils import Singleton, setup_logging
 
 logger = setup_logging(__name__)
@@ -55,9 +57,10 @@ class ExperimentManager(Singleton):
         """
 
         if self._default_setup is None:
-            msg = f"Default setup is not set. Available setups are {self.get_available_setup_names()}"
-            logger.error(msg)
-            raise RuntimeError(msg)
+            return None
+            #msg = f"Default setup is not set. Available setups are {self.get_available_setup_names()}"
+            #logger.error(msg)
+            #raise RuntimeError(msg)
 
         return self.get_setup(self._default_setup)
 
@@ -79,7 +82,7 @@ class ExperimentManager(Singleton):
         """
         return self.get_default_setup().run(*args, **kwargs)
 
-    def status(self):
+    def status(self) -> SetupStatusParameters:
         """
         Get the status of the active setup.
         """
@@ -120,6 +123,7 @@ class Experiment(LeeQObject):
          experiment. The decorator will save the arguments and return values of the `run` method and the entire object
           to the log.
         The `run` method will always be executed at the end of `__init__` to start the experiment.
+        This mechanism is mostly for compatibility reasons.
 
     2. Data analysis
         The data analysis can be written in any arbitrary method, and suggested to run in a separate method than `run`,
@@ -145,6 +149,10 @@ class Experiment(LeeQObject):
 
         # Check if we need to plot
         if setup().status().get_parameters("Plot_Result_In_Jupyter"):
+            # Print the datetime of the experiment
+            self.logger.info(
+                datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
             for name, func in self.get_browser_functions():
                 f_args, f_kwargs = (
                     func._browser_function_args,
