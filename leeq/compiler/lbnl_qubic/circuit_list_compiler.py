@@ -19,6 +19,48 @@ from leeq.utils import setup_logging
 logger = setup_logging(__name__)
 
 
+def compare_dicts(dict1, dict2, rtol=1e-05, atol=1e-08):
+    """
+    Compare two dictionaries element by element.
+
+    Parameters:
+    - dict1, dict2: dictionaries to compare
+    - rtol, atol: relative and absolute tolerances for np.allclose
+
+    Returns:
+    True if the dictionaries are considered equal, otherwise False.
+    """
+    # Check if both inputs are dictionaries
+    if not (isinstance(dict1, dict) and isinstance(dict2, dict)):
+        raise ValueError("Both inputs should be dictionaries.")
+
+    # Check if both dictionaries have the same keys
+    if set(dict1.keys()) != set(dict2.keys()):
+        return False
+
+    # Compare element by element
+    for key, value1 in dict1.items():
+        value2 = dict2[key]
+
+        # If values are both numbers, use np.allclose for comparison
+        if isinstance(value1, (int, float)) and isinstance(value2, (int, float)):
+            if not np.allclose(value1, value2, rtol=rtol, atol=atol):
+                return False
+
+        # If values are both dictionaries, compare them recursively
+        elif isinstance(value1, dict) and isinstance(value2, dict):
+            if not compare_dicts(value1, value2, rtol=rtol, atol=atol):
+                return False
+
+        # For other types, use simple equality comparison
+        else:
+            if value1 != value2:
+                return False
+
+    # If loop completes without returning False, dictionaries are equal
+    return True
+
+
 class QubiCCircuitListLPBCompiler(LPBCompiler):
     """
     The QubiCCircuitListLPBCompiler class defines a compiler that is used to compile the logical primitive block to
@@ -118,6 +160,9 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
         # Keep track of the compiled UUID, and remove untouched UUID from the dirty tracking data structures
         self._compiled_lpb_uuid = []
+        self._command_dirty = False
+        self._frequency_dirty = False
+        self._envelope_dirty = False
 
         circuit_list, scope = self._compile_lpb(lpb)
         context.instructions = {
@@ -163,6 +208,9 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         # Track the UUID of the lpbs, if they are not seen we remove them from the tracking data structure
         self._compiled_lpb_uuid.append(lpb.uuid)
 
+        _parameter_diff = lambda x: x in parameters and \
+                                    parameters[x] != self._lpb_uuid_to_parameter_last_compiled[lpb.uuid][x]
+
         parameters = lpb.get_parameters()
         lpb_id = lpb.uuid
 
@@ -176,26 +224,29 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                 # Passed check
                 return
 
-            _parameter_diff = lambda x: x in parameters and \
-                                        parameters[x] != self._lpb_uuid_to_parameter_last_compiled[x]
+            last_compiled_value = self._lpb_uuid_to_parameter_last_compiled[lpb_id].copy()
 
             if _parameter_diff('freq'):
                 self._frequency_dirty = True
                 del parameters['freq']
+                del last_compiled_value['freq']
 
             if _parameter_diff('shape'):
                 self._envelope_dirty = True
                 del parameters['shape']
+                del last_compiled_value['shape']
 
             if _parameter_diff('amp'):
                 self._command_dirty = True
                 del parameters['amp']
+                del last_compiled_value['amp']
 
             if _parameter_diff('phase'):
                 self._command_dirty = True
                 del parameters['phase']
+                del last_compiled_value['phase']
 
-            if parameters != self._lpb_uuid_to_parameter_last_compiled[lpb_id]:
+            if parameters != last_compiled_value:
                 # Something else has changed as well, not sure if its shape or command, then mark them both dirty
                 self._command_dirty = True
                 self._envelope_dirty = True

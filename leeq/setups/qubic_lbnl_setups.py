@@ -284,7 +284,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
             self._runner.load_circuit(
                 rawasm=asm_prog,
                 # if True, (default), zero out all cmd buffers before loading circuit
-                zero=True,
+                zero=context.step_no == 0,
                 # load command buffers when the circuit or parameters (amp or phase) has changed.
                 load_commands=dirtiness['command'],
                 # load frequency buffers when frequency changed.
