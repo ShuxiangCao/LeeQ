@@ -70,6 +70,13 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
         super().__init__(name)
 
+        # Add channels
+        for i in range(qubic_core_number):
+            qubit_channel = 2 * i
+            readout_channel = 2 * i + 1
+            self._status.add_channel(qubit_channel)
+            self._status.add_channel(readout_channel)
+
     def _build_qubic_config(self):
         """
         Build the channel config and FPGA config for QubiC
@@ -243,12 +250,12 @@ class QubiCCircuitSetup(ExperimentalSetup):
             {"name": "delay", "t": shot_interval}
         ]
 
+        # from pprint import pprint
+        # pprint(context.instructions['circuits'])
+
         compiled_instructions = tc.run_compile_stage(
             delay_between_shots + context.instructions['circuits'], fpga_config=self._fpga_config, qchip=None
         )
-
-        # from pprint import pprint
-        # pprint(compiled_instructions)
 
         asm_prog = tc.run_assemble_stage(
             compiled_instructions, self._channel_configs)

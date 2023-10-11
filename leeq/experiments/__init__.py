@@ -1,2 +1,2 @@
-from .experiments import Experiment, basic_run, setup
+from .experiments import Experiment, basic_run, setup, ExperimentManager
 from .sweeper import Sweeper, SweepParametersSideEffectFactory

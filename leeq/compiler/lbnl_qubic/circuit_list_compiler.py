@@ -147,7 +147,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         ):
             phase_shift += self._phase_shift[lpb.channel][lpb.transition_name]
 
-        env = {"env_func": lpb.shape, "paradict": lpb.get_parameters()}
+        env = {"env_func": parameters['shape'], "paradict": parameters}
 
         qubic_pulse_dict = {
             "name": "pulse",
@@ -231,7 +231,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             "freq": (modified_parameters['freq'] * 1e6),  # In Hz,
             "phase": modified_parameters['phase'],
             "dest": primitive_scope + ".rdrv",
-            "twidth": modified_parameters['width'],
+            "twidth": modified_parameters['width'] / 1e6,  # In seconds
             "amp": modified_parameters['amp'],
             "env": [{"env_func": modified_parameters['shape'], "paradict": modified_parameters}],
         }
@@ -245,14 +245,14 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             "freq": (modified_parameters['freq'] * 1e6),  # In Hz,
             "phase": modified_parameters['phase'],
             "dest": primitive_scope + ".rdlo",
-            "twidth": modified_parameters['width'],
+            "twidth": modified_parameters['width'] / 1e6,  # In seconds
             "amp": 1,  # Always use full amp for demodulation
             "env": [
                 {
                     "env_func": "square",
                     # Here we use square pulse for demodulation, which means no
                     # window function is applied
-                    "paradict": {"phase": 0.0, "amplitude": 1.0, "twidth": modified_parameters['width']},
+                    "paradict": {"phase": 0.0, "amplitude": 1.0, "twidth": modified_parameters['width']/1e6},
                 }
             ],
         }

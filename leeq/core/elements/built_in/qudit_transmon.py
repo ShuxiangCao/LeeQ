@@ -36,15 +36,15 @@ class TransmonElement(Element):
         # assert all the channels in lpb configurations are the same
         lpb_configurations = self._parameters["lpb_collections"]
         assert (
-            len(
-                set(
-                    [
-                        lpb_configuration["channel"]
-                        for lpb_configuration in lpb_configurations.values()
-                    ]
+                len(
+                    set(
+                        [
+                            lpb_configuration["channel"]
+                            for lpb_configuration in lpb_configurations.values()
+                        ]
+                    )
                 )
-            )
-            == 1
+                == 1
         )
 
         first_lpb_configuration = list(lpb_configurations.values())[0]
@@ -90,7 +90,7 @@ class TransmonElement(Element):
 
         for name, lpb_parameter in parameters["lpb_collections"].items():
             assert (
-                "type" in lpb_parameter
+                    "type" in lpb_parameter
             ), "The type of the lpb collection is not specified."
             assert lpb_parameter["type"] in [
                 SimpleDriveCollection.__qualname__
@@ -99,7 +99,7 @@ class TransmonElement(Element):
         for name, measurement_parameter in parameters["measurement_primitives"].items(
         ):
             assert (
-                "type" in measurement_parameter
+                    "type" in measurement_parameter
             ), "The type of the measurement parameter is not specified."
             assert measurement_parameter["type"] in [
                 SimpleDispersiveMeasurement.__qualname__
@@ -138,9 +138,9 @@ class TransmonElement(Element):
             hadamard = self.get_gate("qutrit_hadamard")
             hadamard_dag = self.get_gate("qutrit_hadamard_dag")
             return (
-                hadamard_dag
-                + self.get_gate("qutrit_clifford_green", angle=angle)
-                + hadamard
+                    hadamard_dag
+                    + self.get_gate("qutrit_clifford_green", angle=angle)
+                    + hadamard
             )
 
         if gate_name == "qutrit_hadamard":
@@ -153,11 +153,11 @@ class TransmonElement(Element):
 
             hadamard_f12 = c1_12["Ym"] + c1_vz.z2(np.pi)
             qth = (
-                hadamard_f12
-                + c1_vz.z2(np.pi / 2)
-                + c1_vz.z1(np.pi)
-                + magic_y
-                + hadamard_f12
+                    hadamard_f12
+                    + c1_vz.z2(np.pi / 2)
+                    + c1_vz.z1(np.pi)
+                    + magic_y
+                    + hadamard_f12
             )
 
             return qth
@@ -172,11 +172,11 @@ class TransmonElement(Element):
 
             hadamard_f12 = c1_12["Ym"] + c1_vz.z2(np.pi)
             qth = (
-                hadamard_f12
-                + magic_y
-                + c1_vz.z2(-np.pi / 2)
-                + c1_vz.z1(np.pi)
-                + hadamard_f12
+                    hadamard_f12
+                    + magic_y
+                    + c1_vz.z2(-np.pi / 2)
+                    + c1_vz.z1(np.pi)
+                    + hadamard_f12
             )
 
             return qth
@@ -191,7 +191,7 @@ class TransmonElement(Element):
                 return c1.y(angle)
 
         if gate_name in ["Xp", "Xm", "Yp", "Ym"] or (
-            gate_name in ["X", "Y"] and angle is None
+                gate_name in ["X", "Y"] and angle is None
         ):
             return c1[gate_name]
         elif gate_name == "hadamard":
@@ -263,3 +263,9 @@ class TransmonElement(Element):
         For compatibility reasons, a shortcut for returning the default measurement primitive.
         """
         return self.get_default_measurement_prim_int()
+
+    def get_default_c1(self):
+        """
+            For compatibility reasons, a shortcut for returning the f01 collection.
+        """
+        return self.get_lpb_collection(name='f01')
