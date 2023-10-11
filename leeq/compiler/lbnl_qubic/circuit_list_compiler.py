@@ -210,7 +210,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
         drive_pulse = {
             "name": 'pulse',
-            "freq": lpb.freq,
+            "freq": (lpb.freq * 1e6), # In Hz,
             "phase": lpb.phase,
             "dest": primitive_scope + ".rdrv",
             "twidth": lpb.twidth,
@@ -224,7 +224,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
         demodulate_pulse = {
             "name": 'pulse',
-            "freq": lpb.freq,
+            "freq": (lpb.freq * 1e6), # In Hz,
             "phase": lpb.phase,
             "dest": primitive_scope + ".rdlo",
             "twidth": lpb.twidth,

@@ -238,17 +238,23 @@ class QubiCCircuitSetup(ExperimentalSetup):
         self._result = {}
         tc, qc, FPGAConfig, load_channel_configs, ChannelConfig = self._load_qubic_package()
 
+        shot_interval = self._status.get_parameters("Shot_Period") * 1e-6
+        delay_between_shots = [
+            {"name": "delay", "t": shot_interval}
+        ]
+
         compiled_instructions = tc.run_compile_stage(
-            context.instructions['circuits'], fpga_config=self._fpga_config, qchip=None
+            delay_between_shots + context.instructions['circuits'], fpga_config=self._fpga_config, qchip=None
         )
+
+        # from pprint import pprint
+        # pprint(compiled_instructions)
 
         asm_prog = tc.run_assemble_stage(
             compiled_instructions, self._channel_configs)
 
         acquisition_type = self._status.get_parameters("Acquisition_Type")
         n_total_shots = self._status.get_parameters("Shot_Number")
-        delay_per_shot = self._status.get_parameters("Shot_Period") * 1e-6
-        # TODO: Add customized delay at the beginning for this shot_period
 
         assert acquisition_type in [
             "IQ",

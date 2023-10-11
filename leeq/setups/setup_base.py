@@ -1,3 +1,6 @@
+import contextlib
+from typing import Any
+
 from labchronicle import log_event
 from leeq.core import LeeQObject
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
@@ -29,13 +32,45 @@ class SetupStatusParameters(LeeQObject):
         self._internal_dict = {}
         self._channel_dict = {}
 
+    def set_param(self, key: str, value: Any):
+        """
+        Same as set_parameter, for compatibility reasons.
+
+        Parameters:
+             key (str): The name of the parameter.
+             value (Any): The value of the parameter.
+
+        """
+        return self.set_parameter(key=key, value=value)
+
     @log_event
-    def set_param(self, key, value):
+    def set_parameter(self, key: str, value: Any):
+        """
+         Set a parameter from the setup status.
+
+         Parameters:
+             key (str): The name of the parameter.
+             value (Any): The value of the parameter.
+
+        """
+
+        key = key.lower()
+
         if key in self._internal_dict:
             self._internal_dict[key] = value
         else:
             msg = f"{self._name} may not accept parameter {key}."
             logger.warning(msg)
+
+    def set_parameters(self, **kwargs: dict):
+        """
+        Set a set of parameters in the setup status.
+        Parameters:
+            kwargs (dict): The key arguments to set.
+        """
+
+        for key, val in kwargs.items():
+            self.set_parameter(key, val)
 
     def add_parameter(self, key, default_value):
         """
@@ -45,6 +80,7 @@ class SetupStatusParameters(LeeQObject):
             key (str): The name of the parameter.
             default_value (Any): The value of the parameter.
         """
+        key = key.lower()
         self._internal_dict[key] = default_value
 
     def add_param(self, key, default_value):
@@ -57,7 +93,7 @@ class SetupStatusParameters(LeeQObject):
         """
         self.add_parameter(key, default_value)
 
-    def get_parameters(self, key=None):
+    def get_parameters(self, key: str = None):
         """
         Get the parameter from the setup status.
 
@@ -69,6 +105,8 @@ class SetupStatusParameters(LeeQObject):
         """
         if key is None:
             return self._internal_dict.copy()
+
+        key = key.lower()
         return self._internal_dict[key]
 
     def get_params(self):
@@ -112,12 +150,16 @@ class SetupStatusParameters(LeeQObject):
         """
         Set the channel parameters.
         """
+
+        # Make all the kwargs keys lowercase
+        new_kwargs = dict([(k.lower(), v) for k, v in kwargs.items()])
+
         if channel not in self._channel_dict:
             msg = f"{self._name} does not have channel {channel}."
             logger.error(msg)
             raise ValueError(msg)
 
-        self._channel_dict[channel].update(kwargs)
+        self._channel_dict[channel].update(new_kwargs)
 
     def set_channel_params(self, channel, **kwargs):
         """
@@ -138,6 +180,8 @@ class SetupStatusParameters(LeeQObject):
         if key is None:
             return self._channel_dict[channel].copy()
 
+        key = key.lower()
+
         if key not in self._channel_dict[channel]:
             msg = f"{self._name} does not have channel {key}."
             logger.error(msg)
@@ -145,17 +189,33 @@ class SetupStatusParameters(LeeQObject):
 
         return self._channel_dict[channel][key]
 
-    def get_channel_params(self):
+    def get_channel_params(self, channel: int):
         """
         Same as get_channel_parameters, for compatibility.
+
+        Parameters:
+            channel (int): The channel id.
+
+        Return:
+            dict: Channel parameters
         """
-        return self.get_channel_parameters()
+        return self.get_channel_parameters(channel=channel)
 
     def get_channel_param(self, key):
         """
         Same as get_channel_parameters, for compatibility.
         """
         return self.get_channel_parameters(key)
+
+    @contextlib.contextmanager
+    def with_parameters(self, **kwargs: dict):
+        """
+        Set a set of parameters, and recover them after execution
+        """
+        original_parameters = self.get_parameters()
+        self.set_parameters(**kwargs)
+        yield
+        self.set_parameters(**original_parameters)
 
 
 class ExperimentalSetup(LeeQObject):
@@ -168,10 +228,10 @@ class ExperimentalSetup(LeeQObject):
         Initialize the ExperimentalSetup class. Use init to define all the equipments in the setup.
         """
         assert (
-            "_compiler" in self.__dict__
+                "_compiler" in self.__dict__
         ), "The compiler is not defined in the setup, please define it in the __init__."
         assert (
-            "_engine" in self.__dict__
+                "_engine" in self.__dict__
         ), "The engine is not defined in the setup, please define it in the __init__."
         super().__init__(name)
         self._active = False
