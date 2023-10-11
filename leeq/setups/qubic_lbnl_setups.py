@@ -14,6 +14,7 @@ from leeq.setups.setup_base import ExperimentalSetup
 from leeq.utils import setup_logging
 
 from urllib.parse import urlparse
+from pprint import pprint
 
 logger = setup_logging(__name__)
 
@@ -69,6 +70,9 @@ class QubiCCircuitSetup(ExperimentalSetup):
         self._core_to_channel_map = self._build_core_id_to_qubic_channel(self._channel_configs)
 
         super().__init__(name)
+
+        self._status.add_param("QubiC_Debug_Print_Circuits", False)
+        self._status.add_param("QubiC_Debug_Print_Compiled_Instructions", False)
 
         # Add channels
         for i in range(qubic_core_number):
@@ -250,12 +254,15 @@ class QubiCCircuitSetup(ExperimentalSetup):
             {"name": "delay", "t": shot_interval}
         ]
 
-        # from pprint import pprint
-        # pprint(context.instructions['circuits'])
+        if self._status.get_parameters("QubiC_Debug_Print_Circuits"):
+            pprint(context.instructions['circuits'])
 
         compiled_instructions = tc.run_compile_stage(
             delay_between_shots + context.instructions['circuits'], fpga_config=self._fpga_config, qchip=None
         )
+
+        if self._status.get_parameters("QubiC_Debug_Print_Compiled_Instructions"):
+            pprint(compiled_instructions.program)
 
         asm_prog = tc.run_assemble_stage(
             compiled_instructions, self._channel_configs)
@@ -271,13 +278,19 @@ class QubiCCircuitSetup(ExperimentalSetup):
             acquisition_type
         )
 
+        dirtiness = context.instructions["dirtiness"]
+
         if acquisition_type == "IQ" or acquisition_type == "IQ_average":
             self._runner.load_circuit(
                 rawasm=asm_prog,
-                zero=True,  # if True, (default), zero out all cmd buffers before loading circuit
-                load_commands=True,  # load command buffers
-                load_freqs=True,  # load frequency buffers
-                load_envs=True  # load env buffers
+                # if True, (default), zero out all cmd buffers before loading circuit
+                zero=True,
+                # load command buffers when the circuit or parameters (amp or phase) has changed.
+                load_commands=dirtiness['command'],
+                # load frequency buffers when frequency changed.
+                load_freqs=dirtiness['frequency'],
+                # load envelope buffers when envelope changed.
+                load_envs=dirtiness['envelope']
             )
             self._result = self._runner.run_circuit(
                 n_total_shots=n_total_shots,
@@ -331,13 +344,17 @@ class QubiCCircuitSetup(ExperimentalSetup):
             mprim_uuid = qubic_channel_to_lpb_uuid[qubic_channel]
 
             if acquisition_type == 'IQ_average':
-                data = np.asarray([data.mean(axis=0)])
+                data_collect = np.asarray([data.mean(axis=0)])
             elif acquisition_type == 'IQ':
-                data = data.transpose()
+                data_collect = data.transpose()
+            else:
+                msg = f'Unsupported acquisition type {acquisition_type}.'
+                logger.error(msg)
+                raise NotImplementedError(msg)
 
             measurement = MeasurementResult(
                 step_no=context.step_no,
-                data=data,  # First index is different measurement, second index for data
+                data=data_collect,  # First index is different measurement, second index for data
                 mprim_uuid=mprim_uuid
             )
 

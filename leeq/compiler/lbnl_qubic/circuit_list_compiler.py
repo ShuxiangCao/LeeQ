@@ -44,6 +44,39 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         self._leeq_channel_to_qubic_channel = leeq_channel_to_qubic_channel
         self._qubic_channel_to_lpb_uuid = {}
 
+        # Indicates if the waveform shape has been changed. If not we skip uploading
+        # the waveform to board to save time. Here we only look at sweep LPB. If the selected
+        # lpb has changed, the waveform is dirty. Otherwise, it kept clean.
+        self._envelope_dirty = False
+        # Indicates if the waveform shape has been changed. If not we can skip uploading
+        # the frequency to board to save time. It is done by checking the parameters for each lpbs.
+        self._frequency_dirty = False
+        # Indicates if the command (lpb or phase etc) has been changed.
+        # If not we can omit uploading the waveform to board to save time.
+        self._command_dirty = False
+
+        self._lpb_uuid_to_parameter_last_compiled = {}
+        self._sweep_lpb_uuid_to_last_selection = {}
+        self._compiled_lpb_uuid = []
+
+    def clear(self):
+        """
+        Reset the compiler
+        """
+        self._envelope_dirty = False
+        self._frequency_dirty = False
+        self._command_dirty = False
+        self._circuit_list = []
+        self._phase_shift = {}
+        self._current_context = None
+        self._qubic_channel_to_lpb_uuid = {}
+
+        self._lpb_uuid_to_parameter_last_compiled = {}
+        self._sweep_lpb_uuid_to_last_selection = {}
+        self._compiled_lpb_uuid = []
+
+        super().clear()
+
     def compile_lpb(self, context: ExperimentContext,
                     lpb: LogicalPrimitiveCombinable):
         """
@@ -83,11 +116,28 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         self._circuit_list = []
         self._phase_shift = {}
 
+        # Keep track of the compiled UUID, and remove untouched UUID from the dirty tracking data structures
+        self._compiled_lpb_uuid = []
+
         circuit_list, scope = self._compile_lpb(lpb)
         context.instructions = {
             'circuits': circuit_list,
             "qubic_channel_to_lpb_uuid": self._qubic_channel_to_lpb_uuid,
+            "dirtiness": {
+                'envelope': self._envelope_dirty,
+                'command': self._command_dirty,
+                'frequency': self._frequency_dirty,
+            }
         }
+
+        # Now look at the compiled UUID, and remove unseen UUID from the dirty tracking data structures
+        for lpb_id in list(self._sweep_lpb_uuid_to_last_selection.keys()):
+            if lpb_id not in self._compiled_lpb_uuid:
+                del self._sweep_lpb_uuid_to_last_selection[lpb_id]
+
+        for lpb_id in list(self._lpb_uuid_to_parameter_last_compiled.keys()):
+            if lpb_id not in self._compiled_lpb_uuid:
+                del self._lpb_uuid_to_parameter_last_compiled[lpb_id]
 
         self._current_context = None
         return context
@@ -101,6 +151,56 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
               str(type(lpb))
         logger.error(msg)
         raise NotImplementedError(msg)
+
+    def _check_parameter_if_dirty(self, lpb: LogicalPrimitive):
+        """
+        Check if the parameter has been updated and mark if its dirty to the class
+
+        Parameters:
+            lpb (LogicalPrimitive): a lpb to be checked.
+        """
+
+        # Track the UUID of the lpbs, if they are not seen we remove them from the tracking data structure
+        self._compiled_lpb_uuid.append(lpb.uuid)
+
+        parameters = lpb.get_parameters()
+        lpb_id = lpb.uuid
+
+        if lpb_id not in self._lpb_uuid_to_parameter_last_compiled:
+            # New primitive, make it dirty
+            self._command_dirty = True
+            self._envelope_dirty = True
+            self._frequency_dirty = True
+        else:
+            if parameters == self._lpb_uuid_to_parameter_last_compiled[lpb_id]:
+                # Passed check
+                return
+
+            _parameter_diff = lambda x: x in parameters and \
+                                        parameters[x] != self._lpb_uuid_to_parameter_last_compiled[x]
+
+            if _parameter_diff('freq'):
+                self._frequency_dirty = True
+                del parameters['freq']
+
+            if _parameter_diff('shape'):
+                self._envelope_dirty = True
+                del parameters['shape']
+
+            if _parameter_diff('amp'):
+                self._command_dirty = True
+                del parameters['amp']
+
+            if _parameter_diff('phase'):
+                self._command_dirty = True
+                del parameters['phase']
+
+            if parameters != self._lpb_uuid_to_parameter_last_compiled[lpb_id]:
+                # Something else has changed as well, not sure if its shape or command, then mark them both dirty
+                self._command_dirty = True
+                self._envelope_dirty = True
+
+        self._lpb_uuid_to_parameter_last_compiled[lpb_id] = lpb.get_parameters()
 
     @_compile_lpb.register
     def _(self, lpb: LogicalPrimitive):
@@ -125,6 +225,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         }
         ```
         """
+
+        self._check_parameter_if_dirty(lpb)
 
         primitive_scope = self._leeq_channel_to_qubic_channel[lpb.channel]
         qubic_dest = primitive_scope + ".qdrv"
@@ -214,6 +316,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
         assert isinstance(lpb, MeasurementPrimitive)
 
+        self._check_parameter_if_dirty(lpb)
+
         primitive_scope = self._leeq_channel_to_qubic_channel[lpb.channel]
         # Compile the measurement pulse
 
@@ -252,7 +356,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                     "env_func": "square",
                     # Here we use square pulse for demodulation, which means no
                     # window function is applied
-                    "paradict": {"phase": 0.0, "amplitude": 1.0, "twidth": modified_parameters['width']/1e6},
+                    "paradict": {"phase": 0.0, "amplitude": 1.0, "twidth": modified_parameters['width'] / 1e6},
                 }
             ],
         }
@@ -384,6 +488,15 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         """
         Compile the logical primitive block to instructions.
         """
+
+        if lpb.uuid not in self._sweep_lpb_uuid_to_last_selection:
+            self._command_dirty = True
+        else:
+            if lpb.selected != self._sweep_lpb_uuid_to_last_selection[lpb.uuid]:
+                self._command_dirty = True
+
+        self._sweep_lpb_uuid_to_last_selection[lpb.uuid] = lpb.selected
+
         return self._compile_lpb(lpb.current_lpb)
 
     @_compile_lpb.register
@@ -395,11 +508,15 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         process.
         """
 
+        self._check_parameter_if_dirty(lpb)
+
         return [{"name": "delay", "t": lpb.get_delay_time() /
                                        1e6}], set()  # In seconds
 
     @_compile_lpb.register
     def _(self, lpb: PhaseShift):
+
+        self._check_parameter_if_dirty(lpb)
 
         # If there is no setup set, we don't update the parameters
         exp_manager = ExperimentManager()
