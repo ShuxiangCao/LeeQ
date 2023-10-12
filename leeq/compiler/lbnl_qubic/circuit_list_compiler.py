@@ -312,7 +312,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             "dest": qubic_dest,  # The channel name
         }
 
-        return [qubic_pulse_dict], {primitive_scope}
+        return [qubic_pulse_dict], {qubic_dest}
 
     @_compile_lpb.register
     def _(self, lpb: MeasurementPrimitive):
@@ -391,6 +391,15 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             "env": [{"env_func": modified_parameters['shape'], "paradict": modified_parameters}],
         }
 
+        # A delay is introduced between the start of the drive and start of the measurement.
+        # First it takes roughly 100ns for the signal to arrive the resonator in the fridge and
+        # comback. Also the delay prevents the on-board crosstalk of the qubit drive signal being picked up
+        delay_between_drive_and_measure = {
+            'name': 'delay',
+            't': 100e-9,
+            'scope': [primitive_scope]
+        }
+
         # TODO: Give attribute t, in FPGA clocks (FPGAConfig), take attribute to quantize time stamps
         # go to the run_compiler_stage function, reimplement it with a different pass (remove schedule)
         # specifiy parameter t, then do not require delay or barrier anymore.
@@ -401,7 +410,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             "phase": modified_parameters['phase'],
             "dest": primitive_scope + ".rdlo",
             "twidth": modified_parameters['width'] / 1e6,  # In seconds
-            "amp": 1,  # Always use full amp for demodulation
+            "amp": 1,  # Always use a full amp for demodulation
             "env": [
                 {
                     "env_func": "square",
@@ -420,7 +429,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
         self._qubic_channel_to_lpb_uuid[primitive_scope] = lpb.uuid
 
-        return [drive_pulse, demodulate_pulse], {primitive_scope}
+        return [drive_pulse, delay_between_drive_and_measure, demodulate_pulse], {primitive_scope + ".rdrv"}
 
     @_compile_lpb.register
     def _(self, lpb: LogicalPrimitiveBlockSerial):
@@ -476,7 +485,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                 union_scope = child_scopes[i - 1].union(child_scopes[i])
                 if len(block_scope) > 1 and len(union_scope) > 1:
                     compiled_circuit.append(
-                        {"name": "barrier", "scope": list(union_scope)}
+                        {"name": "barrier", "scope": list(set(x.split('.')[0] for x in union_scope))}
                     )
 
             compiled_circuit.extend(child_circuits[i])
@@ -530,7 +539,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         compiled_circuit = sum(child_circuits, [])
         block_scope = set(block_scope)
         compiled_circuit.append(
-            {"name": "barrier", "scope": list(block_scope)})
+            {"name": "barrier", "scope": list(set(x.split('.')[0] for x in block_scope))})
 
         return compiled_circuit, block_scope
 
