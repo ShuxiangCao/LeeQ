@@ -221,3 +221,25 @@ def is_running_in_jupyter():
 
     # Just a dirty hack, but works for most of the time
     return sys.argv[-1].endswith("json")
+
+
+def display_json_dict(data: dict, root: str = None):
+    """
+    Display a dictionary in JSON format. If the program is running in jupyter, we use IPython.display to
+    display the dictionary. Otherwise, we use pprint.pprint to print the dictionary.
+
+    Parameters:
+        data (dict): The dictionary to display.
+        root (str): The root name of the dictionary. If not None, the dictionary will be displayed as
+            {root: data}.
+    """
+
+    if root is not None:
+        root = 'root'
+
+    if is_running_in_jupyter():
+        from IPython.display import display, JSON
+        display(JSON(data, root=root))
+    else:
+        import pprint
+        pprint.pprint(data)

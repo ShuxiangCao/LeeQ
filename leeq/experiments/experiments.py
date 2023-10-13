@@ -1,11 +1,13 @@
 import datetime
 import inspect
 
+from labchronicle import Chronicle
+
 from leeq.core import LeeQObject
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import SetupStatusParameters
-from leeq.utils import Singleton, setup_logging
+from leeq.utils import Singleton, setup_logging, display_json_dict
 
 logger = setup_logging(__name__)
 
@@ -58,9 +60,9 @@ class ExperimentManager(Singleton):
 
         if self._default_setup is None:
             return None
-            #msg = f"Default setup is not set. Available setups are {self.get_available_setup_names()}"
-            #logger.error(msg)
-            #raise RuntimeError(msg)
+            # msg = f"Default setup is not set. Available setups are {self.get_available_setup_names()}"
+            # logger.error(msg)
+            # raise RuntimeError(msg)
 
         return self.get_setup(self._default_setup)
 
@@ -147,12 +149,15 @@ class Experiment(LeeQObject):
         # Run the experiment
         self.run(*args, **kwargs)
 
+        if Chronicle().is_recording():
+            # Print the record details
+            record_details = self.retrieve_latest_record_entry_details(
+                self.run)
+            record_details.update({'datetime': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+            display_json_dict(record_details)
+
         # Check if we need to plot
         if setup().status().get_parameters("Plot_Result_In_Jupyter"):
-            # Print the datetime of the experiment
-            self.logger.info(
-                datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            )
             for name, func in self.get_browser_functions():
                 f_args, f_kwargs = (
                     func._browser_function_args,

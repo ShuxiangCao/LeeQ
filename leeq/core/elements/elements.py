@@ -3,9 +3,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union, Optional
 
-from labchronicle import LoggableObject
 from leeq.core import LeeQObject
-from leeq.utils import get_calibration_log_path
+from leeq.utils import get_calibration_log_path, display_json_dict
 from leeq.core.primitives import (
     LogicalPrimitiveCollectionFactory,
     LogicalPrimitiveFactory,
@@ -14,6 +13,18 @@ from leeq.core.primitives import (
 from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
+
+
+class CalibrationEncoder(json.JSONEncoder):
+    """
+    The calibration encoder is used to encode the calibration dictionary to json.
+    """
+
+    def default(self, obj):
+        if callable(obj):
+            return obj.__repr__()
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)
 
 
 class Element(LeeQObject):
@@ -71,10 +82,10 @@ class Element(LeeQObject):
             parameters (dict): The parameters of the element.
         """
         assert (
-            "lpb_collections" in parameters
+                "lpb_collections" in parameters
         ), "LPB collections not found in the parameters."
         assert (
-            "measurement_primitives" in parameters
+                "measurement_primitives" in parameters
         ), "Measurement primitives not found in the parameters."
 
     def _build_lpb_collections(self):
@@ -124,15 +135,22 @@ class Element(LeeQObject):
         """
         return self._parameters["measurement_primitives"]
 
+    def get_calibrations(self):
+        """
+        Get the calibration dictionary of the element.
+        """
+        calibration_log = {
+            "lpb_collections": self._dump_lpb_collections(),
+            "measurement_primitives": self._dump_measurement_primitives(),
+        }
+        return calibration_log
+
     def save_calibration_log(self):
         """
         Save the calibration log of the element.
         """
 
-        calibration_log = {
-            "lpb_collections": self._dump_lpb_collections(),
-            "measurement_primitives": self._dump_measurement_primitives(),
-        }
+        calibration_log = self.get_calibrations()
 
         path = get_calibration_log_path()
 
@@ -199,7 +217,7 @@ class Element(LeeQObject):
 
     @classmethod
     def load_from_calibration_log(
-        cls, name: str, path: Optional[Union[str, Path]] = None
+            cls, name: str, path: Optional[Union[str, Path]] = None
     ):
         """
         Load the calibration log and generate the element object.
@@ -250,10 +268,10 @@ class Element(LeeQObject):
         """
 
         assert (
-            "lpb_collections" in calibration
+                "lpb_collections" in calibration
         ), "LPB collections not found in the calibration dictionary."
         assert (
-            "measurement_primitives" in calibration
+                "measurement_primitives" in calibration
         ), "Measurement primitives not found in the calibration dictionary."
 
     def get_lpb_collection(self, name: str):
@@ -291,3 +309,14 @@ class Element(LeeQObject):
         Same as get lpb_collection. To ensure compatibility with the old version.
         """
         return self.get_lpb_collection(name)
+
+    def print_config_info(self):
+        """
+        Print the configuration information of the element.
+        """
+        from IPython.display import display, JSON
+
+        calibrations = self.get_calibrations()
+
+        display_json_dict(json.loads(CalibrationEncoder().encode(calibrations)),
+                          root=f'Element {self._name} parameters')
