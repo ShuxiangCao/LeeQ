@@ -286,9 +286,9 @@ class QubiCCircuitSetup(ExperimentalSetup):
                 # if True, (default), zero out all cmd buffers before loading circuit
                 zero=context.step_no == 0,
                 # load command buffers when the circuit or parameters (amp or phase) has changed.
-                load_commands=dirtiness['command'],
+                load_commands= dirtiness['command'],
                 # load frequency buffers when frequency changed.
-                load_freqs=dirtiness['frequency'],
+                load_freqs= dirtiness['frequency'],
                 # load envelope buffers when envelope changed.
                 load_envs=dirtiness['envelope']
             )

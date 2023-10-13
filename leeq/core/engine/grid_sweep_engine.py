@@ -81,8 +81,10 @@ class GridSerialSweepEngine(EngineBase):
 
             with tqdm(total=total_size) as pbar:
                 for i, indices in enumerate(itertools.product(*iterator_list)):
+                    annotations = {'index': str(indices)}
                     # Call the side effect callbacks
-                    sweep.execute_side_effects_by_step_no(indices)
+                    annotations.update(sweep.execute_side_effects_by_step_no(indices))
+                    pbar.set_postfix(annotations)
                     _run_single_step(indices)
 
                     # Update the progress bar

@@ -1,7 +1,7 @@
 import copy
 import uuid
 import itertools
-from typing import Union, Iterable, Callable, Dict, Optional, List
+from typing import Union, Iterable, Callable, Dict, Optional, List, Any
 
 from leeq.core import LeeQObject
 from functools import partial
@@ -9,14 +9,57 @@ from functools import partial
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
 
 
-class SweepParametersSideEffectFunction(LeeQObject):
+class SweepParametersSideEffect(LeeQObject):
+    """
+    This class is the base for side effect definition. Side effect denote the change of status
+    at each sweep point, by calling a function or setting an attribute of a object.
+    """
+
+    def __init__(self, name, sweep_attribute_name):
+        """
+        Initialize he sweep parameters
+        """
+        super().__init__(name=name)
+        self._sweep_attribute_name = sweep_attribute_name
+
+    def get_side_effect_attribute_name(self):
+        """
+        This function returns the name of the attribute side effect is trying to alternate,
+        mainly for showing during the sweep.
+        """
+        raise NotImplementedError()
+
+    def __call__(self, parameter: Any):
+        """
+        Execute the side effect, and return the name and the value of the side effect attribute in a dictionary.
+
+        Parameters:
+            parameter (Any): The swept parameter.
+        """
+
+        self._execute(parameter)
+        return {
+            self._sweep_attribute_name: parameter
+        }
+
+    def _execute(self, parameter: Any):
+        """
+        Execute the side effect, and return the name and the value of the side effect attribute in a dictionary.
+
+        Parameters:
+            parameter (Any): The swept parameter.
+        """
+        raise NotImplementedError()
+
+
+class SweepParametersSideEffectFunction(SweepParametersSideEffect):
     """
     This class is for defining a sweep parameter side effect, by calling functions.
 
     The side effect means that the parameter being swept will affect the program by making a function call.
     """
 
-    def __init__(self, function, argument_name, **kwargs):
+    def __init__(self, function, argument_name, name=None, **kwargs):
         """
         Create a SweepParametersSideEffectFunction object from a function. The function will be called with the
         arguments and keyword arguments provided in the constructor, and the swept parameter.
@@ -24,14 +67,20 @@ class SweepParametersSideEffectFunction(LeeQObject):
         Parameters:
             function (function): The function to be called.
             argument_name (str): The name of the argument that will be set to the swept parameter.
+            name (str): The name of the attribute sweeping, for display purpose
             kwargs (dict): The keyword arguments to be passed to the function.
         """
 
-        super().__init__(name="SideEffectFunction: " + function.__name__)
         self._argument_name = argument_name
+        self._function_name = function.__name__
+
+        if name is None:
+            name = self._function_name + '(' + self._argument_name + ')'
+        super().__init__(name="SideEffectFunction: " + function.__name__, sweep_attribute_name=name)
+
         self._function = partial(function, **kwargs)
 
-    def __call__(self, parameter):
+    def _execute(self, parameter: Any):
         """
         Call the function with the arguments and keyword arguments provided in the constructor, and the swept parameter.
 
@@ -41,14 +90,14 @@ class SweepParametersSideEffectFunction(LeeQObject):
         return self._function(**{self._argument_name: parameter})
 
 
-class SweepParametersSideEffectAttribute(LeeQObject):
+class SweepParametersSideEffectAttribute(SweepParametersSideEffect):
     """
     This class is for defining a sweep parameter side effect, by setting an attribute.
 
     The side effect means that the parameter being swept will affect the program by setting an attribute of an object.
     """
 
-    def __init__(self, object_instance, attribute_name):
+    def __init__(self, object_instance, attribute_name, name=None):
         """
         Create a SweepParametersSideEffectFunction object from a function. The function will be called with the
         arguments and keyword arguments provided in the constructor.
@@ -56,18 +105,23 @@ class SweepParametersSideEffectAttribute(LeeQObject):
         Parameters:
             object_instance (object): The object whose attribute will be set.
             attribute_name (str): The name of the attribute that will be set to the swept parameter.
+            name (str): The name of the attribute sweeping, for display purpose
         """
 
-        super().__init__(
-            name="SideEffectFunction: "
-            + object_instance.__class__.__qualname__
-            + "."
-            + attribute_name
-        )
         self._object_instance = object_instance
         self._attribute_name = attribute_name
 
-    def __call__(self, parameter):
+        if name is None:
+            name = self._object_instance.__name__ + '.' + self._attribute_name
+        super().__init__(
+            name="SideEffectFunction: "
+                 + object_instance.__class__.__qualname__
+                 + "."
+                 + attribute_name,
+            sweep_attribute_name=name
+        )
+
+    def _execute(self, parameter: Any):
         """
         Update the attribute value with the parameter.
 
@@ -79,7 +133,7 @@ class SweepParametersSideEffectAttribute(LeeQObject):
 
 class SweepParametersSideEffectFactory(LeeQObject):
     @classmethod
-    def from_function(cls, function, argument_name, **kwargs):
+    def from_function(cls, function, argument_name, name, **kwargs):
         """
         Create a SweepParametersSideEffectFunction object from a function. The function will be called with the
         arguments and keyword arguments provided in the constructor, and the swept parameter.
@@ -91,32 +145,32 @@ class SweepParametersSideEffectFactory(LeeQObject):
         """
 
         return SweepParametersSideEffectFunction(
-            function, argument_name, **kwargs)
+            function, argument_name, name=name, **kwargs)
 
     @classmethod
-    def func(cls, function, kwargs, argument_name):
+    def func(cls, function, kwargs, argument_name, name):
         """
         Same as `from_function`, the arguments no longer accept arbitrary arguments, but has to pass in a dictionary.
         For compatibility reasons.
         """
         return cls.from_function(
-            function=function, argument_name=argument_name, **kwargs
+            function=function, argument_name=argument_name, name=name, **kwargs
         )
 
     @classmethod
-    def from_attribute(cls, method, *args, **kwargs):
+    def from_attribute(cls, object_instance, attribute_name, name):
         """
         Create a SweepParametersSideEffectFunction object from an attribute. The attribute will be set to the
         swept parameter.
         """
-        return SweepParametersSideEffectAttribute(method, *args, **kwargs)
+        return SweepParametersSideEffectAttribute(object_instance, attribute_name, name=name)
 
     @classmethod
-    def attr(cls, method, *args, **kwargs):
+    def attr(cls, object_instance, attribute_name, name):
         """
         Same as `from_attribute`, for compatibility reasons.
         """
-        return cls.from_attribute(method, *args, **kwargs)
+        return cls.from_attribute(object_instance, attribute_name, name)
 
 
 class Sweeper(LeeQObject):
@@ -133,9 +187,9 @@ class Sweeper(LeeQObject):
 
     def __init__(self,
                  sweep_parameters: Union[Iterable,
-                                         Callable],
+                 Callable],
                  params: List[Union[SweepParametersSideEffectAttribute,
-                                    SweepParametersSideEffectFunction]],
+                 SweepParametersSideEffectFunction]],
                  n_kwargs: Optional[Dict] = None,
                  child: "Sweeper" = None,
                  name: str = None,
@@ -240,8 +294,15 @@ class Sweeper(LeeQObject):
         Parameters:
             parameter (Any): The swept parameter.
         """
+
+        step_annotation = {}
+
         for param in self._params:
-            param(parameter)
+            annotation = param(parameter)
+            assert isinstance(annotation, dict)
+            step_annotation.update(annotation)
+
+        return step_annotation
 
     def execute_side_effects_by_step_no(self, step_no):
         """
@@ -249,22 +310,27 @@ class Sweeper(LeeQObject):
 
         Parameters:
             step_no (int, list): The step no of the parameter.
+
+        Returns:
+            dict: The parameter name and its value at this sweep
         """
 
         if isinstance(step_no, int):
-            self._execute_side_effects(self._sweep_parameters[step_no])
+            return self._execute_side_effects(self._sweep_parameters[step_no])
 
         assert len(step_no) == len(
             self.shape
         ), f"The length of step_no {len(step_no)} must be equal to the length of shape {len(self.shape)}."
 
-        result = [self._execute_side_effects(
-            self._sweep_parameters[step_no[0]])]
+        annotation_dict = {}
 
-        if self._child is None:
-            return result
-        return result + \
-            self._child.execute_side_effects_by_step_no(step_no[1:])
+        annotation_dict.update(self._execute_side_effects(
+            self._sweep_parameters[step_no[0]]))
+
+        if self._child is not None:
+            annotation_dict.update(self._child.execute_side_effects_by_step_no(step_no[1:]))
+
+        return annotation_dict
 
     @classmethod
     def from_sweep_lpb(cls, slpb: LogicalPrimitiveBlockSweep):
