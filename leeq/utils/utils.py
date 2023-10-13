@@ -223,7 +223,7 @@ def is_running_in_jupyter():
     return sys.argv[-1].endswith("json")
 
 
-def display_json_dict(data: dict, root: str = None):
+def display_json_dict(data: dict, root: str = None, expanded=True):
     """
     Display a dictionary in JSON format. If the program is running in jupyter, we use IPython.display to
     display the dictionary. Otherwise, we use pprint.pprint to print the dictionary.
@@ -232,6 +232,7 @@ def display_json_dict(data: dict, root: str = None):
         data (dict): The dictionary to display.
         root (str): The root name of the dictionary. If not None, the dictionary will be displayed as
             {root: data}.
+        expanded (bool): Whether to expand the displayed json by default.
     """
 
     if root is not None:
@@ -239,7 +240,7 @@ def display_json_dict(data: dict, root: str = None):
 
     if is_running_in_jupyter():
         from IPython.display import display, JSON
-        display(JSON(data, root=root))
+        display(JSON(data, root=root, expanded=expanded))
     else:
         import pprint
         pprint.pprint(data)
