@@ -152,9 +152,9 @@ class Experiment(LeeQObject):
         if Chronicle().is_recording():
             # Print the record details
             record_details = self.retrieve_latest_record_entry_details(
-                self.run)
-            record_details.update({'datetime': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
-            display_json_dict(record_details, root='Experiment record details', expanded=False)
+                self.run).copy()
+            record_details.update({'print_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+            display_json_dict(record_details, root=self.__class__.__qualname__, expanded=False)
 
         # Check if we need to plot
         if setup().status().get_parameters("Plot_Result_In_Jupyter"):

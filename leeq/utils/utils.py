@@ -235,7 +235,7 @@ def display_json_dict(data: dict, root: str = None, expanded=True):
         expanded (bool): Whether to expand the displayed json by default.
     """
 
-    if root is not None:
+    if root is None:
         root = 'root'
 
     if is_running_in_jupyter():
