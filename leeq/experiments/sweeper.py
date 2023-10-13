@@ -75,7 +75,9 @@ class SweepParametersSideEffectFunction(SweepParametersSideEffect):
         self._function_name = function.__name__
 
         if name is None:
-            name = self._function_name + '(' + self._argument_name + ')'
+            # A more complicated choice, usually not needed
+            # name = self._function_name + '(' + self._argument_name + ')'
+            name = self._argument_name
         super().__init__(name="SideEffectFunction: " + function.__name__, sweep_attribute_name=name)
 
         self._function = partial(function, **kwargs)
@@ -112,7 +114,9 @@ class SweepParametersSideEffectAttribute(SweepParametersSideEffect):
         self._attribute_name = attribute_name
 
         if name is None:
-            name = self._object_instance.__name__ + '.' + self._attribute_name
+            # A more complicated choice, usually not needed
+            # name = self._object_instance.__name__ + '.' + self._attribute_name
+            name = self._attribute_name
         super().__init__(
             name="SideEffectFunction: "
                  + object_instance.__class__.__qualname__
@@ -133,7 +137,7 @@ class SweepParametersSideEffectAttribute(SweepParametersSideEffect):
 
 class SweepParametersSideEffectFactory(LeeQObject):
     @classmethod
-    def from_function(cls, function, argument_name, name, **kwargs):
+    def from_function(cls, function, argument_name, name=None, **kwargs):
         """
         Create a SweepParametersSideEffectFunction object from a function. The function will be called with the
         arguments and keyword arguments provided in the constructor, and the swept parameter.
@@ -142,31 +146,35 @@ class SweepParametersSideEffectFactory(LeeQObject):
             function (function): The function to be called.
             argument_name (str): The name of the argument that will be set to the swept parameter.
             kwargs (dict): The keyword arguments to be passed to the function.
+            name (str, Optional): The name of the side effect attributed, displayed in the progress bar
         """
 
         return SweepParametersSideEffectFunction(
             function, argument_name, name=name, **kwargs)
 
     @classmethod
-    def func(cls, function, kwargs, argument_name, name):
+    def func(cls, function, kwargs, argument_name, name=None):
         """
         Same as `from_function`, the arguments no longer accept arbitrary arguments, but has to pass in a dictionary.
         For compatibility reasons.
+
         """
         return cls.from_function(
             function=function, argument_name=argument_name, name=name, **kwargs
         )
 
     @classmethod
-    def from_attribute(cls, object_instance, attribute_name, name):
+    def from_attribute(cls, object_instance, attribute_name, name=None):
         """
         Create a SweepParametersSideEffectFunction object from an attribute. The attribute will be set to the
         swept parameter.
+
+            name (str, Optional): The name of the side effect attributed, displayed in the progress bar
         """
         return SweepParametersSideEffectAttribute(object_instance, attribute_name, name=name)
 
     @classmethod
-    def attr(cls, object_instance, attribute_name, name):
+    def attr(cls, object_instance, attribute_name, name=None):
         """
         Same as `from_attribute`, for compatibility reasons.
         """

@@ -396,7 +396,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         # comback. Also the delay prevents the on-board crosstalk of the qubit drive signal being picked up
         delay_between_drive_and_measure = {
             'name': 'delay',
-            't': 200e-9,
+            't': 100e-9,
             'scope': [primitive_scope]
         }
 
