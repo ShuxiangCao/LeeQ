@@ -154,7 +154,7 @@ class Experiment(LeeQObject):
             record_details = self.retrieve_latest_record_entry_details(
                 self.run)
             record_details.update({'datetime': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
-            display_json_dict(record_details, expanded=False)
+            display_json_dict(record_details, root='Experiment record details', expanded=False)
 
         # Check if we need to plot
         if setup().status().get_parameters("Plot_Result_In_Jupyter"):
