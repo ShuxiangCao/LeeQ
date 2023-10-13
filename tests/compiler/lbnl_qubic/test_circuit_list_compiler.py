@@ -153,9 +153,12 @@ def test_atomic_lpb_compilation(qubit_1):
     for lpb in atomic_lpbs:
         instructions = compile_lpb(lpb)
         circuits = instructions['circuits']
-        assert len(circuits) == 2
+        assert len(circuits) == 3
+        assert circuits[0]['name'] == 'pulse'
         assert circuits[0]['dest'] == leeq_channel_to_qubic_channel[lpb.channel] + '.rdrv'
-        assert circuits[1]['dest'] == leeq_channel_to_qubic_channel[lpb.channel] + '.rdlo'
+        assert circuits[1]['name'] == 'delay'
+        assert circuits[2]['name'] == 'pulse'
+        assert circuits[2]['dest'] == leeq_channel_to_qubic_channel[lpb.channel] + '.rdlo'
         assert len(instructions['qubic_channel_to_lpb_uuid']) == 1
 
 
