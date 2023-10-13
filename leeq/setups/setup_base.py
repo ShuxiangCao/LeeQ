@@ -1,5 +1,5 @@
 import contextlib
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 
 from labchronicle import log_event
 from leeq.core import LeeQObject
@@ -210,7 +210,7 @@ class SetupStatusParameters(LeeQObject):
         return self.get_channel_parameters(key)
 
     @contextlib.contextmanager
-    def with_parameters(self, **kwargs: dict):
+    def with_parameters(self, **kwargs: Dict):
         """
         Set a set of parameters, and recover them after execution
         """

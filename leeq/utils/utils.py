@@ -7,6 +7,8 @@ from pathlib import Path
 import os
 from typing import Any
 
+_existing_logger = {}
+
 
 def setup_logging(name, level=logging.INFO):
     """
@@ -19,8 +21,14 @@ def setup_logging(name, level=logging.INFO):
     Returns:
         logger (logging.Logger): The logger
     """
-    # Create the logger
+
+    if name in _existing_logger:
+        return _existing_logger[name]
+
+    # Create the logger, and add handler
     logger = logging.getLogger(name)
+    _existing_logger[name] = logger
+
     logger.setLevel(level)
 
     # Create the console handler with a recommended format
@@ -146,10 +154,10 @@ class ObjectFactory(Singleton):
 
         # Check if collection class is at least one of the accepted types
         if not any(
-            [
-                issubclass(collection_class, accepted_type)
-                for accepted_type in self._accepted_template
-            ]
+                [
+                    issubclass(collection_class, accepted_type)
+                    for accepted_type in self._accepted_template
+                ]
         ):
             msg = (
                 f"The collection class must be a subclass of at least one of the accepted types. Acceptable:"
