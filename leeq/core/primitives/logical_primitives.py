@@ -405,6 +405,9 @@ class MeasurementPrimitive(LogicalPrimitive):
         self._default_result_id = 0
         self._result_id_offset = 0
 
+        self._sweep_shape = None  # The shape of the sweep in this experiment
+        self._number_of_measurements = None  # The max number of repeated use of mprims in this experiment
+
         # The measurement buffer for storing the measurement results
         self._raw_measurement_buffer = None
 
@@ -427,12 +430,15 @@ class MeasurementPrimitive(LogicalPrimitive):
         """
         return self._raw_measurement_buffer is not None
 
-    def allocate_measurement_buffer(self, shape: list, dtype: type = numpy.complex128):
+    def allocate_measurement_buffer(self, sweep_shape: list, number_of_measurements: int, data_shape: list,
+                                    dtype: type = numpy.complex128):
         """
         Allocate the measurement buffer for the measurement primitive.
 
         Parameters:
-            shape (list): The shape of the measurement buffer.
+            sweep_shape (list): The shape of the sweep.
+            number_of_measurements: The max number of measurement repeated in a shot, for all measurement primitives.
+            data_shape (list): The shape of the measurement data.
             dtype (type, Optional): The data type of the measurement buffer.
         """
 
@@ -441,6 +447,10 @@ class MeasurementPrimitive(LogicalPrimitive):
                    f"experiment multiple times. Please create another experiment instance for this purpose.")
             logger.error(msg)
             raise RuntimeError(msg)
+
+        shape = sweep_shape + number_of_measurements + data_shape
+        self._number_of_measurements = number_of_measurements
+        self._sweep_shape = sweep_shape
 
         self._raw_measurement_buffer = numpy.zeros(shape, dtype=dtype)
         self._transformed_measurement_buffer = numpy.zeros(shape, dtype=dtype)
