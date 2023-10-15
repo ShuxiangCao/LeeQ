@@ -118,7 +118,11 @@ class GridSerialSweepEngine(EngineBase):
                     f"The shape of the measurement result {measurement_result.shape} should be at least 2D,"
                     f" one dimension for the result id another one for the data."
                 )
-                measurement_primitive.allocate_measurement_buffer(buffer_shape, dtype=np.complex128)
+                measurement_primitive.allocate_measurement_buffer(
+                    sweep_shape=sweep_shape,
+                    number_of_measurements=measurement_result.shape[0],
+                    data_shape=measurement_result.shape[1:],
+                    dtype=measurement_result.data.dtype)
 
             # Write to buffer
             indices = self._context.step_no

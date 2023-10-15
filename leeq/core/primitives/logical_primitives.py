@@ -448,11 +448,27 @@ class MeasurementPrimitive(LogicalPrimitive):
             logger.error(msg)
             raise RuntimeError(msg)
 
-        shape = sweep_shape + number_of_measurements + data_shape
+        shape = list(sweep_shape) + [number_of_measurements] + list(data_shape)
         self._number_of_measurements = number_of_measurements
         self._sweep_shape = sweep_shape
 
         self._raw_measurement_buffer = numpy.zeros(shape, dtype=dtype)
+
+    def _allocate_transformed_measurement_buffer(self, data_shape, dtype=numpy.complex128):
+        """
+        Allocate the transformed measurement buffer for the measurement primitive.
+
+        Parameters:
+            data_shape (list): The shape of the transformed measurement data.
+            dtype (type, Optional): The data type of the measurement buffer.
+        """
+        if not self.is_buffer_allocated():
+            msg = f"Measurement buffer not allocated for {self._name}. Please allocate the buffer first."
+            logger.error(msg)
+            raise RuntimeError(msg)
+
+        shape = list(self._sweep_shape) + [self._number_of_measurements] + list(data_shape)
+
         self._transformed_measurement_buffer = numpy.zeros(shape, dtype=dtype)
 
     @log_event
@@ -499,12 +515,16 @@ class MeasurementPrimitive(LogicalPrimitive):
             will be used to identify the result.
         """
 
+        if self._transformed_measurement_buffer is None:
+            # If there is no transform defined, we always return the raw data as transformed data
+            raw_data = True
+
         if result_id is None:
             result_id = self._default_result_id
 
         result_data = self._transformed_measurement_buffer if not raw_data else self._raw_measurement_buffer
 
-        total_dim = len(self._raw_measurement_buffer.shape)
+        total_dim = len(result_data.shape)
 
         max_result_id = self._raw_measurement_buffer.shape[-2]
 
@@ -627,17 +647,23 @@ class MeasurementPrimitive(LogicalPrimitive):
             logger.error(msg)
             raise RuntimeError(msg)
 
-        data_raw = data
-
         if self._transform_function is not None:
             data_transformed = self._transform_function(
                 data, **self._transform_function_kwargs
             )
-        else:
-            data_transformed = data
 
-        self._transformed_measurement_buffer[indices] = data_transformed
-        self._raw_measurement_buffer[indices] = data_raw
+            if len(data_transformed.shape) < 2:
+                msg = (f"The transformed data should be at least 2D (result id, data shape),"
+                       f"got {data_transformed.shape}.")
+                logger.error(msg)
+                raise RuntimeError(msg)
+
+            if self._transformed_measurement_buffer is None:
+                self._allocate_transformed_measurement_buffer(data_transformed.shape[1:], dtype=data_transformed.dtype)
+
+            self._transformed_measurement_buffer[indices] = data_transformed
+
+        self._raw_measurement_buffer[indices] = data
 
 
 class MeasurementPrimitiveFactory(ObjectFactory):
