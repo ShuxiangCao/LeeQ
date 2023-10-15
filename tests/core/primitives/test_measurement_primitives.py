@@ -45,15 +45,44 @@ def test_result_id_offset_setting_and_getting(primitive):
 
 def test_commit_and_result_methods(primitive):
     import numpy as np
-    data = np.array([1, 2, 3])
-    primitive.commit_measurement(data=data)
-    assert np.array_equal(primitive.result(result_id=0, raw_data=True), data)
+    data_1 = np.array([1, 2, 3])
+    data_2 = np.array([4, 5, 6])
 
-
-def test_clear_results_method(primitive):
-    import numpy as np
-    data = np.array([1, 2, 3])
-    primitive.commit_measurement(data=data)
-    primitive.clear_results()
     with pytest.raises(RuntimeError):
-        primitive.result(result_id=0, raw_data=True)
+        primitive.commit_measurement(data=data_1.reshape([1, 3]), indices=(0,))
+
+    # The shape should be [sweep_shape, result_ids ,data_shape]
+    # For this example, it should be [2, 1, 3]
+
+    primitive.allocate_measurement_buffer(shape=[2, 1, 3])
+    primitive.commit_measurement(data=data_1.reshape([1, 3]), indices=(0,))
+    primitive.commit_measurement(data=data_2.reshape([1, 3]), indices=(1,))
+
+    stacked_data = np.array([data_1, data_2])
+
+    assert np.array_equal(primitive.result(result_id=0, raw_data=True), stacked_data)
+
+
+def test_commit_and_result_methods_multiple_measurements(primitive):
+    import numpy as np
+    data_step_1 = np.array([
+        [1, 2, 3],
+        [4, 5, 6]]
+    )
+    data_step_2 = np.array(
+        [[1, 2, 3],
+         [4, 5, 6]]
+    ) + 10
+
+    # The shape should be [sweep_shape, result_ids ,data_shape]
+    # For this example, it should be [2, 2, 3]
+
+    primitive.allocate_measurement_buffer(shape=[2, 2, 3])
+    primitive.commit_measurement(data=data_step_1, indices=(0,))
+    primitive.commit_measurement(data=data_step_2, indices=(1,))
+
+    stacked_data_result_1 = np.array([data_step_1[0, :], data_step_2[0, :]])
+    stacked_data_result_2 = np.array([data_step_1[1, :], data_step_2[1, :]])
+
+    assert np.array_equal(primitive.result(result_id=0, raw_data=True), stacked_data_result_1)
+    assert np.array_equal(primitive.result(result_id=1, raw_data=True), stacked_data_result_2)

@@ -404,12 +404,45 @@ class MeasurementPrimitive(LogicalPrimitive):
         self._default_result_id = 0
         self._result_id_offset = 0
 
+        # The measurement buffer for storing the measurement results
+        self._raw_measurement_buffer = None
+
+        # The measurement buffer after applying the transformation function (For example, GMM for state discrimination)
+        self._transformed_measurement_buffer = None
+
     @staticmethod
     def _validate_parameters(parameters: dict):
         """
         Validate the parameters of the measurement primitive.
         """
         raise NotImplementedError()
+
+    def is_buffer_allocated(self):
+        """
+        Check whether the measurement buffer is allocated.
+
+        Returns:
+            bool: Whether the measurement buffer is allocated.
+        """
+        return self._raw_measurement_buffer is not None
+
+    def allocate_measurement_buffer(self, shape: list, dtype: type = numpy.complex128):
+        """
+        Allocate the measurement buffer for the measurement primitive.
+
+        Parameters:
+            shape (list): The shape of the measurement buffer.
+            dtype (type, Optional): The data type of the measurement buffer.
+        """
+
+        if self.is_buffer_allocated():
+            msg = (f"Measurement buffer already allocated for {self._name}. It seems you are running the same "
+                   f"experiment multiple times. Please create another experiment instance for this purpose.")
+            logger.error(msg)
+            raise RuntimeError(msg)
+
+        self._raw_measurement_buffer = numpy.zeros(shape, dtype=dtype)
+        self._transformed_measurement_buffer = numpy.zeros(shape)
 
     @log_event
     def set_transform_function(self, func: callable, **kwargs):
@@ -458,23 +491,31 @@ class MeasurementPrimitive(LogicalPrimitive):
         if result_id is None:
             result_id = self._default_result_id
 
-        result_data = self._results if not raw_data else self._results_raw
+        result_data = self._transformed_measurement_buffer if not raw_data else self._raw_measurement_buffer
 
-        if len(result_data) == 0:
+        total_dim = len(self._raw_measurement_buffer.shape)
+
+        max_result_id = self._raw_measurement_buffer.shape[-2]
+
+        if not self.is_buffer_allocated():
             msg = f"No measurement result is available for {self._name}."
             logger.error(msg)
             raise RuntimeError(msg)
 
-        if result_id + self._result_id_offset >= len(result_data):
+        if result_id + self._result_id_offset >= max_result_id:
             msg = (
                 f"The result id {result_id} is out of range, "
-                f"the maximum result id is {len(result_data) - 1 - self._result_id_offset}."
-                f"Current result number is {len(result_data)}, "
+                f"the maximum result id is {max_result_id - 1 - self._result_id_offset}."
                 f"Current result id offset is {self._result_id_offset}")
             logger.error(msg)
             raise ValueError(msg)
 
-        return result_data[result_id]
+        slice_idx = tuple(
+            slice(None) if dim != total_dim - 2 else result_id + self._result_id_offset
+            for dim in range(total_dim)
+        )
+
+        return result_data[slice_idx]
 
     def set_default_result_id(self, result_id: int):
         """
@@ -531,7 +572,8 @@ class MeasurementPrimitive(LogicalPrimitive):
         Returns:
             list: The ids of the measurement results.
         """
-        return [key - self._result_id_offset for key in self._results]
+
+        return [key - self._result_id_offset for key in range(self._raw_measurement_buffer.shape[-2])]
 
     def result_raw(self, result_id: int = None):
         """
@@ -546,25 +588,33 @@ class MeasurementPrimitive(LogicalPrimitive):
         """
         return self.result(result_id, raw_data=True)
 
-    def clear_results(self):
-        """
-        Clear the measurement results of the measurement primitive.
-        """
-        self._results = []
-        self._results_raw = []
+    # def clear_results(self):
+    #    """
+    #    Clear the measurement results of the measurement primitive.
+    #    """
+    #    self._results = []
+    #    self._results_raw = []
 
-    def commit_measurement(self, data: numpy.ndarray):
+    def commit_measurement(self, indices: tuple, data: numpy.ndarray):
         """
         Commit a measurement result to the measurement primitive.
 
         The data is supplied in the following shape:
-        [sweep index,  data]
+        [sweep index, result_id,  data]
 
-        For different result id, it needs to be committed in sequence
+        The result id denotes the id of multiple measurement happened in the same shot, For instance, if the same
+        measurement primitive is used twice in the same shot, then the first measurement result will have id 0,
+        the second will have id 1.
 
         Parameters:
             data (numpy.ndarray): The measurement result.
+            indices (tuple): The indices of the measurement result.
         """
+
+        if not self.is_buffer_allocated():
+            msg = f"Measurement buffer not allocated for {self._name}. Please allocate the buffer first."
+            logger.error(msg)
+            raise RuntimeError(msg)
 
         data_raw = data
 
@@ -575,8 +625,8 @@ class MeasurementPrimitive(LogicalPrimitive):
         else:
             data_transformed = data
 
-        self._results_raw.append(data_raw)
-        self._results.append(data)
+        self._transformed_measurement_buffer[indices] = data_transformed
+        self._raw_measurement_buffer[indices] = data_raw
 
 
 class MeasurementPrimitiveFactory(ObjectFactory):

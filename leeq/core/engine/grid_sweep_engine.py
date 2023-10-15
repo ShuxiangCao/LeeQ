@@ -5,7 +5,7 @@ import numpy as np
 
 from leeq.core.context import ExperimentContext
 from leeq.core.engine.measurement_result import MeasurementResult
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock, MeasurementPrimitive
 from leeq.experiments.sweeper import Sweeper
 from leeq.core.engine.engine_base import EngineBase
 import itertools
@@ -39,7 +39,6 @@ class GridSerialSweepEngine(EngineBase):
         super().__init__(name=name, compiler=compiler, setup=setup)
         self._context = ExperimentContext(self._name + ".context")
         self._sweep_shape = None
-        self._measurement_results = {}
 
     def run(self, lpb: LogicalPrimitiveBlock, sweep: Sweeper):
         """
@@ -109,7 +108,9 @@ class GridSerialSweepEngine(EngineBase):
         sweep_shape = self._sweep_shape
 
         for measurement_result in measurement_results:
-            if measurement_result.mprim_uuid not in self._measurement_results:
+            measurement_primitive: MeasurementPrimitive = lpb.nodes[measurement_result.mprim_uuid]
+
+            if not measurement_primitive.is_buffer_allocated():
                 # Allocate new buffer
                 buffer_shape = list(sweep_shape) + \
                                list(measurement_result.shape)
@@ -117,24 +118,8 @@ class GridSerialSweepEngine(EngineBase):
                     f"The shape of the measurement result {measurement_result.shape} should be at least 2D,"
                     f" one dimension for the result id another one for the data."
                 )
+                measurement_primitive.allocate_measurement_buffer(buffer_shape, dtype=np.complex128)
 
-                self._measurement_results[measurement_result.mprim_uuid] = np.zeros(
-                    buffer_shape, dtype=np.complex128)
-
-                # Write to buffer
+            # Write to buffer
             indices = self._context.step_no
-
-            self._measurement_results[measurement_result.mprim_uuid][
-                indices
-            ] = measurement_result.data
-
-        # Commit to measurement primitives
-        for uuid, measurement_result in self._measurement_results.items():
-            mprim = lpb.nodes[uuid]
-            total_dim = len(measurement_result.shape)
-            for i in range(measurement_result.shape[-2]):
-                slice_idx = tuple(
-                    slice(None) if dim != total_dim - 2 else i
-                    for dim in range(total_dim)
-                )
-                mprim.commit_measurement(data=measurement_result[slice_idx])
+            measurement_primitive.commit_measurement(indices=self._context.step_no, data=measurement_result.data)
