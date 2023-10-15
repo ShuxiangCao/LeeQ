@@ -35,6 +35,21 @@ class EngineBase(LeeQObject):
 
         super().__init__(name)
 
+    def get_live_status(self):
+        """
+        Get the live status of the engine.
+
+        Returns:
+            dict: The live status of the engine.
+        """
+
+        if self._context is None:
+            return None
+
+        return {
+            'step_no': self._context.step_no,
+        }
+
     def run(self, lpb: LogicalPrimitiveBlock, sweep: Sweeper):
         """
         Run the experiment.

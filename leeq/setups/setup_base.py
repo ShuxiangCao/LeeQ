@@ -336,6 +336,25 @@ class ExperimentalSetup(LeeQObject):
         # be used for active reset for fast cooling.
         self._status.add_param("GlobalPostLPB", None)
 
+    def get_live_status(self):
+        """
+        Get a gist of the current status of the setup for the live monitor.
+
+        It returns the general configuration of the setup, such as the number of shots, the shot period, etc.
+        It also contains the status of the sweep engine.
+        """
+
+        status = {
+            "setup_name": self._name,
+            "shot_number": self._status.get_parameters('Shot_Number'),
+            "shot_period": self._status.get_parameters('Shot_Period'),
+        }
+
+        return {
+            'setup_status': status,
+            'engine_status': self._engine.get_live_status(),
+        }
+
     @property
     def status(self):
         """
