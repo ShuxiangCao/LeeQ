@@ -1,6 +1,7 @@
 import datetime
 import inspect
 
+import numpy as np
 import plotly
 
 from labchronicle import Chronicle
@@ -83,7 +84,9 @@ class Experiment(LeeQObject):
                     k: v for k, v in f_kwargs.items() if k in valid_parameter_names}
 
                 try:
-                    func(*f_args, **filtered_kwargs)
+                    result = func(*f_args, **filtered_kwargs)
+                    if isinstance(result, plotly.graph_objs.Figure):
+                        result.show()
                 except Exception as e:
                     self.logger.warning(
                         f"Error when executing {func.__qualname__} with parameters ({f_args},{f_kwargs}): {e}"
@@ -182,9 +185,12 @@ class ExperimentManager(Singleton):
 
         step_no = self.get_default_setup().get_live_status()['engine_status']['step_no']
 
+        if np.sum(step_no) == 0:
+            # No data yet
+            return fig
+
         if self._active_experiment_instance is not None and hasattr(self._active_experiment_instance, 'live_plots'):
             try:
-
                 fig = self._active_experiment_instance.live_plots(step_no)
             except Exception as e:
                 logger.warning(e)
