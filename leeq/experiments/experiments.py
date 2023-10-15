@@ -160,7 +160,7 @@ class ExperimentManager(Singleton):
         """
 
         if self._active_experiment_instance is None:
-            experiment_status = None
+            experiment_status = {}
         else:
             experiment_status = self._active_experiment_instance.get_experiment_details()
 
