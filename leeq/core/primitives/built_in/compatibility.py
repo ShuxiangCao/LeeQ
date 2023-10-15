@@ -62,8 +62,8 @@ class PulseArgsUpdatable(SharedParameterObject):
         """
         return self.get_parameters()["channel"]
 
-    def get_pulse_args(self):
+    def get_pulse_args(self, key):
         """
-        Get the pulse arguments of the pulse.
+        Get the pulse arguments of the pulse. Compatibility reasons
         """
-        return self.get_parameters()
+        return self.get_parameters()[key]

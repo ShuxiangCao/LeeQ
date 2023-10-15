@@ -305,6 +305,7 @@ class LogicalPrimitiveBlockSweep(LogicalPrimitiveBlock):
         """
         return [self._children[self._selected]]
 
+    @property
     def nodes(self):
         """
         Get the nodes of the logical primitive block. For sweep block are the selected block.
@@ -442,7 +443,7 @@ class MeasurementPrimitive(LogicalPrimitive):
             raise RuntimeError(msg)
 
         self._raw_measurement_buffer = numpy.zeros(shape, dtype=dtype)
-        self._transformed_measurement_buffer = numpy.zeros(shape)
+        self._transformed_measurement_buffer = numpy.zeros(shape, dtype=dtype)
 
     @log_event
     def set_transform_function(self, func: callable, **kwargs):
