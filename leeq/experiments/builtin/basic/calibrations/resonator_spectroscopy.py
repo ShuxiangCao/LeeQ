@@ -25,8 +25,7 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             rep_rate: float = 10.0,
             mp_width: float = None,
             initial_lpb=None,
-            update: bool = True,
-            amp: float = 1.0) -> None:
+            amp: float = 0.02) -> None:
         """
         Run the resonator sweep transmission experiment.
 
@@ -283,7 +282,7 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         fig.add_traces(list(traces.values()))
 
         fig.update_layout(
-            title="Resonator spectroscopy live plot",
+            title="Resonator spectroscopy phase plot",
             xaxis_title="Frequency [MHz]",
             yaxis_title="Magnitude",
             plot_bgcolor="white",

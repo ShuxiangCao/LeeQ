@@ -189,11 +189,20 @@ class ExperimentManager(Singleton):
             # No data yet
             return fig
 
-        if self._active_experiment_instance is not None and hasattr(self._active_experiment_instance, 'live_plots'):
-            try:
-                fig = self._active_experiment_instance.live_plots(step_no)
-            except Exception as e:
-                logger.warning(e)
+        # No active experiment instance, or the instance does not support live plots
+        if self._active_experiment_instance is None or not hasattr(self._active_experiment_instance, 'live_plots'):
+            return fig
+
+        try:
+            args = self._active_experiment_instance.retrieve_args(self._active_experiment_instance.run)
+        except ValueError as e:
+            # The experiment has not been registered for plotting
+            return fig
+
+        try:
+            fig = self._active_experiment_instance.live_plots(step_no)
+        except Exception as e:
+            logger.warning(e)
 
         return fig
 
