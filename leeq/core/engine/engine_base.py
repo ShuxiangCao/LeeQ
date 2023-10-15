@@ -32,6 +32,8 @@ class EngineBase(LeeQObject):
 
         self._compiler = compiler
         self._setup = setup
+        self._progress = 0
+        self._step_no = (0,)
 
         super().__init__(name)
 
@@ -47,7 +49,8 @@ class EngineBase(LeeQObject):
             return None
 
         return {
-            'step_no': self._context.step_no,
+            'step_no': self._step_no,
+            'progress': self._progress
         }
 
     def run(self, lpb: LogicalPrimitiveBlock, sweep: Sweeper):

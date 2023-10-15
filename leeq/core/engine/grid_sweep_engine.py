@@ -80,6 +80,7 @@ class GridSerialSweepEngine(EngineBase):
 
             with tqdm(total=total_size) as pbar:
                 for i, indices in enumerate(itertools.product(*iterator_list)):
+                    self._step_no = indices
                     annotations = {'index': str(indices)}
                     # Call the side effect callbacks
                     annotations.update(sweep.execute_side_effects_by_step_no(indices))
@@ -88,6 +89,7 @@ class GridSerialSweepEngine(EngineBase):
 
                     # Update the progress bar
                     pbar.update(1)
+                    self._progress = (i+1) / total_size
 
     def _commit_measurement(self, lpb):
         """

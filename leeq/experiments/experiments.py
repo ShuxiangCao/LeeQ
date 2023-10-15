@@ -1,6 +1,8 @@
 import datetime
 import inspect
 
+import plotly
+
 from labchronicle import Chronicle
 
 from leeq.core import LeeQObject
@@ -104,9 +106,13 @@ class Experiment(LeeQObject):
             dict: The experiment details.
         """
 
+        kwargs = self.retrieve_args(self.run)
+        kwargs = {k: repr(v) for k, v in kwargs.items()}
+        kwargs['name'] = self._name
+
         return {
             "record_details": self.retrieve_latest_record_entry_details(self.run),
-            "experiment_arguments": self.retrieve_args(self.run),
+            "experiment_arguments": kwargs,
         }
 
 
@@ -149,11 +155,41 @@ class ExperimentManager(Singleton):
         Returns:
             dict: The live status.
         """
-        status = {'experiment_status': self._active_experiment_instance.get_experiment_details()}
 
-        status.update(self.get_default_setup().get_live_status())
+        if self._active_experiment_instance is None:
+            experiment_status = None
+        else:
+            experiment_status = self._active_experiment_instance.get_experiment_details()
 
-        return status
+        experiment_status.update(self.get_default_setup().get_live_status())
+
+        return experiment_status
+
+    def get_live_plots(self):
+        """
+         Get the live figure of the running experiment.
+
+         It calls the live figure function defined in the experiment, and pass the figure to the live monitor.
+
+         Returns:
+             figure: The live figure.
+         """
+
+        fig = plotly.graph_objects.Figure()
+
+        if self.get_default_setup() is None:
+            return fig
+
+        step_no = self.get_default_setup().get_live_status()['engine_status']['step_no']
+
+        if self._active_experiment_instance is not None and hasattr(self._active_experiment_instance, 'live_plots'):
+            try:
+
+                fig = self._active_experiment_instance.live_plots(step_no)
+            except Exception as e:
+                logger.warning(e)
+
+        return fig
 
     def register_active_experiment_instance(self, instance: Experiment):
         """
