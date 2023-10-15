@@ -146,15 +146,17 @@ class Experiment(LeeQObject):
             Experiment, self).__init__(
             name=f"Experiment: {self.__class__.__name__}")
 
-        # Run the experiment
-        self.run(*args, **kwargs)
-
-        if Chronicle().is_recording():
-            # Print the record details
-            record_details = self.retrieve_latest_record_entry_details(
-                self.run).copy()
-            record_details.update({'print_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
-            display_json_dict(record_details, root=self.__class__.__qualname__, expanded=False)
+        try:
+            # Run the experiment
+            self.run(*args, **kwargs)
+        finally:
+            # Make sure we print the record details before throwing the exception
+            if Chronicle().is_recording():
+                # Print the record details
+                record_details = self.retrieve_latest_record_entry_details(
+                    self.run).copy()
+                record_details.update({'print_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+                display_json_dict(record_details, root=self.__class__.__qualname__, expanded=False)
 
         # Check if we need to plot
         if setup().status().get_parameters("Plot_Result_In_Jupyter"):
