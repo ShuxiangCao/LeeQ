@@ -83,7 +83,7 @@ def update_experiment_details(n: int):
     status = experiment_manager.get_live_status()
 
     percentage = status['engine_status']['progress'] * 100
-    label = str(status['engine_status']['step_no']) + '/' + str(percentage) + '%'
+    label = str(status['engine_status']['step_no']) + f'/{percentage:.2f}%'
 
     del status['engine_status']
 
