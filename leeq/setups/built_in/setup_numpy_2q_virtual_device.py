@@ -132,8 +132,8 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
         """
 
         assert lpb.children is None, (
-            "The children of the logical primitive block should be None. Got class "
-            + str(lpb.__class__)
+                "The children of the logical primitive block should be None. Got class "
+                + str(lpb.__class__)
         )
 
         # Found the pulse shape etc
@@ -213,8 +213,12 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
         pass
 
     @_apply_lpb.register
-    def _(self, lpb: Union[LogicalPrimitiveBlockParallel,
-          LogicalPrimitiveBlockSerial]):
+    def _(self, lpb: LogicalPrimitiveBlockParallel):
+        for i in range(len(lpb.children)):
+            self._apply_lpb(lpb.children[i])
+
+    @_apply_lpb.register
+    def _(self, lpb: LogicalPrimitiveBlockSerial):
         for i in range(len(lpb.children)):
             self._apply_lpb(lpb.children[i])
 
