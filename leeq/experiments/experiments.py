@@ -264,22 +264,24 @@ class ExperimentManager(Singleton):
         """
         return list(self._setups.keys())
 
-    def run(self, *args, **kwargs):
+    def run(self, lpb, swp=None, basis=None):  # *args, **kwargs):
         """
         Run an experiment.
 
         Here we assert the active instance has been registered.
 
         Parameters:
-            *args: The arguments to pass to the experiment.
-            **kwargs: The keyword arguments to pass to the experiment.
+            lpb (LogicalPrimitiveCombinable): The logical primitive block to run.
+            swp (Sweeper): The sweeper to run.
+            basis (str): The basis to run, depends on the transformation function.
 
         Returns:
             Any: The return value of the experiment.
         """
 
         assert self._active_experiment_instance is not None, "No active experiment instance is registered."
-        return self.get_default_setup().run(*args, **kwargs)
+        with self.status().with_parameters(measurement_basis=basis):
+            return self.get_default_setup().run(lpb, swp)
 
     def status(self) -> SetupStatusParameters:
         """

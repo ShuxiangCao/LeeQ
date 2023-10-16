@@ -37,6 +37,9 @@ def fit_gmm_model(data: np.ndarray, n_components: int, initial_means: Optional[n
     from sklearn.preprocessing import StandardScaler
     from sklearn.mixture import GaussianMixture
 
+    data = data.flatten()
+    data = np.vstack([data.real, data.imag]).T  # Transform complex data to real
+
     if data.ndim != 2:
         msg = "Input data should be a 2D array of shape (n_samples, n_features)."
         logger.error(msg)
@@ -344,7 +347,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         clf = fit_gmm_model(result, n_components, initial_gmm_mean_guess)
 
         # Determine the output map from the fitted model
-        outcome_map = find_output_map(result, n_components, clf)
+        outcome_map = find_output_map(result, clf)
 
         # Update class attributes with model and parameters
         self.clf = clf
@@ -368,7 +371,60 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                 mprim.update_pulse_args(amp=original_amp)
 
     @register_browser_function(available_after=(run,))
-    def gmm_iq(self, result_data=None) -> go.Figure:
+    def gmm_iq(self, result_data=None):
+        """
+        Plot the IQ data with the fitted Gaussian Mixture Model with matplotlib.
+
+        Parameters:
+        result_data (Optional[np.ndarray]): The result data to plot. Defaults to the result data from the experiment.
+
+        Returns:
+        """
+        from matplotlib import pyplot as plt
+
+        plt.figure()
+        colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
+                  '#17becf']
+
+        if result_data is None:
+            result_data = self.result
+
+        for i in range(result_data.shape[1]):
+            ax = plt.subplot(int(f"1{result_data.shape[1]}{i + 1}"))
+
+            ax.set_title(f"Distribution {i}")
+            data = np.vstack([
+                np.real(result_data[:, i]),
+                np.imag(result_data[:, i])
+            ]).transpose()
+
+            state_label = self.clf.predict(data)
+            data = self.clf.named_steps['scaler'].transform(data)
+
+            for index in np.unique(state_label):
+                percentage = np.average((state_label == index).astype(int))
+                ax.scatter(data[:, 0][state_label == index], data[:, 1][state_label == index],
+                           alpha=0.2, label=str(self.output_map[index]) + ":" + f"{percentage * 100:.2f}%",
+                           color=colors[index])
+
+                mean = self.clf.named_steps['gmm'].means_[index]
+                std = np.sqrt(self.clf.named_steps['gmm'].covariances_[index])
+                ax.plot(mean[0], mean[1], "x", markersize=10, color=colors[index])
+
+                x = np.linspace(0, 2 * np.pi, 1001)
+
+                ax.plot(std * 3 * np.cos(x) + mean[0],
+                        std * 3 * np.sin(x) + mean[1], color=colors[index])
+
+                ax.set_xlabel('I')
+                ax.set_ylabel('Q')
+                ax.legend()
+                ax.axis('equal')
+
+            plt.tight_layout()
+        plt.show()
+
+    def gmm_iq_plotly(self, result_data=None) -> go.Figure:
         """
         Plot the IQ data with the fitted Gaussian Mixture Model.
 
@@ -378,7 +434,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         Returns:
         """
 
-        print({"Means": self.clf.means_, "Cov": self.clf.covariances_})
+        print({"Means": self.clf.named_steps['gmm'].means_, "Cov": self.clf.named_steps['gmm'].covariances_})
 
         colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
                   '#17becf']
@@ -396,6 +452,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
             ]).transpose()
 
             state_label = self.clf.predict(data)
+            data = self.clf.named_steps['scaler'].transform(data)
 
             for index in np.unique(state_label):
                 percentage = np.average((state_label == index).astype(int))
@@ -406,9 +463,9 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                         x=data[:, 0][state_label == index],
                         y=data[:, 1][state_label == index],
                         mode='markers',
-                        marker=dict(color=colors[index], size=10, opacity=0.2),
-                        name=str(self.output_map[index]) + ":" + str(percentage),
-                        legendgroup=index,  # to tie legend items together
+                        marker=dict(color=colors[index], size=3, opacity=0.3),
+                        name=str(self.output_map[index]) + ":" + f"{percentage * 100:.2f}%",
+                        legendgroup=int(index),  # to tie legend items together
                     ),
                     row=1,  # since we are using 1 row
                     col=i + 1  # column is the current feature index + 1
@@ -425,7 +482,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                         mode='markers',
                         marker_symbol='x',
                         marker=dict(color=colors[index], size=10),
-                        legendgroup=index,
+                        legendgroup=int(index),
                         showlegend=False
                     ),
                     row=1,
@@ -440,7 +497,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                         y=std * 3 * np.sin(x) + mean[1],
                         mode='lines',
                         line=dict(color=colors[index]),
-                        legendgroup=index,
+                        legendgroup=int(index),
                         showlegend=False
                     ),
                     row=1,
@@ -449,12 +506,18 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
 
             # Update axes labels and title
             fig.update_xaxes(title_text="I", row=1, col=i + 1)
-            fig.update_yaxes(title_text="Q", row=1, col=i + 1)
+            fig.update_yaxes(
+                title_text="Q", row=1, col=i + 1,
+                scaleanchor="x",
+                scaleratio=1,
+            )
+
             fig.update_layout(
                 title_text=f"Distribution {i}",
                 title_x=0.5,
-                title_xanchor='center',
+                # title_xanchor='center',
                 title_yanchor='top',
+                plot_bgcolor='white'
             )
 
         return fig

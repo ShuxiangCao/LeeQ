@@ -296,8 +296,9 @@ class ExperimentalSetup(LeeQObject):
         super().__init__(name)
         self._active = False
         self._status = SetupStatusParameters(name + ".status")
-
         # Add parameters that all setups should have
+        # The measurement basis, could be <z> (expectation value z), <zs> (individual state of the qubit), prob(0), etc.
+        self._status.add_param("Measurement_Basis", "<z>")
         # The number of shots to be taken for each point
         self._status.add_param("Shot_Number", 2000)
         # The period between each shot, usually should choose more than 3 T1
