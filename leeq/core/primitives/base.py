@@ -23,7 +23,7 @@ class SharedParameterObject(LeeQObject):
         super().__init__(name)
         self._parameters = parameters
 
-    @log_event
+    # @log_event too costly to log every parameter update
     def update_parameters(self, **kwargs):
         """
         Update the parameters of the object.

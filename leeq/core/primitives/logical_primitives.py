@@ -136,7 +136,7 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         """
         raise NotImplementedError()
 
-    @log_event
+    # @log_event too costly to log every parameter update
     def tag(self, **kwargs):
         """
         Add a tag to the logical primitive. This is for the user to add additional information to the logical primitive.
@@ -471,7 +471,7 @@ class MeasurementPrimitive(LogicalPrimitive):
 
         self._transformed_measurement_buffer = numpy.zeros(shape, dtype=dtype)
 
-    @log_event
+    # @log_event too costly to log every parameter update
     def set_transform_function(self, func: callable, **kwargs):
         """
         Set the transform function of the measurement primitive.

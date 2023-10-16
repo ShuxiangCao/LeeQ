@@ -360,9 +360,9 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
 
         Parameters:
         - dut_qubit: The qubit under test.
-        - start (float): The starting frequency for the sweep.
-        - stop (float): The stopping frequency for the sweep.
-        - step (float): The step size between frequencies in the sweep.
+        - start (float): The starting frequency for the sweep. In MHz
+        - stop (float): The stopping frequency for the sweep. In MHz
+        - step (float): The step size between frequencies in the sweep. In MHz
         - num_avs (int): The number of averages to take.
         - rep_rate (float): Repetition rate of the experiment.
         - mp_width (Optional[float]): Measurement primitive width. If None, `rep_rate` is used.
