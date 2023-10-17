@@ -14,7 +14,7 @@ __all__ = [
 
 
 def gaussian(
-    sampling_rate: int, amp: float, phase: float, width: float, trunc: float
+        sampling_rate: int, amp: float, phase: float, width: float, trunc: float
 ) -> np.array:
     """
     Generates a complex Gaussian wave packet.
@@ -39,19 +39,19 @@ def gaussian(
     # Generate and return the Gaussian wave packet.
     # You may extend the function to incorporate it in the future.
     return (
-        amp
-        * np.exp(1.0j * phase)
-        * np.exp(-(((t - gauss_width) / gauss_width) ** 2)).astype("complex64")
+            amp
+            * np.exp(1.0j * phase)
+            * np.exp(-(((t - gauss_width) / gauss_width) ** 2)).astype("complex64")
     )
 
 
 def gaussian_drag(
-    sampling_rate: int,
-    amp: float = 1.0,
-    phase: float = 0.0,
-    width: float = 1.0,
-    alpha: float = 1.0,
-    trunc: float = 1.0,
+        sampling_rate: int,
+        amp: float = 1.0,
+        phase: float = 0.0,
+        width: float = 1.0,
+        alpha: float = 1.0,
+        trunc: float = 1.0,
 ) -> np.ndarray:
     """
     Generate a Gaussian DRAG pulse shape.
@@ -89,18 +89,18 @@ def gaussian_drag(
     shape = np.exp(-(((t - gauss_width) / gauss_width) ** 2), dtype="cfloat")
 
     # Compute the imaginary part using the derivative of the Gaussian
-    shape.imag = shape.real * 2.0 * t / (2.0 * np.pi * alpha2) / gauss_width**2
+    shape.imag = shape.real * 2.0 * t / (2.0 * np.pi * alpha2) / gauss_width ** 2
 
     # Return the pulse shape, with applied amplitude and phase modulation
     return amp * np.exp(1.0j * phase) * shape
 
 
 def blackman(
-    sampling_rate: int,
-    amp: float = 1.0,
-    phase: float = 0.0,
-    width: float = 1.0,
-    trunc: float = 1.0,
+        sampling_rate: int,
+        amp: float = 1.0,
+        phase: float = 0.0,
+        width: float = 1.0,
+        trunc: float = 1.0,
 ) -> np.ndarray:
     """
     Generate a modified Blackman window function.
@@ -136,9 +136,9 @@ def blackman(
 
     # Update the real part of midshape based on the Blackman window formula
     midshape += 1 - (
-        a0
-        - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
-        + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
+            a0
+            - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
+            + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
     )
 
     # Return the scaled and phased shape
@@ -146,12 +146,12 @@ def blackman(
 
 
 def blackman_drag(
-    sampling_rate: int,
-    amp: float,
-    phase: float = None,
-    width: float = None,
-    alpha: float = None,
-    trunc: float = 1.0,
+        sampling_rate: int,
+        width: float,
+        amp: float = 1.,
+        phase: float = 0.,
+        alpha: float = 1e9,  # 1e9 basically means no drag correction
+        trunc: float = 1.0,
 ) -> np.ndarray:
     """
     Generate a Blackman DRAG pulse using the specified parameters.
@@ -205,32 +205,34 @@ def blackman_drag(
 
     # Apply the Blackman function
     midshape += 1 - (
-        a0
-        - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
-        + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
+            a0
+            - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
+            + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
     )
 
     # Handle imaginary part with a DRAG correction term
     alpha2 = alpha * 2.0
     midshape.imag = -(
-        a1 * 2.0 * np.pi / width * np.sin((2.0 * np.pi * (t + width / 2.0)) / width)
-        - a2 * 4.0 * np.pi / width * np.sin(4.0 * np.pi * (t + width / 2.0) / width)
+            a1 * 2.0 * np.pi / width * np.sin((2.0 * np.pi * (t + width / 2.0)) / width)
+            - a2 * 4.0 * np.pi / width * np.sin(4.0 * np.pi * (t + width / 2.0) / width)
     ) / (2.0 * np.pi * alpha2)
 
     # Return the pulse shaped with phase and amplitude
-    return amp * np.exp(1.0j * phase) * shape
+    env = amp * np.exp(1.0j * phase) * shape
+    return env
+
 
 
 def soft_square(
-    sampling_rate: int,
-    amp: float,
-    phase: Optional[float] = None,
-    width: Optional[float] = None,
-    rise: Optional[float] = None,
-    trunc: Optional[float] = None,
-    delay: float = 0.0,
-    phase_shift: float = 0,
-    ex_delay: float = 0,
+        sampling_rate: int,
+        amp: float,
+        phase: Optional[float] = None,
+        width: Optional[float] = None,
+        rise: Optional[float] = None,
+        trunc: Optional[float] = None,
+        delay: float = 0.0,
+        phase_shift: float = 0,
+        ex_delay: float = 0,
 ) -> np.ndarray:
     """
     Generate a soft square wave.
@@ -254,10 +256,10 @@ def soft_square(
 
     t -= 0.5 * delay
     y = (
-        amp
-        * np.exp(1.0j * (phase + phase_shift))
-        * 0.5
-        * (np.tanh((t + 0.5 * width) / rise) - np.tanh((t - 0.5 * width) / rise))
+            amp
+            * np.exp(1.0j * (phase + phase_shift))
+            * 0.5
+            * (np.tanh((t + 0.5 * width) / rise) - np.tanh((t - 0.5 * width) / rise))
     )
 
     if ex_delay > 0:
@@ -268,14 +270,14 @@ def soft_square(
 
 
 def square(
-    sampling_rate: int,
-    amp: float,
-    phase: Optional[float] = None,
-    width: Optional[float] = None,
-    delay: float = 0.0,
-    phase_shift: float = 0,
-    dc_bias: float = 0,
-    ex_delay: float = 0,
+        sampling_rate: int,
+        amp: float,
+        phase: Optional[float] = None,
+        width: Optional[float] = None,
+        delay: float = 0.0,
+        phase_shift: float = 0,
+        dc_bias: float = 0,
+        ex_delay: float = 0,
 ) -> np.ndarray:
     """
     Generate a square wave.
@@ -302,20 +304,20 @@ def square(
 
 
 def clear_square(
-    sampling_rate: int,
-    amp: float,
-    phase: Optional[float] = None,
-    width: Optional[float] = None,
-    delay: float = 0.0,
-    phase_shift: float = 0,
-    dc_bias: float = 0,
-    ini_top: float = 0.2,
-    ini_bot: float = 0.3,
-    final_top: float = 0.8,
-    final_bot: float = -0.8,
-    ini_width: float = 0.2,
-    final_width: float = 0.2,
-    ex_delay: float = 0,
+        sampling_rate: int,
+        amp: float,
+        phase: Optional[float] = None,
+        width: Optional[float] = None,
+        delay: float = 0.0,
+        phase_shift: float = 0,
+        dc_bias: float = 0,
+        ini_top: float = 0.2,
+        ini_bot: float = 0.3,
+        final_top: float = 0.8,
+        final_bot: float = -0.8,
+        ini_width: float = 0.2,
+        final_width: float = 0.2,
+        ex_delay: float = 0,
 ) -> np.ndarray:
     """
     Generate a clear square wave, which is used to fast reset the resonator population.

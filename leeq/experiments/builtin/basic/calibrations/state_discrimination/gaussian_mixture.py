@@ -2,6 +2,7 @@ from plotly import graph_objects as go
 from plotly import subplots
 from sklearn import mixture
 import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from labchronicle import register_browser_function, log_and_record
 from leeq import *
@@ -16,11 +17,26 @@ import numpy as np
 from sklearn.pipeline import Pipeline
 
 
+class CustomRescaler(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        super().__init__()
+
+    def fit(self, X, y=None):
+        # Reshaping the data to be flattened
+        data_flattened = X.reshape(-1)
+
+        # Calculating the standard deviation and the rescale factor
+        self.scale_ = 1 / np.abs(data_flattened).std()
+        return self
+
+    def transform(self, X, y=None):
+        return X * self.scale_
+
 def fit_gmm_model(data: np.ndarray, n_components: int, initial_means: Optional[np.ndarray] = None) -> Pipeline:
     """
     Fits a Gaussian Mixture Model Pipeline to the provided data.
 
-    This function standardizes the data using StandardScaler and then applies GaussianMixture to fit the model.
+    This function standardizes the data using CustomRescaler and then applies GaussianMixture to fit the model.
     Note: The function assumes that the GaussianMixture is the final step in the pipeline and uses it for fitting the model.
 
     Parameters:
@@ -34,7 +50,7 @@ def fit_gmm_model(data: np.ndarray, n_components: int, initial_means: Optional[n
     Raises:
     ValueError: If input data is not a 2D array or if n_components is less than 1.
     """
-    from sklearn.preprocessing import StandardScaler
+
     from sklearn.mixture import GaussianMixture
 
     data = data.flatten()
@@ -51,7 +67,7 @@ def fit_gmm_model(data: np.ndarray, n_components: int, initial_means: Optional[n
         raise ValueError(msg)
 
     # Standardize the data
-    pipeline = Pipeline([('scaler', StandardScaler()),
+    pipeline = Pipeline([('scaler', CustomRescaler()),
                          ('gmm', GaussianMixture(n_components=n_components,
                                                  covariance_type='spherical',
                                                  means_init=initial_means))])

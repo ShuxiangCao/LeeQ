@@ -1,8 +1,13 @@
 import functools
+import inspect
 from typing import Union
+
+import numpy as np
 
 from leeq import setup
 from leeq.compiler.compiler_base import LPBCompiler, MeasurementSequence
+from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
+from leeq.compiler.utils.time_base import get_t_list
 from leeq.core.context import ExperimentContext
 from leeq.core.primitives.built_in.common import DelayPrimitive, PhaseShift
 from leeq.core.primitives.logical_primitives import (
@@ -118,6 +123,45 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         self._compiled_lpb_uuid = []
 
         super().clear()
+
+    @staticmethod
+    def _get_envelope_function(pulse_shape_name: str):
+        """
+        Get the pulse shape function with the given name.
+
+        Parameters:
+            pulse_shape_name (str): The name of the pulse shape.
+
+        Returns:
+            callable: evaluated pulse shape function.
+
+        """
+
+        env_func = PulseShapeFactory().get_pulse_shape_function(pulse_shape_name)
+
+        def func(dt, **kwargs):
+            """
+            Evaluate the pulse shape function with the given parameters.
+            Adpat the interface between qubic defined functions and leek defined functions.
+
+            Parameters:
+                dt (float): The sampling rate of the pulse shape. In Msps unit.
+
+            Returns:
+                Tuple[np.ndarray, np.ndarray]: The time list and the pulse shape envelope.
+            """
+
+            # amp will be modified by the qubic system, so we always pass amp = 1
+            kwargs = kwargs.copy()
+            kwargs['amp'] = 1
+
+            sampling_rate = 1 / dt / 1e6 # In Msps unit
+            t = get_t_list(sampling_rate=sampling_rate, width=kwargs['width'])
+            env = env_func(sampling_rate=sampling_rate, **kwargs)
+
+            return t, env
+
+        return func
 
     def compile_lpb(self, context: ExperimentContext,
                     lpb: LogicalPrimitiveCombinable):
@@ -300,7 +344,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         ):
             phase_shift += self._phase_shift[lpb.channel][lpb.transition_name]
 
-        env = {"env_func": parameters['shape'], "paradict": parameters}
+        env = {"env_func": self._get_envelope_function(parameters['shape']), "paradict": parameters}
 
         qubic_pulse_dict = {
             "name": "pulse",
@@ -388,7 +432,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             "dest": primitive_scope + ".rdrv",
             "twidth": modified_parameters['width'] / 1e6,  # In seconds
             "amp": modified_parameters['amp'],
-            "env": [{"env_func": modified_parameters['shape'], "paradict": modified_parameters}],
+            "env": [{"env_func": self._get_envelope_function(modified_parameters['shape']),
+                     "paradict": modified_parameters}],
         }
 
         # A delay is introduced between the start of the drive and start of the measurement.

@@ -1,5 +1,6 @@
 import numpy as np
 
+from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
 from leeq.core.primitives.built_in.common import PhaseShift
 from leeq.core.primitives.built_in.compatibility import PulseArgsUpdatable
 from leeq.core.primitives.logical_primitives import (
@@ -15,6 +16,17 @@ class SimpleDrive(LogicalPrimitive, PulseArgsUpdatable):
 
     def __init__(self, name: str, parameters: dict):
         super().__init__(name, parameters)
+
+    def calculate_envelope_area(self):
+        """
+        Calculate the area of the envelope.
+        """
+        factory = PulseShapeFactory()
+        return factory.calculate_integrated_area(
+            pulse_shape_name=self.shape,
+            sampling_rate=1e3,  # In Msps unit. Just an estimation
+            **self._parameters,
+        )
 
     @staticmethod
     def _validate_parameters(parameters: dict):
@@ -46,7 +58,7 @@ class SimpleDrive(LogicalPrimitive, PulseArgsUpdatable):
 
         for parameter_name in SimpleDrive._parameter_names:
             assert (
-                parameter_name in parameters
+                    parameter_name in parameters
             ), f"The parameter {parameter_name} is not found."
 
 
@@ -259,5 +271,5 @@ class SimpleDispersiveMeasurement(MeasurementPrimitive, PulseArgsUpdatable):
     @classmethod
     def _validate_parameters(cls, parameters: dict):
         assert (
-            "distinguishable_states" in parameters
+                "distinguishable_states" in parameters
         ), "The distinguishable states are not specified."

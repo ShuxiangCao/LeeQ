@@ -1,5 +1,9 @@
+import functools
 import importlib
 import inspect
+
+import decorator
+import numpy as np
 
 from leeq.utils import Singleton, setup_logging
 
@@ -25,7 +29,7 @@ class PulseShapeFactory(Singleton):
         self._load_built_in_pulse_shapes()
 
     def register_pulse_shape(
-        self, pulse_shape_name: str, pulse_shape_function: callable
+            self, pulse_shape_name: str, pulse_shape_function: callable
     ):
         """
         Register a pulse shape to the factory.
@@ -105,6 +109,53 @@ class PulseShapeFactory(Singleton):
                 self.register_pulse_shape(
                     pulse_shape_name, pulse_shape_function)
 
+    def calculate_integrated_area(self, pulse_shape_name: str, sampling_rate: float = 1e3, **kwargs):
+        """
+        Calculate the integrated area of the pulse shape with the given parameters.
+
+        Parameters:
+            pulse_shape_name (str): The name of the pulse shape.
+            sampling_rate (float): The sampling rate of the pulse shape. In Msps unit.
+            kwargs: The parameters of the pulse shape.
+
+        Returns:
+            float: The integrated area of the pulse shape.
+        """
+
+        pulse_shape_envelope = self.compile_pulse_shape(pulse_shape_name, sampling_rate=sampling_rate, **kwargs)
+        time_step = 1 / sampling_rate
+        return np.real(pulse_shape_envelope.sum() * time_step)
+
+    def get_pulse_shape_function(self, pulse_shape_name: str):
+        """
+        Get the pulse shape function with the given name.
+
+        Parameters:
+            pulse_shape_name (str): The name of the pulse shape.
+
+        Returns:
+            callable: The pulse shape function.
+        """
+
+        if pulse_shape_name not in self._pulse_shape_functions:
+            msg = f"The pulse shape name {pulse_shape_name} has not been recognized."
+            logger.error(msg)
+            raise RuntimeError(msg)
+
+        @functools.wraps(self._pulse_shape_functions[pulse_shape_name])
+        def func(**kwargs):
+            # Filter the kwargs so that only the required parameters are passed to
+            # the function
+            required_parameters = inspect.signature(
+                self._pulse_shape_functions[pulse_shape_name]
+            ).parameters
+            kwargs_call = {key: kwargs[key]
+                           for key in required_parameters if key in kwargs}
+
+            return self._pulse_shape_functions[pulse_shape_name](**kwargs_call)
+
+        return func
+
     def compile_pulse_shape(self, pulse_shape_name: str, **kwargs):
         """
         Compile the pulse shape with the given parameters.
@@ -122,15 +173,7 @@ class PulseShapeFactory(Singleton):
             logger.error(msg)
             raise RuntimeError(msg)
 
-        # Filter the kwargs so that only the required parameters are passed to
-        # the fucntion
-        required_parameters = inspect.signature(
-            self._pulse_shape_functions[pulse_shape_name]
-        ).parameters
-        kwargs_call = {key: kwargs[key]
-                       for key in required_parameters if key in kwargs}
-
-        return self._pulse_shape_functions[pulse_shape_name](**kwargs_call)
+        return self.get_pulse_shape_function(pulse_shape_name)(**kwargs)
 
     def get_available_pulse_shapes(self):
         """

@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 
 from labchronicle import register_browser_function, log_and_record
 from leeq import Experiment, SweepParametersSideEffectFactory, Sweeper
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
 from leeq.utils.compatibility import *
 from leeq.theory import fits
 from plotly import graph_objects as go
@@ -21,6 +22,8 @@ class NormalisedRabi(Experiment):
             fit: bool = True,
             collection_name: str = 'f01',
             mprim_index: int = 0,
+            pulse_discretization: bool = False,
+            update=False,
             initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         """
         Run a Rabi experiment on a given qubit and analyze the results.
@@ -34,6 +37,8 @@ class NormalisedRabi(Experiment):
         fit (bool): Whether to fit the resulting data to a sinusoidal function. Default is True.
         collection_name (str): Collection name for retrieving c1. Default is 'f01'.
         mprim_index (int): Index for retrieving measurement primitive. Default is 0.
+        pulse_discretization (bool): Whether to discretize the pulse. Default is False.
+        update (bool): Whether to update the qubit parameters. Default is False.
         initial_lpb (Any): Initial lpb to add to the created lpb. Default is None.
 
         Returns:
@@ -43,24 +48,37 @@ class NormalisedRabi(Experiment):
         # Get c1 from the DUT qubit
         c1 = dut_qubit.get_c1(collection_name)
         rabi_pulse = c1['X'].clone()
-        rabi_pulse.update_pulse_args(amp=amp, phase=0., shape='square')
 
-        # Set up sweep parameters
-        swpparams = [SweepParametersSideEffectFactory.func(
-            rabi_pulse.update_pulse_args, {}, 'width'
-        )]
-        swp = Sweeper(
-            np.arange,
-            n_kwargs={'start': start, 'stop': stop, 'step': step},
-            params=swpparams
-        )
+        if amp is not None:
+            rabi_pulse.update_pulse_args(amp=amp, phase=0., shape='square', width=step)
+        else:
+            amp = rabi_pulse.amp
+
+        if not pulse_discretization:
+            # Set up sweep parameters
+            swpparams = [SweepParametersSideEffectFactory.func(
+                rabi_pulse.update_pulse_args, {}, 'width'
+            )]
+            swp = Sweeper(
+                np.arange,
+                n_kwargs={'start': start, 'stop': stop, 'step': step},
+                params=swpparams
+            )
+            pulse = rabi_pulse
+        else:
+            # Sometimes it is expensive to update the pulse envelope everytime, so we can keep the envelope the same
+            # and just change the number of pulses
+            pulse = LogicalPrimitiveBlockSweep([
+                prims.SerialLPB([rabi_pulse] * k, name='rabi_pulse') for k in range(int((stop - start) / step + 0.5))
+            ])
+            swp = Sweeper.from_sweep_lpb(pulse)
 
         # Get the measurement primitive
         mprim = dut_qubit.get_measurement_prim_intlist(mprim_index)
         self.mp = mprim
 
         # Create the loopback pulse (lpb)
-        lpb = rabi_pulse + mprim
+        lpb = pulse + mprim
 
         if initial_lpb is not None:
             lpb = initial_lpb + lpb
@@ -77,8 +95,13 @@ class NormalisedRabi(Experiment):
         # Fit data to a sinusoidal function and return the fit parameters
         self.fit_params = fits.fit_sinusoidal(self.data, time_step=step)
 
-        # Assuming the fit function returns parameters in a dictionary
-        return self.fit_params
+        if update:
+            # Update the qubit parameters, to make one pulse width correspond to a pi pulse
+            # Here we suppose all pulse envelopes give unit area when width=1, amp=1
+            normalised_pulse_area = c1['X'].calculate_envelope_area() / c1['X'].amp
+            two_pi_area = amp * (1 / self.fit_params['Frequency'])
+            new_amp = two_pi_area / 2 / normalised_pulse_area
+            c1.update_parameters(amp=new_amp)
 
     @register_browser_function()
     def plot(self) -> go.Figure:
