@@ -1,7 +1,5 @@
 from typing import Optional, Dict, Any
-
 import numpy as np
-from matplotlib import pyplot as plt
 
 from labchronicle import register_browser_function, log_and_record
 from leeq import Experiment, SweepParametersSideEffectFactory, Sweeper

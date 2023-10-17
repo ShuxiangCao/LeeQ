@@ -109,6 +109,9 @@ class Experiment(LeeQObject):
             dict: The experiment details.
         """
 
+        if self.run.__qualname__ not in self._register_log_and_record_args_map:
+            return {}
+
         kwargs = self.retrieve_args(self.run)
         kwargs = {k: repr(v) for k, v in kwargs.items()}
         kwargs['name'] = self._name

@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize
 from typing import List, Optional, Dict, Any
-
+from .fit_exp import *
 
 def fit_sinusoidal(
         data: np.ndarray,
