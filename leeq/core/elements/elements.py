@@ -117,6 +117,25 @@ class Element(LeeQObject):
                 parameters=primitive_parameters,
             )
 
+    def _dump_dict(self, parameter_dict: dict):
+        """
+        Dump the element to dictionary. It recursively dumps the gate collections and measurement primitives, ingore
+        the parameters that starts with _.
+
+        Returns:
+            dict: The element.
+        """
+        dumped_dict = {}
+        for key, value in parameter_dict.items():
+            if key.startswith("_"):
+                continue
+            if isinstance(value, dict):
+                dumped_dict[key] = self._dump_dict(value)
+            else:
+                dumped_dict[key] = value
+
+        return dumped_dict
+
     def _dump_lpb_collections(self):
         """
         Dump the gate collections of the element to dictionary.
@@ -124,7 +143,7 @@ class Element(LeeQObject):
         Returns:
             dict: The gate collections of the element.
         """
-        return self._parameters["lpb_collections"]
+        return self._dump_dict(self._parameters["lpb_collections"])
 
     def _dump_measurement_primitives(self):
         """
@@ -133,7 +152,7 @@ class Element(LeeQObject):
         Returns:
             dict: The measurement primitives of the element.
         """
-        return self._parameters["measurement_primitives"]
+        return self._dump_dict(self._parameters["measurement_primitives"])
 
     def get_calibrations(self):
         """

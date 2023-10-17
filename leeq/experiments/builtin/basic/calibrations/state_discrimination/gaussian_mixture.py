@@ -89,6 +89,10 @@ def measurement_transform_gmm(
         return data
 
     original_shape = data.shape
+
+    # The input shape should be
+    # (1, measurement_id, n_samples)
+
     data_flat = data.flatten()
     data_complex_to_real = np.vstack([data_flat.real, data_flat.imag]).T  # Transform complex data to real
 
@@ -113,8 +117,8 @@ def measurement_transform_gmm(
     if basis == 'prob':
         return bins / np.sum(bins)  # Normalize the bin counts to get probabilities
 
-    zero_count = np.sum((output_reshaped < z_threshold).astype(int))
-    one_count = np.sum((output_reshaped >= z_threshold).astype(int))
+    zero_count = np.sum((output_reshaped < z_threshold).astype(int), axis=-1)
+    one_count = np.sum((output_reshaped >= z_threshold).astype(int), axis=-1)
 
     z = (zero_count - one_count) / (zero_count + one_count)
 
@@ -531,5 +535,3 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         """
         if self.result is None:
             return go.Figure()
-
-        return self.gmm_iq()

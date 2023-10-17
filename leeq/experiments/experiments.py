@@ -309,4 +309,4 @@ def basic_run(lpb: LogicalPrimitiveCombinable, swp: Sweeper, basis: str):
     A shortcut for compatibility. In this version we ignore the basis, as it should be specified in the transformation
     function.
     """
-    return setup().run(lpb, swp)
+    return setup().run(lpb, swp, basis)

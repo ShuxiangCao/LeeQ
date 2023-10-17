@@ -176,6 +176,12 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
             dict: The parameters of the logical primitive.
         """
         params = copy.deepcopy(self._parameters)
+
+        # Remove the the parameters starts with '_'
+        for key in list(params.keys()):
+            if key.startswith('_'):
+                del params[key]
+
         return params
 
     @property
@@ -400,8 +406,6 @@ class MeasurementPrimitive(LogicalPrimitive):
 
         self._results = []
         self._results_raw = []
-        self._transform_function = None
-        self._transform_function_kwargs = None
         self._default_result_id = 0
         self._result_id_offset = 0
 
@@ -486,8 +490,8 @@ class MeasurementPrimitive(LogicalPrimitive):
             kwargs: The keyword arguments of the transform function.
         """
 
-        self._transform_function = func
-        self._transform_function_kwargs = kwargs
+        self._parameters['_transform_function'] = func
+        self._parameters['_transform_function_kwargs'] = kwargs
 
     def get_transform_function(self):
         """
@@ -497,7 +501,8 @@ class MeasurementPrimitive(LogicalPrimitive):
             callable: The transform function.
             dict: The keyword arguments of the transform function.
         """
-        return self._transform_function, self._transform_function_kwargs
+        return self._parameters.get('_transform_function', None), self._parameters.get('_transform_function_kwargs',
+                                                                                       None)
 
     def result(self, result_id: int = None, raw_data: bool = False):
         """
@@ -647,9 +652,16 @@ class MeasurementPrimitive(LogicalPrimitive):
             logger.error(msg)
             raise RuntimeError(msg)
 
-        if self._transform_function is not None:
-            data_transformed = self._transform_function(
-                data, **self._transform_function_kwargs
+        if self._parameters.get('_transform_function', None) is not None:
+
+            transform_function = self._parameters['_transform_function']
+            transform_function_kwargs = self._parameters['_transform_function_kwargs']
+
+            from leeq import ExperimentManager
+            basis = ExperimentManager().status().get_parameters('Measurement_Basis')
+
+            data_transformed = transform_function(
+                data, basis=basis, **transform_function_kwargs
             )
 
             if len(data_transformed.shape) < 2:
