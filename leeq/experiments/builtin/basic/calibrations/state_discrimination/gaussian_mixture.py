@@ -345,7 +345,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         swp = Sweeper.from_sweep_lpb(sweep_lpb)
 
         # Execute the experiment
-        ExperimentManager().run(lpb, swp, '')
+        ExperimentManager().run(lpb, swp)
 
         # Format the result and update the class attribute
         result = np.squeeze(mprim.result()).transpose()

@@ -155,7 +155,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             kwargs = kwargs.copy()
             kwargs['amp'] = 1
 
-            sampling_rate = 1 / dt / 1e6 # In Msps unit
+            sampling_rate = 1 / dt / 1e6  # In Msps unit
             t = get_t_list(sampling_rate=sampling_rate, width=kwargs['width'])
             env = env_func(sampling_rate=sampling_rate, **kwargs)
 
@@ -512,7 +512,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         # the delay primitive to have the entire scope of the block.
         if len(
                 child_circuits[0]) == 1 and child_circuits[0][0]["name"] == "delay":
-            child_circuits[0][0]["scope"] = list(block_scope)
+            child_circuits[0][0]["scope"] = list(set(x.split('.')[0] for x in block_scope))
             child_scopes[0] = block_scope
 
         compiled_circuit.extend(child_circuits[0])
@@ -523,7 +523,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             # For this operation we do not need a barrier.
             if len(
                     child_circuits[i]) == 1 and child_circuits[i][0]["name"] == "delay":
-                child_circuits[i][0]["scope"] = list(child_scopes[i - 1])
+                child_circuits[i][0]["scope"] = list(set(x.split('.')[0] for x in child_scopes[i - 1]))
             else:
                 # If we are only dealing with one channel, and the previous and current child are on the same channel,
                 # we do not need a barrier.

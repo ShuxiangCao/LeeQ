@@ -3,6 +3,11 @@ from scipy.optimize import minimize
 from typing import List, Optional, Dict, Any
 from .fit_exp import *
 
+import numpy as np
+from scipy.optimize import minimize, curve_fit
+from typing import Optional, Union, Tuple, Dict, List
+
+
 def fit_sinusoidal(
         data: np.ndarray,
         time_step: float,
@@ -96,3 +101,70 @@ def fit_sinusoidal(
         phase -= 2 * np.pi
 
     return {'Frequency': omega, 'Amplitude': amplitude, 'Phase': phase, 'Offset': offset, 'Residual': residual}
+
+
+def fit_exp_decay(z: np.ndarray, dt: Optional[float] = None, t: Optional[np.ndarray] = None) -> Dict[
+    str, Union[float, Tuple[float, float]]]:
+    """
+    Fits an exponential decay to the data points in z.
+
+    Parameters:
+    - z: Data points to be fit.
+    - dt: Time interval between data points. Required if t is not provided.
+    - t: Time values corresponding to the data points in z.
+
+    Returns:
+    A dictionary containing the amplitude, offset, and decay constant.
+    """
+    if t is None:
+        assert dt is not None, "Either t or dt must be provided."
+        t = np.linspace(0., dt * (len(z) - 1), len(z))
+    offset = np.min(z)
+    amp = np.max(z) - offset
+    T = 0.5 * t[-1]
+
+    def leastsq(x: np.ndarray, t: np.ndarray, z: np.ndarray) -> float:
+        """Objective function for optimization."""
+        amp, T, offset = x
+        fit = amp * np.exp(-t / T) + offset
+        return np.sum((fit - z) ** 2) * 1e5
+
+    result = minimize(leastsq, np.array([amp, T, offset]), args=(t, z))
+    amp, T, offset = result.x
+
+    return {'Amplitude': amp, 'Offset': offset, 'Decay': T}
+
+
+def fit_exp_decay_with_cov(z: np.ndarray, dt: Optional[float] = None, t: Optional[np.ndarray] = None) -> Dict[
+    str, Union[float, Tuple[float, float]]]:
+    """
+    Fits an exponential decay to the data points in z and calculates covariance.
+
+    Parameters:
+    - z: Data points to be fit.
+    - dt: Time interval between data points. Required if t is not provided.
+    - t: Time values corresponding to the data points in z.
+
+    Returns:
+    A dictionary containing the amplitude, offset, decay constant, and covariance.
+    """
+    result = fit_exp_decay(z, dt=dt, t=t)
+
+    if t is None:
+        assert dt is not None, "Either t or dt must be provided."
+        t = np.linspace(0., dt * (len(z) - 1), len(z))
+
+    amp = result['Amplitude']
+    offset = result['Offset']
+    T = result['Decay']
+
+    def curve(t: np.ndarray, amp: float, T: float, offset: float) -> np.ndarray:
+        """Exponential decay curve function."""
+        return amp * np.exp(-t / T) + offset
+
+    popt, pcov = curve_fit(curve, t, z, p0=[amp, T, offset])
+
+    amp, T, offset = popt
+    amp_std, T_std, offset_std = np.sqrt(np.diag(pcov)).tolist()
+
+    return {'Amplitude': (amp, amp_std), 'Offset': (offset, offset_std), 'Decay': (T, T_std), 'Cov': pcov}

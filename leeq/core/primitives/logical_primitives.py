@@ -652,13 +652,13 @@ class MeasurementPrimitive(LogicalPrimitive):
             logger.error(msg)
             raise RuntimeError(msg)
 
+        from leeq import ExperimentManager
+        basis = ExperimentManager().status().get_parameters('Measurement_Basis')
+
         if self._parameters.get('_transform_function', None) is not None:
 
             transform_function = self._parameters['_transform_function']
             transform_function_kwargs = self._parameters['_transform_function_kwargs']
-
-            from leeq import ExperimentManager
-            basis = ExperimentManager().status().get_parameters('Measurement_Basis')
 
             data_transformed = transform_function(
                 data, basis=basis, **transform_function_kwargs
@@ -674,6 +674,13 @@ class MeasurementPrimitive(LogicalPrimitive):
                 self._allocate_transformed_measurement_buffer(data_transformed.shape[1:], dtype=data_transformed.dtype)
 
             self._transformed_measurement_buffer[indices] = data_transformed
+        else:
+            if basis is not None:
+                msg = (f"The measurement basis is specified, but the measurement primitive does not have a transform "
+                       f"function. LeeQ does not know how to transform the raw experiment datapoints to the quantum "
+                       f"states. Please set the transform function by running a measurement calibration.")
+                logger.error(msg)
+                raise RuntimeError(msg)
 
         self._raw_measurement_buffer[indices] = data
 

@@ -202,10 +202,10 @@ class SimpleRamseyMultilevel(Experiment):
                       row=1, col=1)
 
         # Set plot layout details
-        title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: \n" \
+        title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
                      f"{decay} ± {self.fit_params['Decay'][1]} us"
         fig.update_layout(title_text=title_text,
-                          xaxis_title=f"Time (us) \n Frequency: {frequency} ± {self.fit_params['Frequency'][1]}",
+                          xaxis_title=f"Time (us) <br> Frequency: {frequency} ± {self.fit_params['Frequency'][1]}",
                           yaxis_title="<z>",
                           plot_bgcolor="white")
         return fig
