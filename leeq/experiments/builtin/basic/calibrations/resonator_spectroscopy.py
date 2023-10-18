@@ -24,7 +24,7 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             stop: float = 9000,
             step: float = 5.0,
             num_avs: int = 1000,
-            rep_rate: float = 10.0,
+            rep_rate: float = 0.0,
             mp_width: float = None,
             initial_lpb=None,
             amp: float = 0.02) -> None:

@@ -37,7 +37,7 @@ class QubitSpectroscopyFrequency(Experiment):
     @log_and_record
     def run(self, dut_qubit: Any, res_freq: Optional[float] = None, start: float = 3.e3, stop: float = 8.e3,
             step: float = 5., num_avs: int = 500,
-            rep_rate: float = 0., mp_width: float = 0.5, amp: float = 0.5) -> None:
+            rep_rate: float = 0., mp_width: float = 0.5, amp: float = 0.01) -> None:
         """
         Conducts a frequency sweep on the designated qubit and records the response.
 
@@ -213,73 +213,6 @@ class QubitSpectroscopyFrequency(Experiment):
         figure : go.Figure object
         """
         return self.plot_phase(step_no)
-
-
-class QubitSpectroscopyAmplitudeFrequency(Experiment):
-    @log_and_record
-    def run(self, dut_qubit, start=3.e3, stop=8.e3, step=5., num_avs=1000,
-            rep_rate=10., mp_width=8, qubit_amp_start=0.01, qubit_amp_stop=0.5, qubit_amp_step=0.01):
-        # Sweep the frequency
-        mp = dut_qubit.get_default_measurement_prim_int().clone()
-        mp.update_pulse_args(width=rep_rate) if mp_width == None else mp.update_pulse_args(width=mp_width)
-        mp.set_transform_function(None)
-
-        self.mp = mp
-
-        pulse = dut_qubit.get_default_c1()['X'].clone()
-
-        lpb = pulse + mp
-        swp_freq = Sweeper(np.arange, n_kwargs={'start': start, 'stop': stop, 'step': step}, params=[
-            SweepParametersSideEffectFactory.func(mp.update_freq, {}, 'freq')])
-
-        swp_amp = Sweeper(np.arange,
-                          n_kwargs={'start': qubit_amp_start, 'stop': qubit_amp_stop, 'step': qubit_amp_step}, params=[
-                SweepParametersSideEffectFactory.func(pulse.update_pulse_args, {}, 'amp')])
-
-        with ExperimentManager().status().with_parameters(
-                shot_number=num_avs,
-                shot_period=rep_rate,
-                acquisition_type='IQ_average'
-        ):
-            ExperimentManager().run(lpb, swp_amp + swp_freq)
-
-        self.trace = np.squeeze(mp.result())
-        self.result = {'Magnitude': np.absolute(self.trace), 'Phase': np.angle(self.trace)}
-
-    @register_browser_function(available_after=(run,))
-    def plot_magnitude(self):
-        trace = np.squeeze(self.mp.result())
-        data = np.abs(trace)
-        return self._plot(data, name='magnitude')
-
-    @register_browser_function(available_after=(run,))
-    def plot_magnitude_logscale(self):
-        trace = np.squeeze(self.mp.result())
-        data = np.abs(trace)
-        return self._plot(np.log(data), name='logscale magnitude')
-
-    @register_browser_function(available_after=(run,))
-    def plot_phase(self):
-        trace = np.squeeze(self.mp.result())
-        data = np.unwrap(np.angle(trace))
-        return self._plot(data=data, name='phase')
-
-    def _plot(self, data, name, log_scale=False):
-        args = self.retrieve_args(self.run)
-        f = np.arange(args['start'], args['stop'], args['step'])
-        amps = np.arange(args['qubit_amp_start'], args['qubit_amp_stop'], args['qubit_amp_step'])
-
-        fig = go.Figure(data=go.Heatmap(
-            z=data,
-            x=f,
-            y=amps,
-            colorscale='Viridis'))
-
-        fig.update_layout(xaxis_title='Frequency [MHz]',
-                          yaxis_title='Qubit driving amplitude [a.u.]',
-                          title=f'Qubit spectroscopy {name} sweep')
-
-        return fig
 
 
 class QubitSpectroscopyAmplitudeFrequency(Experiment):
