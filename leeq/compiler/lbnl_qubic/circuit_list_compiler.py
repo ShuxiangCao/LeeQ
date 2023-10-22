@@ -139,6 +139,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
         env_func = PulseShapeFactory().get_pulse_shape_function(pulse_shape_name)
 
+        @functools.wraps(env_func)
         def func(dt, **kwargs):
             """
             Evaluate the pulse shape function with the given parameters.
@@ -344,7 +345,14 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         ):
             phase_shift += self._phase_shift[lpb.channel][lpb.transition_name]
 
-        env = {"env_func": self._get_envelope_function(parameters['shape']), "paradict": parameters}
+        # Here we can't put all the parameters through, as they will be used as hashes to determine if the
+        # waveform has changed. We only put the parameters that are used in the waveform generation.
+        env_func = self._get_envelope_function(parameters['shape'])
+        required_parameters = inspect.signature(env_func).parameters
+        parameters_keeping = {key: parameters[key] for key in required_parameters if (key in parameters) and \
+                              key not in ['amp', 'freq', 'phase']}
+
+        env = {"env_func": env_func, "paradict": parameters_keeping}
 
         qubic_pulse_dict = {
             "name": "pulse",
@@ -425,6 +433,16 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                 channel=lpb.channel, parameters=lpb.get_parameters()
             )
 
+        # Here we can't put all the parameters through, as they will be used as hashes to determine if the
+        # waveform has changed. We only put the parameters that are used in the waveform generation.
+        env_func = self._get_envelope_function(modified_parameters['shape'])
+        required_parameters = inspect.signature(env_func).parameters
+        parameters_keeping = {key: modified_parameters[key] for key in required_parameters
+                              if (key in modified_parameters) and \
+                              key not in ['amp', 'freq', 'phase']}
+
+        env = {"env_func": env_func, "paradict": parameters_keeping}
+
         drive_pulse = {
             "name": 'pulse',
             "freq": (modified_parameters['freq'] * 1e6),  # In Hz,
@@ -432,8 +450,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             "dest": primitive_scope + ".rdrv",
             "twidth": modified_parameters['width'] / 1e6,  # In seconds
             "amp": modified_parameters['amp'],
-            "env": [{"env_func": self._get_envelope_function(modified_parameters['shape']),
-                     "paradict": modified_parameters}],
+            "env": [env],
         }
 
         # A delay is introduced between the start of the drive and start of the measurement.

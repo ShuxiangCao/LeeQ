@@ -36,7 +36,7 @@ class QubitSpectroscopyFrequency(Experiment):
 
     @log_and_record
     def run(self, dut_qubit: Any, res_freq: Optional[float] = None, start: float = 3.e3, stop: float = 8.e3,
-            step: float = 5., num_avs: int = 500,
+            step: float = 5., num_avs: int = 1000,
             rep_rate: float = 0., mp_width: float = 0.5, amp: float = 0.01) -> None:
         """
         Conducts a frequency sweep on the designated qubit and records the response.

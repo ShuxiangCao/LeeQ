@@ -6,7 +6,7 @@ import numpy as np
 
 from leeq.compiler.lbnl_qubic.circuit_list_compiler import QubiCCircuitListLPBCompiler
 from leeq.core.context import ExperimentContext
-from leeq.core.engine.grid_sweep_engine import GridSerialSweepEngine
+from leeq.core.engine.grid_sweep_engine import GridSerialSweepEngine, GridBatchSweepEngine
 from leeq.core.engine.measurement_result import MeasurementResult
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import Sweeper
@@ -32,7 +32,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
             channel_configs: Any = None,
             fpga_config: Any = None,
             leeq_channel_to_qubic_channel: Dict[str, str] = None,
-            qubic_core_number: int = 8
+            qubic_core_number: int = 8,
+            batch_process=True,
     ):
         """
         Initialize the QubiCCircuitSetup class.
@@ -43,6 +44,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
             channel_configs (dict): The configuration of the channels for qubic system. Refer to QubiC documents.
             runner (Any): The runner to use. Refer to QubiC documents.
             leeq_channel_to_qubic_channel (Dict[str, str]): The mapping from leeq channel to qubic channel.
+            qubic_core_number (int): The number of qubic cores to use.
+            batch_process (bool): Whether to use batch processing engine.
         """
         self._fpga_config = fpga_config
         self._channel_configs = channel_configs
@@ -59,9 +62,15 @@ class QubiCCircuitSetup(ExperimentalSetup):
         self._compiler = QubiCCircuitListLPBCompiler(
             leeq_channel_to_qubic_channel=self._leeq_channel_to_qubic_channel
         )
-        self._engine = GridSerialSweepEngine(
-            compiler=self._compiler, setup=self, name=name + ".engine"
-        )
+
+        if batch_process:
+            self._engine = GridBatchSweepEngine(
+                compiler=self._compiler, setup=self, name=name + ".engine"
+            )
+        else:
+            self._engine = GridSerialSweepEngine(
+                compiler=self._compiler, setup=self, name=name + ".engine"
+            )
 
         self._current_context = None
         self._measurement_results: List[MeasurementResult] = []
@@ -73,6 +82,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
         self._status.add_param("QubiC_Debug_Print_Circuits", False)
         self._status.add_param("QubiC_Debug_Print_Compiled_Instructions", False)
+        self._status.add_param("Engine_Batch_Size", 1)
 
         # Add channels
         for i in range(qubic_core_number):
@@ -241,24 +251,30 @@ class QubiCCircuitSetup(ExperimentalSetup):
         """
         pass
 
-    def fire_experiment(self, context=None):
+    def _run_qubic_circuits(self, circuits: list, batch_size: int, zero: bool, load_commands: bool, load_freqs: bool,
+                            load_envs: bool):
         """
-        Fire the experiment and wait for it to finish.
+        Run the qubic circuits.
+
+        Parameters:
+            circuits : The asm program to run.
+            batch_size (int): The batch size to run.
+            zero (bool): Whether to zero out the command buffer before loading the circuit.
+            load_commands (bool): Whether to load the commands.
+            load_freqs (bool): Whether to load the frequencies.
+            load_envs (bool): Whether to load the envelopes.
+
+        Returns:
+            dict: The result of the run.
         """
-        self._measurement_results.clear()
-        self._result = {}
+
         tc, qc, FPGAConfig, load_channel_configs, ChannelConfig = self._load_qubic_package()
 
-        shot_interval = self._status.get_parameters("Shot_Period") * 1e-6
-        delay_between_shots = [
-            {"name": "delay", "t": shot_interval}
-        ]
-
         if self._status.get_parameters("QubiC_Debug_Print_Circuits"):
-            pprint(context.instructions['circuits'])
+            pprint(circuits)
 
         compiled_instructions = tc.run_compile_stage(
-            delay_between_shots + context.instructions['circuits'], fpga_config=self._fpga_config, qchip=None
+            circuits, fpga_config=self._fpga_config, qchip=None
         )
 
         if self._status.get_parameters("QubiC_Debug_Print_Compiled_Instructions"):
@@ -278,23 +294,21 @@ class QubiCCircuitSetup(ExperimentalSetup):
             acquisition_type
         )
 
-        dirtiness = context.instructions["dirtiness"]
-
         if acquisition_type == "IQ" or acquisition_type == "IQ_average":
             self._runner.load_circuit(
                 rawasm=asm_prog,
                 # if True, (default), zero out all cmd buffers before loading circuit
-                zero=bool(np.sum(context.step_no) == 0),
+                zero=zero,
                 # load command buffers when the circuit or parameters (amp or phase) has changed.
-                load_commands=dirtiness['command'],
+                load_commands=load_commands,
                 # load frequency buffers when frequency changed.
-                load_freqs=dirtiness['frequency'],
+                load_freqs=load_freqs,
                 # load envelope buffers when envelope changed.
-                load_envs=dirtiness['envelope']
+                load_envs=load_envs
             )
             self._result = self._runner.run_circuit(
                 n_total_shots=n_total_shots,
-                reads_per_shot=1,
+                reads_per_shot=1 * batch_size,
                 # Number of values per shot per channel to read back from accbuf.
                 # Unless there is mid-circuit measurement involved this is typically 1
                 # TODO: add support for mid-circuit measurement
@@ -305,7 +319,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
             # (or downconverted) adc traces.
             self._result = self._runner.load_and_run_acq(
                 raw_asm_prog=asm_prog,  # The compiled program
-                n_total_shots=1,  # number of shots to run. Program is restarted from
+                n_total_shots=1 * batch_size,  # number of shots to run. Program is restarted from
                 # the beginning for each new shot
                 nsamples=8192,  # number of samples to read from the acq buffer
                 acq_chans=["0"],  # list of channels to acquire
@@ -324,12 +338,56 @@ class QubiCCircuitSetup(ExperimentalSetup):
                 # byte objects.
             )
 
+    def fire_experiment(self, context=None):
+        """
+        Fire the experiment and wait for it to finish.
+        """
+        self._measurement_results.clear()
+        self._result = {}
+
+        shot_interval = self._status.get_parameters("Shot_Period") * 1e-6
+        delay_between_shots = [
+            {"name": "delay", "t": shot_interval}
+        ]
+
+        dirtiness = context.instructions["dirtiness"]
+
+        return self._run_qubic_circuits(
+            circuits=delay_between_shots + context.instructions["circuits"],
+            batch_size=1,
+            zero=bool(np.sum(context.step_no) == 0),
+            load_commands=dirtiness['command'],
+            load_freqs=dirtiness['frequency'],
+            load_envs=dirtiness['envelope']
+        )
+
+    def _qubic_result_format_to_leeq_result_format(self, data: np.ndarray):
+        """
+        Convert the qubic result format to leeq result format.
+
+        Parameters:
+            data (np.ndarray): The data to convert.
+
+        Returns:
+            np.ndarray: The converted data.
+        """
+        acquisition_type = self._status.get_parameters("Acquisition_Type")
+
+        if acquisition_type == 'IQ_average':
+            data_collect = np.asarray([data.mean(axis=0)])
+        elif acquisition_type == 'IQ':
+            data_collect = data.transpose()
+        else:
+            msg = f'Unsupported acquisition type {acquisition_type}.'
+            logger.error(msg)
+            raise NotImplementedError(msg)
+
+        return data_collect
+
     def collect_data(self, context: ExperimentContext):
         """
         Collect the data from the compiler and commit it to the measurement primitives.
         """
-
-        acquisition_type = self._status.get_parameters("Acquisition_Type")
 
         # We accept one readout per channel for now
         qubic_channel_to_lpb_uuid = context.instructions['qubic_channel_to_lpb_uuid']
@@ -343,18 +401,10 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
             mprim_uuid = qubic_channel_to_lpb_uuid[qubic_channel]
 
-            if acquisition_type == 'IQ_average':
-                data_collect = np.asarray([data.mean(axis=0)])
-            elif acquisition_type == 'IQ':
-                data_collect = data.transpose()
-            else:
-                msg = f'Unsupported acquisition type {acquisition_type}.'
-                logger.error(msg)
-                raise NotImplementedError(msg)
-
             measurement = MeasurementResult(
                 step_no=context.step_no,
-                data=data_collect,  # First index is different measurement, second index for data
+                # First index is different measurement, second index for data
+                data=self._qubic_result_format_to_leeq_result_format(data),
                 mprim_uuid=mprim_uuid
             )
 
@@ -363,6 +413,94 @@ class QubiCCircuitSetup(ExperimentalSetup):
         context.results = self._measurement_results
 
         return context
+
+    def fire_experiment_batch(self, contexts):
+        """
+        Fire the experiment and wait for it to finish. This method concatenate the circuits and build a long circuits
+        each time, where the results for each individual circuits are from the intermediate measurement results.
+
+        Parameters:
+            contexts (List[ExperimentContext]): The contexts to run.
+        """
+
+        shot_interval = self._status.get_parameters("Shot_Period") * 1e-6
+        delay_between_shots = [
+            {"name": "delay", "t": shot_interval}
+        ]
+
+        # Work out the combined circuits
+        combined_circuits = []
+
+        for context in contexts:
+            combined_circuits += delay_between_shots + context.instructions["circuits"]
+
+        # The dirtiness is true when at least one of the circuits is dirty
+        merged_dirtiness = {
+            k: any([context.instructions["dirtiness"][k] for context in contexts]) for k in
+            contexts[0].instructions["dirtiness"].keys()
+        }
+
+        return self._run_qubic_circuits(
+            circuits=combined_circuits,
+            batch_size=len(contexts),
+            zero=bool(np.sum(contexts[0].step_no) == 0),
+            load_commands=merged_dirtiness['command'],
+            load_freqs=merged_dirtiness['frequency'],
+            load_envs=merged_dirtiness['envelope']
+        )
+
+    def collect_data_batch(self, contexts):
+        """
+        Collect the data from the compiler and commit it to the measurement primitives. This method splits the results
+        into individual results and commit them to the individual contexts.
+
+        Parameters:
+            contexts (List[ExperimentContext]): The contexts to run.
+
+        Returns:
+            List[ExperimentContext]: The contexts with the results.
+        """
+
+        # Validate that all the context has the same qubic_channel_to_lpb_uuid
+        qubic_channel_to_lpb_uuid = contexts[0].instructions['qubic_channel_to_lpb_uuid']
+
+        for context in contexts[1:]:
+            assert context.instructions['qubic_channel_to_lpb_uuid'] == qubic_channel_to_lpb_uuid, \
+                "All the contexts should have the same channel mapping. You might be using different mprims in a batch" \
+                "run setup, which is not supported yet."
+
+        qubic_channel_to_lpb_uuid = contexts[0].instructions['qubic_channel_to_lpb_uuid']
+
+        for context in contexts:
+            context.results = []
+
+        for core_ind, data in self._result.items():
+            qubic_channel = self._core_to_channel_map[int(core_ind)]
+
+            if qubic_channel not in qubic_channel_to_lpb_uuid:
+                # Sometimes qubic returns default data from the board, which we are not measuring
+                continue
+
+            mprim_uuid = qubic_channel_to_lpb_uuid[qubic_channel]
+
+            for i in range(len(contexts)):
+                context = contexts[i]
+
+                # data shape = (n_samples, n_measurement_number)
+
+                data_step = data[:, i].reshape((-1, 1))  # Reshape the data to be 2D array, assume 1 measurement
+                # each circuit
+
+                measurement = MeasurementResult(
+                    step_no=context.step_no,
+                    # First index is different measurement, second index for data
+                    data=self._qubic_result_format_to_leeq_result_format(data_step),
+                    mprim_uuid=mprim_uuid
+                )
+
+                context.results.append(measurement)
+
+        return contexts
 
 
 class QubiCSingleBoardRemoteRPCSetup(QubiCCircuitSetup):

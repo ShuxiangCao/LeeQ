@@ -73,22 +73,26 @@ class EngineBase(LeeQObject):
 
         raise NotImplementedError()
 
-    def _compile_lpb(self, lpb: LogicalPrimitiveBlock):
+    def _compile_lpb(self, lpb: LogicalPrimitiveBlock, context=None):
         """
         Compile the logical primitive block to instructions that going to be passed to the compiler.
 
         Parameters:
             lpb (LogicalPrimitiveBlock): The logical primitive block to run.
+            context (ExperimentContext): The context of the experiment.
 
         Returns:
             Any: The compiled instructions.
         """
 
+        if context is None:
+            context = self._context
+
         if self._compiler is None:
             # No compling, directly use the lpb
-            self._context.instructions = lpb
+            context.instructions = lpb
 
-        return self._compiler.compile_lpb(self._context, lpb)
+        return self._compiler.compile_lpb(context, lpb)
 
     def _update_setup_parameters(self):
         """

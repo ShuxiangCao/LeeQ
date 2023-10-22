@@ -272,8 +272,8 @@ def soft_square(
 def square(
         sampling_rate: int,
         amp: float,
-        phase: Optional[float] = None,
         width: Optional[float] = None,
+        phase: Optional[float] = 0,
         delay: float = 0.0,
         phase_shift: float = 0,
         dc_bias: float = 0,
