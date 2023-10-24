@@ -1,4 +1,5 @@
 import json
+import pathlib
 from datetime import datetime
 from pathlib import Path
 from typing import Union, Optional
@@ -205,7 +206,8 @@ class Element(LeeQObject):
         latest_file_name = None
         latest_time = None
 
-        for file_name in base_path.iterdir():
+        for path in base_path.iterdir():
+            file_name = pathlib.Path(path).name
             splits = str(file_name).split(".")
 
             if len(splits) != 3:
@@ -221,7 +223,7 @@ class Element(LeeQObject):
             try:
                 parsed_time = datetime.strptime(timestr, cls._time_format_str)
             except ValueError:
-                continue
+                print(f"Invalid time format {timestr}.")
 
             if latest_time is None or parsed_time > latest_time:
                 latest_time = parsed_time
