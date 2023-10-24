@@ -20,7 +20,7 @@ class NormalisedRabi(Experiment):
             fit: bool = True,
             collection_name: str = 'f01',
             mprim_index: int = 0,
-            pulse_discretization: bool = False,
+            pulse_discretization: bool = True,
             update=False,
             initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         """
@@ -100,6 +100,7 @@ class NormalisedRabi(Experiment):
             two_pi_area = amp * (1 / self.fit_params['Frequency'])
             new_amp = two_pi_area / 2 / normalised_pulse_area
             c1.update_parameters(amp=new_amp)
+            print(f"Amplitude updated: {new_amp}")
 
     @register_browser_function()
     def plot(self) -> go.Figure:

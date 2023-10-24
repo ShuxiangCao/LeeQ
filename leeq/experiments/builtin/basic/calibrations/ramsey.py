@@ -93,6 +93,7 @@ class SimpleRamseyMultilevel(Experiment):
         if update:
             self.analyze_data()
             c1q.update_parameters(freq=self.frequency_guess)
+            print(f"Frequency updated: {self.frequency_guess} MHz")
         else:
             c1q.update_parameters(freq=original_freq)
 

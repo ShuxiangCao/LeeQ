@@ -218,7 +218,7 @@ class GridBatchSweepEngine(EngineBase):
 
             with tqdm(total=total_size) as pbar:
                 def _run_steps(i, step_batch_no):
-                    indices = step_batch_no[-1]
+                    indices = step_batch_no[0]
                     self._step_no = indices
                     annotations = {'index': str(indices)}
                     # Call the side effect callbacks

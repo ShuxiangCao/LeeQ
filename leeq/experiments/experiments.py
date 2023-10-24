@@ -202,10 +202,10 @@ class ExperimentManager(Singleton):
             # The experiment has not been registered for plotting
             return fig
 
-        try:
-            fig = self._active_experiment_instance.live_plots(step_no)
-        except Exception as e:
-            logger.warning(e)
+        #try:
+        fig = self._active_experiment_instance.live_plots(step_no)
+        #except Exception as e:
+        #    logger.warning(e)
 
         return fig
 

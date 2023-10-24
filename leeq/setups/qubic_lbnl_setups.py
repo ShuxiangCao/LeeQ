@@ -425,7 +425,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
         shot_interval = self._status.get_parameters("Shot_Period") * 1e-6
         delay_between_shots = [
-            {"name": "delay", "t": shot_interval}
+            {"name": "delay", "t": shot_interval},
+            {"name": "barrier"}
         ]
 
         # Work out the combined circuits

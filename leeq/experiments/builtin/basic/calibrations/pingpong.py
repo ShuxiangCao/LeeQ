@@ -1,0 +1,238 @@
+import math
+from labchronicle import log_and_record, register_browser_function
+from leeq import Experiment, Sweeper, basic_run
+from leeq.core.elements.built_in.qudit_transmon import TransmonElement
+from scipy import optimize as so
+
+import matplotlib.pyplot as plt
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlock
+
+import numpy as np
+from scipy.optimize import curve_fit
+from typing import List, Optional, Any, Tuple
+
+from leeq.utils.compatibility import prims
+
+
+class PingPongSingleQubitMultilevel(Experiment):
+    """
+    Class representing a Ping Pong experiment with a single qubit in a multilevel setup.
+
+    Attributes:
+        pulse_count (int): Number of pulses in the experiment.
+        amplitude (float): Current amplitude of the repeated block.
+    """
+
+    @log_and_record
+    def run(self,
+            dut: TransmonElement,
+            collection_name: str,
+            initial_lpb: LogicalPrimitiveBlock,
+            repeated_block: LogicalPrimitiveBlock,
+            final_gate: str,
+            initial_gate: str,
+            pulse_count: int,
+            mprim_index: Optional[int] = 0,
+            ) -> None:
+        """
+        Runs the ping pong single qubit experiment.
+
+        Parameters:
+            dut: Device under test.
+            collection_name: Name of the lpb collection.
+            mprim_index: Index of the primary element.
+            initial_lpb: Initial lower pulse block.
+            initial_gate: Initial gate identifier.
+            repeated_block: Block of repeated pulses.
+            final_gate: Final gate identifier.
+            pulse_count: Number of pulses.
+        """
+
+        c1 = dut.get_c1(collection_name)
+        cur_amp = repeated_block.get_pulse_args('amp')  # Getting amplitude argument from the repeated block
+
+        # Getting the logical primitive for the initial and final gates
+        initial_gate_lpb = c1[initial_gate]
+        final_gate_lpb = c1[final_gate]
+
+        # Getting the measurement primitive
+        mprim = dut.get_measurement_prim_intlist(mprim_index)
+
+        sequence_lpb = []
+
+        # Pulse count is a list of integers, each one denotes a number of repetitions
+        for n in pulse_count:
+            sequence = initial_gate_lpb + LogicalPrimitiveBlockSerial(
+                [repeated_block] * n) + final_gate_lpb
+
+            if initial_lpb is not None:
+                sequence = initial_lpb + sequence
+
+            sequence_lpb.append(sequence)
+
+        lpb = prims.SweepLPB(sequence_lpb)
+
+        swp = Sweeper.from_sweep_lpb(lpb)
+
+        lpb = lpb + mprim
+
+        basic_run(lpb, swp, '<z>')
+
+        self.result = mprim.result()
+        self.pulse_count = pulse_count
+        self.amplitude = cur_amp
+
+        self.fit()
+
+    @staticmethod
+    def lin(xvec: np.ndarray, a: float, b: float) -> np.ndarray:
+        """Linear function for fitting.
+
+        Args:
+            xvec: The x values.
+            a: Slope of the line.
+            b: Y-intercept of the line.
+
+        Returns:
+            Resulting y values.
+        """
+        return a * xvec + b
+
+    def fit(self):
+        """
+        Fits the results using a linear function.
+        """
+        x = self.pulse_count + 0.5
+        self.fit_result = np.polyfit(x, self.result, 1)
+
+    @register_browser_function(
+        available_after=(run,))
+    def plot(self) -> None:
+        """
+        Plots the results of the ping pong experiment.
+        """
+
+        x = self.pulse_count + 0.5  # Adjusting pulse count for plotting
+
+        fig, axes = plt.subplots(nrows=1, ncols=1)
+
+        axes.scatter(x, self.result, alpha=0.5)
+        axes.plot(x, self.fit_result[0] * x + self.fit_result[1], 'r-')
+        axes.set_ylim(-1.1, 1.1)
+        axes.set_xlabel(u"Repetition")
+        axes.set_ylabel(u"<z>")
+
+        plt.show()
+
+
+class AmpTuneUpSingleQubitMultilevel(Experiment):
+    """
+    This class represents an amplitude tuning experiment for a single qubit multilevel system.
+    """
+
+    @log_and_record
+    def run(self,
+            dut: TransmonElement,
+            iteration: int = 10,
+            points: int = 10,
+            mprim_index: int = 0,
+            collection_name: str = 'f01',
+            repeated_gate: str = 'X',
+            initial_lpb: Optional[LogicalPrimitiveBlock] = None,
+            flip_other: bool = False) -> None:
+        """
+        Run the amplitude tuning experiment.
+
+        Parameters:
+            dut (object): The device under test.
+            name (str): The name of the experiment.
+            mprim_index (int): The index of the mprim.
+            initial_lpb (float): The initial length per block.
+            repeated_gate (str): The repeated gate.
+            iteration (int): The number of iterations.
+            points (int): The number of points to run for each pingpong fit.
+            flip_other (bool): Whether to flip the other side.
+        """
+        factor = 1 if repeated_gate in ('X', 'Y') else 2  # Make sure each time we have a full pi rotation
+
+        final_gate = ''
+        if repeated_gate in ('X', 'Xp'):
+            final_gate = 'Xp'
+        elif repeated_gate in ('Y', 'Yp'):
+            final_gate = 'Yp'
+        elif repeated_gate in ('-X', 'Xm'):
+            final_gate = 'Xm'
+        elif repeated_gate in ('-Y', 'Ym'):
+            final_gate = 'Ym'
+
+        c1 = dut.get_c1(collection_name)
+
+        cur_amp = c1[repeated_gate].primary_kwargs()['amp']
+
+        repeated_block = c1[repeated_gate]
+
+        self.tune_up_results = []
+        self.fit_params = []
+        self.pulse_counts = []
+        self.amps = []
+
+        flip = [False] if not flip_other else [False, True]
+
+        for t in flip:
+            reps = 4 * factor
+            for i in range(iteration):
+                self.amps.append(cur_amp)
+                interval = math.ceil(reps / points)
+                interval += (interval % 2)  # round up interval to an even number
+
+                interval = max(interval, 2 * factor)
+
+                pulse_count = np.arange(0, reps, interval)
+
+                print('pulse_count:', pulse_count)
+
+                trial = PingPongSingleQubitMultilevel(
+                    dut=dut, collection_name=collection_name, mprim_index=mprim_index,
+                    initial_lpb=initial_lpb, initial_gate='I',
+                    repeated_block=repeated_block,
+                    final_gate=final_gate, pulse_count=pulse_count
+                )
+
+                k, b = trial.fit_result
+                self.error = k[0]
+                self.tune_up_results.append(trial.result)
+                self.fit_params.append(trial.fit_result)
+                self.pulse_counts.append(trial.pulse_count)
+
+                correction = np.arcsin(self.error) / np.pi * factor
+                correction_factor = 1 + correction
+
+                transition_photon_number = int(collection_name[2]) - int(collection_name[1])
+
+                if transition_photon_number > 1:
+                    raise NotImplementedError("Not implemented for transition photon number > 1")
+                else:
+                    cur_amp *= correction_factor
+
+                print(f"Update amplitude to {cur_amp}")
+                c1[repeated_gate].update_parameters(amp=cur_amp)
+                reps *= 2
+
+        self.iteration = iteration * len(flip)
+        self.best_amp = self.amps[-1]
+        c1.update_parameters(amp=self.best_amp)
+
+    @register_browser_function(available_after=(run,))
+    def plot_amp(self) -> None:
+        """
+        Plot the amplitude over the iterations.
+
+        Return:
+            None
+        """
+        plt.plot(range(self.iteration), self.amps)
+        plt.xlabel('Iteration')
+        plt.ylabel('Amplitude [a.u.]')
+        plt.title('Updated amplitude over iterations')
+
+        plt.show()
