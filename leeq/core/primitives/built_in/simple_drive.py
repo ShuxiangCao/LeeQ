@@ -1,3 +1,5 @@
+import uuid
+
 import numpy as np
 
 from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
@@ -6,7 +8,7 @@ from leeq.core.primitives.built_in.compatibility import PulseArgsUpdatable
 from leeq.core.primitives.logical_primitives import (
     LogicalPrimitive,
     LogicalPrimitiveFactory,
-    MeasurementPrimitive,
+    MeasurementPrimitive, LogicalPrimitiveClone,
 )
 from leeq.core.primitives.collections import LogicalPrimitiveCollection
 
@@ -61,6 +63,28 @@ class SimpleDrive(LogicalPrimitive, PulseArgsUpdatable):
                     parameter_name in parameters
             ), f"The parameter {parameter_name} is not found."
 
+    def clone_with_parameters(self, parameters: dict, name_postfix=None):
+        """
+        Copy the logical primitive with the parameters updated.
+
+        Parameters:
+            parameters (dict): The parameters to be updated.
+            name_postfix (str): The postfix to be added to the name of the logical primitive.
+
+        Returns:
+            LogicalPrimitive: The copied logical primitive.
+        """
+
+        if name_postfix is None:
+            name_postfix = f"_clone_{uuid.uuid4()}"
+
+        cloned_primitive = SimpleDriveClone(name=self._name + name_postfix, parameters=parameters, original=self)
+        return cloned_primitive
+
+
+class SimpleDriveClone(LogicalPrimitiveClone, PulseArgsUpdatable):
+    pass
+
 
 class SimpleDriveCollection(LogicalPrimitiveCollection):
     def __init__(self, name: str, parameters: dict):
@@ -93,30 +117,30 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
         """
 
         if item == "I":
-            return self._primitives["drive"].copy_with_parameters(
+            return self._primitives["drive"].clone_with_parameters(
                 {"amp": 0}, name_postfix="_I"
             )
         elif item == "X":
             return self._primitives["drive"]
         elif item == "Y":
-            return self._primitives["drive"].copy_with_parameters(
+            return self._primitives["drive"].clone_with_parameters(
                 {"phase": np.pi / 2}, name_postfix="_Y"
             )
         elif item == "Xp":
-            return self._primitives["drive"].copy_with_parameters(
+            return self._primitives["drive"].clone_with_parameters(
                 {"amp": self._parameters["amp"] / 2}, name_postfix="_Xp"
             )
         elif item == "Yp":
-            return self._primitives["drive"].copy_with_parameters(
+            return self._primitives["drive"].clone_with_parameters(
                 {"amp": self._parameters["amp"] / 2, "phase": np.pi / 2},
                 name_postfix="_Yp",
             )
         elif item == "Xm":
-            return self._primitives["drive"].copy_with_parameters(
+            return self._primitives["drive"].clone_with_parameters(
                 {"amp": -self._parameters["amp"] / 2}, name_postfix="_Xm"
             )
         elif item == "Ym":
-            return self._primitives["drive"].copy_with_parameters(
+            return self._primitives["drive"].clone_with_parameters(
                 {"amp": -self._parameters["amp"] / 2, "phase": np.pi / 2},
                 name_postfix="_Ym",
             )
@@ -137,7 +161,7 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
 
         # Multi-photon transition will have different amplitude scaling
         new_amp = gate_pi.amp * (angle / np.pi) ** (1 / level_diff)
-        return gate_pi.copy_with_parameters(
+        return gate_pi.clone_with_parameters(
             {"amp": new_amp}, name_postfix=f"_{angle}")
 
     def hadamard(self):
@@ -273,3 +297,26 @@ class SimpleDispersiveMeasurement(MeasurementPrimitive, PulseArgsUpdatable):
         assert (
                 "distinguishable_states" in parameters
         ), "The distinguishable states are not specified."
+
+    def clone_with_parameters(self, parameters: dict, name_postfix=None):
+        """
+        Copy the logical primitive with the parameters updated.
+
+        Parameters:
+            parameters (dict): The parameters to be updated.
+            name_postfix (str): The postfix to be added to the name of the logical primitive.
+
+        Returns:
+            LogicalPrimitive: The copied logical primitive.
+        """
+
+        if name_postfix is None:
+            name_postfix = f"_clone_{uuid.uuid4()}"
+
+        cloned_primitive = SimpleDispersiveMeasurementClone(name=self._name + name_postfix, parameters=parameters,
+                                                            original=self)
+        return cloned_primitive
+
+
+class SimpleDispersiveMeasurementClone(MeasurementPrimitive, PulseArgsUpdatable):
+    pass

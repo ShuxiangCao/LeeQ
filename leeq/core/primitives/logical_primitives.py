@@ -96,8 +96,7 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         Returns:
             SharedParameterObject: The cloned object.
         """
-        clone_name = self._name + f"_clone_{uuid.uuid4()}"
-        return LogicalPrimitiveClone(name=clone_name, parameters={}, original=self)
+        return self.clone_with_parameters({})
 
     def shallow_copy(self):
         """
@@ -111,7 +110,7 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         """
         return self.__class__(self._name, self._parameters)
 
-    def copy_with_parameters(self, parameters: dict, name_postfix=None):
+    def clone_with_parameters(self, parameters: dict, name_postfix=None):
         """
         Copy the logical primitive with new parameters.
 
@@ -260,8 +259,7 @@ class LogicalPrimitiveClone(LogicalPrimitive):
         Returns:
             SharedParameterObject: The cloned object.
         """
-        clone_name = self._name + f"_clone_{uuid.uuid4()}"
-        return self.__class__(clone_name, {}, self)
+        return self.clone_with_parameters({})
 
     def shallow_copy(self):
         """
@@ -275,7 +273,7 @@ class LogicalPrimitiveClone(LogicalPrimitive):
         """
         return self.__class__(self._name, {}, self._original)
 
-    def copy_with_parameters(self, parameters: dict, name_postfix=None):
+    def clone_with_parameters(self, parameters: dict, name_postfix=None):
         """
         Copy the logical primitive with new parameters.
 
