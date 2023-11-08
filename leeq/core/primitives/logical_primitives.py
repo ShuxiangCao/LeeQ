@@ -653,7 +653,13 @@ class MeasurementPrimitive(LogicalPrimitive):
             raise RuntimeError(msg)
 
         from leeq import ExperimentManager
-        basis = ExperimentManager().status().get_parameters('Measurement_Basis')
+
+        setup = ExperimentManager().get_default_setup()
+        if setup is None:
+            # If there is no setup, we do not know the measurement basis and assume its raw
+            basis = None
+        else:
+            basis = ExperimentManager().status().get_parameters('Measurement_Basis')
 
         if self._parameters.get('_transform_function', None) is not None:
 

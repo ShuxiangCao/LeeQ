@@ -200,7 +200,7 @@ class Element(LeeQObject):
 
         if not base_path.exists():
             msg = f"Calibration log not found at {base_path}."
-            cls.logger.error(msg)
+            logger.error(msg)
             raise FileNotFoundError(msg)
 
         latest_file_name = None
@@ -276,6 +276,8 @@ class Element(LeeQObject):
 
         with open(path, "r") as f:
             calibration_log = json.load(f)
+
+        print(f'Calibration log loaded from {path}')
 
         return cls(name, calibration_log)
 

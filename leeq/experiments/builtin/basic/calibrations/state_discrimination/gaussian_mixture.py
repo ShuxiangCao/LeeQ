@@ -53,6 +53,11 @@ def fit_gmm_model(data: np.ndarray, n_components: int, initial_means: Optional[n
 
     from sklearn.mixture import GaussianMixture
 
+    if not np.iscomplexobj(data):
+        msg = "Input data should be a complex array."
+        logger.error(msg)
+        raise ValueError(msg)
+
     data = data.flatten()
     data = np.vstack([data.real, data.imag]).T  # Transform complex data to real
 

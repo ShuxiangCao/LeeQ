@@ -29,7 +29,6 @@ class SimpleT1(Experiment):
     plot_t1()
         Plots the T1 decay.
     """
-
     @log_and_record
     def run(self,
             qubit: Any,  # Add the expected type for 'qubit' instead of Any
@@ -79,6 +78,8 @@ class SimpleT1(Experiment):
         Returns:
         go.Figure: The Plotly figure object.
         """
+        self.trace = None
+        self.fit_params = {}  # Initialize as an empty dictionary or suitable default value
 
         args = self.retrieve_args(self.run)
 
@@ -107,6 +108,8 @@ class SimpleT1(Experiment):
 
         if fit:
             fit_params = fit_exp_decay_with_cov(trace, args['time_resolution'])
+
+            self.fit_params = fit_params
 
             trace_line = go.Scatter(
                 x=t,

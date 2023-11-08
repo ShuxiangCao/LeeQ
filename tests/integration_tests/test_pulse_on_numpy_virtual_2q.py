@@ -78,7 +78,7 @@ class SimpleSampleExperiment(Experiment):
 
         assert mprim.uuid in lpb.nodes
 
-        basic(lpb, None, '<zs>')
+        basic(lpb, None, None)
 
         self.results = mprim.result()
         self.raw_values = mprim.result_raw()

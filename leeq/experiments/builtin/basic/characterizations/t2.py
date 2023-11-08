@@ -115,7 +115,7 @@ class SpinEchoMultiLevel(Experiment):  # Class names should follow the CapWords 
 
         if fit:
             fit_params = fit_exp_decay_with_cov(trace, args['time_resolution'])
-
+            self.fit_params = fit_params
             trace_line = go.Scatter(
                 x=t,
                 y=fit_params['Amplitude'][0] * np.exp(-t / fit_params['Decay'][0]) + fit_params['Offset'][0],

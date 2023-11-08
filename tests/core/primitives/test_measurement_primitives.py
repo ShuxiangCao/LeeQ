@@ -95,7 +95,7 @@ def test_commit_and_result_methods_multiple_measurements(primitive):
 def test_commit_with_transfer_function(primitive):
     import numpy as np
 
-    def transfer_function(data):
+    def transfer_function(data, basis):
         return np.mean(data, axis=1).reshape([-1, 1])
 
     data_1 = np.array([1, 2, 3])

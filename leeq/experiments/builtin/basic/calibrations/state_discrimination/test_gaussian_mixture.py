@@ -12,7 +12,13 @@ def sample_data():
     # Generating some random sample data for testing purposes
     np.random.seed(0)
     data = np.random.rand(100, 2)
+
     return data
+
+
+@pytest.fixture
+def sample_complex_data_simple(sample_data):
+    return sample_data[:, 0] + 1j * sample_data[:, 1]
 
 
 @pytest.fixture
@@ -45,24 +51,25 @@ def clf(sample_data):
     return clf
 
 
-def test_fit_gmm_model(sample_data):
+def test_fit_gmm_model(sample_complex_data_simple):
     # Test successful model fitting
     n_components = 2
-    pipeline = fit_gmm_model(sample_data, n_components)
+    pipeline = fit_gmm_model(sample_complex_data_simple, n_components)
     assert isinstance(pipeline, Pipeline)
     assert pipeline['gmm'].n_components == n_components
 
-    # Test ValueError for 1D data
+    # Value error for invalid data type
     with pytest.raises(ValueError):
-        fit_gmm_model(sample_data.flatten(), n_components)
+        fit_gmm_model(sample_complex_data_simple.flatten().real, n_components)
 
     # Test ValueError for invalid n_components
     with pytest.raises(ValueError):
-        fit_gmm_model(sample_data, 0)
+        fit_gmm_model(sample_complex_data_simple, 0)
 
 
 def test_measurement_transform_gmm(sample_complex_data, clf):
     output_map = {0: 0, 1: 1}
+
     transformed_data = measurement_transform_gmm(sample_complex_data, '<zs>', clf, output_map)
     assert transformed_data.shape == sample_complex_data.shape
 

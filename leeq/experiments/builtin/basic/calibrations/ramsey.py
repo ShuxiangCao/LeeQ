@@ -176,8 +176,6 @@ class SimpleRamseyMultilevel(Experiment):
         curve fitting, and then plots the actual data along with the fitted curve.
         """
         self.analyze_data()
-        print(self.frequency_guess)
-
         args = self.retrieve_args(self.run)
 
         # Generate time points based on the experiment arguments
