@@ -24,7 +24,8 @@ def test_logical_primitive_clone():
     lp = MockLogicalPrimitive(name='primitive', parameters={'param1': 1, 'param2': 2})
     cloned_lp = lp.clone()
     assert cloned_lp._name != lp._name
-    assert cloned_lp._parameters == lp._parameters
+    assert cloned_lp._parameters == {}
+    assert cloned_lp.get_parameters() == lp._parameters
 
 
 def test_logical_primitive_block_serial_addition():

@@ -60,8 +60,8 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
             name (str): The name of the logical primitive.
             parameters (dict): The parameters of the logical primitive.
         """
-        self._validate_parameters(parameters)
         super().__init__(name, parameters)
+        self._validate_parameters(parameters)
         self._tags = {}
 
     def __getattribute__(self, item):
@@ -97,7 +97,7 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
             SharedParameterObject: The cloned object.
         """
         clone_name = self._name + f"_clone_{uuid.uuid4()}"
-        return self.__class__(clone_name, copy.deepcopy(self._parameters))
+        return LogicalPrimitiveClone(name=clone_name, parameters={}, original=self)
 
     def shallow_copy(self):
         """
@@ -122,12 +122,10 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         Returns:
             LogicalPrimitive: The copied logical primitive.
         """
-
-        new_parameters = copy.deepcopy(self._parameters)
-        elementwise_update_dict(new_parameters, parameters)
         if name_postfix is None:
             name_postfix = f"_modified_{uuid.uuid4()}"
-        return self.__class__(self._name + name_postfix, new_parameters)
+
+        return LogicalPrimitiveClone(name=self._name + name_postfix, parameters=parameters, original=self)
 
     @staticmethod
     def _validate_parameters(parameters: dict):
@@ -190,6 +188,125 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         Get the nodes of the logical primitive.
         """
         return {self.uuid: self}
+
+
+class LogicalPrimitiveClone(LogicalPrimitive):
+    """
+    A logical primitive clone is a logical primitive that is cloned from another logical primitive.
+    It stores a difference of the difference of the parameters from the original logical primitive,
+    and do not update the original logical primitive when the parameters are updated. If a parameter
+    is not specified, the parameter of the original logical primitive will be used.
+    """
+
+    def __init__(self, name: str, parameters: dict, original: LogicalPrimitive):
+        """
+        Initialize the logical primitive clone.
+
+        Parameters:
+            name (str): The name of the logical primitive clone.
+            parameters (dict): The parameters of the logical primitive clone.
+            original (LogicalPrimitive): The original logical primitive.
+        """
+        self._original = original
+        super().__init__(name, parameters)
+
+    def _validate_parameters(self, parameters: dict):
+        """
+        Validate the parameters of the logical primitive clone.
+        """
+        # Check that the parameters are a subset or equal to the parameters of the original logical primitive
+        if not set(parameters.keys()).issubset(set(self._original.get_parameters().keys())):
+            if not set(parameters.keys()) == set(self._original.get_parameters().keys()):
+                msg = (
+                    f"The parameters of the logical primitive clone {self._name} "
+                    f"is not a subset of the parameters of the original logical primitive {self._original._name}."
+                )
+                logger.error(msg)
+                raise ValueError(msg)
+
+    def __getattribute__(self, item):
+        """
+        Get the value of the parameter.
+
+        Parameters:
+            item (str): The name of the parameter.
+
+        Returns:
+            The value of the parameter.
+
+        Raises:
+            AttributeError: If the parameter is not found.
+        """
+
+        reserved_names = ["_parameters", "__dict__"]
+
+        get_attribute = super(LogicalPrimitive, self).__getattribute__
+
+        if item not in reserved_names:
+            if "_parameters" in get_attribute("__dict__"):
+                if item in get_attribute("_parameters"):
+                    return get_attribute("_parameters")[item]
+                else:
+                    original_parameters = get_attribute("_original").get_parameters()
+                    if item in original_parameters:
+                        return original_parameters[item]
+
+        return get_attribute(item)
+
+    def clone(self):
+        """
+        Clone the object. The returned object is safe to modify.
+
+        Returns:
+            SharedParameterObject: The cloned object.
+        """
+        clone_name = self._name + f"_clone_{uuid.uuid4()}"
+        return self.__class__(clone_name, {}, self)
+
+    def shallow_copy(self):
+        """
+        Copy the logical primitive without copying the parameters. Updating
+        the parameters of the copied logical primitive will also update the
+        parameters of the original logical primitive, and the full element
+        configuration. The tags will not be copied.
+
+        Returns:
+            LogicalPrimitive: The copied logical primitive.
+        """
+        return self.__class__(self._name, {}, self._original)
+
+    def copy_with_parameters(self, parameters: dict, name_postfix=None):
+        """
+        Copy the logical primitive with new parameters.
+
+        Parameters:
+            parameters (dict): The new parameters.
+            name_postfix (str, Optional): The postfix of the name of the copied logical primitive.
+
+        Returns:
+            LogicalPrimitive: The copied logical primitive.
+        """
+
+        if name_postfix is None:
+            name_postfix = f"_clone_{uuid.uuid4()}"
+        return self.__class__(self._name + name_postfix, parameters, self)
+
+    def get_parameters(self):
+        """
+        Get the parameters of the logical primitive.
+
+        Returns:
+            dict: The parameters of the logical primitive.
+        """
+        params = self._original.get_parameters()
+        elementwise_update_dict(params, self._parameters)
+
+        # Remove the parameters starts with '_'
+        for key in list(params.keys()):
+            if key.startswith('_'):
+                del params[key]
+
+        return params
 
 
 class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
