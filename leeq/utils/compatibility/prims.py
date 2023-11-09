@@ -3,6 +3,8 @@ from leeq.core.primitives.built_in.common import Delay
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, \
     LogicalPrimitiveBlockParallel as ParallelLPB, LogicalPrimitiveBlockSerial as SerialLPB
 
+SeriesLPB = SerialLPB
+
 
 class SweepLPB:
     """
