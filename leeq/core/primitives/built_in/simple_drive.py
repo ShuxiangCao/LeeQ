@@ -137,7 +137,7 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
             )
         elif item == "Xm":
             return self._primitives["drive"].clone_with_parameters(
-                {"amp": -self._parameters["amp"] / 2}, name_postfix="_Xm"
+                {"amp": self._parameters["amp"] / 2, "phase": np.pi}, name_postfix="_Xm"
             )
         elif item == "Ym":
             return self._primitives["drive"].clone_with_parameters(

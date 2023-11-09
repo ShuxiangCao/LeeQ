@@ -188,7 +188,10 @@ class GridBatchSweepEngine(EngineBase):
                 context.reset()
                 context.set_lpb(lpb=lpb)
                 context.set_step_no(step_batch_no[i])
-                annotation = sweep.execute_side_effects_by_step_no(context.step_no)
+                if sweep is not None:
+                    annotation = sweep.execute_side_effects_by_step_no(context.step_no)
+                else:
+                    annotation = {}
                 contexts[i] = self._compile_lpb(lpb=lpb, context=context)
 
             self._update_setup_parameters()  # TODO: Check that peripherals are not changed
