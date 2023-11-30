@@ -206,7 +206,10 @@ def elementwise_update_dict(original_dict: dict, update_value: dict):
     """
     for key, value in update_value.items():
         if isinstance(value, dict):
-            elementwise_update_dict(original_dict[key], value)
+            if key not in original_dict:
+                original_dict[key] = value
+            else:
+                elementwise_update_dict(original_dict[key], value)
         else:
             original_dict[key] = value
 

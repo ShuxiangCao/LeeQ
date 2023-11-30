@@ -1,6 +1,7 @@
 import datetime
 import inspect
 
+import matplotlib
 import numpy as np
 import plotly
 
@@ -85,7 +86,7 @@ class Experiment(LeeQObject):
 
                 try:
                     result = func(*f_args, **filtered_kwargs)
-                    if isinstance(result, plotly.graph_objs.Figure):
+                    if isinstance(result, plotly.graph_objs.Figure) or isinstance(result, matplotlib.figure.Figure):
                         result.show()
                 except Exception as e:
                     self.logger.warning(

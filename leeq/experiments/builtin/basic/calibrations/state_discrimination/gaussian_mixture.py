@@ -407,7 +407,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         """
         from matplotlib import pyplot as plt
 
-        plt.figure()
+        fig = plt.figure()
         colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
                   '#17becf']
 
@@ -415,7 +415,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
             result_data = self.result
 
         for i in range(result_data.shape[1]):
-            ax = plt.subplot(int(f"1{result_data.shape[1]}{i + 1}"))
+            ax = fig.add_subplot(int(f"1{result_data.shape[1]}{i + 1}"))
 
             ax.set_title(f"Distribution {i}")
             data = np.vstack([
@@ -446,8 +446,9 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                 ax.legend()
                 ax.axis('equal')
 
-            plt.tight_layout()
-        plt.show()
+        plt.tight_layout()
+
+        return fig
 
     def gmm_iq_plotly(self, result_data=None) -> go.Figure:
         """

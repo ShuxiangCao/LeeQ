@@ -8,7 +8,7 @@ from leeq.core.primitives.built_in.compatibility import PulseArgsUpdatable
 from leeq.core.primitives.logical_primitives import (
     LogicalPrimitive,
     LogicalPrimitiveFactory,
-    MeasurementPrimitive, LogicalPrimitiveClone,
+    MeasurementPrimitive, LogicalPrimitiveClone, MeasurementPrimitiveClone,
 )
 from leeq.core.primitives.collections import LogicalPrimitiveCollection
 
@@ -318,5 +318,5 @@ class SimpleDispersiveMeasurement(MeasurementPrimitive, PulseArgsUpdatable):
         return cloned_primitive
 
 
-class SimpleDispersiveMeasurementClone(MeasurementPrimitive, PulseArgsUpdatable):
+class SimpleDispersiveMeasurementClone(MeasurementPrimitiveClone, PulseArgsUpdatable):
     pass

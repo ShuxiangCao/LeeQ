@@ -1,5 +1,6 @@
 import copy
 import uuid
+from typing import Dict, Any, Union
 
 import numpy
 from labchronicle import log_event
@@ -804,6 +805,29 @@ class MeasurementPrimitive(LogicalPrimitive):
                 raise RuntimeError(msg)
 
         self._raw_measurement_buffer[indices] = data
+
+
+class MeasurementPrimitiveClone(LogicalPrimitiveClone, MeasurementPrimitive):
+    """
+    A measurement primitive clone is a measurement primitive that is cloned from another measurement primitive.
+    """
+
+    def _validate_parameters(self, parameters: dict):
+        pass
+
+    def __init__(self, name: str, parameters: dict,
+                 original: Union[MeasurementPrimitive, 'MeasurementPrimitiveClone']):
+        """
+        Initialize the measurement primitive clone.
+        """
+        # super(MeasurementPrimitive, self).__init__(
+        #    name=name,
+        #    parameters=parameters,
+        # )
+        self._original = original
+        MeasurementPrimitive.__init__(self, name=name, parameters=parameters)
+        super(MeasurementPrimitiveClone, self).__init__(name=name, parameters=parameters, original=original)
+        pass
 
 
 class MeasurementPrimitiveFactory(ObjectFactory):
