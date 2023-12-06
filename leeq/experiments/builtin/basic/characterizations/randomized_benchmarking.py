@@ -166,49 +166,58 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
 
         return bins / data_measured.shape[1]
 
-    def analyze_decay(self) -> None:
+    def _analyze_decay_single_qubit(self, i):
         """
         Analyze the decay of the randomized benchmarking experiment.
 
         This method fits the data to an exponential decay function and saves
         the decay rate and the covariance matrix to instance attributes.
 
-        Attributes updated:
-            self.mean (List[float]): List of mean values of the probabilities for each sequence.
-            self.std (List[float]): List of standard deviation of the probabilities for each sequence.
-            self.popt (List[np.ndarray]): List of optimal values for the exponential decay parameters.
-            self.pcov (List[np.ndarray]): List of covariance matrices for the parameter estimates.
+        Parameters:
+            i (int): The index of the qubit to analyze.
+
+        Returns:
+            rb_mean (np.ndarray): List of mean values of the probabilities for each sequence.
+            rb_std (np.ndarray): List of standard deviation of the probabilities for each sequence.
+            rb_popt (np.ndarray): List of optimal values for the exponential decay parameters.
+            rb_pcov (np.ndarray): List of covariance matrices for the parameter estimates.
+            rb_probs (np.ndarray): List of the converted probabilities distribution of each qubit.
+
         """
+
+        assert i < self.results.shape[0], f"Unexpected qubit index {i}, maximum index {self.results.shape[0] - 1}"
+
         # Retrieving arguments and initializing variables
         args = self.retrieve_args(self.run)
         seq_length = self.seq_length
         kinds = args['kinds']
 
         # Initialize lists to store results
-        self.mean: List[float] = []
-        self.std: List[float] = []
-        self.popt: List[np.ndarray] = []
-        self.pcov: List[np.ndarray] = []
+        rb_mean: List[float] = []
+        rb_std: List[float] = []
+        rb_popt: List[np.ndarray] = []
+        rb_pcov: List[np.ndarray] = []
 
         # Define the exponential decay function
         decay_function = lambda x, a, p0, p1: a * np.exp(p0 * x) + p1
         bounds = [(-1, -1, -1), (1, 1, 1)]
 
+        results_single_qubit = self.results[i, :, :].reshape([1] + list(self.results.shape)[1:])
+
         # Reshape the results and convert to dense probabilities
-        reshaped_results = self.results.reshape(
-            [self.results.shape[0], self.results.shape[1], len(seq_length), kinds]
+        reshaped_results = results_single_qubit.reshape(
+            [results_single_qubit.shape[0], results_single_qubit.shape[1], len(seq_length), kinds]
         )
         probs = self.to_dense_probabilities(reshaped_results)
-        self.probs = probs
 
         # Process the probabilities and perform curve fitting
         for i in range(probs.shape[0]):
             # Calculate mean and standard deviation across the sequences
             rb_result = probs[i, :, :]
-            self.mean.append(rb_result.mean(axis=1))
-            self.std.append(rb_result.std(axis=1))
+            rb_mean.append(rb_result.mean(axis=1))
+            rb_std.append(rb_result.std(axis=1))
 
-        for i, mean in enumerate(self.mean):
+        for i, mean in enumerate(rb_mean):
             # Initial guess and data preparation
             if i == 0:
                 initial_guess = [1, 0, 1]
@@ -223,25 +232,69 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
                 seq_length,
                 data,
                 bounds=bounds,
-                sigma=self.std[i] + 1e-10,
+                sigma=rb_std[i] + 1e-10,
                 p0=initial_guess
             )
 
             # Append the fitting results to the instance attributes
-            self.popt.append(popt)
-            self.pcov.append(pcov)
+            rb_popt.append(popt)
+            rb_pcov.append(pcov)
+
+        return rb_mean, rb_std, rb_popt, rb_pcov, probs
+
+    def analyze_decay(self) -> None:
+        """
+        Analyze the decay of the randomized benchmarking experiment.
+
+        This method fits the data to an exponential decay function and saves
+        the decay rate and the covariance matrix to instance attributes.
+
+        Attributes updated:
+            self.mean (List[float]): List of mean values of the probabilities for each sequence.
+            self.std (List[float]): List of standard deviation of the probabilities for each sequence.
+            self.popt (List[np.ndarray]): List of optimal values for the exponential decay parameters.
+            self.pcov (List[np.ndarray]): List of covariance matrices for the parameter estimates.
+            self.probs (List[np.ndarray]): List of the converted probabilities distribution of each qubit.
+        """
+        # Retrieving arguments and initializing variables
+        args = self.retrieve_args(self.run)
+        seq_length = self.seq_length
+        kinds = args['kinds']
+
+        # Initialize lists to store results
+        self.mean: List[float] = []
+        self.std: List[float] = []
+        self.popt: List[np.ndarray] = []
+        self.pcov: List[np.ndarray] = []
+        self.probs: List[np.ndarray] = []
+
+        for i in range(self.results.shape[0]):
+            rb_mean, rb_std, rb_popt, rb_pcov, probs = self._analyze_decay_single_qubit(i)
+            self.mean.append(rb_mean)
+            self.std.append(rb_std)
+            self.popt.append(rb_popt)
+            self.pcov.append(rb_pcov)
+            self.probs.append(probs)
 
     @register_browser_function(available_after=(run,))
-    def plot(self, save_path=None):
+    def plot(self):
+        """
+        Plot the results of the randomized benchmarking experiment.
+        """
+        self.analyze_decay()
+        for i in range(self.results.shape[0]):
+            self.plot_single_qubit_result(i)
+
+    def plot_single_qubit_result(self, qubit_id, save_path=None):
         """
         Plot the results of the randomized benchmarking experiment.
 
         Args:
+            qubit_id: the id of the qubit to plot.
             save_path: Path to save the plot to.
         """
-
         try:
-            self.analyze_decay()
+            # self.analyze_decay()
             analyze_success = True
         except Exception as e:
             print(repr(e))
@@ -252,21 +305,24 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         kinds = args['kinds']
         xs = np.linspace(x[0], x[-1], 100)
 
-        levels = len(self.popt)
+        levels = len(self.popt[qubit_id])
 
         colors = ['#E31B23', '#005CAB', '#FFC325', '#56AB4B']
 
         fig = plt.figure()
         for i in range(levels):
+            mean = self.mean[qubit_id]
+            popt = self.popt[qubit_id]
+            std = self.std[qubit_id]
 
-            plt.errorbar(x, self.mean[i], self.std[i], fmt='o', markersize=4, capsize=4, color=colors[i],
+            plt.errorbar(x, mean[i], std[i], fmt='o', markersize=4, capsize=4, color=colors[i],
                          label=rf'$| {i} \rangle$')
-            for j in range(self.probs.shape[2]):
-                plt.scatter(x, self.probs[i, :, j], marker='.', color='k', alpha=0.2)
+            for j in range(self.probs[qubit_id].shape[2]):
+                plt.scatter(x, self.probs[qubit_id][i, :, j], marker='.', color='k', alpha=0.2)
 
             if analyze_success:
 
-                data = self.popt[i][0] * np.exp(self.popt[i][1] * xs) + self.popt[i][2]
+                data = popt[i][0] * np.exp(popt[i][1] * xs) + popt[i][2]
 
                 if i > 0:
                     data = 1 - data
@@ -277,12 +333,12 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
 
         plt.axhline(y=1 / d, color='k', linestyle='--')
 
-        perr = np.sqrt(np.diag(self.pcov[0]))
-        infidelity = (d - 1) / d * (1 - np.exp(self.popt[0][1]))
-        error_bar = (d - 1) / d * (perr[1] / np.exp(self.popt[0][1]))
+        perr = np.sqrt(np.diag(self.pcov[qubit_id][0]))
+        infidelity = (d - 1) / d * (1 - np.exp(self.popt[qubit_id][0][1]))
+        error_bar = (d - 1) / d * (perr[1] / np.exp(self.popt[qubit_id][0][1]))
 
         plt.title(
-            f'{args["cliff_set"]} {args["collection_name"]} randomized benchmarking \n Fidelity:{1 - infidelity} $\pm$ {error_bar}')
+            f'Qubit {qubit_id} {args["cliff_set"]} {args["collection_name"]} randomized benchmarking \n Fidelity:{1 - infidelity} $\pm$ {error_bar}')
         plt.xlabel('Sequence length')
         plt.ylabel(r'Population')
         plt.legend()
@@ -298,92 +354,235 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         infidelity_per_gate = 1 - (1 - infidelity) ** (1 / 1.825)
         infidelity_per_gate_std = (1 - infidelity_per_gate) * (1 / N_g) * error_bar / (1 - r)
 
-        print("Infidelity per clifford:", infidelity)
-        print("Error bar per clifford:", error_bar)
-        print('Infidelity per physical gate', infidelity_per_gate)
-        print('Error bar per physical gate', infidelity_per_gate_std)
+        print(f"Qubit {qubit_id}: Infidelity per clifford:", infidelity)
+        print(f"Qubit {qubit_id}: Error bar per clifford:", error_bar)
+        print(f"Qubit {qubit_id}: Infidelity per physical gate", infidelity_per_gate)
+        print(f"Qubit {qubit_id}: Error bar per physical gate", infidelity_per_gate_std)
 
         if save_path is not None:
             plt.savefig(save_path)
 
-        plt.show()
-
         return fig
 
-    @register_browser_function(available_after=(run,))
-    def plot_leakage(self, save_path=None):
-        """
-        Plot the results of the randomized benchmarking experiment.
-
-        Args:
-            save_path: Path to save the plot to.
-        """
-        try:
-            self.analyze_decay()
-            analyze_success = True
-        except Exception as e:
-            print(repr(e))
-            analyze_success = False
-
-        args = self.retrieve_args(self.run)
-        x = self.seq_length
-        kinds = args['kinds']
-        xs = np.linspace(x[0], x[-1], 100)
-
-        levels = len(self.popt)
-
-        colors = ['#E31B23', '#005CAB', '#FFC325', '#56AB4B']
-
-        fig = plt.figure()
-
-        collection_name = args["collection_name"]
-        used_sublevel = [0, int(collection_name[2])]
-
-        d = 2  # for two level system
-
-        for i in range(levels):
-
-            if i in used_sublevel:
-                continue
-
-            alpha = self.popt[i][1]
-            B = 1 - self.popt[i][2]
-            lpg = (1 - np.exp(alpha)) * B
-            print(rf'Leakage per gate level {i} :{lpg}')
-
-            plt.errorbar(x, self.mean[i], self.std[i], fmt='o', markersize=4, capsize=4, color=colors[i],
-                         label=rf'$| {i} \rangle$')
-            for j in range(self.probs.shape[2]):
-                plt.scatter(x, self.probs[i, :, j], marker='.', color='k', alpha=0.2)
-
-            if analyze_success:
-
-                data = self.popt[i][0] * np.exp(self.popt[i][1] * xs) + self.popt[i][2]
-
-                if i > 0:
-                    data = 1 - data
-
-                plt.plot(xs, data, color=colors[i])
-
-            perr = np.sqrt(np.diag(self.pcov[0]))
-            infidelity = (d - 1) / d * (1 - np.exp(self.popt[0][1]))
-            error_bar = (d - 1) / d * (perr[1] / np.exp(self.popt[0][1]))
-
-        perr = np.sqrt(np.diag(self.pcov[0]))
-        infidelity = (d - 1) / d * (1 - np.exp(self.popt[0][1]))
-        error_bar = (d - 1) / d * (perr[1] / np.exp(self.popt[0][1]))
-
-        plt.title(
-            f'{args["cliff_set"]} {args["collection_name"]} leakage randomized benchmarking')
-        plt.xlabel('Sequence length')
-        plt.ylabel(r'Population')
-        plt.legend()
-
-        print("p:", self.popt[0][1])
-
-        if save_path is not None:
-            plt.savefig(save_path)
-
-        plt.show()
-
-        return fig
+#    def analyze_decay(self) -> None:
+#        """
+#        Analyze the decay of the randomized benchmarking experiment.
+#
+#        This method fits the data to an exponential decay function and saves
+#        the decay rate and the covariance matrix to instance attributes.
+#
+#        Attributes updated:
+#            self.mean (List[float]): List of mean values of the probabilities for each sequence.
+#            self.std (List[float]): List of standard deviation of the probabilities for each sequence.
+#            self.popt (List[np.ndarray]): List of optimal values for the exponential decay parameters.
+#            self.pcov (List[np.ndarray]): List of covariance matrices for the parameter estimates.
+#        """
+#        # Retrieving arguments and initializing variables
+#        args = self.retrieve_args(self.run)
+#        seq_length = self.seq_length
+#        kinds = args['kinds']
+#
+#        # Initialize lists to store results
+#        self.mean: List[float] = []
+#        self.std: List[float] = []
+#        self.popt: List[np.ndarray] = []
+#        self.pcov: List[np.ndarray] = []
+#
+#        # Define the exponential decay function
+#        decay_function = lambda x, a, p0, p1: a * np.exp(p0 * x) + p1
+#        bounds = [(-1, -1, -1), (1, 1, 1)]
+#
+#        # Reshape the results and convert to dense probabilities
+#        reshaped_results = self.results.reshape(
+#            [self.results.shape[0], self.results.shape[1], len(seq_length), kinds]
+#        )
+#        probs = self.to_dense_probabilities(reshaped_results)
+#        self.probs = probs
+#
+#        # Process the probabilities and perform curve fitting
+#        for i in range(probs.shape[0]):
+#            # Calculate mean and standard deviation across the sequences
+#            rb_result = probs[i, :, :]
+#            self.mean.append(rb_result.mean(axis=1))
+#            self.std.append(rb_result.std(axis=1))
+#
+#        for i, mean in enumerate(self.mean):
+#            # Initial guess and data preparation
+#            if i == 0:
+#                initial_guess = [1, 0, 1]
+#                data = mean
+#            else:
+#                initial_guess = [1, 0, 0]
+#                data = 1 - mean
+#
+#            # Curve fitting while ensuring std is not zero by adding a small value
+#            popt, pcov = so.curve_fit(
+#                decay_function,
+#                seq_length,
+#                data,
+#                bounds=bounds,
+#                sigma=self.std[i] + 1e-10,
+#                p0=initial_guess
+#            )
+#
+#            # Append the fitting results to the instance attributes
+#            self.popt.append(popt)
+#            self.pcov.append(pcov)
+#
+#    @register_browser_function(available_after=(run,))
+#    def plot(self, save_path=None):
+#        """
+#        Plot the results of the randomized benchmarking experiment.
+#
+#        Args:
+#            save_path: Path to save the plot to.
+#        """
+#
+#        try:
+#            self.analyze_decay()
+#            analyze_success = True
+#        except Exception as e:
+#            print(repr(e))
+#            analyze_success = False
+#
+#        args = self.retrieve_args(self.run)
+#        x = self.seq_length
+#        kinds = args['kinds']
+#        xs = np.linspace(x[0], x[-1], 100)
+#
+#        levels = len(self.popt)
+#
+#        colors = ['#E31B23', '#005CAB', '#FFC325', '#56AB4B']
+#
+#        fig = plt.figure()
+#        for i in range(levels):
+#
+#            plt.errorbar(x, self.mean[i], self.std[i], fmt='o', markersize=4, capsize=4, color=colors[i],
+#                         label=rf'$| {i} \rangle$')
+#            for j in range(self.probs.shape[2]):
+#                plt.scatter(x, self.probs[i, :, j], marker='.', color='k', alpha=0.2)
+#
+#            if analyze_success:
+#
+#                data = self.popt[i][0] * np.exp(self.popt[i][1] * xs) + self.popt[i][2]
+#
+#                if i > 0:
+#                    data = 1 - data
+#
+#                plt.plot(xs, data, color=colors[i])
+#
+#        d = 2  # for two level system
+#
+#        plt.axhline(y=1 / d, color='k', linestyle='--')
+#
+#        perr = np.sqrt(np.diag(self.pcov[0]))
+#        infidelity = (d - 1) / d * (1 - np.exp(self.popt[0][1]))
+#        error_bar = (d - 1) / d * (perr[1] / np.exp(self.popt[0][1]))
+#
+#        plt.title(
+#            f'{args["cliff_set"]} {args["collection_name"]} randomized benchmarking \n Fidelity:{1 - infidelity} $\pm$ {error_bar}')
+#        plt.xlabel('Sequence length')
+#        plt.ylabel(r'Population')
+#        plt.legend()
+#
+#        perr = perr[1]  # np.abs(perr[1] * p)
+#
+#        r = infidelity
+#
+#        infidelity = r  # (d - 1) / d * (1 - p)
+#        error_bar = (d - 1) / d * perr
+#
+#        N_g = 1.825
+#        infidelity_per_gate = 1 - (1 - infidelity) ** (1 / 1.825)
+#        infidelity_per_gate_std = (1 - infidelity_per_gate) * (1 / N_g) * error_bar / (1 - r)
+#
+#        print("Infidelity per clifford:", infidelity)
+#        print("Error bar per clifford:", error_bar)
+#        print('Infidelity per physical gate', infidelity_per_gate)
+#        print('Error bar per physical gate', infidelity_per_gate_std)
+#
+#        if save_path is not None:
+#            plt.savefig(save_path)
+#
+#        plt.show()
+#
+#        return fig
+#
+#    @register_browser_function(available_after=(run,))
+#    def plot_leakage(self, save_path=None):
+#        """
+#        Plot the results of the randomized benchmarking experiment.
+#
+#        Args:
+#            save_path: Path to save the plot to.
+#        """
+#        try:
+#            self.analyze_decay()
+#            analyze_success = True
+#        except Exception as e:
+#            print(repr(e))
+#            analyze_success = False
+#
+#        args = self.retrieve_args(self.run)
+#        x = self.seq_length
+#        kinds = args['kinds']
+#        xs = np.linspace(x[0], x[-1], 100)
+#
+#        levels = len(self.popt)
+#
+#        colors = ['#E31B23', '#005CAB', '#FFC325', '#56AB4B']
+#
+#        fig = plt.figure()
+#
+#        collection_name = args["collection_name"]
+#        used_sublevel = [0, int(collection_name[2])]
+#
+#        d = 2  # for two level system
+#
+#        for i in range(levels):
+#
+#            if i in used_sublevel:
+#                continue
+#
+#            alpha = self.popt[i][1]
+#            B = 1 - self.popt[i][2]
+#            lpg = (1 - np.exp(alpha)) * B
+#            print(rf'Leakage per gate level {i} :{lpg}')
+#
+#            plt.errorbar(x, self.mean[i], self.std[i], fmt='o', markersize=4, capsize=4, color=colors[i],
+#                         label=rf'$| {i} \rangle$')
+#            for j in range(self.probs.shape[2]):
+#                plt.scatter(x, self.probs[i, :, j], marker='.', color='k', alpha=0.2)
+#
+#            if analyze_success:
+#
+#                data = self.popt[i][0] * np.exp(self.popt[i][1] * xs) + self.popt[i][2]
+#
+#                if i > 0:
+#                    data = 1 - data
+#
+#                plt.plot(xs, data, color=colors[i])
+#
+#            perr = np.sqrt(np.diag(self.pcov[0]))
+#            infidelity = (d - 1) / d * (1 - np.exp(self.popt[0][1]))
+#            error_bar = (d - 1) / d * (perr[1] / np.exp(self.popt[0][1]))
+#
+#        perr = np.sqrt(np.diag(self.pcov[0]))
+#        infidelity = (d - 1) / d * (1 - np.exp(self.popt[0][1]))
+#        error_bar = (d - 1) / d * (perr[1] / np.exp(self.popt[0][1]))
+#
+#        plt.title(
+#            f'{args["cliff_set"]} {args["collection_name"]} leakage randomized benchmarking')
+#        plt.xlabel('Sequence length')
+#        plt.ylabel(r'Population')
+#        plt.legend()
+#
+#        print("p:", self.popt[0][1])
+#
+#        if save_path is not None:
+#            plt.savefig(save_path)
+#
+#        plt.show()
+#
+#        return fig
+#
