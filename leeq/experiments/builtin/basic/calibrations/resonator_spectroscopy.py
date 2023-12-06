@@ -1,5 +1,7 @@
+import pickle
+
 import numpy as np
-from typing import Optional
+from typing import Optional, Union
 from scipy import optimize as so
 import plotly.graph_objects as go
 import plotly
@@ -8,7 +10,10 @@ from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.core.primitives.built_in.common import *
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import SweepParametersSideEffectFactory
-from leeq import Experiment, Sweeper, ExperimentManager
+from leeq import Experiment, Sweeper, ExperimentManager, setup
+import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from typing import List, Tuple, Dict, Any
 
 
 class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
@@ -42,7 +47,6 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             rep_rate (float): Repetition rate. Default is 10.0.
             mp_width (float): Measurement pulse width. If None, uses rep_rate. Default is None.
             initial_lpb: Initial linear phase behavior (LPB). Default is None.
-            update (bool): Whether to update. Default is True.
             amp (float): Amplitude. Default is 1.0.
         """
         # Sweep the frequency
@@ -528,3 +532,266 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         """
 
         return self.plot_phase_gradient()
+
+
+class ResonatorSweepTransmissionXiComparison(Experiment):
+    """
+    Class for comparing resonator sweep transmission with extra initial logical primitive block (LPB).
+    It includes methods to run the experiment, and to plot magnitude and phase using both
+    matplotlib and plotly.
+    """
+
+    @log_and_record
+    def run(self,
+            dut_qubit: Any,
+            lpb_scan: Union[List, Tuple, Dict],
+            start: float = 8000,
+            stop: float = 9000,
+            step: float = 5.,
+            num_avs: int = 1000,
+            rep_rate: float = 500.,
+            mp_width: Optional[float] = None,
+            amp: Optional[float] = None) -> None:
+        """
+        Runs the resonator sweep transmission experiment.
+
+        Parameters:
+            dut_qubit: The device under test (DUT) qubit.
+            lpb_scan: The LPB to be scanned.
+            start (float): Start frequency for the sweep. Default is 8000.
+            stop (float): Stop frequency for the sweep. Default is 9000.
+            step (float): Frequency step for the sweep. Default is 5.0.
+            res_power (float): Power of the resonator. Default is 15.0.
+            num_avs (int): Number of averages. Default is 1000.
+            rep_rate (float): Repetition rate. Default is 10.0.
+            mp_width (float): Measurement pulse width. If None, uses rep_rate. Default is None.
+            amp (float): Amplitude. Default is None.
+        """
+        if isinstance(lpb_scan, (tuple, list)):
+            lpb_scan = dict(enumerate(lpb_scan))
+
+        self.result_dict = {
+            key: ResonatorSweepTransmissionWithExtraInitialLPB(
+                dut_qubit=dut_qubit, start=start, stop=stop, step=step,
+                num_avs=num_avs, rep_rate=rep_rate,
+                mp_width=mp_width, initial_lpb=lpb, amp=amp
+            ) for key, lpb in lpb_scan.items()
+        }
+
+    @register_browser_function(available_after=(run,))
+    def plot_magnitude_plotly(self) -> None:
+        """
+        Plots the magnitude of the resonator spectroscopy using Plotly.
+        """
+        args = self.retrieve_args(self.run)
+        f = np.arange(args['start'], args['stop'], args['step'])
+
+        fig = go.Figure()
+
+        for key, sweep in self.result_dict.items():
+            fig.add_trace(go.Scatter(x=f, y=sweep.result['Magnitude'], mode='lines', name=key))
+
+        fig.update_layout(title='Resonator spectroscopy magnitude', xaxis_title='Frequency [MHz]',
+                          yaxis_title='Magnitude', plot_bgcolor='white')
+
+        fig.show()
+
+    @register_browser_function(available_after=(run,))
+    def plot_phase_plotly(self) -> None:
+        """
+        Plots the phase of the resonator spectroscopy using Plotly.
+        """
+        args = self.retrieve_args(self.run)
+        f = np.arange(args['start'], args['stop'], args['step'])
+
+        fig = go.Figure()
+
+        for key, sweep in self.result_dict.items():
+            phase_trace = sweep.result['Phase']
+            phase_trace_mod = sweep.UnwrapPhase(phase_trace)
+            fig.add_trace(go.Scatter(x=f, y=phase_trace_mod, mode='lines', name=key))
+
+        fig.update_layout(title='Resonator spectroscopy phase', xaxis_title='Frequency [MHz]',
+                          yaxis_title='Phase', plot_bgcolor='white')
+
+        fig.show()
+
+    @register_browser_function(available_after=(run,))
+    def plot_phase_diff_fit_plotly(self) -> None:
+        """
+        Plots the differentiated phase and its Lorentzian fit using Plotly.
+        """
+        args = self.retrieve_args(self.run)
+        f = np.arange(args['start'], args['stop'], args['step'])
+        f_interpolate = np.arange(args['start'], args['stop'], args['step'] / 5)
+
+        fig = go.Figure()
+
+        for key, sweep in self.result_dict.items():
+            z, f0, Q, amp, baseline, direction = sweep.fit_phase_diff()
+            lorentzian_fit = sweep.root_lorentzian(f_interpolate, f0, Q, amp, baseline) * direction
+
+            fig.add_trace(go.Scatter(x=f_interpolate, y=lorentzian_fit, mode='lines',
+                                     name=f'{key} Lorentzian fit'))
+            fig.add_trace(go.Scatter(x=f, y=z, mode='markers', name=f'{key} Phase derivative'))
+
+            print(f'Phase diff fit {key} f0:{f0}, Q:{Q}, amp:{amp}, base:{baseline}, kappa:{f0 / Q}')
+
+        fig.update_layout(title='Resonator spectroscopy phase fitting', xaxis_title='Frequency [MHz]',
+                          yaxis_title='Phase', plot_bgcolor='white')
+
+        fig.show()
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+import pickle
+
+
+# Assuming other necessary modules are imported elsewhere in the project.
+
+class MeasurementScanParams(Experiment):
+    """
+    Class for managing and executing measurement scan parameters
+    in an experimental setup.
+    """
+
+    @log_and_record
+    def run(self, dut, sweep_lpb_list, mprim_index: int,
+            amp_scan: dict = None, freq_scan: dict = None,
+            accumulate_snr_for_all_distinguishable_state: bool = True,
+            disable_sub_plot: bool = True):
+        """
+        Execute the measurement scan with given parameters.
+
+        Args:
+            dut: Device under test.
+            sweep_lpb_list: List of sweep parameters.
+            mprim_index (int): Measurement primitive index.
+            amp_scan (dict, optional): Parameters for amplitude scan.
+            freq_scan (dict, optional): Parameters for frequency scan.
+            accumulate_snr_for_all_distinguishable_state (bool, optional):
+                Flag to accumulate SNR for all distinguishable states.
+            disable_sub_plot (bool, optional): Flag to disable subplot.
+        """
+        # Initialize lists to store scan results
+        self.snrs = []
+        self.scanned_freqs = []
+        self.scanned_amps = []
+        self.measurement_scan_result = []
+
+        # Get measurement primitives
+        mprim = dut.get_measurement_prim_intlist(mprim_index)
+
+        # Set scanned frequencies and amplitudes
+        self.scanned_freqs = [mprim.freq] if freq_scan is None else np.arange(**freq_scan)
+        self.scanned_amps = [mprim.primary_kwargs()['amp']] if amp_scan is None else np.arange(**amp_scan)
+
+        # Check for plot settings in Jupyter
+        plot_result_in_jupyter = setup().status().get_param("Plot_Result_In_Jupyter")
+        if disable_sub_plot:
+            setup().status().set_param("Plot_Result_In_Jupyter", False)
+
+        from leeq.experiments.builtin import MeasurementCalibrationMultilevelGMM
+        # Perform measurement scan
+        for freq in self.scanned_freqs:
+            for amp in self.scanned_amps:
+                result = MeasurementCalibrationMultilevelGMM(dut=dut, sweep_lpb_list=sweep_lpb_list,
+                                                             mprim_index=mprim_index, freq=freq, amp=amp)
+
+                snr = 1 / np.sum([1 / (x + 1e-6) for x in result.snr.values()]) \
+                    if accumulate_snr_for_all_distinguishable_state else result.SNR[(mprim_index, mprim_index + 1)]
+
+                self.snrs.append(snr)
+                self.measurement_scan_result.append(result)
+
+        # Restore plot settings
+        setup().status().set_param("Plot_Result_In_Jupyter", plot_result_in_jupyter)
+        self.snrs = np.asarray(self.snrs).reshape([len(self.scanned_freqs), len(self.scanned_amps)])
+
+    # Additional methods follow the same pattern of revision.
+    # ...
+    @register_browser_function(available_after=(run,))
+    def plot_snr_vs_freq(self):
+        """
+        Plots Signal-to-Noise Ratio (SNR) versus frequency.
+        """
+        if len(self.scanned_freqs) == 1:
+            return
+        if len(self.scanned_amps) > 1:
+            return
+        plt.figure()
+        plt.title("SNR vs Frequency")
+        plt.xlabel('Resonator Frequency')
+        plt.ylabel('SNR')
+        plt.plot(self.scanned_freqs, np.asarray(self.snrs).flatten())
+        plt.grid()
+        plt.show()
+
+    @register_browser_function(available_after=(run,))
+    def plot_snr_vs_amp(self):
+        """
+        Plots Signal-to-Noise Ratio (SNR) versus amplitude.
+        """
+        if len(self.scanned_amps) == 1:
+            return
+        if len(self.scanned_freqs) > 1:
+            return
+
+        plt.figure()
+        plt.title("SNR vs Amplitude")
+        plt.xlabel('Driving Amplitude')
+        plt.ylabel('SNR')
+        plt.plot(self.scanned_amps, np.asarray(self.snrs).flatten())
+        plt.grid()
+        plt.show()
+
+    @register_browser_function(available_after=(run,))
+    def plot_snr_vs_amp_freq(self, fig_size=(10, 10)):
+        """
+        Plots Signal-to-Noise Ratio (SNR) versus both amplitude and frequency.
+
+        Args:
+            fig_size (tuple, optional): Figure size. Defaults to (10, 10).
+        """
+
+        if len(self.scanned_freqs) == 1 or len(self.scanned_amps) == 1:
+            return
+
+        fig, ax = plt.subplots(figsize=fig_size)
+        ax.set_title("SNR vs Amplitude / Frequency")
+        cax = ax.imshow(np.asarray(self.snrs), aspect='auto', interpolation='nearest')
+
+        # Adding text annotation inside the cells
+        for i in range(len(self.scanned_freqs)):
+            for j in range(len(self.scanned_amps)):
+                text = ax.text(j, i, f"{self.snrs[i, j]:.2f}",
+                               ha="center", va="center", color="w")
+
+        # set ticks
+        ax.set_xticks(ticks=np.arange(len(self.scanned_amps)), labels=[f"{x:.2f}" for x in self.scanned_amps])
+        ax.set_yticks(ticks=np.arange(len(self.scanned_freqs)), labels=[f"{x:.2f}" for x in self.scanned_freqs])
+
+        plt.xlabel('Amplitude [a.u.]')
+        plt.ylabel('Frequency [MHz]')
+
+        # Creating color bar
+        fig.colorbar(cax, ax=ax)
+        plt.show()
+
+    def dump_data(self):
+        """
+        Dumps the scan data to a pickle file.
+        """
+        path = 'dump.pickle'
+        data = {
+            "freqs": self.scanned_freqs,
+            "amps": self.scanned_amps,
+            "shot_data": [x.result for x in self.measurement_scan_result],
+            'clfs': [x.clf for x in self.measurement_scan_result]
+        }
+
+        with open(path, 'wb') as f:
+            pickle.dump(data, f)
+
+        print(f"Dumped data to {path}")
