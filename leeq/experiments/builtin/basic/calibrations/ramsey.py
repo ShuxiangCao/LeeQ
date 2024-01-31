@@ -3,6 +3,8 @@ from datetime import datetime
 from plotly.subplots import make_subplots
 
 from labchronicle import register_browser_function, log_and_record
+
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
 from leeq import Experiment, SweepParametersSideEffectFactory, Sweeper
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
@@ -96,6 +98,57 @@ class SimpleRamseyMultilevel(Experiment):
             print(f"Frequency updated: {self.frequency_guess} MHz")
         else:
             c1q.update_parameters(freq=original_freq)
+
+    @log_and_record(overwrite_func_name='SimpleRamseyMultilevel.run')
+    def run_simulated(self,
+            qubit: Any,  # Replace 'Any' with the actual type of qubit
+            collection_name: str = 'f01',
+            mprim_index: int = 0,
+            initial_lpb: Optional[Any] = None,  # Replace 'Any' with the actual type
+            start: float = 0.0,
+            stop: float = 1.0,
+            step: float = 0.005,
+            set_offset: float = 10.0,
+            update: bool = True) -> None:
+        """
+        Run the Ramsey experiment.
+
+        Parameters:
+            qubit: The qubit on which the experiment is performed.
+            collection_name: The name of the frequency collection (e.g., 'f01').
+            mprim_index: The index of the measurement primitive.
+            initial_lpb: Initial set of commands, if any.
+            start: The start frequency for the sweep.
+            stop: The stop frequency for the sweep.
+            step: The step size for the frequency sweep.
+            set_offset: The frequency offset.
+            update: Whether to update parameters after the experiment.
+
+        Returns:
+            None
+        """
+
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        virtual_transmon = simulator_setup.get_virtual_qubit(qubit)
+
+        c1 = qubit.get_c1(collection_name)
+
+        f_q = virtual_transmon.qubit_frequency
+        f_d = c1['X'].freq
+        f_o = set_offset
+
+        t = np.arange(start, stop, step) * 2
+
+        decay_rate = 0 # TODO: Implement decay rate
+
+        # Ramsey fringes formula
+
+        f_o_actual = f_q - (f_d + f_o)
+
+        ramsey_fringes = 0.5 * (1 + np.cos(2 * np.pi * f_o_actual * t) * np.exp(-decay_rate * t))
+
+        self.data = ramsey_fringes
+        #self.analyze_data()
 
     def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
         """

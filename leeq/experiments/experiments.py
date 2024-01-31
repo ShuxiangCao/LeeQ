@@ -55,7 +55,10 @@ class Experiment(LeeQObject):
 
         try:
             # Run the experiment
-            self.run(*args, **kwargs)
+            if setup().status().get_parameters("High_Level_Simulation_Mode"):
+                self.run_simulated(*args, **kwargs)
+            else:
+                self.run(*args, **kwargs)
         finally:
             # Make sure we print the record details before throwing the exception
             if Chronicle().is_recording():
@@ -94,6 +97,12 @@ class Experiment(LeeQObject):
                     )
                     self.logger.warning(f"Ignore the error and continue.")
                     self.logger.warning(f"{e}")
+
+    def run_simulated(self, *args, **kwargs):
+        """
+        Run the experiment in simulation mode. This is useful for debugging.
+        """
+        raise NotImplementedError()
 
     def run(self, *args, **kwargs):
         """
