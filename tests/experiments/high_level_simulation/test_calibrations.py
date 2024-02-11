@@ -84,12 +84,27 @@ def test_normalised_rabi(simulation_setup, qubit):
     manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
     rabi = NormalisedRabi(
         dut_qubit=qubit,
+        amp=0.51,
+        start=0.00,
+        stop=0.5,
+        step=0.001
     )
+    rabi.plot().show()
 
 
 def test_ramsey(simulation_setup, qubit):
     from leeq.experiments.builtin.basic.calibrations.ramsey import SimpleRamseyMultilevel
     manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
-    rabi = SimpleRamseyMultilevel(
+    ramsey = SimpleRamseyMultilevel(
         qubit=qubit,
+    )
+
+
+def test_gmm_measurements(simulation_setup, qubit):
+    from leeq.experiments.builtin import MeasurementCalibrationMultilevelGMM
+    manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
+    cali = MeasurementCalibrationMultilevelGMM(
+        dut=qubit,
+        sweep_lpb_list=['0', '1'],
+        mprim_index=0
     )

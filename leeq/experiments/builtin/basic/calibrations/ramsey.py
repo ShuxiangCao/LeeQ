@@ -101,15 +101,15 @@ class SimpleRamseyMultilevel(Experiment):
 
     @log_and_record(overwrite_func_name='SimpleRamseyMultilevel.run')
     def run_simulated(self,
-            qubit: Any,  # Replace 'Any' with the actual type of qubit
-            collection_name: str = 'f01',
-            mprim_index: int = 0,
-            initial_lpb: Optional[Any] = None,  # Replace 'Any' with the actual type
-            start: float = 0.0,
-            stop: float = 1.0,
-            step: float = 0.005,
-            set_offset: float = 10.0,
-            update: bool = True) -> None:
+                      qubit: Any,  # Replace 'Any' with the actual type of qubit
+                      collection_name: str = 'f01',
+                      mprim_index: int = 0,
+                      initial_lpb: Optional[Any] = None,  # Replace 'Any' with the actual type
+                      start: float = 0.0,
+                      stop: float = 1.0,
+                      step: float = 0.005,
+                      set_offset: float = 10.0,
+                      update: bool = True) -> None:
         """
         Run the Ramsey experiment.
 
@@ -137,18 +137,27 @@ class SimpleRamseyMultilevel(Experiment):
         f_d = c1['X'].freq
         f_o = set_offset
 
-        t = np.arange(start, stop, step) * 2
+        t = np.arange(start, stop, step)
 
-        decay_rate = 0 # TODO: Implement decay rate
+        decay_rate = 0.1  # TODO: Implement decay rate
 
         # Ramsey fringes formula
 
         f_o_actual = f_q - (f_d + f_o)
 
-        ramsey_fringes = 0.5 * (1 + np.cos(2 * np.pi * f_o_actual * t) * np.exp(-decay_rate * t))
+        ramsey_fringes = (1 + np.cos(2 * np.pi * f_o_actual * t) * np.exp(-decay_rate * t)) / 2
 
         self.data = ramsey_fringes
-        #self.analyze_data()
+
+        # If sampling noise is enabled, simulate the noise
+        if setup().status().get_param('Sampling_Noise'):
+            # Get the number of shot used in the simulation
+            shot_number = setup().status().get_param('Shot_Number')
+
+            # generate binomial distribution of the result to simulate the sampling noise
+            self.data = np.random.binomial(shot_number, self.data) / shot_number
+
+        self.data = self.data * 2 - 1
 
     def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
         """

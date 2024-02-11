@@ -51,7 +51,7 @@ class DispersiveReadoutSimulator:
 
         data, states_at_t = self._simulate_trace(
             state=states_over_time, f_prob=f_prob, noise_std=noise_std,
-            return_states_over_time=return_states_over_time
+            return_states_over_time=True
         )
 
         if return_states_over_time:
@@ -124,6 +124,7 @@ class DispersiveReadoutSimulatorSyntheticData(DispersiveReadoutSimulator):
             state: Union[int, List[Tuple[float, int]]],
             f_prob: float,
             noise_std: float = 0,
+            return_states_over_time: bool = False
     ) -> np.ndarray:
         """
         Simulates a signal trace for a given quantum state.
@@ -176,6 +177,10 @@ class DispersiveReadoutSimulatorSyntheticData(DispersiveReadoutSimulator):
         noise = np.random.normal(
             scale=noise_std, size=signal.shape
         ) + 1j * np.random.normal(scale=noise_std, size=signal.shape)
+
+        if return_states_over_time:
+            return signal + noise, np.asarray(state_at_t)
+
         return signal + noise
 
     pass

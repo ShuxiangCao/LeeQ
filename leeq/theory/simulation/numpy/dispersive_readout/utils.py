@@ -6,7 +6,7 @@ from sklearn.neighbors import KernelDensity
 
 
 def root_lorentzian(
-    f: float, f0: float, kappa: float, amp: float, baseline: float
+        f: float, f0: float, kappa: float, amp: float, baseline: float
 ) -> float:
     """
     Calculate the root of the Lorentzian function.
@@ -63,15 +63,15 @@ def get_t_list(sampling_rate: int, width: float) -> np.ndarray:
 
 
 def soft_square(
-    sampling_rate: int,
-    amp: float,
-    phase: Optional[float] = None,
-    width: Optional[float] = None,
-    rise: Optional[float] = None,
-    trunc: Optional[float] = None,
-    delay: float = 0.0,
-    phase_shift: float = 0,
-    ex_delay: float = 0,
+        sampling_rate: int,
+        amp: float,
+        phase: Optional[float] = None,
+        width: Optional[float] = None,
+        rise: Optional[float] = None,
+        trunc: Optional[float] = None,
+        delay: float = 0.0,
+        phase_shift: float = 0,
+        ex_delay: float = 0,
 ) -> np.ndarray:
     """
     Generate a soft square wave.
@@ -94,12 +94,19 @@ def soft_square(
     t = get_t_list(sampling_rate, full_width + delay)
 
     t -= 0.5 * delay
-    y = (
-        amp
-        * np.exp(1.0j * (phase + phase_shift))
-        * 0.5
-        * (np.tanh((t + 0.5 * width) / rise) - np.tanh((t - 0.5 * width) / rise))
-    )
+
+    if rise == 0:
+        y = (
+                amp * np.ones_like(t)
+                * np.exp(1.0j * (phase + phase_shift))
+        )
+    else:
+        y = (
+                amp
+                * np.exp(1.0j * (phase + phase_shift))
+                * 0.5
+                * (np.tanh((t + 0.5 * width) / rise) - np.tanh((t - 0.5 * width) / rise))
+        )
 
     if ex_delay > 0:
         extra_delay_y = get_t_list(sampling_rate, delay)

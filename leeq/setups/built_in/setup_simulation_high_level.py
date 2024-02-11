@@ -43,6 +43,7 @@ class HighLevelSimulationSetup(ExperimentalSetup):
         self._omega_per_amp_dict = omega_to_amp_map
 
         super(HighLevelSimulationSetup, self).__init__(name)
+        self._status.add_param("Sampling_Noise", True)
         self._status.set_param("High_Level_Simulation_Mode", True)
 
     def get_virtual_qubit(self, dut_qubit: TransmonElement) -> VirtualTransmon:
@@ -78,4 +79,4 @@ class HighLevelSimulationSetup(ExperimentalSetup):
 
         # TODO: Implement mapping
 
-        return self._omega_per_amp_dict.get(channel, 20)
+        return self._omega_per_amp_dict.get(channel, 200)

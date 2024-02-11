@@ -8,3 +8,6 @@ dash_bootstrap_components
 qutip
 scikit-learn
 tqdm
+h5py
+decorator
+dash

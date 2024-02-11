@@ -159,6 +159,15 @@ class NormalisedRabi(Experiment):
         # Rabi oscillation formula
         self.data = (omega ** 2) / (delta ** 2 + omega ** 2) * np.sin(0.5 * np.sqrt(delta ** 2 + omega ** 2) * t) ** 2
 
+        # If sampling noise is enabled, simulate the noise
+        if setup().status().get_param('Sampling_Noise'):
+
+            # Get the number of shot used in the simulation
+            shot_number = setup().status().get_param('Shot_Number')
+
+            # generate binomial distribution of the result to simulate the sampling noise
+            self.data = np.random.binomial(shot_number, self.data) / shot_number
+
         # Fit data to a sinusoidal function and return the fit parameters
         self.fit_params = fits.fit_sinusoidal(self.data, time_step=step)
 
