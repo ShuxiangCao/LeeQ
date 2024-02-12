@@ -64,6 +64,17 @@ configuration = {
             'width': 1,
             'trunc': 1.2,
             'distinguishable_states': [0, 1]
+        },
+        '1': {
+            'type': 'SimpleDispersiveMeasurement',
+            'freq': 9144.41,
+            'channel': 1,
+            'shape': 'square',
+            'amp': 0.21323904814245054 / 5 * 4,
+            'phase': 0.,
+            'width': 1,
+            'trunc': 1.2,
+            'distinguishable_states': [0, 1, 2]
         }
     }
 }
@@ -89,7 +100,6 @@ def test_normalised_rabi(simulation_setup, qubit):
         stop=0.5,
         step=0.001
     )
-    rabi.plot().show()
 
 
 def test_ramsey(simulation_setup, qubit):
@@ -105,6 +115,6 @@ def test_gmm_measurements(simulation_setup, qubit):
     manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
     cali = MeasurementCalibrationMultilevelGMM(
         dut=qubit,
-        sweep_lpb_list=['0', '1'],
-        mprim_index=0
+        sweep_lpb_list=['0', '1', '2'],
+        mprim_index=1
     )
