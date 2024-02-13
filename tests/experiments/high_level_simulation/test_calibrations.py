@@ -115,6 +115,15 @@ def test_gmm_measurements(simulation_setup, qubit):
     manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
     cali = MeasurementCalibrationMultilevelGMM(
         dut=qubit,
-        sweep_lpb_list=['0', '1', '2'],
-        mprim_index=1
+        sweep_lpb_list=['0', '1'],
+        mprim_index=0
     )
+
+
+#def test_pingpong(simulation_setup, qubit):
+#    from leeq.experiments.builtin import AmpTuneUpSingleQubitMultilevel
+#    manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
+#    pingpong = AmpTuneUpSingleQubitMultilevel(
+#        dut=qubit,
+#    )
+#    pingpong.plot_amp()
