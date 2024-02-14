@@ -15,6 +15,11 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from typing import List, Tuple, Dict, Any
 
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+from leeq.utils import setup_logging
+
+logger = setup_logging(__name__)
+
 
 class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
     """
@@ -81,11 +86,76 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             ExperimentManager().run(lpb, swp)
 
         result = np.squeeze(mp.result())
+        self.data = result
 
         # Save results
         self.result = {
             "Magnitude": np.absolute(result),
             "Phase": np.angle(result),
+        }
+
+    @log_and_record(overwrite_func_name='ResonatorSweepTransmissionWithExtraInitialLPB.run')
+    def run_simulated(self,
+                      dut_qubit: TransmonElement,
+                      start: float = 8000,
+                      stop: float = 9000,
+                      step: float = 5.0,
+                      num_avs: int = 1000,
+                      rep_rate: float = 0.0,
+                      mp_width: float = None,
+                      initial_lpb=None,
+                      amp: float = 0.02) -> None:
+        """
+        Run the resonator sweep transmission experiment.
+
+        The initial lpb is for exciting the qubit to a different state.
+
+        Parameters:
+            dut_qubit: The device under test (DUT) qubit.
+            start (float): Start frequency for the sweep. Default is 8000.
+            stop (float): Stop frequency for the sweep. Default is 9000.
+            step (float): Frequency step for the sweep. Default is 5.0.
+            num_avs (int): Number of averages. Default is 1000.
+            rep_rate (float): Repetition rate. Default is 10.0.
+            mp_width (float): Measurement pulse width. If None, uses rep_rate. Default is None.
+            initial_lpb: Initial linear phase behavior (LPB). Default is None.
+            amp (float): Amplitude. Default is 1.0.
+        """
+
+        if initial_lpb is not None:
+            logger.warning("initial_lpb is ignored in the simulated mode.")
+
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        virtual_transmon = simulator_setup.get_virtual_qubit(dut_qubit)
+
+        mprim = dut_qubit.get_default_measurement_prim_intlist()
+
+        omega_per_amp = simulator_setup.get_omega_per_amp(mprim.channel)  # MHz
+        effective_amp = amp * omega_per_amp
+
+        f = np.arange(start, stop, step)
+
+        response = virtual_transmon.get_resonator_response(
+            f, effective_amp, baseline=0.001*effective_amp
+        )[0, :]
+
+        noise_scale = 1 / num_avs
+
+        noise = (np.random.normal(0, noise_scale, response.shape) +
+                 1j * np.random.normal(0, noise_scale, response.shape))
+
+        slope = np.random.normal(-0.1, 0.01)
+
+        phase_slope = np.exp(1j * 2 * np.pi * slope * (f - start))
+
+        response = response * phase_slope + noise
+
+        self.data = response
+
+        # Save results
+        self.result = {
+            "Magnitude": np.absolute(response),
+            "Phase": np.angle(response),
         }
 
     def live_plots(self, step_no: tuple[int] = None):
@@ -129,7 +199,7 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         args = self.retrieve_args(self.run)
 
         # Get the data
-        result = np.squeeze(self.mp.result())
+        result = self.data
         f = np.arange(args["start"], args["stop"], args["step"])
 
         if step_no is not None:

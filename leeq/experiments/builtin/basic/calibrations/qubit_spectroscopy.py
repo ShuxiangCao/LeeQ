@@ -2,10 +2,13 @@ import numpy as np
 import plotly.graph_objects as go
 from labchronicle import log_and_record, register_browser_function
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, ExperimentManager
+from leeq.utils.compatibility import *
 
 from typing import Dict, Any, Union, List, Tuple, Optional
 import numpy as np
 import plotly.graph_objects as go
+
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 
 
 class QubitSpectroscopyFrequency(Experiment):
@@ -113,6 +116,81 @@ class QubitSpectroscopyFrequency(Experiment):
         self.frequency_guess = np.arange(start=start, stop=stop, step=step)[
             np.argmax(abs(self.result['Magnitude'] - mean_level))]
 
+    @log_and_record(overwrite_func_name='QubitSpectroscopyFrequency.run')
+    def run_simulated(self, dut_qubit: Any, res_freq: Optional[float] = None, start: float = 3.e3, stop: float = 8.e3,
+                      step: float = 5., num_avs: int = 1000,
+                      rep_rate: float = 0., mp_width: float = 0.5, amp: float = 0.01) -> None:
+        """
+        Conducts a frequency sweep on the designated qubit and records the response.
+        Generate simulated result.
+
+        Parameters
+        ----------
+        dut_qubit : Any
+            The device under test (DUT), which is the qubit on which the experiment is performed.
+        res_freq : float, optional
+            The resonant frequency to set for the measurement primitive (default is None).
+        start : float
+            The start frequency for the sweep (default is 3000 MHz).
+        stop : float
+            The stop frequency for the sweep (default is 8000 MHz).
+        step : float
+            The frequency increment for the sweep (default is 5 MHz).
+        num_avs : int
+            The number of averages to take during the measurement (default is 500).
+        rep_rate : float
+            The repetition rate for the pulse (default is 0).
+        mp_width : float
+            The width for the measurement primitive pulse (default is 0.5).
+        amp : float
+            The amplitude of the pulse (default is 1).
+
+        Returns
+        -------
+        None
+        """
+
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        virtual_transmon = simulator_setup.get_virtual_qubit(dut_qubit)
+
+        mprim = dut_qubit.get_default_measurement_prim_intlist()
+
+        width = rep_rate if mp_width is None else mp_width
+        if width is None:
+            width = mprim.width
+
+        f_readout = mprim.freq if res_freq is None else res_freq
+
+        omega_per_amp_readout = simulator_setup.get_omega_per_amp(mprim.channel)  # MHz
+        effective_amp_readout = mprim.amp * omega_per_amp_readout
+
+        omega_per_amp_drive = simulator_setup.get_omega_per_amp(dut_qubit.get_default_c1().channel)  # MHz
+        effective_amp_drive = amp * omega_per_amp_drive
+
+        freq_qdrive = np.arange(start, stop, step)
+
+        response = virtual_transmon.get_qubit_spectroscopy_response(
+            f_qdrive=freq_qdrive, f_readout=f_readout, amp_qdrive=effective_amp_drive, amp_rdrive=effective_amp_readout,
+            readout_baseline=2 * effective_amp_readout)
+
+        noise_scale = 100 / num_avs / width
+
+        noise = (np.random.normal(0, noise_scale, response.shape) +
+                 1j * np.random.normal(0, noise_scale, response.shape))
+
+        response = response + noise
+
+        self.trace = response
+        self.result = {
+            'Magnitude': np.absolute(self.trace),
+            'Phase': np.unwrap(np.angle(self.trace)),
+        }
+
+        # Estimate the resonant frequency based on the results
+        mean_level = np.average(self.result['Magnitude'][:10])
+        self.frequency_guess = np.arange(start=start, stop=stop, step=step)[
+            np.argmax(abs(self.result['Magnitude'] - mean_level))]
+
     @register_browser_function(available_after=(run,))
     def plot_magnitude(self, step_no: tuple[int] = None) -> go.Figure:
         """
@@ -138,7 +216,7 @@ class QubitSpectroscopyFrequency(Experiment):
         f = np.arange(args['start'], args['stop'], args['step'])
 
         # Add the magnitude data as a trace to the plot
-        trace = np.squeeze(self.mp.result())
+        trace = self.trace
         y = np.absolute(trace)
 
         if step_no is not None:
@@ -181,7 +259,7 @@ class QubitSpectroscopyFrequency(Experiment):
         f = np.arange(args['start'], args['stop'], args['step'])
 
         # Add the phase data as a trace to the plot
-        trace = np.squeeze(self.mp.result())
+        trace = self.trace
         y = np.unwrap(np.angle(trace))
 
         if step_no is not None:

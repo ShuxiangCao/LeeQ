@@ -104,6 +104,82 @@ class VirtualTransmon(object):
 
         return s_11
 
+    def get_qubit_spectroscopy_response(self, f_qdrive: float, f_readout: float, amp_qdrive: float = 1,
+                                        amp_rdrive: float = 1, readout_baseline: float = 0) -> np.ndarray:
+        """
+        Get the qubit spectroscopy response. Not that it is assumed to simulate only
+         single and two photon transitions.
+        Parameters
+        ----------
+        f_qdrive: float
+            The frequency of the qubit drive.
+        f_readout: float
+            The frequency of the readout.
+        amp_qdrive: float
+            The amplitude of the qubit drive.
+        amp_rdrive: float
+            The amplitude of the readout drive.
+        readout_baseline: float
+            The baseline of the readout.
+        Returns
+        -------
+        np.ndarray
+            The qubit spectroscopy response.
+        """
+
+        # Get the resonator response at different state
+
+        resonator_responses = self.get_resonator_response(f_readout, amp_rdrive, readout_baseline)
+
+        # Work out the qubit state under the qubit drive
+
+        # The tuple stores (frequency, omega_correction_term, start_state, end_state) for the transitions
+        single_photon_transition_frequencies_omega = [
+            # empirical value
+            (self.qubit_frequency + i * self.anharmonicity * (1.1 ** (i - 1)), np.sqrt(i + 1), i, i + 1)
+            for i in range(self.truncate_level - 1)
+        ]
+
+        two_photon_transition_frequencies_omega = [
+            ((single_photon_transition_frequencies_omega[i][0] +
+              single_photon_transition_frequencies_omega[i + 1][0]) / 2, np.sqrt(i + 1) / np.sqrt(2), i, i + 2)
+            for i in range(self.truncate_level - 2)
+        ]
+
+        # Given a initial state, work out the final state after applying the drive
+        transition_matrices = np.zeros([
+            self.truncate_level, self.truncate_level, len(f_qdrive)
+        ])
+
+        for i in range(self.truncate_level):
+            # Approximate the drive has little affect to the system (will be normalised later)
+            transition_matrices[i, i, :] = 1
+
+        for freq, omega_correction_term, start_state, end_state in (
+                single_photon_transition_frequencies_omega + two_photon_transition_frequencies_omega):
+            delta = f_qdrive - freq
+            omega = omega_correction_term * amp_qdrive
+
+            # The new eigen state under the drive is a linear combination of the original eigen states
+            transferred_population = (1 - delta ** 2 / (delta ** 2 + omega ** 2)) # / 2 It should be divided by two,
+            # however we leave it here and add an identity term to the transfer matrix to compensate it.
+            transition_matrices[start_state, end_state, :] = transferred_population
+
+        # Work out the new population distribution and normalize it
+
+        initial_state = self.quiescent_state_distribution
+        if initial_state is None:
+            initial_state = np.zeros(self.truncate_level)
+            initial_state[0] = 1
+
+        new_population_distribution = np.einsum('abc,a->bc',transition_matrices, initial_state)
+        new_population_distribution /= np.sum(new_population_distribution, axis=0)
+
+        # Work out the response of the readout
+        response = np.dot(new_population_distribution.T, resonator_responses)
+
+        return response
+
     def _build_transition_operators(self):
         """
         Build the transition Hamiltonian operators.
@@ -365,4 +441,3 @@ class VirtualTransmon(object):
                 (self.truncate_level, self.truncate_level), dtype=np.complex128
             )
             self._density_matrix[0, 0] = 1
-

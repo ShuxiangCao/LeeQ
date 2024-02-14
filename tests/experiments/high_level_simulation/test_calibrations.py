@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
@@ -18,7 +19,8 @@ def simulation_setup():
                                        anharmonicity=-198,
                                        t1=30,
                                        t2=30,
-                                       readout_frequency=9141.21)
+                                       readout_frequency=9141.21,
+                                       quiescent_state_distribution=np.asarray([ 0.8, 0.15, 0.04, 0.01 ]))
 
     setup = HighLevelSimulationSetup(
         name='HighLevelSimulationSetup',
@@ -120,7 +122,30 @@ def test_gmm_measurements(simulation_setup, qubit):
     )
 
 
-#def test_pingpong(simulation_setup, qubit):
+def test_resonator_spectroscopy(simulation_setup, qubit):
+    from leeq.experiments.builtin import ResonatorSweepTransmissionWithExtraInitialLPB
+    manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
+    sweep = ResonatorSweepTransmissionWithExtraInitialLPB(
+        qubit,
+        start=9100,
+        stop=9200,
+        step=0.002,
+        num_avs=1e3
+    )
+
+
+def test_qubit_spectroscopy(simulation_setup, qubit):
+    from leeq.experiments.builtin import QubitSpectroscopyFrequency
+    manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
+    sweep = QubitSpectroscopyFrequency(
+        dut_qubit=qubit,
+        res_freq=9141.21, start=3.e3, stop=5.e3,
+        step=1., num_avs=1000,
+        rep_rate=0., mp_width=0.5, amp=0.01
+    )
+    sweep.plot_magnitude().show()
+
+# def test_pingpong(simulation_setup, qubit):
 #    from leeq.experiments.builtin import AmpTuneUpSingleQubitMultilevel
 #    manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
 #    pingpong = AmpTuneUpSingleQubitMultilevel(
