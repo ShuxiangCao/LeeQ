@@ -97,14 +97,17 @@ class NormalisedRabi(Experiment):
         # Fit data to a sinusoidal function and return the fit parameters
         self.fit_params = fits.fit_sinusoidal(self.data, time_step=step)
 
+        # Update the qubit parameters, to make one pulse width correspond to a pi pulse
+        # Here we suppose all pulse envelopes give unit area when width=1, amp=1
+        normalised_pulse_area = c1['X'].calculate_envelope_area() / c1['X'].amp
+        two_pi_area = amp * (1 / self.fit_params['Frequency'])
+        new_amp = two_pi_area / 2 / normalised_pulse_area
+        self.guess_amp = new_amp
+
         if update:
-            # Update the qubit parameters, to make one pulse width correspond to a pi pulse
-            # Here we suppose all pulse envelopes give unit area when width=1, amp=1
-            normalised_pulse_area = c1['X'].calculate_envelope_area() / c1['X'].amp
-            two_pi_area = amp * (1 / self.fit_params['Frequency'])
-            new_amp = two_pi_area / 2 / normalised_pulse_area
             c1.update_parameters(amp=new_amp)
             print(f"Amplitude updated: {new_amp}")
+
 
     @log_and_record(overwrite_func_name='NormalisedRabi.run')
     def run_simulated(self,
@@ -169,6 +172,16 @@ class NormalisedRabi(Experiment):
 
         # Fit data to a sinusoidal function and return the fit parameters
         self.fit_params = fits.fit_sinusoidal(self.data, time_step=step)
+        # Update the qubit parameters, to make one pulse width correspond to a pi pulse
+        # Here we suppose all pulse envelopes give unit area when width=1, amp=1
+        normalised_pulse_area = c1['X'].calculate_envelope_area() / c1['X'].amp
+        two_pi_area = amp * (1 / self.fit_params['Frequency'])
+        new_amp = two_pi_area / 2 / normalised_pulse_area
+        self.guess_amp = new_amp
+
+        if update:
+            c1.update_parameters(amp=new_amp)
+            print(f"Amplitude updated: {new_amp}")
 
     @register_browser_function()
     def plot(self) -> go.Figure:

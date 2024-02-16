@@ -288,15 +288,16 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         # Find the gradient per step
         z = (phase_unwrapped[1:] - phase_unwrapped[:-1]) / args["step"]
 
+        z_balanced = z - z.mean()
         # Find the direction of lorentzian peak
-        direction = 1 if np.abs(np.max(z)) > np.abs(np.min(z)) else -1
+        direction = 1 if np.abs(np.max(z_balanced)) > np.abs(np.min(z_balanced)) else -1
 
         # Find the frequency for the gradient
         f = (f[:-1] + f[1:]) / 2
 
         # Find the initial guess for the parameters
         f0, amp, baseline = (
-            f[np.argmax(z * direction)],  # Peak with max
+            f[np.argmax((z) * direction)],  # Peak with max
             max(z) - min(z),  # Amplitude by finding the difference between max and min
             min(z * direction),  # Find the baseline by finding the effective min. If the lorentzian is negative,
             # the baseline is the max. If the lorentzian is positive, the baseline is the min.
