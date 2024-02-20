@@ -312,7 +312,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
                 # Number of values per shot per channel to read back from accbuf.
                 # Unless there is mid-circuit measurement involved this is typically 1
                 # TODO: add support for mid-circuit measurement
-                delay_per_shot=0,  # Not used and not functioning
+                # delay_per_shot=0,  # Not used and not functioning
             )
         elif acquisition_type == "traces":
             # load_and_run_acq is to load the program given by raw_asm_prog and acquire raw
