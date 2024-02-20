@@ -8,6 +8,8 @@ from labchronicle import register_browser_function, log_and_record
 from leeq import *
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel, \
     LogicalPrimitiveBlockSerial
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+from leeq.theory.simulation.numpy.dispersive_readout.simulator import DispersiveReadoutSimulatorSyntheticData
 from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
@@ -31,6 +33,7 @@ class CustomRescaler(BaseEstimator, TransformerMixin):
 
     def transform(self, X, y=None):
         return X * self.scale_
+
 
 def fit_gmm_model(data: np.ndarray, n_components: int, initial_means: Optional[np.ndarray] = None) -> Pipeline:
     """
@@ -282,14 +285,13 @@ def calculate_signal_to_noise_ratio(clf: Pipeline, outcome_map: List[int]) -> Di
 class MeasurementCalibrationMultilevelGMM(Experiment):
     @log_and_record
     def run(self,
-            dut: 'DeviceUnderTest',  # Assuming 'DeviceUnderTest' is a class, use actual import
+            dut: 'TransmonElement',
             sweep_lpb_list: List['LogicalPrimitiveBlock'],  # Replace with actual class
             mprim_index: int,
             freq: Optional[float] = None,
             amp: Optional[float] = None,
             update: bool = False,
             extra_readout_duts: Optional[List['DeviceUnderTest']] = None,
-            # Assuming 'DeviceUnderTest' is a class
             z_threshold: Optional[int] = None) -> None:
         """
         Run the measurement process on a transmon qubit, potentially
@@ -356,6 +358,41 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         result = np.squeeze(mprim.result()).transpose()
         self.result = result
 
+        self.analyze_gmm_result(dut, mprim_index, result)
+
+        # Apply the GMM transform function with the fitted model
+        mprim.set_transform_function(measurement_transform_gmm,
+                                     clf=self.clf,
+                                     output_map=self.output_map,
+                                     z_threshold=z_threshold)
+
+        # If not updating, restore original frequency and amplitude
+        if not update:
+            if freq is not None:
+                mprim.update_freq(original_freq)
+            if amp is not None:
+                mprim.update_pulse_args(amp=original_amp)
+
+    def analyze_gmm_result(self,
+                           dut: 'TransmonElement',
+                           mprim_index: int,
+                           result: np.ndarray,
+                           ):
+        """
+        Analyze the result data using a Gaussian Mixture Model (GMM) and update the measurement primitive.
+        Parameters
+        ----------
+        dut : TransmonElement
+            The transmon qubit instance.
+        mprim_index : int
+            The index of the measurement primitive in use.
+        result : np.ndarray
+            The result data to analyze.
+        Returns
+        """
+
+        mprim = dut.get_measurement_prim_intlist(str(mprim_index))
+
         # Retrieve calibration data for the measurement primitive
         mprim_params = dut.get_calibrations()['measurement_primitives']
         mprim_param = mprim_params[str(mprim_index)]
@@ -379,21 +416,63 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         self.clf_params = clf.get_params()
         self.output_map = outcome_map
 
-        # Apply the GMM transform function with the fitted model
-        mprim.set_transform_function(measurement_transform_gmm,
-                                     clf=clf,
-                                     output_map=outcome_map,
-                                     z_threshold=z_threshold)
-
         # Calculate and store the signal-to-noise ratio
         self.snr = calculate_signal_to_noise_ratio(clf, outcome_map)
 
-        # If not updating, restore original frequency and amplitude
-        if not update:
-            if freq is not None:
-                mprim.update_freq(original_freq)
-            if amp is not None:
-                mprim.update_pulse_args(amp=original_amp)
+    @log_and_record(overwrite_func_name='MeasurementCalibrationMultilevelGMM.run')
+    def run_simulated(self,
+                      dut: 'DeviceUnderTest',
+                      sweep_lpb_list: List['LogicalPrimitiveBlock'],  # Replace with actual class
+                      mprim_index: int,
+                      freq: Optional[float] = None,
+                      amp: Optional[float] = None,
+                      update: bool = False,
+                      extra_readout_duts: Optional[List['DeviceUnderTest']] = None,
+                      z_threshold: Optional[int] = None) -> None:
+        """
+        Run the measurement process on a transmon qubit, potentially altering frequency and amplitude,
+         and calculate the signal-to-noise ratio. Note that the sweep_lpb_list only used to indicate the number of
+            distinguishable states, and the content of lpbs are not used.
+
+         Same as the run method, but uses simulated data instead of actual data.
+
+        Returns
+        -------
+        """
+
+        assert len(sweep_lpb_list) <= 4, ("Only less than 4 LPBs are allowed for simulated data, which represent"
+                                          "to prepare to the |0>, |1>, |2>, |3> state.")
+
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        virtual_transmon = simulator_setup.get_virtual_qubit(dut)
+        mp = dut.get_measurement_prim_intlist(str(mprim_index))
+        if amp is None:
+            amp = mp.get_pulse_args("amp")
+
+        baseline = 0
+        pulse_args = mp.get_parameters()
+        width = pulse_args.get("width", 8)
+        rise = pulse_args.get("rise", 0)
+        trunc = pulse_args.get("trunc", 1.2)
+        sampling_rate = 1e1
+        f_r = mp.freq
+        kappa = virtual_transmon.readout_linewidth
+        chis = np.cumsum([virtual_transmon.readout_dipsersive_shift] * 4)
+
+        simulator = DispersiveReadoutSimulatorSyntheticData(
+            f_r, kappa, chis, amp, baseline, width,
+            rise, trunc, sampling_rate,
+        )
+
+        shot_number = setup().status().get_param('Shot_Number')
+
+        data = np.asarray([[simulator._simulate_trace(
+            state=i, noise_std=0.005, f_prob=mp.freq
+        ).sum() for i in range(len(sweep_lpb_list))] for x in range(shot_number)])
+
+        self.result = data
+
+        self.analyze_gmm_result(dut, mprim_index, self.result)
 
     @register_browser_function(available_after=(run,))
     def gmm_iq(self, result_data=None):
@@ -430,7 +509,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                 percentage = np.average((state_label == index).astype(int))
                 ax.scatter(data[:, 0][state_label == index], data[:, 1][state_label == index],
                            alpha=0.2, label=str(self.output_map[index]) + ":" + f"{percentage * 100:.2f}%",
-                           color=colors[index])
+                           color=colors[index], s=1)
 
                 mean = self.clf.named_steps['gmm'].means_[index]
                 std = np.sqrt(self.clf.named_steps['gmm'].covariances_[index])

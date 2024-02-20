@@ -336,6 +336,8 @@ class ExperimentalSetup(LeeQObject):
         # The global logical primitive block that attach to all runs, # could
         # be used for active reset for fast cooling.
         self._status.add_param("GlobalPostLPB", None)
+        # Define if the setup is in high level simulation mode
+        self._status.add_param("High_Level_Simulation_Mode", False)
 
     def get_live_status(self):
         """

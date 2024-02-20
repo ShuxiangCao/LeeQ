@@ -3,3 +3,11 @@ matplotlib==3.8.0
 matplotlib-inline==0.1.6
 numpy==1.26.0
 plotly
+dash
+dash_bootstrap_components
+qutip
+scikit-learn
+tqdm
+h5py
+decorator
+dash

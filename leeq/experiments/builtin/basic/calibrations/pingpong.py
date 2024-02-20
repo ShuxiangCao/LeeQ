@@ -2,7 +2,7 @@ import math
 from labchronicle import log_and_record, register_browser_function
 from leeq import Experiment, Sweeper, basic_run
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
-from scipy import optimize as so
+from leeq.utils.compatibility import *
 
 import matplotlib.pyplot as plt
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlock
@@ -11,7 +11,11 @@ import numpy as np
 from scipy.optimize import curve_fit
 from typing import List, Optional, Any, Tuple
 
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils.compatibility import prims
+
+from leeq.utils import setup_logging
+logger = setup_logging(__name__)
 
 
 class PingPongSingleQubitMultilevel(Experiment):
@@ -22,6 +26,76 @@ class PingPongSingleQubitMultilevel(Experiment):
         pulse_count (int): Number of pulses in the experiment.
         amplitude (float): Current amplitude of the repeated block.
     """
+
+    @log_and_record(overwrite_func_name='PingPongSingleQubitMultilevel.run')
+    def run_simulated(self,
+                      dut: TransmonElement,
+                      collection_name: str,
+                      initial_lpb: LogicalPrimitiveBlock,
+                      repeated_block: LogicalPrimitiveBlock,
+                      final_gate: str,
+                      initial_gate: str,
+                      pulse_count: int,
+                      mprim_index: Optional[int] = 0, ) -> None:
+        """
+        Runs the ping pong single qubit experiment with high-level simulator.
+
+        Parameters:
+            dut: Device under test.
+            collection_name: Name of the lpb collection.
+            mprim_index: Index of the primary element.
+            initial_lpb: Initial lower pulse block.
+            initial_gate: Initial gate identifier.
+            repeated_block: Block of repeated pulses.
+            final_gate: Final gate identifier.
+            pulse_count: Number of pulses.
+        """
+
+        c1 = dut.get_c1(collection_name)
+        cur_amp = repeated_block.get_pulse_args('amp')  # Getting amplitude argument from the repeated block
+
+        # Getting the logical primitive for the initial and final gates
+        initial_gate_lpb = c1[initial_gate]
+        final_gate_lpb = c1[final_gate]
+
+        # Getting the measurement primitive
+        mprim = dut.get_measurement_prim_intlist(mprim_index)
+
+        if initial_lpb is not None:
+            logger.warning("initial_lpb is ignored in the simulated mode.")
+
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        virtual_transmon = simulator_setup.get_virtual_qubit(dut)
+
+        c1 = dut.get_c1(collection_name)
+
+        # hard code a virtual dut here
+        rabi_rate_per_amp = simulator_setup.get_omega_per_amp(c1.channel)  # MHz
+        omega = rabi_rate_per_amp * cur_amp
+
+        # Detuning
+        delta = virtual_transmon.qubit_frequency - c1['X'].freq
+
+        area_per_pulse = c1['X'].calculate_envelope_area()
+
+        t_effective = area_per_pulse * (np.arange(0, pulse_count, 1) + 0.5)
+
+        # Rabi oscillation formula
+        self.result = ((omega ** 2) / (delta ** 2 + omega ** 2) * \
+                       np.sin(0.5 * np.sqrt(delta ** 2 + omega ** 2) * t_effective) ** 2)
+
+        # If sampling noise is enabled, simulate the noise
+        if setup().status().get_param('Sampling_Noise'):
+            # Get the number of shot used in the simulation
+            shot_number = setup().status().get_param('Shot_Number')
+
+            # generate binomial distribution of the result to simulate the sampling noise
+            self.result = np.random.binomial(shot_number, self.data) / shot_number
+
+        self.pulse_count = pulse_count
+        self.amplitude = cur_amp
+
+        self.fit()
 
     @log_and_record
     def run(self,
