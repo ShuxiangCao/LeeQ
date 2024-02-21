@@ -486,12 +486,12 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         """
         from matplotlib import pyplot as plt
 
-        fig = plt.figure()
-        colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
-                  '#17becf']
-
         if result_data is None:
             result_data = self.result
+
+        fig = plt.figure(figsize=(result_data.shape[1] * 5, 5))
+        colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
+                  '#17becf']
 
         for i in range(result_data.shape[1]):
             ax = fig.add_subplot(int(f"1{result_data.shape[1]}{i + 1}"))
@@ -508,7 +508,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
             for index in np.unique(state_label):
                 percentage = np.average((state_label == index).astype(int))
                 ax.scatter(data[:, 0][state_label == index], data[:, 1][state_label == index],
-                           alpha=0.2, label=str(self.output_map[index]) + ":" + f"{percentage * 100:.2f}%",
+                           alpha=0.8, label=str(self.output_map[index]) + ":" + f"{percentage * 100:.2f}%",
                            color=colors[index], s=1)
 
                 mean = self.clf.named_steps['gmm'].means_[index]

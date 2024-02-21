@@ -222,6 +222,32 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
             },
         )
 
+    def z_omega(self, omega):
+        """
+        Get a virtual Z gate with a associated omega value, when setting the virtual width the shifted
+        phase will be automatically updated.
+        """
+        vz = PhaseShift(
+            name=self._name + ".Z",
+            parameters={
+                "type": "PhaseShift",
+                "channel": self.channel,  # Which channel to apply the phase shift
+                # The phase shift value, note that adding a phase is equivalent to
+                # displacing
+                "phase_shift": 0,
+                # a negative phase to the reference frame, so we have minus sign
+                # here.
+                "transition_multiplier": {
+                    # There is a trick to determine the sign of the phase shift for different
+                    # transitions. If the level you want to change is the earlier letter, that's
+                    # positive.
+                    "f01": -1,
+                },
+            },
+        )
+        vz.set_omega(omega)
+        return vz
+
 
 class QuditVirtualZCollection(LogicalPrimitiveCollection):
     @classmethod

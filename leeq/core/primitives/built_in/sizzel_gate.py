@@ -1,10 +1,10 @@
 import uuid
+import numpy as np
 
 from leeq import LogicalPrimitiveFactory, LogicalPrimitive
 from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
 from leeq.core.primitives.built_in.compatibility import PulseArgsUpdatable
 from leeq.core.primitives.collections import LogicalPrimitiveCollection
-import numpy as np
 
 from leeq.core.primitives.built_in.simple_drive import SimpleDrive
 
@@ -42,20 +42,24 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         """
         super().update_parameters(**kwargs)
 
-        self['stark_drive_control'].update_parameters(
-            {
-                "freq": self._parameters['freq'],
-                "amp": self._parameters['amp_control'],
-                "shape": self._parameters['shape'],
-                "width": self._parameters['width'],
-            }
-        )
-        self['stark_drive_target'].update_parameters({
+        self['stark_drive_control'].update_parameters(**{
+            "freq": self._parameters['freq'],
+            "amp": self._parameters['amp_control'],
+            "shape": self._parameters['shape'],
+            "width": self._parameters['width'],
+            "rise": self._parameters['rise'],
+            "trunc": self._parameters['trunc'],
+            "phase": 0,
+        }
+                                                      )
+        self['stark_drive_target'].update_parameters(**{
             "freq": self._parameters['freq'],
             "amp": self._parameters['amp_target'],
             "shape": self._parameters['shape'],
             "phase": self._parameters['phase_diff'],
             "width": self._parameters['width'],
+            "rise": self._parameters['rise'],
+            "trunc": self._parameters['trunc'],
         })
 
     def __init__(self, name, parameters, dut_control, dut_target):

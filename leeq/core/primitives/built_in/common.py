@@ -114,6 +114,9 @@ class PhaseShift(LogicalPrimitive):
         will be divided by the number of transition photons to make it logically corresponds to the shift the user
          would like to obtain. This feature needs to be implemented at the compiler level.
         """
+        self._virtual_width = 0  # The virtual width of the phase shift, which is used to calculate the phase shift
+        # given a Z hamiltonian term.
+        self._omega = 0  # The strength of the Z hamiltonian term.
 
         super().__init__(name, parameters)
 
@@ -127,3 +130,24 @@ class PhaseShift(LogicalPrimitive):
         assert isinstance(
             parameters["transition_multiplier"], dict
         ), "The transition multiplier is not a dict."
+
+    def set_virtual_width(self, width: float):
+        """
+        Set the virtual width of the phase shift.
+
+        Parameters:
+            width (int): The virtual width.
+        """
+        self._virtual_width = width
+        self.update_parameters(
+            phase_shift=-self._omega * self._virtual_width
+        )
+
+    def set_omega(self, omega: float):
+        """
+        Set the strength of the Z hamiltonian term.
+        """
+        self._omega = omega
+        self.update_parameters(
+            phase_shift=-self._omega * self._virtual_width
+        )

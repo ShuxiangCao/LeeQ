@@ -341,6 +341,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         if (
                 "phase" in parameters
                 and lpb.channel in self._phase_shift
+                and "transition_name" in parameters
                 and parameters["transition_name"] in self._phase_shift[lpb.channel]
         ):
             phase_shift += self._phase_shift[lpb.channel][lpb.transition_name]
@@ -600,8 +601,9 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         # Assemble the circuit
         compiled_circuit = sum(child_circuits, [])
         block_scope = set(block_scope)
-        compiled_circuit.append(
-            {"name": "barrier", "scope": list(set(x.split('.')[0] for x in block_scope))})
+        if len(block_scope) > 1:
+            compiled_circuit.append(
+                {"name": "barrier", "scope": list(set(x.split('.')[0] for x in block_scope))})
 
         return compiled_circuit, block_scope
 

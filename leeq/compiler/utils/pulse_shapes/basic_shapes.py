@@ -222,14 +222,13 @@ def blackman_drag(
     return env
 
 
-
 def soft_square(
         sampling_rate: int,
         amp: float,
-        phase: Optional[float] = None,
-        width: Optional[float] = None,
-        rise: Optional[float] = None,
-        trunc: Optional[float] = None,
+        width: float,
+        phase: Optional[float] = 0,
+        rise: Optional[float] = 0,
+        trunc: Optional[float] = 1,
         delay: float = 0.0,
         phase_shift: float = 0,
         ex_delay: float = 0,

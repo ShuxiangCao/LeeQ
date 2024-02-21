@@ -112,3 +112,97 @@ def fit_1d_freq_exp_with_cov(z: np.ndarray, dt: float, use_freq_bound: bool = Tr
             'Offset': (offset, offset_std),
             'Decay': (T, T_std),
             'Cov': pcov}
+
+def Fit_1D_Freq(z, dt, use_freq_bound=True, fix_frequency=False, tstart=0, freq_guess=None, **kwargs):
+    # print(z)
+    # print(dt)
+    # print(z.shape)
+
+    if fix_frequency:
+        assert freq_guess is not None
+
+    if freq_guess is None:
+        rfft = np.abs(np.fft.rfft(z))
+        f = np.fft.rfftfreq(len(z), dt)
+        imax = np.argmax(rfft[1:]) + 1
+        fmax = f[imax]
+
+        omega = fmax
+
+        df = f[1] - f[0]
+        min_omega = fmax - df
+        max_omega = fmax + df
+    else:
+        omega = freq_guess
+        max_omega = omega * 1.5
+        min_omega = omega * 0.5
+
+    t = np.linspace(tstart, tstart + dt * (len(z) - 1), len(z))
+
+    cosz = z * np.cos(2.0 * np.pi * omega * t)
+    sinz = z * np.sin(2.0 * np.pi * omega * t)
+    offset = np.mean(z)
+    amp = 0.5 * (np.max(z) - np.min(z))  # 2 * np.std(z) ** 0.5  # 2 ** 0.5 * np.mean((z - offset) ** 2) ** 0.5
+    phi = np.arcsin(
+        np.max([np.min([(z[0] - offset) / amp, 1]), -1]))  # 3 * np.pi / 2  # np.arctan2(np.mean(cosz),np.mean(sinz))
+    if z[1] - z[0] < 0:
+        phi = np.pi - phi
+
+    def leastsq(x, t, z):
+        omega, amp, phi, offset = x
+        fit = amp * np.sin(2. * np.pi * omega * t + phi) + offset
+        return np.mean((fit - z) ** 2) * 1e5
+
+    def leastsq_without_omega(x, omega, t, z):
+        amp, phi, offset = x
+        fit = amp * np.sin(2. * np.pi * omega * t + phi) + offset
+        return np.mean((fit - z) ** 2) * 1e5
+
+    def leastsq_phi_only(phi, x, t, z):
+        omega, amp, offset = x
+        fit = amp * np.sin(2. * np.pi * omega * t + phi) + offset
+        return np.mean((fit - z) ** 2) * 1e5
+
+    def leastsq_omega_only(omega, x, t, z):
+        phi, amp, offset = x
+        fit = amp * np.sin(2. * np.pi * omega * t + phi) + offset
+        return np.mean((fit - z) ** 2) * 1e5
+
+    result = minimize(leastsq_phi_only, np.array([phi]), args=(np.array([omega, amp, offset]), t, z))
+    phi = result.x[0]
+
+    if not fix_frequency:
+        result = minimize(leastsq_omega_only, np.array([omega]), args=(np.array([phi, amp, offset]), t, z))
+        omega = result.x[0]
+
+    result = minimize(leastsq_phi_only, np.array([phi]), args=(np.array([omega, amp, offset]), t, z))
+    phi = result.x[0]
+
+    args = dict()
+
+    args.update(kwargs)
+
+    if not fix_frequency:
+        if use_freq_bound:
+            args['bounds'] = ((min_omega, max_omega), (None, None), (None, None), (None, None))
+        result = minimize(leastsq, np.array([omega, amp, phi, offset]), args=(t, z), **args)
+        omega, amp, phi, offset = result.x
+    else:
+        result = minimize(leastsq_without_omega, np.array([amp, phi, offset]), args=(omega, t, z), **args)
+        amp, phi, offset = result.x
+
+    r = result.fun
+
+    # We here make sure amp > 0
+
+    if amp < 0:
+        phi = phi + np.pi
+        amp = -amp
+
+    while phi > np.pi:
+        phi -= np.pi * 2
+    while phi < -np.pi:
+        phi += np.pi * 2
+
+    return {'Frequency': omega, 'Amplitude': amp, 'Phase': phi, 'Offset': offset, 'Residual': r}
+
