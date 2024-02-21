@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 import numpy as np
 
 from labchronicle import register_browser_function, log_and_record
@@ -161,7 +161,6 @@ class NormalisedRabi(Experiment):
 
         # If sampling noise is enabled, simulate the noise
         if setup().status().get_param('Sampling_Noise'):
-
             # Get the number of shot used in the simulation
             shot_number = setup().status().get_param('Shot_Number')
 
@@ -275,6 +274,197 @@ class NormalisedRabi(Experiment):
         # Update layout for better visualization
         fig.update_layout(
             title='Time Rabi',
+            xaxis_title='Time (µs)',
+            yaxis_title='<z>',
+            legend_title='Legend',
+            font=dict(
+                family='Courier New, monospace',
+                size=12,
+                color='Black'
+            ),
+            plot_bgcolor='white'
+        )
+
+        return fig
+
+
+class MultiQubitRabi(Experiment):
+    @log_and_record
+    def run(self,
+            duts: list[Any],
+            amps: Union[float, list[float]] = 0.05,
+            start: float = 0.01,
+            stop: float = 0.15,
+            step: float = 0.001,
+            fit: bool = True,
+            collection_names: Union[str, list[str]] = 'f01',
+            mprim_indexes: Union[int, list[int]] = 0,
+            pulse_discretization: bool = True,
+            update=False,
+            initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+        """
+        Run a Rabi experiment on a given qubit and analyze the results.
+
+        Parameters:
+        duts (list[Any]): List of device under test (DUT) qubit objects.
+        amps (Union[float, list(float)]): Amplitude of the Rabi pulse. Default is 0.05.
+        start (float): Start width for the pulse width sweep. Default is 0.01.
+        stop (float): Stop width for the pulse width sweep. Default is 0.15.
+        step (float): Step width for the pulse width sweep. Default is 0.001.
+        fit (bool): Whether to fit the resulting data to a sinusoidal function. Default is True.
+        collection_names (Union[str, list(str)]): Collection name for retrieving c1. Default is 'f01'. If a list is
+            provided, the length of the list must match the length of duts.
+        mprim_indexes (Union[int, list(int)]): Index for retrieving measurement primitive. Default is 0. If a list is
+            provided, the length of the list must match the length of duts.
+        update (bool): Whether to update the qubit parameters. Default is False.
+        initial_lpb (Any): Initial lpb to add to the created lpb. Default is None.
+
+        Returns:
+        Dict[str, Any]: Fitted parameters if fit is True, None otherwise.
+        """
+
+        if not isinstance(amps, list):
+            amps = [amps] * len(duts)
+        if not isinstance(collection_names, list):
+            collection_names = [collection_names] * len(duts)
+        if not isinstance(mprim_indexes, list):
+            mprim_indexes = [mprim_indexes] * len(duts)
+
+        assert len(duts) == len(amps) == len(collection_names) == len(
+            mprim_indexes), "Length of duts, amps, collection_names, and mprim_indexes must be the same."
+
+        rabi_pulses = []
+
+        for i in range(len(duts)):
+            dut_qubit = duts[i]
+            collection_name = collection_names[i]
+            amp = amps[i]
+            c1 = dut_qubit.get_c1(collection_name)
+            rabi_pulse = c1['X'].clone()
+
+            if amp is not None:
+                rabi_pulse.update_pulse_args(amp=amp, phase=0., shape='square', width=step)
+            else:
+                amps[i] = rabi_pulse.amp
+
+            rabi_pulses.append(rabi_pulse)
+
+        if not pulse_discretization:
+            # Set up sweep parameters
+            swpparams = [SweepParametersSideEffectFactory.func(
+                rabi_pulse.update_pulse_args, {}, 'width'
+            ) for rabi_pulse in rabi_pulses]
+            swp = Sweeper(
+                np.arange,
+                n_kwargs={'start': start, 'stop': stop, 'step': step},
+                params=swpparams
+            )
+            pulse = prims.ParallelLPB(rabi_pulses)
+        else:
+            # Sometimes it is expensive to update the pulse envelope everytime, so we can keep the envelope the same
+            # and just change the number of pulses
+            pulse = LogicalPrimitiveBlockSweep([
+                prims.SerialLPB([prims.ParallelLPB(rabi_pulses)] * k, name='rabi_pulse') for k in
+                range(int((stop - start) / step + 0.5))
+            ])
+            swp = Sweeper.from_sweep_lpb(pulse)
+
+        # Get the measurement primitive
+        mprims = [dut_qubit.get_measurement_prim_intlist(mprim_index) for dut_qubit, mprim_index in
+                  zip(duts, mprim_indexes)]
+        self.mps = mprims
+
+        # Create the loopback pulse (lpb)
+        lpb = pulse + prims.ParallelLPB(mprims)
+
+        if initial_lpb is not None:
+            lpb = initial_lpb + lpb
+
+        # Run the basic experiment
+        basic(lpb, swp, '<z>')
+
+        # Extract the data
+        self.data = [np.squeeze(mprim.result()) for mprim in mprims]
+
+        if not fit:
+            return None
+
+        # Fit data to a sinusoidal function and return the fit parameters
+        self.fit_params = [fits.fit_sinusoidal(data, time_step=step) for data in self.data]
+
+        if update:
+            for i in range(len(duts)):
+                # Update the qubit parameters, to make one pulse width correspond to a pi pulse
+                # Here we suppose all pulse envelopes give unit area when width=1, amp=1
+                c1 = duts[i].get_c1(collection_names[i])
+                normalised_pulse_area = c1['X'].calculate_envelope_area() / c1['X'].amp
+                two_pi_area = amps[i] * (1 / self.fit_params[i]['Frequency'])
+                new_amp = two_pi_area / 2 / normalised_pulse_area
+                c1.update_parameters(amp=new_amp)
+                print(f"Amplitude updated: {duts[i].hrid} {new_amp}")
+
+    @register_browser_function()
+    def plot_all(self):
+        for i in range(len(self.data)):
+            fig = self.plot(i)
+            fig.show()
+
+    def plot(self, i) -> go.Figure:
+        """
+        Plots Rabi oscillations using data from an experiment run.
+
+        This method retrieves arguments from the 'run' object, processes the data,
+        and then creates a plot using Plotly. The plot features scatter points
+        representing the original data and a sine fit for each qubit involved in the
+        experiment.
+
+        Parameters:
+            i (int): Index of the qubit to plot.
+        """
+
+        args = self.retrieve_args(self.run)
+        t = np.arange(args['start'], args['stop'], args['step'])
+        t_interpolate = np.arange(args['start'], args['stop'], args['step'] / 5)
+
+        # Create subplots: each qubit's data gets its own plot
+        fig = go.Figure()
+        # Scatter plot of the actual data
+        fig.add_trace(
+            go.Scatter(
+                x=t,
+                y=self.data[i],
+                mode='markers',
+                marker=dict(
+                    color='Blue',
+                    size=7,
+                    opacity=0.5,
+                    line=dict(color='Black', width=2)
+                ),
+                name=f'data'
+            )
+        )
+
+        # Fit data
+        f = self.fit_params[i]['Frequency']
+        a = self.fit_params[i]['Amplitude']
+        p = self.fit_params[i]['Phase'] - 2.0 * np.pi * f * args['start']
+        o = self.fit_params[i]['Offset']
+        fit = a * np.sin(2.0 * np.pi * f * t_interpolate + p) + o
+
+        # Line plot of the fit
+        fig.add_trace(
+            go.Scatter(
+                x=t_interpolate,
+                y=fit,
+                mode='lines',
+                line=dict(color='Red'),
+                name=f'fit'
+            )
+        )
+
+        # Update layout for better visualization
+        fig.update_layout(
+            title=f'Time Rabi: {args["duts"][i].hrid}',
             xaxis_title='Time (µs)',
             yaxis_title='<z>',
             legend_title='Legend',

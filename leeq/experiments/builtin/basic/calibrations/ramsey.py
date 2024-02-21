@@ -349,6 +349,7 @@ class MultiQubitRamseyMultilevel(Experiment):
         if isinstance(mprim_indexes, int):
             mprim_indexes = [mprim_indexes] * len(duts)
 
+        self.collection_names = collection_names
         # Make sure the collection names and mprim indexes have the same length as the DUTs
         assert len(duts) == len(collection_names) == len(mprim_indexes), \
             "The number of DUTs, collection names, and mprim indexes must be the same."
@@ -512,7 +513,7 @@ class MultiQubitRamseyMultilevel(Experiment):
                       row=1, col=1)
 
         # Set plot layout details
-        title_text = f"Ramsey decay {args['duts'][i].hrid} transition {args['collection_name']}: <br>" \
+        title_text = f"Ramsey decay {args['duts'][i].hrid} transition {self.collection_names[i]}: <br>" \
                      f"{decay} ± {fit_params['Decay'][1]} us"
         fig.update_layout(title_text=title_text,
                           xaxis_title=f"Time (us) <br> Frequency: {frequency} ± {fit_params['Frequency'][1]}",
