@@ -153,6 +153,142 @@ class SimpleT1(Experiment):
         return self.plot_t1(fit=step_no[0] > 10, step_no=step_no)
 
 
+class MultiQubitT1(Experiment):
+    """
+    A class used to represent a multi qubit T1 Experiment.
+
+    ...
+
+    Attributes
+    ----------
+    trace : np.ndarray
+        Stores the result of the measurement primitive.
+
+    fit_params : dict
+        Stores the parameters of the fitted exponential decay.
+
+    Methods
+    -------
+    run(qubit, collection_name, initial_lpb, mprim_index, time_length, time_resolution, hardware_stall)
+        Runs the T1 experiment.
+    plot_t1()
+        Plots the T1 decay.
+    """
+
+    @log_and_record
+    def run(self,
+            duts: List[Any],  # Add the expected type for 'qubit' instead of Any
+            collection_names: Union[str, List[str]] = 'f01',
+            initial_lpb: Optional[Any] = None,  # Add the expected type for 'initial_lpb' instead of Any
+            mprim_indexes: int = 0,
+            time_length: float = 100.0,
+            time_resolution: float = 1.0
+            ) -> None:
+        """Run the multi qubit T1 experiment with the specified parameters.
+
+        Parameters:
+        duts (List[Any]): A list of qubit objects to be used in the experiment.
+        collection_names (Union[str,List[str]]): The collection name for the qubit transition.
+        initial_lpb (Optional[Any]): Initial list of pulse blocks (LPB).
+        mprim_indexes (int): Index of the measurement primitive.
+        time_length (float): Total time length of the experiment in microseconds.
+        time_resolution (float): Time resolution for the experiment in microseconds.
+        """
+        if isinstance(collection_names, str):
+            collection_names = [collection_names] * len(duts)
+
+        self.collection_names = collection_names
+        if isinstance(mprim_indexes, int):
+            mprim_indexes = [mprim_indexes] * len(duts)
+
+        c1s = [qubit.get_c1(collection_name) for qubit, collection_name in zip(duts, collection_names)]
+        mps = [qubit.get_measurement_prim_intlist(mprim_index) for qubit, mprim_index in zip(duts, mprim_indexes)]
+        self.mps = mps
+        delay = prims.Delay(0)
+
+        lpb = prims.ParallelLPB([c1['X'] for c1 in c1s]) + delay + prims.ParallelLPB(mps)
+
+        if initial_lpb:
+            lpb = initial_lpb + lpb
+
+        sweep_range = np.arange(0.0, time_length, time_resolution)
+        swp = Sweeper(sweep_range,
+                      params=[sparam.func(delay.set_delay, {}, 'delay')])
+
+        basic(lpb, swp, 'p(1)')
+        self.traces = [np.squeeze(mp.result()) for mp in mps]
+
+    @register_browser_function(available_after=(run,))
+    def plot_all(self):
+        """
+        Plot the T1 decay graph based on the trace and fit parameters using Plotly.
+        """
+        for i in range(len(self.traces)):
+            fig = self.plot_t1(i=i)
+            fig.show()
+
+    def plot_t1(self, i, fit=True) -> go.Figure:
+        """
+        Plot the T1 decay graph based on the trace and fit parameters using Plotly.
+
+        Parameters:
+        fit (bool): Whether to fit the trace. Defaults to True.
+        step_no (Tuple[int]): Number of steps to plot.
+
+        Returns:
+        go.Figure: The Plotly figure object.
+        """
+
+        args = self.retrieve_args(self.run)
+
+        t = np.arange(0, args['time_length'], args['time_resolution'])
+        trace = self.traces[i]
+
+        # Create traces for scatter and line plot
+        trace_scatter = go.Scatter(
+            x=t, y=trace,
+            mode='markers',
+            marker=dict(
+                symbol='x',
+                size=10,
+                color='blue'
+            ),
+            name='Experiment data'
+        )
+
+        data = [trace_scatter]
+        title = f"T1 decay {args['duts'][i].hrid} transition {self.collection_names[i]}"
+
+        if fit:
+            fit_params = fit_exp_decay_with_cov(trace, args['time_resolution'])
+
+            trace_line = go.Scatter(
+                x=t,
+                y=fit_params['Amplitude'][0] * np.exp(-t / fit_params['Decay'][0]) + fit_params['Offset'][0],
+                mode='lines',
+                line=dict(
+                    color='blue'
+                ),
+                name='Decay fit'
+            )
+            title = (f"T1 decay {args['duts'][i].hrid} transition {self.collection_names[i]}<br>"
+                     f"T1={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
+
+            data = [trace_scatter, trace_line]
+
+        layout = go.Layout(
+            title=title,
+            xaxis=dict(title='Time (us)'),
+            yaxis=dict(title='P(1)'),
+            plot_bgcolor='white',
+            showlegend=True
+        )
+
+        fig = go.Figure(data=data, layout=layout)
+
+        return fig
+
+
 class MultiQuditT1Decay(Experiment):
     color_set = ['orange', 'b', 'g', 'r']
 
