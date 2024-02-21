@@ -403,7 +403,7 @@ class MultiQubitRamseyMultilevel(Experiment):
             self.analyze_data()
             for i, c1 in enumerate(c1s):
                 c1.update_parameters(freq=self.frequency_guess[i])
-                print(f"Frequency updated: {duts[i].hrid} {self.frequency_guess} MHz")
+                print(f"Frequency updated: {duts[i].hrid} {self.frequency_guess[i]} MHz")
         else:
             for i, c1 in enumerate(c1s):
                 c1.update_parameters(freq=original_freqs[i])
@@ -457,7 +457,7 @@ class MultiQubitRamseyMultilevel(Experiment):
             self.fit_params = [fit_1d_freq_exp_with_cov(data, dt=args['step']) for data in self.data]
             fitted_freq_offsets = [(self.fit_params[i]['Frequency'][0] - self.set_offset) / self.level_diffs[i] for i in
                                    range(len(self.data))]
-            self.frequency_guess = [self.original_freq[i] - fitted_freq_offset for i, fitted_freq_offset in
+            self.frequency_guess = [self.original_freqs[i] - fitted_freq_offset for i, fitted_freq_offset in
                                     enumerate(fitted_freq_offsets)]
             self.error_bar = [x['Frequency'][1] for x in self.fit_params]
 
