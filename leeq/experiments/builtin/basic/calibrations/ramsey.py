@@ -136,6 +136,16 @@ class SimpleRamseyMultilevel(Experiment):
         f_q = virtual_transmon.qubit_frequency
         f_d = c1['X'].freq
         f_o = set_offset
+        self.set_offset = set_offset
+
+        # Save original frequency
+        original_freq = c1['Xp'].freq
+        self.original_freq = original_freq
+
+        # Define the levels for the sweep based on the collection name
+        start_level = int(collection_name[1])
+        end_level = int(collection_name[2])
+        self.level_diff = end_level - start_level
 
         t = np.arange(start, stop, step)
 
@@ -214,6 +224,7 @@ class SimpleRamseyMultilevel(Experiment):
             # In case of fit failure, default the frequency guess and error
             self.frequency_guess = 0
             self.error_bar = np.inf
+            raise e
 
     def dump_results_and_configuration(self) -> Tuple[
         float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
