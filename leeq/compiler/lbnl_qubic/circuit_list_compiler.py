@@ -537,18 +537,19 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
         # The middle children
         for i in range(1, len(child_circuits)):
-            # If the child is a delay primitive, we need to modify its scope to be the previous child's scope.
+            # If the child is a delay primitive, and the scope is empty,
+            # we need to modify its scope to be the block scope.
             # For this operation we do not need a barrier.
             if len(
                     child_circuits[i]) == 1 and child_circuits[i][0]["name"] == "delay":
-                child_circuits[i][0]["scope"] = list(set(x.split('.')[0] for x in child_scopes[i - 1]))
+                child_circuits[i][0]["scope"] = list(set(x.split('.')[0] for x in block_scope))
             else:
                 # If we are only dealing with one channel, and the previous and current child are on the same channel,
-                # we do not need a barrier.
+                # we do not need a barrier. Otherwise add a barrier at block scope.
                 union_scope = child_scopes[i - 1].union(child_scopes[i])
                 if len(block_scope) > 1 and len(union_scope) > 1:
                     compiled_circuit.append(
-                        {"name": "barrier", "scope": list(set(x.split('.')[0] for x in union_scope))}
+                        {"name": "barrier", "scope": list(set(x.split('.')[0] for x in block_scope))}
                     )
 
             compiled_circuit.extend(child_circuits[i])

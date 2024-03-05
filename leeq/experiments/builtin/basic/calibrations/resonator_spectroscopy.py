@@ -136,7 +136,7 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         f = np.arange(start, stop, step)
 
         response = virtual_transmon.get_resonator_response(
-            f, effective_amp, baseline=0.001*effective_amp
+            f, effective_amp, baseline=0.001 * effective_amp
         )[0, :]
 
         noise_scale = 1 / num_avs
@@ -313,6 +313,10 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         kappa_guess = f_diff[turn_point[1]] - f_diff[turn_point[0]]
 
         Q_guess = f0 / kappa_guess
+        if isinstance(Q_guess, np.ndarray):
+            Q_guess = Q_guess[0]
+        if isinstance(Q_guess, list):
+            Q_guess = Q_guess[0]
 
         # Finally, we can fit the data
         result = so.minimize(
@@ -369,7 +373,19 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
 
     @register_browser_function(available_after=(run,))
     def plot_phase_gradient_fit(self):
-        z, f0, Q, amp, baseline, direction = self._fit_phase_gradient()
+
+        fit_succeed = False
+
+        try:
+            z, f0, Q, amp, baseline, direction = self._fit_phase_gradient()
+            fit_succeed = True
+        except Exception as e:
+            logger.error(f"Error fitting phase gradient: {e}")
+            args = self.retrieve_args(self.run)
+            f = np.arange(args["start"], args["stop"], args["step"])
+            phase_trace = self.result["Phase"]
+            phase_unwrapped = np.unwrap(phase_trace)
+            z = (phase_unwrapped[1:] - phase_unwrapped[:-1]) / args["step"]
 
         args = self.retrieve_args(self.run)
         f = np.arange(args["start"], args["stop"], args["step"])
@@ -380,19 +396,20 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
 
         fig = go.Figure()
 
-        fig.add_trace(
-            go.Scatter(
-                x=f_interpolate,
-                y=self.root_lorentzian(
-                    f_interpolate,
-                    f0,
-                    Q,
-                    amp,
-                    baseline) *
-                  direction,
-                mode="lines",
-                name="Lorentzian fit",
-            ))
+        if fit_succeed:
+            fig.add_trace(
+                go.Scatter(
+                    x=f_interpolate,
+                    y=self.root_lorentzian(
+                        f_interpolate,
+                        f0,
+                        Q,
+                        amp,
+                        baseline) *
+                      direction,
+                    mode="lines",
+                    name="Lorentzian fit",
+                ))
 
         fig.add_trace(
             go.Scatter(
@@ -408,10 +425,11 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             plot_bgcolor="white",
         )
 
-        print(
-            "Phase gradient fit f0:%s, Q:%s, amp:%s, base:%s kappa:%f"
-            % (f0, Q, amp, baseline, f0 / Q)
-        )
+        if fit_succeed:
+            print(
+                "Phase gradient fit f0:%s, Q:%s, amp:%s, base:%s kappa:%f"
+                % (f0, Q, amp, baseline, f0 / Q)
+            )
 
         return fig
 

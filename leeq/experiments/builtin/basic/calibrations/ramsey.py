@@ -224,7 +224,6 @@ class SimpleRamseyMultilevel(Experiment):
             # In case of fit failure, default the frequency guess and error
             self.frequency_guess = 0
             self.error_bar = np.inf
-            raise e
 
     def dump_results_and_configuration(self) -> Tuple[
         float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
@@ -255,31 +254,44 @@ class SimpleRamseyMultilevel(Experiment):
         time_points = np.arange(args['start'], args['stop'], args['step'])
         time_points_interpolate = np.arange(args['start'], args['stop'], args['step'] / 10)
 
-        # Extract fitting parameters
-        frequency = self.fit_params['Frequency'][0]
-        amplitude = self.fit_params['Amplitude'][0]
-        phase = self.fit_params['Phase'][0] - 2.0 * np.pi * frequency * args['start']
-        offset = self.fit_params['Offset'][0]
-        decay = self.fit_params['Decay'][0]
-
-        # Generate the fitted curve
-        fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * \
-                       np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
-
         # Create a plot using Plotly
         fig = make_subplots(rows=1, cols=1)
         fig.add_trace(go.Scatter(x=time_points, y=self.data, mode='markers', name='Data'),
                       row=1, col=1)
-        fig.add_trace(go.Scatter(x=time_points_interpolate, y=fitted_curve, mode='lines', name='Fit'),
-                      row=1, col=1)
 
-        # Set plot layout details
-        title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
-                     f"{decay} ± {self.fit_params['Decay'][1]} us"
-        fig.update_layout(title_text=title_text,
-                          xaxis_title=f"Time (us) <br> Frequency: {frequency} ± {self.fit_params['Frequency'][1]}",
-                          yaxis_title="<z>",
-                          plot_bgcolor="white")
+        if hasattr(self,'fit_params'):
+
+            # Extract fitting parameters
+            frequency = self.fit_params['Frequency'][0]
+            amplitude = self.fit_params['Amplitude'][0]
+            phase = self.fit_params['Phase'][0] - 2.0 * np.pi * frequency * args['start']
+            offset = self.fit_params['Offset'][0]
+            decay = self.fit_params['Decay'][0]
+
+            # Generate the fitted curve
+            fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * \
+                           np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
+
+            fig.add_trace(go.Scatter(x=time_points_interpolate, y=fitted_curve, mode='lines', name='Fit'),
+                          row=1, col=1)
+
+            # Set plot layout details
+            title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
+                         f"{decay} ± {self.fit_params['Decay'][1]} us"
+            fig.update_layout(title_text=title_text,
+                              xaxis_title=f"Time (us) <br> Frequency: {frequency} ± {self.fit_params['Frequency'][1]}",
+                              yaxis_title="<z>",
+                              plot_bgcolor="white")
+
+        else:
+            # Set plot layout details
+            title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
+                         f"Fit failed"
+            fig.update_layout(title_text=title_text,
+                              xaxis_title=f"Time (us)",
+                              yaxis_title="<z>",
+                              plot_bgcolor="white")
+
         return fig
 
     def plot_fft(self, plot_range: Tuple[float, float] = (0.05, 1)) -> go.Figure:

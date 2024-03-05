@@ -3,6 +3,7 @@ from pytest import fixture
 from leeq.compiler.lbnl_qubic.circuit_list_compiler import QubiCCircuitListLPBCompiler
 from leeq.core.context import ExperimentContext
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
+from leeq.core.primitives.built_in.common import Delay
 
 configuration_1 = {
     'lpb_collections': {
@@ -73,7 +74,7 @@ configuration_2 = {
         '0': {
             'type': 'SimpleDispersiveMeasurement',
             'freq': 9144.41,
-            'channel': 1,
+            'channel': 3,
             'shape': 'square',
             'amp': 0.21323904814245054 / 5 * 4,
             'phase': 0.,
@@ -187,3 +188,21 @@ def test_block_lpbs(qubit_1, qubit_2):
     with pytest.raises(AssertionError):
         lpb = qubit_1.get_gate('qutrit_hadamard') * qubit_1.get_gate('qutrit_hadamard')
         instructions = compile_lpb(lpb)
+
+
+def test_measurement_like_pulse_experiment_circuit(qubit_1, qubit_2):
+    rotate_X_qubit = qubit_1.get_lpb_collection('f01')['Xp']
+    mlp = qubit_2.get_measurement_primitive('0')
+    delay = Delay(0.5)
+    phi_rotate_X_qubit = rotate_X_qubit.clone()
+    measurement_primitive_qubit = qubit_1.get_measurement_prim_intlist('0')
+
+    lpb = rotate_X_qubit + mlp + delay + phi_rotate_X_qubit + measurement_primitive_qubit
+
+    instructions = compile_lpb(lpb)
+
+    for i in [1, 5, 7]:
+        assert set(instructions['circuits'][i]['scope']) == {'Q1', 'Q0'}
+
+    assert set(instructions['circuits'][3]['scope']) == {'Q1'}
+    assert set(instructions['circuits'][9]['scope']) == {'Q0'}

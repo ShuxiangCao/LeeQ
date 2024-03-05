@@ -446,6 +446,10 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
         virtual_transmon = simulator_setup.get_virtual_qubit(dut)
         mp = dut.get_measurement_prim_intlist(str(mprim_index))
+
+        if freq is not None:
+            mp.update_freq(freq)
+
         if amp is None:
             amp = mp.get_pulse_args("amp")
 
@@ -455,7 +459,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         rise = pulse_args.get("rise", 0)
         trunc = pulse_args.get("trunc", 1.2)
         sampling_rate = 1e1
-        f_r = mp.freq
+        f_r = virtual_transmon.readout_frequency
         kappa = virtual_transmon.readout_linewidth
         chis = np.cumsum([virtual_transmon.readout_dipsersive_shift] * 4)
 

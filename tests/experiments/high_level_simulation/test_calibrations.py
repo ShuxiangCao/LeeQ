@@ -20,7 +20,7 @@ def simulation_setup():
                                        t1=30,
                                        t2=30,
                                        readout_frequency=9141.21,
-                                       quiescent_state_distribution=np.asarray([ 0.8, 0.15, 0.04, 0.01 ]))
+                                       quiescent_state_distribution=np.asarray([0.8, 0.15, 0.04, 0.01]))
 
     setup = HighLevelSimulationSetup(
         name='HighLevelSimulationSetup',
@@ -143,12 +143,3 @@ def test_qubit_spectroscopy(simulation_setup, qubit):
         step=1., num_avs=1000,
         rep_rate=0., mp_width=0.5, amp=0.01
     )
-    sweep.plot_magnitude().show()
-
-# def test_pingpong(simulation_setup, qubit):
-#    from leeq.experiments.builtin import AmpTuneUpSingleQubitMultilevel
-#    manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
-#    pingpong = AmpTuneUpSingleQubitMultilevel(
-#        dut=qubit,
-#    )
-#    pingpong.plot_amp()
