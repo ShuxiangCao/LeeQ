@@ -201,8 +201,8 @@ def test_measurement_like_pulse_experiment_circuit(qubit_1, qubit_2):
 
     instructions = compile_lpb(lpb)
 
-    for i in [1, 5, 7]:
+    for i in [1, 5, 6, 8]:
         assert set(instructions['circuits'][i]['scope']) == {'Q1', 'Q0'}
 
     assert set(instructions['circuits'][3]['scope']) == {'Q1'}
-    assert set(instructions['circuits'][9]['scope']) == {'Q0'}
+    assert set(instructions['circuits'][10]['scope']) == {'Q0'}

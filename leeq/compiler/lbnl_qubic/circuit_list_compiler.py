@@ -543,6 +543,11 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             if len(
                     child_circuits[i]) == 1 and child_circuits[i][0]["name"] == "delay":
                 child_circuits[i][0]["scope"] = list(set(x.split('.')[0] for x in block_scope))
+                if len(block_scope) > 1:
+                    # If the block contains more than 1 channel, we need a barrier
+                    compiled_circuit.append(
+                        {"name": "barrier", "scope": list(set(x.split('.')[0] for x in block_scope))}
+                    )
             else:
                 # If we are only dealing with one channel, and the previous and current child are on the same channel,
                 # we do not need a barrier. Otherwise add a barrier at block scope.
