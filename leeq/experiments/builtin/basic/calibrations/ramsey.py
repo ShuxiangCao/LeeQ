@@ -54,7 +54,6 @@ class SimpleRamseyMultilevel(Experiment):
         Returns:
             None
         """
-        c1q = qubit.get_c1(collection_name)  # Retrieve the control object
         self.set_offset = set_offset
         self.step = step
 
@@ -67,8 +66,8 @@ class SimpleRamseyMultilevel(Experiment):
         original_freq = c1q['Xp'].freq
         self.original_freq = original_freq
 
-        # Create a delay primitive
-        delay = prims.Delay(0)
+        c1q = qubit.get_c1(collection_name)  # Retrieve the gate collection object
+        delay = prims.Delay(0) # Create a delay primitive
 
         # Update the frequency with the calculated offset
         c1q.update_parameters(freq=original_freq + set_offset / self.level_diff)
@@ -89,6 +88,7 @@ class SimpleRamseyMultilevel(Experiment):
         # Execute the basic experiment routine
         basic(lpb, swp, '<z>')
         self.data = np.squeeze(mprim.result())
+
         self.update = update
 
         # Analyze data if update is true
