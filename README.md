@@ -1,5 +1,7 @@
 # LeeQ
 
+[![main](https://github.com/ShuxiangCao/LeeQ/actions/workflows/test.yaml/badge.svg)](https://github.com/ShuxiangCao/LeeQ/actions/workflows/test.yaml)
+
 LeeQ is a python package for orchestrating quantum computing experiment with easy to use syntax, with a specific focus
 on superconducting circuits based quantum computing systems.
 
