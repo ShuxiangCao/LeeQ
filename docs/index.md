@@ -1,17 +1,6 @@
-# Welcome to MkDocs
+# Welcome to LeeQ documentation.
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+LeeQ is a light-weight python package for orchestrating microwave pulses alongside with other related instrument, developed for quantum computing experiments with easy to use syntax.
 
-## Commands
-
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
-
-## Project layout
-
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+[10 minutes quick start guide](quick_start.md)
+[1 hour full tutorial](tutorial.md)

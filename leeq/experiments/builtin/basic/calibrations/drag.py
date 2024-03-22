@@ -1,15 +1,10 @@
-import numpy as np
-from matplotlib import pyplot as plt
-from scipy import optimize as so
-
 from labchronicle import log_and_record, register_browser_function
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, basic_run
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.utils.compatibility import prims
 
-from typing import Optional, List, Tuple, Dict
+from typing import Optional
 import numpy as np
-import scipy.optimize as so
 import matplotlib.pyplot as plt
 
 

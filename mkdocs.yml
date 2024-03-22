@@ -1,4 +1,17 @@
 site_name: LeeQ
 nav:
   - Home: index.md
-  - About: about.md
+  - 10 minutes quick start: quick_start.md
+  - Tutorial: tutorial.md
+theme:
+  name: readthedocs
+plugins:
+- search
+- mkdocstrings:
+    default_handler: python
+    handlers:
+      python:
+        options:
+          docstring_style: numpy
+        rendering:
+          show_source: true

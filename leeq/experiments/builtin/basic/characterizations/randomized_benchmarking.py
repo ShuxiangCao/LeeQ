@@ -338,7 +338,7 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         error_bar = (d - 1) / d * (perr[1] / np.exp(self.popt[qubit_id][0][1]))
 
         plt.title(
-            f'Qubit {qubit_id} {args["cliff_set"]} {args["collection_name"]} randomized benchmarking \n Fidelity:{1 - infidelity} $\pm$ {error_bar}')
+            rf'Qubit {qubit_id} {args["cliff_set"]} {args["collection_name"]} randomized benchmarking \n Fidelity:{1 - infidelity} $\pm$ {error_bar}')
         plt.xlabel('Sequence length')
         plt.ylabel(r'Population')
         plt.legend()

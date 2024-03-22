@@ -3,19 +3,9 @@
 LeeQ is a python package for orchestrating quantum computing experiment with easy to use syntax, with a specific focus
 on superconducting circuits based quantum computing systems.
 
-## Installation
+## Quick Start 
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install LeeQ from the source code.
-
-```bash
-pip install .
-```
-
-## Usage
-
-```python
-import LeeQ as lq
-```
+See the [Quick Start Guide](docs/quick_start.md) for a 10 minutes guide to launch LeeQ. Or the [One hour full tutorial tutorial](docs/tutorial.md)
 
 ## Contributing
 
@@ -27,4 +17,4 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ## Acknowledgement
 
-This project developed in University of Oxford [Quantum Superconducting Circuits Research Group](https://leeklab.org/)  
+This project developed by Shuxiang Cao in the University of Oxford [Quantum Superconducting Circuits Research Group](https://leeklab.org/)  
