@@ -1,0 +1,4 @@
+site_name: LeeQ
+nav:
+  - Home: index.md
+  - About: about.md
