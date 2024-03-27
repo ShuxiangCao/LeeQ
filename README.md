@@ -13,10 +13,6 @@ See the [Quick Start Guide](docs/quick_start.md) for a 10 minutes guide to launc
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
-## License
-
-[MIT](https://choosealicense.com/licenses/mit/)
-
 ## Acknowledgement
 
 This project developed by Shuxiang Cao in the University of Oxford [Quantum Superconducting Circuits Research Group](https://leeklab.org/)  
