@@ -14,8 +14,6 @@ jobs:
           python-version: 3.11
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          path: main
 
       - name: Install dependencies
         run: |
