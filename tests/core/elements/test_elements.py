@@ -11,7 +11,8 @@ from leeq.utils import get_calibration_log_path
 
 @pytest.fixture
 def calibration_log_path(tmp_path) -> pytest.fixture():
-    os.environ["LEEQ_CALIBRATION_LOG_PATH"] = str(tmp_path / "calibration_logs")
+    os.environ["LEEQ_CALIBRATION_LOG_PATH"] = str(
+        tmp_path / "calibration_logs")
     return os.environ["LEEQ_CALIBRATION_LOG_PATH"]
 
 
@@ -57,7 +58,10 @@ def test_element_initialization(element, valid_calibration):
     assert element._measurement_primitives == {}
 
 
-def test_save_calibration_log(element, valid_calibration, calibration_log_path):
+def test_save_calibration_log(
+        element,
+        valid_calibration,
+        calibration_log_path):
     element.save_calibration_log()
     path = get_calibration_log_path()
     assert path.exists()
@@ -68,7 +72,7 @@ def test_save_calibration_log(element, valid_calibration, calibration_log_path):
     assert calibration_log == valid_calibration
 
 
-def test_load_from_calibration_log(element,calibration_log_path):
+def test_load_from_calibration_log(element, calibration_log_path):
     element.save_calibration_log()
     loaded_element = MockElement.load_from_calibration_log(name="test_element")
     assert loaded_element._parameters == element._parameters
@@ -86,7 +90,8 @@ def test_validate_calibration_dict_missing_lpb_collections(valid_calibration):
         Element._validate_calibration_dict(valid_calibration)
 
 
-def test_validate_calibration_dict_missing_measurement_primitives(valid_calibration):
+def test_validate_calibration_dict_missing_measurement_primitives(
+        valid_calibration):
     del valid_calibration['measurement_primitives']
     with pytest.raises(AssertionError, match="Measurement primitives not found in the calibration dictionary."):
         Element._validate_calibration_dict(valid_calibration)

@@ -47,13 +47,15 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
             raise TypeError("seq_length must be an integer or a numpy array")
         if not isinstance(collection_name, str):
             raise TypeError("collection_name must be a string")
-        if not cliff_set in {'XY', 'VZX'}:
+        if cliff_set not in {'XY', 'VZX'}:
             raise ValueError("cliff_set must be either 'XY' or 'VZX'")
-        if not collection_name in {'f01', 'f12', 'f23', 'f02', 'f13'}:
-            raise ValueError("collection_name must be one of the specified collections")
+        if collection_name not in {'f01', 'f12', 'f23', 'f02', 'f13'}:
+            raise ValueError(
+                "collection_name must be one of the specified collections")
 
         if cliff_set == 'VZX':
-            raise NotImplementedError("Clifford set 'VZX' not yet implemented.")
+            raise NotImplementedError(
+                "Clifford set 'VZX' not yet implemented.")
 
         # Convert seq_length to a numpy array if it's an integer
         if isinstance(seq_length, int):
@@ -64,17 +66,22 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         # Seed the random number generator
         np.random.seed(seed)
 
-        # Determine flip-up and flip-down local Pauli blocks (LPB) based on collection_name
+        # Determine flip-up and flip-down local Pauli blocks (LPB) based on
+        # collection_name
         flip_up_lpb, flip_down_lpb = None, None
         if collection_name[1] == '0':
-            flip_lpb = prims.ParallelLPB([dut.get_c1('f01')['I'] for dut in dut_list])
+            flip_lpb = prims.ParallelLPB(
+                [dut.get_c1('f01')['I'] for dut in dut_list])
             flip_up_lpb = flip_down_lpb = flip_lpb
         elif collection_name[1] == '1':
-            flip_lpb = prims.ParallelLPB([dut.get_c1('f01')['X'] for dut in dut_list])
+            flip_lpb = prims.ParallelLPB(
+                [dut.get_c1('f01')['X'] for dut in dut_list])
             flip_up_lpb = flip_down_lpb = flip_lpb
         elif collection_name[1] == '2':
-            flip_up_lpb = prims.ParallelLPB([dut.get_c1('f01')['X'] + dut.get_c1('f12')['X'] for dut in dut_list])
-            flip_down_lpb = prims.ParallelLPB([dut.get_c1('f12')['X'] + dut.get_c1('f01')['X'] for dut in dut_list])
+            flip_up_lpb = prims.ParallelLPB(
+                [dut.get_c1('f01')['X'] + dut.get_c1('f12')['X'] for dut in dut_list])
+            flip_down_lpb = prims.ParallelLPB(
+                [dut.get_c1('f12')['X'] + dut.get_c1('f01')['X'] for dut in dut_list])
 
         self.cliff_set = cliff_set
 
@@ -83,7 +90,8 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
 
         # Define a function to get a Clifford gate based on its ID
         def get_clifford(c1, clifford_id):
-            return prims.SerialLPB([c1[x] for x in get_clifford_from_id(clifford_id)])
+            return prims.SerialLPB(
+                [c1[x] for x in get_clifford_from_id(clifford_id)])
 
         # Generate the gate sequences
         self.gates = [
@@ -101,7 +109,8 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
                 for j in range(len(dut_list)):
                     _, lpb = self.generate_sequence(length=seq, dut_id=j)
                     lpb_for_different_duts_list.append(lpb)
-                lpb_list_same_length.append(prims.ParallelLPB(lpb_for_different_duts_list))
+                lpb_list_same_length.append(
+                    prims.ParallelLPB(lpb_for_different_duts_list))
             lpbs += lpb_list_same_length
 
         # Create a sweep LPB
@@ -109,14 +118,17 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         swp = Sweeper.from_sweep_lpb(sweep_lpb)
 
         # Get measurement primitives
-        m_prims = [dut.get_measurement_prim_intlist(mprim_index) for dut in dut_list]
-        final_lpb = flip_up_lpb + sweep_lpb + flip_down_lpb + prims.ParallelLPB(m_prims)
+        m_prims = [dut.get_measurement_prim_intlist(
+            mprim_index) for dut in dut_list]
+        final_lpb = flip_up_lpb + sweep_lpb + \
+            flip_down_lpb + prims.ParallelLPB(m_prims)
 
         # Execute the basic run
         basic_run(final_lpb, swp, '<zs>')
 
         # Store the results
-        self.results = np.asarray([np.squeeze(x.result()).transpose() for x in m_prims])
+        self.results = np.asarray(
+            [np.squeeze(x.result()).transpose() for x in m_prims])
 
     def generate_sequence(self, length: int, dut_id: int):
         """
@@ -133,15 +145,18 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
 
         from leeq.theory.cliffords import append_inverse_C1
 
-        clifford_indices_identity = append_inverse_C1(clifford_indices, self.cliff_set)
+        clifford_indices_identity = append_inverse_C1(
+            clifford_indices, self.cliff_set)
 
         gate_list = self.gates[dut_id]
 
-        lpb = prims.SeriesLPB([gate_list[i] for i in clifford_indices_identity])
+        lpb = prims.SeriesLPB([gate_list[i]
+                              for i in clifford_indices_identity])
 
         return clifford_indices_identity, lpb
 
-    def to_dense_probabilities(self, data_measured):  # [qubit index,sample index,anything else]
+    # [qubit index,sample index,anything else]
+    def to_dense_probabilities(self, data_measured):
         """
         Convert the data measured to dense probabilities.
 
@@ -162,7 +177,8 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         for i in range(1, qubit_count):
             aggregated_data += base ** i * data_measured[i]
 
-        bins = np.asarray([np.sum((aggregated_data == i).astype(int), axis=0) for i in range(base ** qubit_count)])
+        bins = np.asarray([np.sum((aggregated_data == i).astype(
+            int), axis=0) for i in range(base ** qubit_count)])
 
         return bins / data_measured.shape[1]
 
@@ -185,7 +201,8 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
 
         """
 
-        assert i < self.results.shape[0], f"Unexpected qubit index {i}, maximum index {self.results.shape[0] - 1}"
+        assert i < self.results.shape[
+            0], f"Unexpected qubit index {i}, maximum index {self.results.shape[0] - 1}"
 
         # Retrieving arguments and initializing variables
         args = self.retrieve_args(self.run)
@@ -199,10 +216,11 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         rb_pcov: List[np.ndarray] = []
 
         # Define the exponential decay function
-        decay_function = lambda x, a, p0, p1: a * np.exp(p0 * x) + p1
+        def decay_function(x, a, p0, p1): return a * np.exp(p0 * x) + p1
         bounds = [(-1, -1, -1), (1, 1, 1)]
 
-        results_single_qubit = self.results[i, :, :].reshape([1] + list(self.results.shape)[1:])
+        results_single_qubit = self.results[i, :, :].reshape(
+            [1] + list(self.results.shape)[1:])
 
         # Reshape the results and convert to dense probabilities
         reshaped_results = results_single_qubit.reshape(
@@ -226,7 +244,8 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
                 initial_guess = [1, 0, 0]
                 data = 1 - mean
 
-            # Curve fitting while ensuring std is not zero by adding a small value
+            # Curve fitting while ensuring std is not zero by adding a small
+            # value
             popt, pcov = so.curve_fit(
                 decay_function,
                 seq_length,
@@ -269,7 +288,8 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         self.probs: List[np.ndarray] = []
 
         for i in range(self.results.shape[0]):
-            rb_mean, rb_std, rb_popt, rb_pcov, probs = self._analyze_decay_single_qubit(i)
+            rb_mean, rb_std, rb_popt, rb_pcov, probs = self._analyze_decay_single_qubit(
+                i)
             self.mean.append(rb_mean)
             self.std.append(rb_std)
             self.popt.append(rb_popt)
@@ -315,10 +335,18 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
             popt = self.popt[qubit_id]
             std = self.std[qubit_id]
 
-            plt.errorbar(x, mean[i], std[i], fmt='o', markersize=4, capsize=4, color=colors[i],
-                         label=rf'$| {i} \rangle$')
+            plt.errorbar(
+                x,
+                mean[i],
+                std[i],
+                fmt='o',
+                markersize=4,
+                capsize=4,
+                color=colors[i],
+                label=rf'$| {i} \rangle$')
             for j in range(self.probs[qubit_id].shape[2]):
-                plt.scatter(x, self.probs[qubit_id][i, :, j], marker='.', color='k', alpha=0.2)
+                plt.scatter(x, self.probs[qubit_id][i, :, j],
+                            marker='.', color='k', alpha=0.2)
 
             if analyze_success:
 
@@ -352,12 +380,17 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
 
         N_g = 1.825
         infidelity_per_gate = 1 - (1 - infidelity) ** (1 / 1.825)
-        infidelity_per_gate_std = (1 - infidelity_per_gate) * (1 / N_g) * error_bar / (1 - r)
+        infidelity_per_gate_std = (
+            1 - infidelity_per_gate) * (1 / N_g) * error_bar / (1 - r)
 
         print(f"Qubit {qubit_id}: Infidelity per clifford:", infidelity)
         print(f"Qubit {qubit_id}: Error bar per clifford:", error_bar)
-        print(f"Qubit {qubit_id}: Infidelity per physical gate", infidelity_per_gate)
-        print(f"Qubit {qubit_id}: Error bar per physical gate", infidelity_per_gate_std)
+        print(
+            f"Qubit {qubit_id}: Infidelity per physical gate",
+            infidelity_per_gate)
+        print(
+            f"Qubit {qubit_id}: Error bar per physical gate",
+            infidelity_per_gate_std)
 
         if save_path is not None:
             plt.savefig(save_path)

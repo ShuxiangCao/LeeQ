@@ -83,7 +83,8 @@ class GridSerialSweepEngine(EngineBase):
                     self._step_no = indices
                     annotations = {'index': str(indices)}
                     # Call the side effect callbacks
-                    annotations.update(sweep.execute_side_effects_by_step_no(indices))
+                    annotations.update(
+                        sweep.execute_side_effects_by_step_no(indices))
                     pbar.set_postfix(annotations)
                     _run_single_step(indices)
 
@@ -115,7 +116,7 @@ class GridSerialSweepEngine(EngineBase):
             if not measurement_primitive.is_buffer_allocated():
                 # Allocate new buffer
                 buffer_shape = list(sweep_shape) + \
-                               list(measurement_result.shape)
+                    list(measurement_result.shape)
                 assert len(measurement_result.shape) > 1, (
                     f"The shape of the measurement result {measurement_result.shape} should be at least 2D,"
                     f" one dimension for the result id another one for the data."
@@ -128,7 +129,8 @@ class GridSerialSweepEngine(EngineBase):
 
             # Write to buffer
             indices = self._context.step_no
-            measurement_primitive.commit_measurement(indices=self._context.step_no, data=measurement_result.data)
+            measurement_primitive.commit_measurement(
+                indices=self._context.step_no, data=measurement_result.data)
 
 
 class GridBatchSweepEngine(EngineBase):
@@ -172,8 +174,9 @@ class GridBatchSweepEngine(EngineBase):
         batch_size = self._experiment_manager.status().get_parameters('Engine_Batch_Size')
 
         contexts = [
-            ExperimentContext(self._name + f".context_{i}") for i in range(batch_size)
-        ]
+            ExperimentContext(
+                self._name +
+                f".context_{i}") for i in range(batch_size)]
 
         self._context = contexts
 
@@ -189,7 +192,8 @@ class GridBatchSweepEngine(EngineBase):
                 context.set_lpb(lpb=lpb)
                 context.set_step_no(step_batch_no[i])
                 if sweep is not None:
-                    annotation = sweep.execute_side_effects_by_step_no(context.step_no)
+                    annotation = sweep.execute_side_effects_by_step_no(
+                        context.step_no)
                 else:
                     annotation = {}
                 contexts[i] = self._compile_lpb(lpb=lpb, context=context)
@@ -269,7 +273,7 @@ class GridBatchSweepEngine(EngineBase):
             if not measurement_primitive.is_buffer_allocated():
                 # Allocate new buffer
                 buffer_shape = list(sweep_shape) + \
-                               list(measurement_result.shape)
+                    list(measurement_result.shape)
                 assert len(measurement_result.shape) > 1, (
                     f"The shape of the measurement result {measurement_result.shape} should be at least 2D,"
                     f" one dimension for the result id another one for the data."
@@ -282,7 +286,8 @@ class GridBatchSweepEngine(EngineBase):
 
             # Write to buffer
             indices = context.step_no
-            measurement_primitive.commit_measurement(indices=context.step_no, data=measurement_result.data)
+            measurement_primitive.commit_measurement(
+                indices=context.step_no, data=measurement_result.data)
 
     def _fire_experiment(self):
         """

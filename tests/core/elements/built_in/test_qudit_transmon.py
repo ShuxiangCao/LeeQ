@@ -28,10 +28,13 @@ def transmon_element():
         'trunc': 1.2
     }
 
-    qubit = TransmonElement(name='test_element', parameters={'lpb_collections': {
-        'f01': drive_configure_f01,
-        'f12': drive_configure_f12
-    }, 'measurement_primitives': {}})
+    qubit = TransmonElement(
+        name='test_element',
+        parameters={
+            'lpb_collections': {
+                'f01': drive_configure_f01,
+                'f12': drive_configure_f12},
+            'measurement_primitives': {}})
 
     return qubit
 

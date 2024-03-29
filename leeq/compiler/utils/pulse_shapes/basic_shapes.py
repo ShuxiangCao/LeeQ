@@ -14,8 +14,11 @@ __all__ = [
 
 
 def gaussian(
-        sampling_rate: int, amp: float, phase: float, width: float, trunc: float
-) -> np.array:
+        sampling_rate: int,
+        amp: float,
+        phase: float,
+        width: float,
+        trunc: float) -> np.array:
     """
     Generates a complex Gaussian wave packet.
 
@@ -39,9 +42,9 @@ def gaussian(
     # Generate and return the Gaussian wave packet.
     # You may extend the function to incorporate it in the future.
     return (
-            amp
-            * np.exp(1.0j * phase)
-            * np.exp(-(((t - gauss_width) / gauss_width) ** 2)).astype("complex64")
+        amp
+        * np.exp(1.0j * phase)
+        * np.exp(-(((t - gauss_width) / gauss_width) ** 2)).astype("complex64")
     )
 
 
@@ -89,7 +92,8 @@ def gaussian_drag(
     shape = np.exp(-(((t - gauss_width) / gauss_width) ** 2), dtype="cfloat")
 
     # Compute the imaginary part using the derivative of the Gaussian
-    shape.imag = shape.real * 2.0 * t / (2.0 * np.pi * alpha2) / gauss_width ** 2
+    shape.imag = shape.real * 2.0 * t / \
+        (2.0 * np.pi * alpha2) / gauss_width ** 2
 
     # Return the pulse shape, with applied amplitude and phase modulation
     return amp * np.exp(1.0j * phase) * shape
@@ -136,9 +140,9 @@ def blackman(
 
     # Update the real part of midshape based on the Blackman window formula
     midshape += 1 - (
-            a0
-            - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
-            + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
+        a0
+        - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
+        + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
     )
 
     # Return the scaled and phased shape
@@ -205,16 +209,16 @@ def blackman_drag(
 
     # Apply the Blackman function
     midshape += 1 - (
-            a0
-            - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
-            + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
+        a0
+        - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
+        + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
     )
 
     # Handle imaginary part with a DRAG correction term
     alpha2 = alpha * 2.0
     midshape.imag = -(
-            a1 * 2.0 * np.pi / width * np.sin((2.0 * np.pi * (t + width / 2.0)) / width)
-            - a2 * 4.0 * np.pi / width * np.sin(4.0 * np.pi * (t + width / 2.0) / width)
+        a1 * 2.0 * np.pi / width * np.sin((2.0 * np.pi * (t + width / 2.0)) / width)
+        - a2 * 4.0 * np.pi / width * np.sin(4.0 * np.pi * (t + width / 2.0) / width)
     ) / (2.0 * np.pi * alpha2)
 
     # Return the pulse shaped with phase and amplitude
@@ -255,10 +259,10 @@ def soft_square(
 
     t -= 0.5 * delay
     y = (
-            amp
-            * np.exp(1.0j * (phase + phase_shift))
-            * 0.5
-            * (np.tanh((t + 0.5 * width) / rise) - np.tanh((t - 0.5 * width) / rise))
+        amp
+        * np.exp(1.0j * (phase + phase_shift))
+        * 0.5
+        * (np.tanh((t + 0.5 * width) / rise) - np.tanh((t - 0.5 * width) / rise))
     )
 
     if ex_delay > 0:

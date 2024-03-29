@@ -14,13 +14,19 @@ def simulation_setup():
     manager = ExperimentManager()
     manager.clear_setups()
 
-    virtual_transmon = VirtualTransmon(name="VQubit",
-                                       qubit_frequency=4144.1,
-                                       anharmonicity=-198,
-                                       t1=30,
-                                       t2=30,
-                                       readout_frequency=9141.21,
-                                       quiescent_state_distribution=np.asarray([0.8, 0.15, 0.04, 0.01]))
+    virtual_transmon = VirtualTransmon(
+        name="VQubit",
+        qubit_frequency=4144.1,
+        anharmonicity=-198,
+        t1=30,
+        t2=30,
+        readout_frequency=9141.21,
+        quiescent_state_distribution=np.asarray(
+            [
+                0.8,
+                0.15,
+                0.04,
+                0.01]))
 
     setup = HighLevelSimulationSetup(
         name='HighLevelSimulationSetup',
@@ -94,7 +100,8 @@ def qubit():
 
 def test_normalised_rabi(simulation_setup, qubit):
     from leeq.experiments.builtin.basic.calibrations.rabi import NormalisedRabi
-    manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
+    manager = ExperimentManager().get_default_setup(
+    ).status.set_parameter("Plot_Result_In_Jupyter", False)
     rabi = NormalisedRabi(
         dut_qubit=qubit,
         amp=0.51,
@@ -106,7 +113,8 @@ def test_normalised_rabi(simulation_setup, qubit):
 
 def test_ramsey(simulation_setup, qubit):
     from leeq.experiments.builtin.basic.calibrations.ramsey import SimpleRamseyMultilevel
-    manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
+    manager = ExperimentManager().get_default_setup(
+    ).status.set_parameter("Plot_Result_In_Jupyter", False)
     ramsey = SimpleRamseyMultilevel(
         qubit=qubit,
     )
@@ -114,7 +122,8 @@ def test_ramsey(simulation_setup, qubit):
 
 def test_gmm_measurements(simulation_setup, qubit):
     from leeq.experiments.builtin import MeasurementCalibrationMultilevelGMM
-    manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
+    manager = ExperimentManager().get_default_setup(
+    ).status.set_parameter("Plot_Result_In_Jupyter", False)
     cali = MeasurementCalibrationMultilevelGMM(
         dut=qubit,
         sweep_lpb_list=['0', '1'],
@@ -124,7 +133,8 @@ def test_gmm_measurements(simulation_setup, qubit):
 
 def test_resonator_spectroscopy(simulation_setup, qubit):
     from leeq.experiments.builtin import ResonatorSweepTransmissionWithExtraInitialLPB
-    manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
+    manager = ExperimentManager().get_default_setup(
+    ).status.set_parameter("Plot_Result_In_Jupyter", False)
     sweep = ResonatorSweepTransmissionWithExtraInitialLPB(
         qubit,
         start=9100,
@@ -136,7 +146,8 @@ def test_resonator_spectroscopy(simulation_setup, qubit):
 
 def test_qubit_spectroscopy(simulation_setup, qubit):
     from leeq.experiments.builtin import QubitSpectroscopyFrequency
-    manager = ExperimentManager().get_default_setup().status.set_parameter("Plot_Result_In_Jupyter", False)
+    manager = ExperimentManager().get_default_setup(
+    ).status.set_parameter("Plot_Result_In_Jupyter", False)
     sweep = QubitSpectroscopyFrequency(
         dut_qubit=qubit,
         res_freq=9141.21, start=3.e3, stop=5.e3,

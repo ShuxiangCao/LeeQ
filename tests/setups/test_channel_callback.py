@@ -49,7 +49,8 @@ def test_register_compile_lpb_callback_non_callable(setup_status):
         setup_status.register_compile_lpb_callback("ch1", "not_callable")
 
 
-# Test if get_modified_lpb_parameters_from_channel_callback returns modified parameters
+# Test if get_modified_lpb_parameters_from_channel_callback returns
+# modified parameters
 def test_get_modified_lpb_parameters_from_channel_callback(setup_status):
     setup_status.add_channel("ch1")
 
@@ -60,15 +61,18 @@ def test_get_modified_lpb_parameters_from_channel_callback(setup_status):
     setup_status.register_compile_lpb_callback("ch1", callback)
 
     parameters = {"test_key": "original_value"}
-    modified_parameters = setup_status.get_modified_lpb_parameters_from_channel_callback("ch1", parameters)
+    modified_parameters = setup_status.get_modified_lpb_parameters_from_channel_callback(
+        "ch1", parameters)
 
     assert modified_parameters["test_key"] == "modified_value"
 
 
-# Test if get_modified_lpb_parameters_from_channel_callback returns original parameters when no callback
+# Test if get_modified_lpb_parameters_from_channel_callback returns
+# original parameters when no callback
 def test_get_modified_lpb_parameters_no_callback(setup_status):
     setup_status.add_channel("ch1")
     parameters = {"test_key": "original_value"}
-    returned_parameters = setup_status.get_modified_lpb_parameters_from_channel_callback("ch1", parameters)
+    returned_parameters = setup_status.get_modified_lpb_parameters_from_channel_callback(
+        "ch1", parameters)
 
     assert returned_parameters == parameters

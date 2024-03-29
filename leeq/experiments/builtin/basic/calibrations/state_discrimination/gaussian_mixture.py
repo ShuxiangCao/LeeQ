@@ -1,3 +1,5 @@
+from sklearn.pipeline import Pipeline
+from typing import Optional, Union, List, Dict, Any
 from plotly import graph_objects as go
 from plotly import subplots
 from sklearn import mixture
@@ -13,10 +15,6 @@ from leeq.theory.simulation.numpy.dispersive_readout.simulator import Dispersive
 from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
-
-from typing import Optional, Union, List, Dict, Any
-import numpy as np
-from sklearn.pipeline import Pipeline
 
 
 class CustomRescaler(BaseEstimator, TransformerMixin):
@@ -35,7 +33,8 @@ class CustomRescaler(BaseEstimator, TransformerMixin):
         return X * self.scale_
 
 
-def fit_gmm_model(data: np.ndarray, n_components: int, initial_means: Optional[np.ndarray] = None) -> Pipeline:
+def fit_gmm_model(data: np.ndarray, n_components: int,
+                  initial_means: Optional[np.ndarray] = None) -> Pipeline:
     """
     Fits a Gaussian Mixture Model Pipeline to the provided data.
 
@@ -62,7 +61,8 @@ def fit_gmm_model(data: np.ndarray, n_components: int, initial_means: Optional[n
         raise ValueError(msg)
 
     data = data.flatten()
-    data = np.vstack([data.real, data.imag]).T  # Transform complex data to real
+    # Transform complex data to real
+    data = np.vstack([data.real, data.imag]).T
 
     if data.ndim != 2:
         msg = "Input data should be a 2D array of shape (n_samples, n_features)."
@@ -118,12 +118,14 @@ def measurement_transform_gmm(
     # (1, measurement_id, n_samples)
 
     data_flat = data.flatten()
-    data_complex_to_real = np.vstack([data_flat.real, data_flat.imag]).T  # Transform complex data to real
+    # Transform complex data to real
+    data_complex_to_real = np.vstack([data_flat.real, data_flat.imag]).T
 
     # Predict using the Gaussian Mixture Model classifier
     output = clf.predict(data_complex_to_real)
     # Map the output using output_map, ignore unmapped values
-    output_mapped = np.asarray([output_map[x] for x in output if x in output_map])
+    output_mapped = np.asarray([output_map[x]
+                               for x in output if x in output_map])
 
     output_reshaped = output_mapped.reshape(original_shape)
 
@@ -133,13 +135,15 @@ def measurement_transform_gmm(
         return output_reshaped
 
     # Count the occurrences of each unique value in output_reshaped
-    bins = np.asarray([np.sum((output_reshaped == i).astype(int)) for i in range(max_output + 1)])
+    bins = np.asarray([np.sum((output_reshaped == i).astype(int))
+                      for i in range(max_output + 1)])
 
     if basis == 'bin':
         return bins
 
     if basis == 'prob':
-        return bins / np.sum(bins)  # Normalize the bin counts to get probabilities
+        # Normalize the bin counts to get probabilities
+        return bins / np.sum(bins)
 
     zero_count = np.sum((output_reshaped < z_threshold).astype(int), axis=-1)
     one_count = np.sum((output_reshaped >= z_threshold).astype(int), axis=-1)
@@ -186,7 +190,8 @@ def find_output_map(data: np.ndarray, clf: Pipeline) -> Dict[int, int]:
     # Iterate over the data to classify states and build the outcome map.
     for i in range(data.shape[1]):
         # Prepare data for prediction by stacking real and imaginary parts.
-        prediction_data = np.vstack([np.real(data[:, i]), np.imag(data[:, i])]).transpose()
+        prediction_data = np.vstack(
+            [np.real(data[:, i]), np.imag(data[:, i])]).transpose()
         prediction_for_this_state = clf.predict(prediction_data)
 
         # Order states by their population count in descending order.
@@ -202,12 +207,14 @@ def find_output_map(data: np.ndarray, clf: Pipeline) -> Dict[int, int]:
     # Check if there are any states left unassigned.
     if len(used_state) < n_components:
         # Handle the missing states.
-        prediction_data_last = np.vstack([np.real(data[:, -1]), np.imag(data[:, -1])]).transpose()
+        prediction_data_last = np.vstack(
+            [np.real(data[:, -1]), np.imag(data[:, -1])]).transpose()
         prediction_for_last_state = clf.predict(prediction_data_last)
         used_state_array = np.array(used_state)
         unused_state = [x for x in range(n_components) if x not in used_state]
 
-        # Raise an error if there's a classification issue leading to unhandled states.
+        # Raise an error if there's a classification issue leading to unhandled
+        # states.
         for i in unused_state:
             if i not in used_state and (i < used_state_array).any():
                 msg = "Wrong classification leads to unhandled states."
@@ -221,12 +228,14 @@ def find_output_map(data: np.ndarray, clf: Pipeline) -> Dict[int, int]:
                 outcome_map[j] = len(outcome_map)
 
     # Sanity check: the outcome map should have entries equal to n_components.
-    assert len(outcome_map) == n_components, "Outcome map size does not match the number of components."
+    assert len(
+        outcome_map) == n_components, "Outcome map size does not match the number of components."
 
     return outcome_map
 
 
-def calculate_signal_to_noise_ratio(clf: Pipeline, outcome_map: List[int]) -> Dict[tuple, float]:
+def calculate_signal_to_noise_ratio(
+        clf: Pipeline, outcome_map: List[int]) -> Dict[tuple, float]:
     """
     Calculate the signal-to-noise ratio (SNR) for a Gaussian Mixture Model.
 
@@ -261,7 +270,10 @@ def calculate_signal_to_noise_ratio(clf: Pipeline, outcome_map: List[int]) -> Di
     else:
         # Otherwise, calculate the SNR for each pair of components
         for i in range(n_components):
-            for j in range(i + 1, n_components):  # Start from i+1 to avoid self-comparison
+            for j in range(
+                    i +
+                    1,
+                    n_components):  # Start from i+1 to avoid self-comparison
 
                 # Calculate standard deviations and distances
                 std_i = np.sqrt(cov[i])
@@ -274,7 +286,9 @@ def calculate_signal_to_noise_ratio(clf: Pipeline, outcome_map: List[int]) -> Di
                 snr_value = np.linalg.norm(dist, ord=2) * 2 / (std_i + std_j)
 
                 # Order outcomes
-                a, b = min(outcome_map[i], outcome_map[j]), max(outcome_map[i], outcome_map[j])
+                a, b = min(
+                    outcome_map[i], outcome_map[j]), max(
+                    outcome_map[i], outcome_map[j])
 
                 # Update SNR dictionary
                 snr[(a, b)] = snr_value
@@ -286,7 +300,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
     @log_and_record
     def run(self,
             dut: 'TransmonElement',
-            sweep_lpb_list: List['LogicalPrimitiveBlock'],  # Replace with actual class
+            # Replace with actual class
+            sweep_lpb_list: List['LogicalPrimitiveBlock'],
             mprim_index: int,
             freq: Optional[float] = None,
             amp: Optional[float] = None,
@@ -338,9 +353,12 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
 
         # If there are additional DUTs for readout, prepare them
         if extra_readout_duts is not None:
-            mprims = [d.get_measurement_prim_intlist(str(mprim_index)).clone() for d in extra_readout_duts]
+            mprims = [
+                d.get_measurement_prim_intlist(
+                    str(mprim_index)).clone() for d in extra_readout_duts]
             for m in mprims:
-                m.set_transform_function(None)  # Reset transform function for extra readouts
+                # Reset transform function for extra readouts
+                m.set_transform_function(None)
             mprims.append(mprim)  # Append the original mprim to the list
         else:
             mprims = [mprim]
@@ -396,7 +414,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         # Retrieve calibration data for the measurement primitive
         mprim_params = dut.get_calibrations()['measurement_primitives']
         mprim_param = mprim_params[str(mprim_index)]
-        n_components = len(mprim_param['distinguishable_states'])  # result.shape[1]
+        n_components = len(
+            mprim_param['distinguishable_states'])  # result.shape[1]
 
         # Attempt to get an initial guess for GMM means if available
         initial_gmm_mean_guess = mprim_param.get('gmm_mean_guess', None)
@@ -422,7 +441,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
     @log_and_record(overwrite_func_name='MeasurementCalibrationMultilevelGMM.run')
     def run_simulated(self,
                       dut: 'DeviceUnderTest',
-                      sweep_lpb_list: List['LogicalPrimitiveBlock'],  # Replace with actual class
+                      # Replace with actual class
+                      sweep_lpb_list: List['LogicalPrimitiveBlock'],
                       mprim_index: int,
                       freq: Optional[float] = None,
                       amp: Optional[float] = None,
@@ -494,8 +514,17 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
             result_data = self.result
 
         fig = plt.figure(figsize=(result_data.shape[1] * 5, 5))
-        colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
-                  '#17becf']
+        colors = [
+            '#1f77b4',
+            '#d62728',
+            '#2ca02c',
+            '#ff7f0e',
+            '#9467bd',
+            '#8c564b',
+            '#e377c2',
+            '#7f7f7f',
+            '#bcbd22',
+            '#17becf']
 
         for i in range(result_data.shape[1]):
             ax = fig.add_subplot(int(f"1{result_data.shape[1]}{i + 1}"))
@@ -517,7 +546,12 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
 
                 mean = self.clf.named_steps['gmm'].means_[index]
                 std = np.sqrt(self.clf.named_steps['gmm'].covariances_[index])
-                ax.plot(mean[0], mean[1], "x", markersize=10, color=colors[index])
+                ax.plot(
+                    mean[0],
+                    mean[1],
+                    "x",
+                    markersize=10,
+                    color=colors[index])
 
                 x = np.linspace(0, 2 * np.pi, 1001)
 
@@ -543,16 +577,31 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         Returns:
         """
 
-        print({"Means": self.clf.named_steps['gmm'].means_, "Cov": self.clf.named_steps['gmm'].covariances_})
+        print({"Means": self.clf.named_steps['gmm'].means_,
+              "Cov": self.clf.named_steps['gmm'].covariances_})
 
-        colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
-                  '#17becf']
+        colors = [
+            '#1f77b4',
+            '#d62728',
+            '#2ca02c',
+            '#ff7f0e',
+            '#9467bd',
+            '#8c564b',
+            '#e377c2',
+            '#7f7f7f',
+            '#bcbd22',
+            '#17becf']
 
         if result_data is None:
             result_data = self.result
 
-        # Create subplots: the layout is 1 x number of features, and it shares x and y axes
-        fig = subplots.make_subplots(rows=1, cols=result_data.shape[1], shared_xaxes=True, shared_yaxes=True)
+        # Create subplots: the layout is 1 x number of features, and it shares
+        # x and y axes
+        fig = subplots.make_subplots(
+            rows=1,
+            cols=result_data.shape[1],
+            shared_xaxes=True,
+            shared_yaxes=True)
 
         for i in range(result_data.shape[1]):
             data = np.vstack([
@@ -573,7 +622,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                         y=data[:, 1][state_label == index],
                         mode='markers',
                         marker=dict(color=colors[index], size=3, opacity=0.3),
-                        name=str(self.output_map[index]) + ":" + f"{percentage * 100:.2f}%",
+                        name=str(
+                            self.output_map[index]) + ":" + f"{percentage * 100:.2f}%",
                         legendgroup=int(index),  # to tie legend items together
                     ),
                     row=1,  # since we are using 1 row

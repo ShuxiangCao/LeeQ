@@ -109,7 +109,11 @@ class PulseShapeFactory(Singleton):
                 self.register_pulse_shape(
                     pulse_shape_name, pulse_shape_function)
 
-    def calculate_integrated_area(self, pulse_shape_name: str, sampling_rate: float = 1e3, **kwargs):
+    def calculate_integrated_area(
+            self,
+            pulse_shape_name: str,
+            sampling_rate: float = 1e3,
+            **kwargs):
         """
         Calculate the integrated area of the pulse shape with the given parameters.
 
@@ -122,7 +126,8 @@ class PulseShapeFactory(Singleton):
             float: The integrated area of the pulse shape.
         """
 
-        pulse_shape_envelope = self.compile_pulse_shape(pulse_shape_name, sampling_rate=sampling_rate, **kwargs)
+        pulse_shape_envelope = self.compile_pulse_shape(
+            pulse_shape_name, sampling_rate=sampling_rate, **kwargs)
         time_step = 1 / sampling_rate
         return np.real(pulse_shape_envelope.sum() * time_step)
 

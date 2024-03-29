@@ -35,7 +35,8 @@ class SimpleT1(Experiment):
     def run(self,
             qubit: Any,  # Add the expected type for 'qubit' instead of Any
             collection_name: str = 'f01',
-            initial_lpb: Optional[Any] = None,  # Add the expected type for 'initial_lpb' instead of Any
+            # Add the expected type for 'initial_lpb' instead of Any
+            initial_lpb: Optional[Any] = None,
             mprim_index: int = 0,
             time_length: float = 100.0,
             time_resolution: float = 1.0
@@ -122,8 +123,9 @@ class SimpleT1(Experiment):
                 ),
                 name='Decay fit'
             )
-            title = (f"T1 decay {args['qubit'].hrid} transition {args['collection_name']}<br>"
-                     f"T1={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
+            title = (
+                f"T1 decay {args['qubit'].hrid} transition {args['collection_name']}<br>"
+                f"T1={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
 
             data = [trace_scatter, trace_line]
 
@@ -177,9 +179,11 @@ class MultiQubitT1(Experiment):
 
     @log_and_record
     def run(self,
-            duts: List[Any],  # Add the expected type for 'qubit' instead of Any
+            # Add the expected type for 'qubit' instead of Any
+            duts: List[Any],
             collection_names: Union[str, List[str]] = 'f01',
-            initial_lpb: Optional[Any] = None,  # Add the expected type for 'initial_lpb' instead of Any
+            # Add the expected type for 'initial_lpb' instead of Any
+            initial_lpb: Optional[Any] = None,
             mprim_indexes: int = 0,
             time_length: float = 100.0,
             time_resolution: float = 1.0
@@ -201,12 +205,21 @@ class MultiQubitT1(Experiment):
         if isinstance(mprim_indexes, int):
             mprim_indexes = [mprim_indexes] * len(duts)
 
-        c1s = [qubit.get_c1(collection_name) for qubit, collection_name in zip(duts, collection_names)]
-        mps = [qubit.get_measurement_prim_intlist(mprim_index) for qubit, mprim_index in zip(duts, mprim_indexes)]
+        c1s = [
+            qubit.get_c1(collection_name) for qubit,
+            collection_name in zip(
+                duts,
+                collection_names)]
+        mps = [
+            qubit.get_measurement_prim_intlist(mprim_index) for qubit,
+            mprim_index in zip(
+                duts,
+                mprim_indexes)]
         self.mps = mps
         delay = prims.Delay(0)
 
-        lpb = prims.ParallelLPB([c1['X'] for c1 in c1s]) + delay + prims.ParallelLPB(mps)
+        lpb = prims.ParallelLPB([c1['X'] for c1 in c1s]) + \
+            delay + prims.ParallelLPB(mps)
 
         if initial_lpb:
             lpb = initial_lpb + lpb
@@ -271,8 +284,9 @@ class MultiQubitT1(Experiment):
                 ),
                 name='Decay fit'
             )
-            title = (f"T1 decay {args['duts'][i].hrid} transition {self.collection_names[i]}<br>"
-                     f"T1={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
+            title = (
+                f"T1 decay {args['duts'][i].hrid} transition {self.collection_names[i]}<br>"
+                f"T1={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
 
             data = [trace_scatter, trace_line]
 
@@ -342,8 +356,17 @@ class MultiQuditT1Decay(Experiment):
         delay = prims.Delay(0)
 
         lpb = lpb + delay
-        swp = sweeper(np.arange, n_kwargs={'start': 0.0, 'stop': time_length, 'step': time_resolution},
-                      params=[sparam.func(delay.set_delay, {}, 'delay')])
+        swp = sweeper(
+            np.arange,
+            n_kwargs={
+                'start': 0.0,
+                'stop': time_length,
+                'step': time_resolution},
+            params=[
+                sparam.func(
+                    delay.set_delay,
+                    {},
+                    'delay')])
 
         mprims = [dut.get_measurement_prim_intlist(0) for dut in duts]
 

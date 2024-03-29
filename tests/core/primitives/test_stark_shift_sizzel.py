@@ -68,7 +68,8 @@ def qubit_target():
 
 @fixture
 def sizzel_gate_collection(qubit_control, qubit_target):
-    # Creating an instance of SiZZelTwoQubitGateCollection with mocked TransmonElements
+    # Creating an instance of SiZZelTwoQubitGateCollection with mocked
+    # TransmonElements
     parameters = {
         'freq': 5123.0,
         'amp_control': 0.5,
@@ -78,7 +79,11 @@ def sizzel_gate_collection(qubit_control, qubit_target):
         'phase_diff': np.pi / 4,
         'echo': True,
     }
-    return SiZZelTwoQubitGateCollection("test_collection", parameters, qubit_control, qubit_target)
+    return SiZZelTwoQubitGateCollection(
+        "test_collection",
+        parameters,
+        qubit_control,
+        qubit_target)
 
 
 def test_initialization(sizzel_gate_collection):
@@ -88,15 +93,18 @@ def test_initialization(sizzel_gate_collection):
 
 
 def test_validate_parameters(sizzel_gate_collection):
-    # Testing that validate_parameters does not raise an assertion error for valid parameters
+    # Testing that validate_parameters does not raise an assertion error for
+    # valid parameters
     try:
         sizzel_gate_collection.validate_parameters()
     except AssertionError:
-        pytest.fail("validate_parameters() raised an AssertionError unexpectedly!")
+        pytest.fail(
+            "validate_parameters() raised an AssertionError unexpectedly!")
 
 
 def test_validate_parameters_missing_key(sizzel_gate_collection):
-    # Testing that validate_parameters raises an assertion error for missing required parameters
+    # Testing that validate_parameters raises an assertion error for missing
+    # required parameters
     del sizzel_gate_collection._parameters['freq']
     with pytest.raises(AssertionError):
         sizzel_gate_collection.validate_parameters()
