@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: main
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
