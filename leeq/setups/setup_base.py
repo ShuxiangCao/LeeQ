@@ -219,7 +219,10 @@ class SetupStatusParameters(LeeQObject):
         yield
         self.set_parameters(**original_parameters)
 
-    def register_compile_lpb_callback(self, channel: int, callback: Optional[callable] = None):
+    def register_compile_lpb_callback(
+            self,
+            channel: int,
+            callback: Optional[callable] = None):
         """
         Register a callback function that will be called when the compiler
         compiles the logical primitive block. If the callback is None, the callback will be removed.
@@ -255,7 +258,8 @@ class SetupStatusParameters(LeeQObject):
 
         self._channel_callbacks[channel] = callback
 
-    def get_modified_lpb_parameters_from_channel_callback(self, channel: int, parameters: dict):
+    def get_modified_lpb_parameters_from_channel_callback(
+            self, channel: int, parameters: dict):
         """
             Get the modified lpb parameters from the channel callback. If the callback is not registered,
             return the original parameters.
@@ -288,16 +292,17 @@ class ExperimentalSetup(LeeQObject):
         Initialize the ExperimentalSetup class. Use init to define all the equipments in the setup.
         """
         assert (
-                "_compiler" in self.__dict__
+            "_compiler" in self.__dict__
         ), "The compiler is not defined in the setup, please define it in the __init__."
         assert (
-                "_engine" in self.__dict__
+            "_engine" in self.__dict__
         ), "The engine is not defined in the setup, please define it in the __init__."
         super().__init__(name)
         self._active = False
         self._status = SetupStatusParameters(name + ".status")
         # Add parameters that all setups should have
-        # The measurement basis, could be <z> (expectation value z), <zs> (individual state of the qubit), prob(0), etc.
+        # The measurement basis, could be <z> (expectation value z), <zs>
+        # (individual state of the qubit), prob(0), etc.
         self._status.add_param("Measurement_Basis", "<z>")
         # The number of shots to be taken for each point
         self._status.add_param("Shot_Number", 2000)

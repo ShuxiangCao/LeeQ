@@ -20,12 +20,16 @@ class MockLogicalPrimitive(LogicalPrimitive):
 
 @pytest.fixture
 def sample_logical_primitive():
-    return MockLogicalPrimitive(name="SamplePrimitive", parameters={"param1": 1, "param2": 2})
+    return MockLogicalPrimitive(
+        name="SamplePrimitive", parameters={
+            "param1": 1, "param2": 2})
 
 
 @pytest.fixture
 def sample_logical_primitive_block(sample_logical_primitive):
-    return LogicalPrimitiveBlock(name="SampleBlock", children=[sample_logical_primitive])
+    return LogicalPrimitiveBlock(
+        name="SampleBlock",
+        children=[sample_logical_primitive])
 
 
 @pytest.fixture
@@ -43,17 +47,21 @@ def test_node_access_via_uuid(sample_logical_primitive_block):
 
 def test_nodes_aggregation_in_block(sample_logical_primitive):
     # Create another primitive and add it to the block
-    another_primitive = MockLogicalPrimitive(name="AnotherPrimitive", parameters={"param3": 3, "param4": 4})
+    another_primitive = MockLogicalPrimitive(
+        name="AnotherPrimitive", parameters={
+            "param3": 3, "param4": 4})
 
     sample_logical_primitive_block_parallel = sample_logical_primitive * another_primitive
 
-    # Make sure the new primitive's UUID and node are present in the block's nodes dict
+    # Make sure the new primitive's UUID and node are present in the block's
+    # nodes dict
     assert another_primitive.uuid in sample_logical_primitive_block_parallel.nodes
     assert sample_logical_primitive_block_parallel.nodes[another_primitive.uuid] == another_primitive
 
     # Also check that the existing children are still accessible
     assert sample_logical_primitive.uuid in sample_logical_primitive_block_parallel.nodes
-    assert sample_logical_primitive_block_parallel.nodes[sample_logical_primitive.uuid] == sample_logical_primitive
+    assert sample_logical_primitive_block_parallel.nodes[
+        sample_logical_primitive.uuid] == sample_logical_primitive
 
 
 configuration = {
@@ -109,7 +117,9 @@ def qubit():
 
 def test_add_primitive_to_serial_block(sample_logical_primitive):
     serial_block = sample_logical_primitive + sample_logical_primitive
-    another_primitive = MockLogicalPrimitive(name="AnotherPrimitive", parameters={"param3": 3, "param4": 4})
+    another_primitive = MockLogicalPrimitive(
+        name="AnotherPrimitive", parameters={
+            "param3": 3, "param4": 4})
 
     combined_block = serial_block + another_primitive
 
@@ -120,7 +130,9 @@ def test_add_primitive_to_serial_block(sample_logical_primitive):
 
 def test_multiply_primitive_to_parallel_block(sample_logical_primitive):
     parallel_block = sample_logical_primitive * sample_logical_primitive
-    another_primitive = MockLogicalPrimitive(name="AnotherPrimitive", parameters={"param3": 3, "param4": 4})
+    another_primitive = MockLogicalPrimitive(
+        name="AnotherPrimitive", parameters={
+            "param3": 3, "param4": 4})
 
     combined_block = parallel_block * another_primitive
 
@@ -129,7 +141,9 @@ def test_multiply_primitive_to_parallel_block(sample_logical_primitive):
     assert combined_block.nodes[another_primitive.uuid] == another_primitive
 
 
-def test_add_serial_block_to_primitive(sample_logical_primitive, sample_logical_primitive_block):
+def test_add_serial_block_to_primitive(
+        sample_logical_primitive,
+        sample_logical_primitive_block):
     combined_block = sample_logical_primitive + sample_logical_primitive_block
 
     # Ensure we can access all nodes from the resulting block via UUID
@@ -143,22 +157,32 @@ def test_add_serial_block_to_primitive(sample_logical_primitive, sample_logical_
 
 def test_add_serial_block_to_serial_block(sample_logical_primitive_block):
     another_serial_block = LogicalPrimitiveBlockSerial(
-        children=[MockLogicalPrimitive(name="AnotherPrimitive", parameters={"param3": 3, "param4": 4})])
+        children=[
+            MockLogicalPrimitive(
+                name="AnotherPrimitive",
+                parameters={
+                    "param3": 3,
+                    "param4": 4})])
     combined_block = sample_logical_primitive_block + another_serial_block
 
-    # Ensure all nodes from both blocks are accessible via UUID in the resulting block
-    for uuid, node in {**sample_logical_primitive_block.nodes, **another_serial_block.nodes}.items():
+    # Ensure all nodes from both blocks are accessible via UUID in the
+    # resulting block
+    for uuid, node in {**sample_logical_primitive_block.nodes,
+                       **another_serial_block.nodes}.items():
         assert uuid in combined_block.nodes
         assert combined_block.nodes[uuid] == node
 
 
-def test_multiply_parallel_block_to_parallel_block(sample_logical_primitive_block_parallel):
-    another_parallel_block = LogicalPrimitiveBlockParallel(
-        [MockLogicalPrimitive(name="AnotherPrimitive", parameters={"param3": 3, "param4": 4})])
+def test_multiply_parallel_block_to_parallel_block(
+        sample_logical_primitive_block_parallel):
+    another_parallel_block = LogicalPrimitiveBlockParallel([MockLogicalPrimitive(
+        name="AnotherPrimitive", parameters={"param3": 3, "param4": 4})])
     combined_block = sample_logical_primitive_block_parallel * another_parallel_block
 
-    # Ensure all nodes from both blocks are accessible via UUID in the resulting block
-    for uuid, node in {**sample_logical_primitive_block_parallel.nodes, **another_parallel_block.nodes}.items():
+    # Ensure all nodes from both blocks are accessible via UUID in the
+    # resulting block
+    for uuid, node in {**sample_logical_primitive_block_parallel.nodes,
+                       **another_parallel_block.nodes}.items():
         assert uuid in combined_block.nodes
         assert combined_block.nodes[uuid] == node
 

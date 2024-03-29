@@ -77,12 +77,14 @@ class QubiCCircuitSetup(ExperimentalSetup):
         self._measurement_results: List[MeasurementResult] = []
 
         self._result = None
-        self._core_to_channel_map = self._build_core_id_to_qubic_channel(self._channel_configs)
+        self._core_to_channel_map = self._build_core_id_to_qubic_channel(
+            self._channel_configs)
 
         super().__init__(name)
 
         self._status.add_param("QubiC_Debug_Print_Circuits", False)
-        self._status.add_param("QubiC_Debug_Print_Compiled_Instructions", False)
+        self._status.add_param(
+            "QubiC_Debug_Print_Compiled_Instructions", False)
         self._status.add_param("Engine_Batch_Size", 1)
 
         # Add channels
@@ -170,12 +172,14 @@ class QubiCCircuitSetup(ExperimentalSetup):
         }
 
         channel_config_dict = {}
-        channel_config_dict["fpga_clk_freq"] = 500e6  # 2ns per clock cycle for ZCU216 by default
+        # 2ns per clock cycle for ZCU216 by default
+        channel_config_dict["fpga_clk_freq"] = 500e6
 
         leeq_channel_to_qubic_map = {}
 
         for i in range(core_number):
-            # For the old convention we always set the odd number to resonators and even number for qubits
+            # For the old convention we always set the odd number to resonators
+            # and even number for qubits
             leeq_channel_qubit = 2 * i
             leeq_channel_readout = 2 * i + 1
             leeq_channel_to_qubic_map[leeq_channel_qubit] = f'Q{i}'
@@ -252,8 +256,14 @@ class QubiCCircuitSetup(ExperimentalSetup):
         """
         pass
 
-    def _run_qubic_circuits(self, circuits: list, batch_size: int, zero: bool, load_commands: bool, load_freqs: bool,
-                            load_envs: bool):
+    def _run_qubic_circuits(
+            self,
+            circuits: list,
+            batch_size: int,
+            zero: bool,
+            load_commands: bool,
+            load_freqs: bool,
+            load_envs: bool):
         """
         Run the qubic circuits.
 
@@ -281,7 +291,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
             circuits, fpga_config=self._fpga_config, qchip=None, compiler_flags={'resolve_gates': False}
         )
 
-        if self._status.get_parameters("QubiC_Debug_Print_Compiled_Instructions"):
+        if self._status.get_parameters(
+                "QubiC_Debug_Print_Compiled_Instructions"):
             pprint(compiled_instructions.program)
 
         asm_prog = tc.run_assemble_stage(
@@ -301,9 +312,11 @@ class QubiCCircuitSetup(ExperimentalSetup):
         if acquisition_type == "IQ" or acquisition_type == "IQ_average":
             self._runner.load_circuit(
                 rawasm=asm_prog,
-                # if True, (default), zero out all cmd buffers before loading circuit
+                # if True, (default), zero out all cmd buffers before loading
+                # circuit
                 zero=zero,
-                # load command buffers when the circuit or parameters (amp or phase) has changed.
+                # load command buffers when the circuit or parameters (amp or
+                # phase) has changed.
                 load_commands=load_commands,
                 # load frequency buffers when frequency changed.
                 load_freqs=load_freqs,
@@ -400,7 +413,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
             qubic_channel = self._core_to_channel_map[int(core_ind)]
 
             if qubic_channel not in qubic_channel_to_lpb_uuid:
-                # Sometimes qubic returns default data from the board, which we are not measuring
+                # Sometimes qubic returns default data from the board, which we
+                # are not measuring
                 continue
 
             mprim_uuid = qubic_channel_to_lpb_uuid[qubic_channel]
@@ -437,7 +451,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
         combined_circuits = []
 
         for context in contexts:
-            combined_circuits += delay_between_shots + context.instructions["circuits"]
+            combined_circuits += delay_between_shots + \
+                context.instructions["circuits"]
 
         # The dirtiness is true when at least one of the circuits is dirty
         merged_dirtiness = {
@@ -483,7 +498,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
             qubic_channel = self._core_to_channel_map[int(core_ind)]
 
             if qubic_channel not in qubic_channel_to_lpb_uuid:
-                # Sometimes qubic returns default data from the board, which we are not measuring
+                # Sometimes qubic returns default data from the board, which we
+                # are not measuring
                 continue
 
             mprim_uuid = qubic_channel_to_lpb_uuid[qubic_channel]
@@ -493,13 +509,16 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
                 # data shape = (n_samples, n_measurement_number)
 
-                data_step = data[:, i].reshape((-1, 1))  # Reshape the data to be 2D array, assume 1 measurement
+                # Reshape the data to be 2D array, assume 1 measurement
+                data_step = data[:, i].reshape((-1, 1))
                 # each circuit
 
                 measurement = MeasurementResult(
                     step_no=context.step_no,
-                    # First index is different measurement, second index for data
-                    data=self._qubic_result_format_to_leeq_result_format(data_step),
+                    # First index is different measurement, second index for
+                    # data
+                    data=self._qubic_result_format_to_leeq_result_format(
+                        data_step),
                     mprim_uuid=mprim_uuid
                 )
 

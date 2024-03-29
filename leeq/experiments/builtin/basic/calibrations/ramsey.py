@@ -1,4 +1,7 @@
-from datetime import datetime
+import copy
+import numpy as np
+from typing import Any, Optional, Tuple, Dict, Union
+import datetime
 
 from plotly.subplots import make_subplots
 
@@ -14,11 +17,6 @@ from plotly import graph_objects as go
 
 logger = setup_logging(__name__)
 
-from typing import Any, Optional, Tuple, Dict, Union
-import numpy as np
-import datetime
-import copy
-
 
 class SimpleRamseyMultilevel(Experiment):
     """
@@ -31,7 +29,8 @@ class SimpleRamseyMultilevel(Experiment):
             qubit: Any,  # Replace 'Any' with the actual type of qubit
             collection_name: str = 'f01',
             mprim_index: int = 0,
-            initial_lpb: Optional[Any] = None,  # Replace 'Any' with the actual type
+            # Replace 'Any' with the actual type
+            initial_lpb: Optional[Any] = None,
             start: float = 0.0,
             stop: float = 1.0,
             step: float = 0.005,
@@ -66,15 +65,28 @@ class SimpleRamseyMultilevel(Experiment):
         original_freq = c1q['Xp'].freq
         self.original_freq = original_freq
 
-        c1q = qubit.get_c1(collection_name)  # Retrieve the gate collection object
-        delay = prims.Delay(0) # Create a delay primitive
+        # Retrieve the gate collection object
+        c1q = qubit.get_c1(collection_name)
+        delay = prims.Delay(0)  # Create a delay primitive
 
         # Update the frequency with the calculated offset
-        c1q.update_parameters(freq=original_freq + set_offset / self.level_diff)
+        c1q.update_parameters(
+            freq=original_freq +
+            set_offset /
+            self.level_diff)
 
         # Setup the sweeper for the Ramsey experiment
-        swp = sweeper(np.arange, n_kwargs={'start': start, 'stop': stop, 'step': step},
-                      params=[sparam.func(delay.update_parameters, {}, 'delay_time')])
+        swp = sweeper(
+            np.arange,
+            n_kwargs={
+                'start': start,
+                'stop': stop,
+                'step': step},
+            params=[
+                sparam.func(
+                    delay.update_parameters,
+                    {},
+                    'delay_time')])
 
         # Get the measurement primitive
         mprim = qubit.get_measurement_prim_intlist(mprim_index)
@@ -104,7 +116,8 @@ class SimpleRamseyMultilevel(Experiment):
                       qubit: Any,  # Replace 'Any' with the actual type of qubit
                       collection_name: str = 'f01',
                       mprim_index: int = 0,
-                      initial_lpb: Optional[Any] = None,  # Replace 'Any' with the actual type
+                      # Replace 'Any' with the actual type
+                      initial_lpb: Optional[Any] = None,
                       start: float = 0.0,
                       stop: float = 1.0,
                       step: float = 0.005,
@@ -155,7 +168,8 @@ class SimpleRamseyMultilevel(Experiment):
 
         f_o_actual = f_q - (f_d + f_o)
 
-        ramsey_fringes = (1 + np.cos(2 * np.pi * f_o_actual * t) * np.exp(-decay_rate * t)) / 2
+        ramsey_fringes = (1 + np.cos(2 * np.pi * f_o_actual * t)
+                          * np.exp(-decay_rate * t)) / 2
 
         self.data = ramsey_fringes
 
@@ -164,8 +178,10 @@ class SimpleRamseyMultilevel(Experiment):
             # Get the number of shot used in the simulation
             shot_number = setup().status().get_param('Shot_Number')
 
-            # generate binomial distribution of the result to simulate the sampling noise
-            self.data = np.random.binomial(shot_number, self.data) / shot_number
+            # generate binomial distribution of the result to simulate the
+            # sampling noise
+            self.data = np.random.binomial(
+                shot_number, self.data) / shot_number
 
         self.data = self.data * 2 - 1
 
@@ -190,17 +206,22 @@ class SimpleRamseyMultilevel(Experiment):
 
         # Create and return the figure
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=t, y=data, mode='lines+markers', name='data'))
-        fig.update_layout(title=f"Ramsey {args['qubit'].hrid} transition {args['collection_name']}",
-                          xaxis_title="Time (us)",
-                          yaxis_title="<z>",
-                          legend_title="Legend",
-                          font=dict(
-                              family="Courier New, monospace",
-                              size=12,
-                              color="Black"
-                          ),
-                          plot_bgcolor="white")
+        fig.add_trace(
+            go.Scatter(
+                x=t,
+                y=data,
+                mode='lines+markers',
+                name='data'))
+        fig.update_layout(
+            title=f"Ramsey {args['qubit'].hrid} transition {args['collection_name']}",
+            xaxis_title="Time (us)",
+            yaxis_title="<z>",
+            legend_title="Legend",
+            font=dict(
+                family="Courier New, monospace",
+                size=12,
+                color="Black"),
+            plot_bgcolor="white")
         return fig
 
     def analyze_data(self) -> None:
@@ -215,8 +236,10 @@ class SimpleRamseyMultilevel(Experiment):
             # Fit the data to an exponential decay model to extract frequency
             # Fit the data using a predefined fitting function
             from leeq.theory.fits import fit_1d_freq_exp_with_cov
-            self.fit_params = fit_1d_freq_exp_with_cov(self.data, dt=args['step'])
-            fitted_freq_offset = (self.fit_params['Frequency'][0] - self.set_offset) / self.level_diff
+            self.fit_params = fit_1d_freq_exp_with_cov(
+                self.data, dt=args['step'])
+            fitted_freq_offset = (
+                self.fit_params['Frequency'][0] - self.set_offset) / self.level_diff
             self.frequency_guess = self.original_freq - fitted_freq_offset
             self.error_bar = self.fit_params['Frequency'][1]
 
@@ -226,7 +249,7 @@ class SimpleRamseyMultilevel(Experiment):
             self.error_bar = np.inf
 
     def dump_results_and_configuration(self) -> Tuple[
-        float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
+            float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
         """
         Dump the results and configuration of the experiment.
 
@@ -235,7 +258,8 @@ class SimpleRamseyMultilevel(Experiment):
         """
         args = copy.copy(self.retrieve_args(self.run))
         del args['initial_lpb']
-        args['drive_freq'] = args['qubit'].get_c1(args['collection_name'])['X'].freq
+        args['drive_freq'] = args['qubit'].get_c1(
+            args['collection_name'])['X'].freq
         args['qubit'] = args['qubit'].hrid
         return self.frequency_guess, self.error_bar, self.trace, args, datetime.datetime.now()
 
@@ -252,36 +276,51 @@ class SimpleRamseyMultilevel(Experiment):
 
         # Generate time points based on the experiment arguments
         time_points = np.arange(args['start'], args['stop'], args['step'])
-        time_points_interpolate = np.arange(args['start'], args['stop'], args['step'] / 10)
+        time_points_interpolate = np.arange(
+            args['start'], args['stop'], args['step'] / 10)
 
         # Create a plot using Plotly
         fig = make_subplots(rows=1, cols=1)
-        fig.add_trace(go.Scatter(x=time_points, y=self.data, mode='markers', name='Data'),
-                      row=1, col=1)
+        fig.add_trace(
+            go.Scatter(
+                x=time_points,
+                y=self.data,
+                mode='markers',
+                name='Data'),
+            row=1,
+            col=1)
 
-        if hasattr(self,'fit_params'):
+        if hasattr(self, 'fit_params'):
 
             # Extract fitting parameters
             frequency = self.fit_params['Frequency'][0]
             amplitude = self.fit_params['Amplitude'][0]
-            phase = self.fit_params['Phase'][0] - 2.0 * np.pi * frequency * args['start']
+            phase = self.fit_params['Phase'][0] - \
+                2.0 * np.pi * frequency * args['start']
             offset = self.fit_params['Offset'][0]
             decay = self.fit_params['Decay'][0]
 
             # Generate the fitted curve
             fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * \
-                           np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
+                np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
 
-            fig.add_trace(go.Scatter(x=time_points_interpolate, y=fitted_curve, mode='lines', name='Fit'),
-                          row=1, col=1)
+            fig.add_trace(
+                go.Scatter(
+                    x=time_points_interpolate,
+                    y=fitted_curve,
+                    mode='lines',
+                    name='Fit'),
+                row=1,
+                col=1)
 
             # Set plot layout details
             title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
                          f"{decay} ± {self.fit_params['Decay'][1]} us"
-            fig.update_layout(title_text=title_text,
-                              xaxis_title=f"Time (us) <br> Frequency: {frequency} ± {self.fit_params['Frequency'][1]}",
-                              yaxis_title="<z>",
-                              plot_bgcolor="white")
+            fig.update_layout(
+                title_text=title_text,
+                xaxis_title=f"Time (us) <br> Frequency: {frequency} ± {self.fit_params['Frequency'][1]}",
+                yaxis_title="<z>",
+                plot_bgcolor="white")
 
         else:
             # Set plot layout details
@@ -294,7 +333,8 @@ class SimpleRamseyMultilevel(Experiment):
 
         return fig
 
-    def plot_fft(self, plot_range: Tuple[float, float] = (0.05, 1)) -> go.Figure:
+    def plot_fft(self, plot_range: Tuple[float, float] = (
+            0.05, 1)) -> go.Figure:
         """
         Plots the Fast Fourier Transform (FFT) of the data from the Ramsey experiment.
 
@@ -319,7 +359,11 @@ class SimpleRamseyMultilevel(Experiment):
 
         # Create a plot using Plotly
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=frequencies[mask], y=fft_magnitudes[mask], mode='lines'))
+        fig.add_trace(
+            go.Scatter(
+                x=frequencies[mask],
+                y=fft_magnitudes[mask],
+                mode='lines'))
 
         # Set plot layout details
         fig.update_layout(title='Ramsey Spectrum',
@@ -373,7 +417,8 @@ class MultiQubitRamseyMultilevel(Experiment):
             mprim_indexes = [mprim_indexes] * len(duts)
 
         self.collection_names = collection_names
-        # Make sure the collection names and mprim indexes have the same length as the DUTs
+        # Make sure the collection names and mprim indexes have the same length
+        # as the DUTs
         assert len(duts) == len(collection_names) == len(mprim_indexes), \
             "The number of DUTs, collection names, and mprim indexes must be the same."
 
@@ -399,19 +444,35 @@ class MultiQubitRamseyMultilevel(Experiment):
 
         # Update the frequency with the calculated offset
         for i, c1 in enumerate(c1s):
-            c1.update_parameters(freq=original_freqs[i] + set_offset / self.level_diffs[i])
+            c1.update_parameters(
+                freq=original_freqs[i] +
+                set_offset /
+                self.level_diffs[i])
 
         # Setup the sweeper for the Ramsey experiment
-        swp = sweeper(np.arange, n_kwargs={'start': start, 'stop': stop, 'step': step},
-                      params=[sparam.func(delay.update_parameters, {}, 'delay_time')])
+        swp = sweeper(
+            np.arange,
+            n_kwargs={
+                'start': start,
+                'stop': stop,
+                'step': step},
+            params=[
+                sparam.func(
+                    delay.update_parameters,
+                    {},
+                    'delay_time')])
 
         # Get the measurement primitive
-        mprims = [qubit.get_measurement_prim_intlist(mprim_index) for qubit, mprim_index in zip(duts, mprim_indexes)]
+        mprims = [
+            qubit.get_measurement_prim_intlist(mprim_index) for qubit,
+            mprim_index in zip(
+                duts,
+                mprim_indexes)]
         self.mp = mprims
 
         # Construct the logic primitive block
         lpb = prims.ParallelLPB([c1['Xp'] for c1 in c1s]) + delay + \
-              prims.ParallelLPB([c1['Xm'] for c1 in c1s]) + prims.ParallelLPB(mprims)
+            prims.ParallelLPB([c1['Xm'] for c1 in c1s]) + prims.ParallelLPB(mprims)
 
         if initial_lpb is not None:
             lpb = initial_lpb + lpb
@@ -426,7 +487,8 @@ class MultiQubitRamseyMultilevel(Experiment):
             self.analyze_data()
             for i, c1 in enumerate(c1s):
                 c1.update_parameters(freq=self.frequency_guess[i])
-                print(f"Frequency updated: {duts[i].hrid} {self.frequency_guess[i]} MHz")
+                print(
+                    f"Frequency updated: {duts[i].hrid} {self.frequency_guess[i]} MHz")
         else:
             for i, c1 in enumerate(c1s):
                 c1.update_parameters(freq=original_freqs[i])
@@ -452,17 +514,22 @@ class MultiQubitRamseyMultilevel(Experiment):
 
         # Create and return the figure
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=t, y=data, mode='lines+markers', name='data'))
-        fig.update_layout(title=f"Ramsey {args['qubit'].hrid} transition {args['collection_name']}",
-                          xaxis_title="Time (us)",
-                          yaxis_title="<z>",
-                          legend_title="Legend",
-                          font=dict(
-                              family="Courier New, monospace",
-                              size=12,
-                              color="Black"
-                          ),
-                          plot_bgcolor="white")
+        fig.add_trace(
+            go.Scatter(
+                x=t,
+                y=data,
+                mode='lines+markers',
+                name='data'))
+        fig.update_layout(
+            title=f"Ramsey {args['qubit'].hrid} transition {args['collection_name']}",
+            xaxis_title="Time (us)",
+            yaxis_title="<z>",
+            legend_title="Legend",
+            font=dict(
+                family="Courier New, monospace",
+                size=12,
+                color="Black"),
+            plot_bgcolor="white")
         return fig
 
     def analyze_data(self) -> None:
@@ -477,11 +544,18 @@ class MultiQubitRamseyMultilevel(Experiment):
             # Fit the data to an exponential decay model to extract frequency
             # Fit the data using a predefined fitting function
             from leeq.theory.fits import fit_1d_freq_exp_with_cov
-            self.fit_params = [fit_1d_freq_exp_with_cov(data, dt=args['step']) for data in self.data]
-            fitted_freq_offsets = [(self.fit_params[i]['Frequency'][0] - self.set_offset) / self.level_diffs[i] for i in
-                                   range(len(self.data))]
-            self.frequency_guess = [self.original_freqs[i] - fitted_freq_offset for i, fitted_freq_offset in
-                                    enumerate(fitted_freq_offsets)]
+            self.fit_params = [
+                fit_1d_freq_exp_with_cov(
+                    data, dt=args['step']) for data in self.data]
+            fitted_freq_offsets = [
+                (self.fit_params[i]['Frequency'][0] -
+                 self.set_offset) /
+                self.level_diffs[i] for i in range(
+                    len(
+                        self.data))]
+            self.frequency_guess = [
+                self.original_freqs[i] - fitted_freq_offset for i,
+                fitted_freq_offset in enumerate(fitted_freq_offsets)]
             self.error_bar = [x['Frequency'][1] for x in self.fit_params]
 
         except Exception as e:
@@ -515,31 +589,46 @@ class MultiQubitRamseyMultilevel(Experiment):
 
         # Generate time points based on the experiment arguments
         time_points = np.arange(args['start'], args['stop'], args['step'])
-        time_points_interpolate = np.arange(args['start'], args['stop'], args['step'] / 10)
+        time_points_interpolate = np.arange(
+            args['start'], args['stop'], args['step'] / 10)
 
         # Extract fitting parameters
         frequency = fit_params['Frequency'][0]
         amplitude = fit_params['Amplitude'][0]
-        phase = fit_params['Phase'][0] - 2.0 * np.pi * frequency * args['start']
+        phase = fit_params['Phase'][0] - 2.0 * \
+            np.pi * frequency * args['start']
         offset = fit_params['Offset'][0]
         decay = fit_params['Decay'][0]
 
         # Generate the fitted curve
-        fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * \
-                       np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
+        fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * np.sin(
+            2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
 
         # Create a plot using Plotly
         fig = make_subplots(rows=1, cols=1)
-        fig.add_trace(go.Scatter(x=time_points, y=self.data[i], mode='markers', name='Data'),
-                      row=1, col=1)
-        fig.add_trace(go.Scatter(x=time_points_interpolate, y=fitted_curve, mode='lines', name='Fit'),
-                      row=1, col=1)
+        fig.add_trace(
+            go.Scatter(
+                x=time_points,
+                y=self.data[i],
+                mode='markers',
+                name='Data'),
+            row=1,
+            col=1)
+        fig.add_trace(
+            go.Scatter(
+                x=time_points_interpolate,
+                y=fitted_curve,
+                mode='lines',
+                name='Fit'),
+            row=1,
+            col=1)
 
         # Set plot layout details
         title_text = f"Ramsey decay {args['duts'][i].hrid} transition {self.collection_names[i]}: <br>" \
                      f"{decay} ± {fit_params['Decay'][1]} us"
-        fig.update_layout(title_text=title_text,
-                          xaxis_title=f"Time (us) <br> Frequency: {frequency} ± {fit_params['Frequency'][1]}",
-                          yaxis_title="<z>",
-                          plot_bgcolor="white")
+        fig.update_layout(
+            title_text=title_text,
+            xaxis_title=f"Time (us) <br> Frequency: {frequency} ± {fit_params['Frequency'][1]}",
+            yaxis_title="<z>",
+            plot_bgcolor="white")
         return fig

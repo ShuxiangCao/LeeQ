@@ -60,13 +60,18 @@ class Experiment(LeeQObject):
             else:
                 self.run(*args, **kwargs)
         finally:
-            # Make sure we print the record details before throwing the exception
+            # Make sure we print the record details before throwing the
+            # exception
             if Chronicle().is_recording():
                 # Print the record details
                 record_details = self.retrieve_latest_record_entry_details(
                     self.run).copy()
-                record_details.update({'print_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
-                display_json_dict(record_details, root=self.__class__.__qualname__, expanded=False)
+                record_details.update(
+                    {'print_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+                display_json_dict(
+                    record_details,
+                    root=self.__class__.__qualname__,
+                    expanded=False)
 
         # Check if we need to plot
         if setup().status().get_parameters("Plot_Result_In_Jupyter"):
@@ -89,7 +94,9 @@ class Experiment(LeeQObject):
 
                 try:
                     result = func(*f_args, **filtered_kwargs)
-                    if isinstance(result, plotly.graph_objs.Figure) or isinstance(result, matplotlib.figure.Figure):
+                    if isinstance(
+                            result, plotly.graph_objs.Figure) or isinstance(
+                            result, matplotlib.figure.Figure):
                         result.show()
                 except Exception as e:
                     self.logger.warning(
@@ -126,10 +133,8 @@ class Experiment(LeeQObject):
         kwargs = {k: repr(v) for k, v in kwargs.items()}
         kwargs['name'] = self._name
 
-        return {
-            "record_details": self.retrieve_latest_record_entry_details(self.run),
-            "experiment_arguments": kwargs,
-        }
+        return {"record_details": self.retrieve_latest_record_entry_details(
+            self.run), "experiment_arguments": kwargs, }
 
 
 class ExperimentManager(Singleton):
@@ -196,25 +201,29 @@ class ExperimentManager(Singleton):
         if self.get_default_setup() is None:
             return fig
 
-        step_no = self.get_default_setup().get_live_status()['engine_status']['step_no']
+        step_no = self.get_default_setup().get_live_status()[
+            'engine_status']['step_no']
 
         if np.sum(step_no) == 0:
             # No data yet
             return fig
 
-        # No active experiment instance, or the instance does not support live plots
-        if self._active_experiment_instance is None or not hasattr(self._active_experiment_instance, 'live_plots'):
+        # No active experiment instance, or the instance does not support live
+        # plots
+        if self._active_experiment_instance is None or not hasattr(
+                self._active_experiment_instance, 'live_plots'):
             return fig
 
         try:
-            args = self._active_experiment_instance.retrieve_args(self._active_experiment_instance.run)
+            args = self._active_experiment_instance.retrieve_args(
+                self._active_experiment_instance.run)
         except ValueError as e:
             # The experiment has not been registered for plotting
             return fig
 
-        #try:
+        # try:
         fig = self._active_experiment_instance.live_plots(step_no)
-        #except Exception as e:
+        # except Exception as e:
         #    logger.warning(e)
 
         return fig
@@ -224,7 +233,8 @@ class ExperimentManager(Singleton):
         Register the active experiment instance.
         """
 
-        assert isinstance(instance, Experiment), f"instance must be an instance of Experiment, got {type(instance)}"
+        assert isinstance(
+            instance, Experiment), f"instance must be an instance of Experiment, got {type(instance)}"
         self._active_experiment_instance = instance
 
     def register_setup(self, setup, set_as_default=True):

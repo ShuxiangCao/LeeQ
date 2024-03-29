@@ -1,7 +1,10 @@
 import pytest
 import uuid
-from leeq.core.primitives.logical_primitives import (LogicalPrimitive, LogicalPrimitiveBlockParallel,
-                                                     LogicalPrimitiveBlockSerial, LogicalPrimitiveFactory)
+from leeq.core.primitives.logical_primitives import (
+    LogicalPrimitive,
+    LogicalPrimitiveBlockParallel,
+    LogicalPrimitiveBlockSerial,
+    LogicalPrimitiveFactory)
 
 
 class MockLogicalPrimitive(LogicalPrimitive):
@@ -15,13 +18,17 @@ class MockLogicalPrimitive(LogicalPrimitive):
 
 
 def test_logical_primitive_creation():
-    lp = MockLogicalPrimitive(name='primitive', parameters={'param1': 1, 'param2': 2})
+    lp = MockLogicalPrimitive(
+        name='primitive', parameters={
+            'param1': 1, 'param2': 2})
     assert lp._name == 'primitive'
     assert lp._parameters == {'param1': 1, 'param2': 2}
 
 
 def test_logical_primitive_clone():
-    lp = MockLogicalPrimitive(name='primitive', parameters={'param1': 1, 'param2': 2})
+    lp = MockLogicalPrimitive(
+        name='primitive', parameters={
+            'param1': 1, 'param2': 2})
     cloned_lp = lp.clone()
     assert cloned_lp._name != lp._name
     assert cloned_lp._parameters == {}

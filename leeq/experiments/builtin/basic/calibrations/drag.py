@@ -42,7 +42,8 @@ class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
         parameters = c1['X'].get_parameters()
 
         if 'alpha' not in parameters:
-            raise RuntimeError(f'The pulse shape {parameters["shape"]} does not support DRAG')
+            raise RuntimeError(
+                f'The pulse shape {parameters["shape"]} does not support DRAG')
 
         alpha = parameters['alpha']
 
@@ -54,7 +55,8 @@ class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
         # Define the pulse sequence for the experiment.
         vz_pi = c1.z(np.pi)
 
-        pulse_train_block = c1['X'] + vz_pi + c1['Y'] + vz_pi + c1['X'] + c1['Y']
+        pulse_train_block = c1['X'] + vz_pi + \
+            c1['Y'] + vz_pi + c1['X'] + c1['Y']
 
         # Add additional pulses based on the value of N.
         pulse_train = prims.SerialLPB([pulse_train_block] * N)
@@ -62,16 +64,22 @@ class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
         lpb_tail = prims.SweepLPB([c1['Xp'], c1['Xm']])
 
         # Define a function to update alpha in the pulse sequence.
-        update_alpha = lambda n: c1.update_parameters(alpha=1 / n)
+        def update_alpha(n): return c1.update_parameters(alpha=1 / n)
 
         # Create a sweeper for the alpha parameter.
         self.sweep_values = np.linspace(inv_alpha_start, inv_alpha_stop, num)
-        swp = Sweeper(self.sweep_values,
-                      params=[SweepParametersSideEffectFactory.func(update_alpha, argument_name='n', kwargs={})])
+        swp = Sweeper(
+            self.sweep_values,
+            params=[
+                SweepParametersSideEffectFactory.func(
+                    update_alpha,
+                    argument_name='n',
+                    kwargs={})])
 
         swp = swp + Sweeper.from_sweep_lpb(lpb_tail)
 
-        # meas = qubit.get_default_measurement_prim_int()  # prims.ParallelLPB(m_prims)
+        # meas = qubit.get_default_measurement_prim_int()  #
+        # prims.ParallelLPB(m_prims)
         mp = dut.get_measurement_prim_intlist(mprim_index)
 
         lpb = pulse_train + lpb_tail + mp
@@ -88,16 +96,27 @@ class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
     def linear_fit(self):
         self.fit_xp = np.polyfit(self.sweep_values, self.result[:, 0], deg=1)
         self.fit_xm = np.polyfit(self.sweep_values, self.result[:, 1], deg=1)
-        self.optimum = (self.fit_xp[0] - self.fit_xm[0]) / (self.fit_xm[1] - self.fit_xp[1])
+        self.optimum = (self.fit_xp[0] - self.fit_xm[0]) / \
+            (self.fit_xm[1] - self.fit_xp[1])
 
     @register_browser_function()
     def plot(self):
         self.linear_fit()
         plt.figure()
         plt.plot(self.sweep_values, self.result[:, 0], 'ro', alpha=0.5)
-        plt.plot(self.sweep_values, self.fit_xp[0] * self.sweep_values + self.fit_xp[1], 'r-')
+        plt.plot(
+            self.sweep_values,
+            self.fit_xp[0] *
+            self.sweep_values +
+            self.fit_xp[1],
+            'r-')
         plt.plot(self.sweep_values, self.result[:, 1], 'bo', alpha=0.5)
-        plt.plot(self.sweep_values, self.fit_xm[0] * self.sweep_values + self.fit_xm[1], 'b-')
+        plt.plot(
+            self.sweep_values,
+            self.fit_xm[0] *
+            self.sweep_values +
+            self.fit_xm[1],
+            'b-')
         plt.xlabel(u"DRAG coefficient")
         plt.ylabel(u"<z>")
         # plt.legend()
@@ -111,8 +130,14 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
     """
 
     @log_and_record
-    def run(self, dut, collection_name: str = 'f01', initial_lpb: LogicalPrimitiveBlock = None, mprim_index: int = 0,
-            update: bool = True, reset_alpha_before_calibration=True) -> None:
+    def run(
+            self,
+            dut,
+            collection_name: str = 'f01',
+            initial_lpb: LogicalPrimitiveBlock = None,
+            mprim_index: int = 0,
+            update: bool = True,
+            reset_alpha_before_calibration=True) -> None:
         """
         Calibrates the alpha parameter by performing an all XY drag.
 
@@ -129,7 +154,8 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
         self.alpha_calibration_results = {}
 
         # Retrieve the current alpha value from the device under test (DUT).
-        alpha: float = dut.get_c1(collection_name)['Xp'].primary_kwargs()['alpha']
+        alpha: float = dut.get_c1(collection_name)[
+            'Xp'].primary_kwargs()['alpha']
 
         # Reset alpha before calibration if the flag is set.
         if reset_alpha_before_calibration:
@@ -147,9 +173,14 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
 
             # Create an AllXY experiment instance.
             allxy = CrossAllXYDragMultiSingleQubitMultilevel(
-                collection_name=collection_name, mprim_index=mprim_index, initial_lpb=initial_lpb, N=1,
-                inv_alpha_start=start_point, inv_alpha_stop=stop_point, num=21, dut=dut
-            )
+                collection_name=collection_name,
+                mprim_index=mprim_index,
+                initial_lpb=initial_lpb,
+                N=1,
+                inv_alpha_start=start_point,
+                inv_alpha_stop=stop_point,
+                num=21,
+                dut=dut)
 
             key = (collection_name, mprim_index)
 
@@ -159,7 +190,8 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
             else:
                 self.alpha_calibration_results[key] = [allxy]
 
-            # Update alpha estimate based on the inverse of the obtained value from the experiment.
+            # Update alpha estimate based on the inverse of the obtained value
+            # from the experiment.
             alpha_0 = allxy.optimum
 
             print('Guessed alpha:', alpha_0)
@@ -180,7 +212,11 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
                 if alpha_higher_bound is None or alpha < alpha_higher_bound:
                     alpha_higher_bound = alpha
 
-            print('alpha_lower:', alpha_lower_bound, 'alpha_higher:', alpha_higher_bound)
+            print(
+                'alpha_lower:',
+                alpha_lower_bound,
+                'alpha_higher:',
+                alpha_higher_bound)
 
             # Update the alpha value for the next iteration.
             if alpha_higher_bound is None or alpha_lower_bound is None:

@@ -83,10 +83,10 @@ class Element(LeeQObject):
             parameters (dict): The parameters of the element.
         """
         assert (
-                "lpb_collections" in parameters
+            "lpb_collections" in parameters
         ), "LPB collections not found in the parameters."
         assert (
-                "measurement_primitives" in parameters
+            "measurement_primitives" in parameters
         ), "Measurement primitives not found in the parameters."
 
     def _build_lpb_collections(self):
@@ -300,10 +300,10 @@ class Element(LeeQObject):
         """
 
         assert (
-                "lpb_collections" in calibration
+            "lpb_collections" in calibration
         ), "LPB collections not found in the calibration dictionary."
         assert (
-                "measurement_primitives" in calibration
+            "measurement_primitives" in calibration
         ), "Measurement primitives not found in the calibration dictionary."
 
     def get_lpb_collection(self, name: str):
@@ -350,5 +350,7 @@ class Element(LeeQObject):
 
         calibrations = self.get_calibrations()
 
-        display_json_dict(json.loads(CalibrationEncoder().encode(calibrations)),
-                          root=f'Element {self._name} parameters')
+        display_json_dict(
+            json.loads(
+                CalibrationEncoder().encode(calibrations)),
+            root=f'Element {self._name} parameters')

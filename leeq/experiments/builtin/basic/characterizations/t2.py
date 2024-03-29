@@ -11,7 +11,8 @@ from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_exp_decay_with_cov
 from leeq.utils.compatibility import *
 
 
-class SpinEchoMultiLevel(Experiment):  # Class names should follow the CapWords convention
+class SpinEchoMultiLevel(
+        Experiment):  # Class names should follow the CapWords convention
     """
     A class used to represent the SimpleSpinEchoMultiLevel experiment.
 
@@ -33,7 +34,8 @@ class SpinEchoMultiLevel(Experiment):  # Class names should follow the CapWords 
             free_evolution_time: float = 100.0,
             time_resolution: float = 4.0,
             start: float = 0.0,
-            initial_lpb: Optional[Any] = None,  # Replace 'Any' with the actual type
+            # Replace 'Any' with the actual type
+            initial_lpb: Optional[Any] = None,
     ) -> None:
         """
         Run the SimpleSpinEchoMultiLevel experiment.
@@ -125,8 +127,9 @@ class SpinEchoMultiLevel(Experiment):  # Class names should follow the CapWords 
                 ),
                 name='Decay fit'
             )
-            title = (f"T2 echo {args['qubit'].hrid} transition {args['collection_name']}<br>"
-                     f"T2={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
+            title = (
+                f"T2 echo {args['qubit'].hrid} transition {args['collection_name']}<br>"
+                f"T2={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
 
             data = [trace_scatter, trace_line]
 
@@ -151,7 +154,8 @@ class SpinEchoMultiLevel(Experiment):  # Class names should follow the CapWords 
         return self.plot_echo(fit=step_no[0] > 10, step_no=step_no)
 
 
-class MultiQubitSpinEchoMultiLevel(Experiment):  # Class names should follow the CapWords convention
+class MultiQubitSpinEchoMultiLevel(
+        Experiment):  # Class names should follow the CapWords convention
     """
     A class used to represent the SimpleSpinEchoMultiLevel experiment.
 
@@ -173,7 +177,8 @@ class MultiQubitSpinEchoMultiLevel(Experiment):  # Class names should follow the
             free_evolution_time: float = 100.0,
             time_resolution: float = 4.0,
             start: float = 0.0,
-            initial_lpb: Optional[Any] = None,  # Replace 'Any' with the actual type
+            # Replace 'Any' with the actual type
+            initial_lpb: Optional[Any] = None,
     ) -> None:
         """
         Run the SimpleSpinEchoMultiLevel experiment.
@@ -204,8 +209,16 @@ class MultiQubitSpinEchoMultiLevel(Experiment):  # Class names should follow the
         if isinstance(mprim_indexes, int):
             mprim_indexes = [mprim_indexes] * len(duts)
 
-        c1s = [qubit.get_c1(collection_name) for qubit, collection_name in zip(duts, collection_names)]
-        mprims = [qubit.get_measurement_prim_intlist(mprim_index) for qubit, mprim_index in zip(duts, mprim_indexes)]
+        c1s = [
+            qubit.get_c1(collection_name) for qubit,
+            collection_name in zip(
+                duts,
+                collection_names)]
+        mprims = [
+            qubit.get_measurement_prim_intlist(mprim_index) for qubit,
+            mprim_index in zip(
+                duts,
+                mprim_indexes)]
         delay = prims.Delay(0)
 
         self.mp = mprims
@@ -294,8 +307,9 @@ class MultiQubitSpinEchoMultiLevel(Experiment):  # Class names should follow the
                 ),
                 name='Decay fit'
             )
-            title = (f"T2 echo {args['duts'][index].hrid} transition {self.collection_names[index]}<br>"
-                     f"T2={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
+            title = (
+                f"T2 echo {args['duts'][index].hrid} transition {self.collection_names[index]}<br>"
+                f"T2={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
 
             data = [trace_scatter, trace_line]
 

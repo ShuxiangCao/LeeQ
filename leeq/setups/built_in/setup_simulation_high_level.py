@@ -18,8 +18,8 @@ class HighLevelSimulationSetup(ExperimentalSetup):
     running the theoretical simulation of each experiment, instead of pulse level physical simulations.
     """
 
-    def __init__(self, name: str, virtual_qubit: VirtualTransmon, omega_to_amp_map: dict[int, float] = None, *args,
-                 **kwargs):
+    def __init__(self, name: str, virtual_qubit: VirtualTransmon,
+                 omega_to_amp_map: dict[int, float] = None, *args, **kwargs):
         """
         Initialize the HighLevelSimulationSetup class.
 

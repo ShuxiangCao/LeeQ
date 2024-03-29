@@ -29,27 +29,41 @@ interval_dcc = dcc.Interval(
 )
 
 # Define the app layout
-app.layout = dbc.Container([
-    html.H1("LeeQ Experiment Monitor", ),
-    html.Hr(),
-    dbc.Progress(
-        value=80, id="animated-progress", animated=True, striped=False
-    ),
-    dbc.Row(
-        [
-            dbc.Col(html.Div(children=[
-                dcc.Graph(id='live-figure', animate=False),
-
-            ]), md=8),
-            dbc.Col(html.Div(children=[
-                html.Pre(id='live-json', style={"border": "thin lightgrey solid", "padding": 10}),
-            ]), md=4),
-        ],
-        align="center",
-    ),
-
-    interval_dcc
-])
+app.layout = dbc.Container(
+    [
+        html.H1(
+            "LeeQ Experiment Monitor",
+        ),
+        html.Hr(),
+        dbc.Progress(
+            value=80,
+            id="animated-progress",
+            animated=True,
+            striped=False),
+        dbc.Row(
+            [
+                dbc.Col(
+                    html.Div(
+                        children=[
+                            dcc.Graph(
+                                id='live-figure',
+                                animate=False),
+                        ]),
+                    md=8),
+                dbc.Col(
+                    html.Div(
+                        children=[
+                            html.Pre(
+                                id='live-json',
+                                style={
+                                    "border": "thin lightgrey solid",
+                                    "padding": 10}),
+                        ]),
+                    md=4),
+            ],
+            align="center",
+        ),
+        interval_dcc])
 
 global experiment_manager
 experiment_manager = None
@@ -111,7 +125,7 @@ def update_figure(n: int):
 def start_app(**kwargs):
     """
     Start the app.
-    
+
     Parameters:
         **kwargs: The arguments to pass to `app.run_server`.
     """

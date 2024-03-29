@@ -51,7 +51,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
             "trunc": self._parameters['trunc'],
             "phase": 0,
         }
-                                                      )
+        )
         self['stark_drive_target'].update_parameters(**{
             "freq": self._parameters['freq'],
             "amp": self._parameters['amp_target'],
@@ -134,7 +134,8 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         z_control_cancel = self.iz_control * np.pi * 2 * width
         z_target_cancel = self.iz_target * np.pi * 2 * width
 
-        return self.c1_control.z(z_control_cancel) * self.c1_target.z(z_target_cancel)
+        return self.c1_control.z(z_control_cancel) * \
+            self.c1_target.z(z_target_cancel)
 
     def get_z_canceled_cs_pulse(self):
         """
@@ -155,7 +156,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
             flip_both = self.c1_control['X'] * self.c1_target['X']
             full_pulse = self.get_stark_drive_pulses()
             lpb = full_pulse + flip_both + full_pulse + flip_both + \
-                  self.get_z_cancellation_pulse() + self.get_z_cancellation_pulse()
+                self.get_z_cancellation_pulse() + self.get_z_cancellation_pulse()
         else:
             full_pulse = self.get_z_canceled_cs_pulse()
             lpb = full_pulse + full_pulse
@@ -173,7 +174,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
             flip_both = self.c1_control['X'] * self.c1_target['X']
             full_pulse = self.get_stark_drive_pulses()
             lpb = full_pulse + full_pulse + flip_both + full_pulse + full_pulse + flip_both + self.get_z_cancellation_pulse() \
-                  + self.get_z_cancellation_pulse() + self.get_z_cancellation_pulse() + self.get_z_cancellation_pulse()
+                + self.get_z_cancellation_pulse() + self.get_z_cancellation_pulse() + self.get_z_cancellation_pulse()
 
         else:
 
@@ -192,7 +193,8 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         """
         Get the CZ gate.
         """
-        return self.get_zzm() + self.c1_control.z(-np.pi / 2) * self.c1_target.z(-np.pi / 2)
+        return self.get_zzm() + self.c1_control.z(-np.pi / 2) * \
+            self.c1_target.z(-np.pi / 2)
 
     def get_zxp(self, additional_echo=None, empty_pulse=False):
         """
@@ -227,7 +229,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         control_c1, target_c1 = self.c1_control, self.c1_target
 
         return self.get_zxm(additional_echo) + (
-                control_c1['Ym'] * target_c1['Ym']) + self.get_zxm(additional_echo)
+            control_c1['Ym'] * target_c1['Ym']) + self.get_zxm(additional_echo)
 
     def get_swap_like(self, additional_echo=None):
         """
@@ -236,10 +238,16 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         control_c1, target_c1 = self.c1_control, self.c1_target
 
         return self.get_zxm(additional_echo) + (
-                control_c1['Ym'] * target_c1['Ym']) + self.get_zxm(additional_echo) + (
-                control_c1['Xp'] * (target_c1['Xp'] + target_c1['Ym'])) + self.get_zxm(additional_echo)
+            control_c1['Ym'] * target_c1['Ym']) + self.get_zxm(additional_echo) + (
+            control_c1['Xp'] * (target_c1['Xp'] + target_c1['Ym'])) + self.get_zxm(additional_echo)
 
-    def get_clifford(self, i, control_c1=None, target_c1=None, ignore_identity=False, additional_echo=None):
+    def get_clifford(
+            self,
+            i,
+            control_c1=None,
+            target_c1=None,
+            ignore_identity=False,
+            additional_echo=None):
         """
         Get the Clifford gate by index, for randomized benchmarking.
         """
@@ -250,23 +258,32 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
 
         info = get_c2_info(i)
         if info[0] == 0:
-            return control_c1.get_clifford(info[1], ignore_identity) * target_c1.get_clifford(info[2], ignore_identity)
+            return control_c1.get_clifford(
+                info[1], ignore_identity) * target_c1.get_clifford(info[2], ignore_identity)
         elif info[0] == 1:
-            return control_c1.get_clifford(info[1], ignore_identity) * target_c1.get_clifford(info[2],
-                                                                                              ignore_identity) + \
-                self.get_cnot_like(additional_echo) + control_c1.get_clifford(info[3],
-                                                                              ignore_identity) * target_c1.get_clifford(
-                    info[4], ignore_identity)
+            return control_c1.get_clifford(
+                info[1],
+                ignore_identity) * target_c1.get_clifford(
+                info[2],
+                ignore_identity) + self.get_cnot_like(additional_echo) + control_c1.get_clifford(
+                info[3],
+                ignore_identity) * target_c1.get_clifford(
+                info[4],
+                ignore_identity)
         elif info[0] == 2:
-            return control_c1.get_clifford(info[1], ignore_identity) * target_c1.get_clifford(info[2],
-                                                                                              ignore_identity) + \
-                self.get_iswap_like(additional_echo) + control_c1.get_clifford(info[3],
-                                                                               ignore_identity) * target_c1.get_clifford(
-                    info[4], ignore_identity)
+            return control_c1.get_clifford(
+                info[1],
+                ignore_identity) * target_c1.get_clifford(
+                info[2],
+                ignore_identity) + self.get_iswap_like(additional_echo) + control_c1.get_clifford(
+                info[3],
+                ignore_identity) * target_c1.get_clifford(
+                info[4],
+                ignore_identity)
         else:
-            return control_c1.get_clifford(info[1], ignore_identity) * target_c1.get_clifford(info[2],
-                                                                                              ignore_identity) + self.get_swap_like(
-                additional_echo)
+            return control_c1.get_clifford(
+                info[1], ignore_identity) * target_c1.get_clifford(
+                info[2], ignore_identity) + self.get_swap_like(additional_echo)
 
     def get_cphase(self):
         """
@@ -278,4 +295,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         """
         Get a random Clifford gate. This is for randomized benchmarking.
         """
-        return self.get_clifford(np.random.randint(11520), control_c1, target_c1)
+        return self.get_clifford(
+            np.random.randint(11520),
+            control_c1,
+            target_c1)
