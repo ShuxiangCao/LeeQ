@@ -1,4 +1,4 @@
-FROM quay.io/jupyter/datascience-notebook
+FROM quay.io/jupyter/minimal-notebook:latest
 
 # Clone the repository from github
 RUN git clone https://gitlab.com/LBL-QubiC/software.git /home/jovyan/packages/QubiC/software
