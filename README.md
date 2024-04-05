@@ -11,10 +11,10 @@ on superconducting circuits-based quantum computing systems.
 To use the Docker image, run the following command:
 
 ```bash
-docker run -p 8888:8888 -p 5000:5000 -v /path/to/local/folder:/home/jovyan/work ghcr.io/shuxiangcao/leeq:latest
+docker run -p 8888:8888 -p 8050:8050 -v /path/to/local/folder:/home/jovyan/work ghcr.io/shuxiangcao/leeq:latest
 ```
 
-Then, open the browser and go to `http://localhost:8888` to access the Jupyter notebook. The port 5000 is used for the
+Then, open the browser and go to `http://localhost:8888` to access the Jupyter notebook. The port `8050` is used for the
 live plotting server. To mount the local folder, replace `/path/to/local/folder` with the path to the local folder.
 
 ### Tutorial
