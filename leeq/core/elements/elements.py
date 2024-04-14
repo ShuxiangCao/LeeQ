@@ -103,9 +103,9 @@ class Element(LeeQObject):
                 parameters=collection_parameters,
             )
 
+        factory = LogicalPrimitiveFactory()
         for collection_name, collection_parameters in self._parameters["measurement_primitives"].items():
             collection_name = "m" + collection_name
-            print(collection_parameters["type"])
             self._lpb_collections[collection_name] = factory(
                 name=self._name + "." + collection_name,
                 class_name=collection_parameters["type"],
