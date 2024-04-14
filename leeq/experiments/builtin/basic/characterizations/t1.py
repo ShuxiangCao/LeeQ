@@ -337,6 +337,9 @@ class MultiQuditT1Decay(Experiment):
         self.time_length = time_length
         self.time_resolution = time_resolution
 
+        if isinstance(mprim_indexes, int):
+            mprim_indexes = [mprim_indexes] * len(duts)
+
         c1_01s = [dut.get_c1('f01') for dut in duts]
         c1_12s = [dut.get_c1('f12') for dut in duts]
         c1_23s = [dut.get_c1('f23') for dut in duts]
@@ -353,6 +356,8 @@ class MultiQuditT1Decay(Experiment):
             c1_01_pulses + c1_12_pulses + c1_23_pulses]
         )
 
+        swp_lpb = sweeper.from_sweep_lpb(lpb)
+
         delay = prims.Delay(0)
 
         lpb = lpb + delay
@@ -368,11 +373,11 @@ class MultiQuditT1Decay(Experiment):
                     {},
                     'delay')])
 
-        mprims = [dut.get_measurement_prim_intlist(0) for dut in duts]
+        mprims = [dut.get_measurement_prim_intlist(mprim_index) for mprim_index,dut in zip(mprim_indexes,duts)]
 
         lpb = lpb + prims.ParallelLPB(mprims)
 
-        basic(lpb, swp, '<zs>')
+        basic(lpb, swp_time + swp_lpb, '<zs>')
 
         self.results = [
             np.squeeze(mprim.result()) for mprim in mprims

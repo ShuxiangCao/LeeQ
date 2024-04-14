@@ -6,6 +6,8 @@ import numpy as np
 
 from leeq import setup
 from leeq.compiler.compiler_base import LPBCompiler, MeasurementSequence
+from leeq.compiler.lbnl_qubic.utils import register_leeq_pulse_shapes_to_qubic_pulse_shape_factory, \
+    get_qubic_envelope_name_from_leeq_name
 from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
 from leeq.compiler.utils.time_base import get_t_list
 from leeq.core.context import ExperimentContext
@@ -130,43 +132,16 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
     @staticmethod
     def _get_envelope_function(pulse_shape_name: str):
         """
-        Get the pulse shape function with the given name.
+        Get the envelope function with the given name.
 
         Parameters:
             pulse_shape_name (str): The name of the pulse shape.
 
         Returns:
-            callable: evaluated pulse shape function.
-
+            callable: The envelope function.
         """
+        return PulseShapeFactory().get_pulse_shape_function(pulse_shape_name)
 
-        env_func = PulseShapeFactory().get_pulse_shape_function(pulse_shape_name)
-
-        @functools.wraps(env_func)
-        def func(dt, **kwargs):
-            """
-            Evaluate the pulse shape function with the given parameters.
-            Adpat the interface between qubic defined functions and leek defined functions.
-
-            Parameters:
-                dt (float): The sampling rate of the pulse shape. In Msps unit.
-
-            Returns:
-                Tuple[np.ndarray, np.ndarray]: The time list and the pulse shape envelope.
-            """
-
-            # amp will be modified by the qubic system, so we always pass amp =
-            # 1
-            kwargs = kwargs.copy()
-            kwargs['amp'] = 1
-
-            sampling_rate = 1 / dt / 1e6  # In Msps unit
-            t = get_t_list(sampling_rate=sampling_rate, width=kwargs['width'])
-            env = env_func(sampling_rate=sampling_rate, **kwargs)
-
-            return t, env
-
-        return func
 
     def compile_lpb(self, context: ExperimentContext,
                     lpb: LogicalPrimitiveCombinable):
@@ -365,19 +340,56 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                 key in parameters) and key not in [
                 'amp', 'freq', 'phase']}
 
-        env = {"env_func": env_func, "paradict": parameters_keeping}
+        if parameters['width'] <= 0.5:  # The pulse width is too long, we need to split it
+            env = {"env_func": get_qubic_envelope_name_from_leeq_name(parameters['shape']),
+                   "paradict": parameters_keeping}
 
-        qubic_pulse_dict = {
-            "name": "pulse",
-            "phase": phase_shift + parameters["phase"],
-            "freq": int(parameters['freq'] * 1e6),  # In Hz
-            "amp": parameters['amp'],
-            "twidth": parameters['width'] / 1e6,  # In seconds
-            "env": env,
-            "dest": qubic_dest,  # The channel name
-        }
+            qubic_pulse_dict = {
+                "name": "pulse",
+                "phase": phase_shift + parameters["phase"],
+                "freq": int(parameters['freq'] * 1e6),  # In Hz
+                "amp": parameters['amp'],
+                "twidth": parameters['width'] / 1e6,  # In seconds
+                "env": env,
+                "dest": qubic_dest,  # The channel name
+            }
 
-        return [qubic_pulse_dict], {qubic_dest}
+            sequence = [qubic_pulse_dict]
+        else:
+            # The pulse width is too long, we need to split it into multiple pulses, each with a width less than 0.5s
+            sequence = []
+            single_pulse_width = 0.5
+            total_width = parameters['width']
+            num_pulses = int(np.ceil(parameters['width'] / single_pulse_width))
+            t_start = 0
+            env_func = get_qubic_envelope_name_from_leeq_name('segment')
+
+            for i in range(num_pulses):
+                pulse_width = min(single_pulse_width, total_width)
+                total_width -= pulse_width
+                t_end = t_start + pulse_width
+
+                parameters_segment = parameters_keeping.copy()
+                parameters_segment['width'] = pulse_width
+                parameters_segment['t_start'] = t_start
+                parameters_segment['t_end'] = t_end
+                parameters_segment['env_name'] = parameters['shape']
+
+                env = {"env_func": env_func, "paradict": parameters_segment}
+                qubic_pulse_dict = {
+                    "name": "pulse",
+                    "phase": phase_shift + parameters["phase"],
+                    "freq": int(parameters['freq'] * 1e6),  # In Hz
+                    "amp": parameters['amp'],
+                    "twidth": pulse_width / 1e6,  # In seconds
+                    "env": env,
+                    "dest": qubic_dest,  # The channel name
+                }
+                sequence.append(qubic_pulse_dict)
+
+                t_start = t_end
+
+        return sequence, {qubic_dest}
 
     @_compile_lpb.register
     def _(self, lpb: MeasurementPrimitive):
@@ -449,13 +461,15 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         # waveform has changed. We only put the parameters that are used in the
         # waveform generation.
         env_func = self._get_envelope_function(modified_parameters['shape'])
+
         required_parameters = inspect.signature(env_func).parameters
         parameters_keeping = {
             key: modified_parameters[key] for key in required_parameters if (
                 key in modified_parameters) and key not in [
                 'amp', 'freq', 'phase']}
 
-        env = {"env_func": env_func, "paradict": parameters_keeping}
+        env = {"env_func": get_qubic_envelope_name_from_leeq_name(modified_parameters['shape']),
+               "paradict": parameters_keeping}
 
         drive_pulse = {
             "name": 'pulse',

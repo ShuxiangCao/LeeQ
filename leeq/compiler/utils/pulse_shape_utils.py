@@ -1,16 +1,9 @@
 import functools
-import importlib
 import inspect
 
-import decorator
 import numpy as np
 
 from leeq.utils import Singleton, setup_logging
-
-from leeq.core.primitives.logical_primitives import (
-    LogicalPrimitive,
-    LogicalPrimitiveBlock,
-)
 
 logger = setup_logging(__name__)
 

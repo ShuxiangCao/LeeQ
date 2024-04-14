@@ -219,3 +219,25 @@ def test_measurement_like_pulse_experiment_circuit(qubit_1, qubit_2):
 
     assert set(instructions['circuits'][3]['scope']) == {'Q1'}
     assert set(instructions['circuits'][10]['scope']) == {'Q0'}
+
+
+def test_automated_segmentation_of_very_long_pulses(qubit_1):
+    rotate_X_qubit = qubit_1.get_lpb_collection('f01')['Xp']
+    mlp = qubit_1.get_measurement_primitive('0')
+
+    rotate_X_qubit.update_parameters(width=1.2)
+
+    lpb = rotate_X_qubit + mlp
+
+    instructions = compile_lpb(lpb)
+
+    for i in range(3):
+        assert instructions['circuits'][i]['dest'] == 'Q0.qdrv'  # Three pulses are generated for the long pulse
+
+    total_width = sum(instructions['circuits'][i]['twidth'] for i in range(3)) * 1e6
+    assert total_width == 1.2
+
+    # Make sure each pulse starts at the time previous pulse ends
+    for i in range(2):
+        assert instructions['circuits'][i]['env']['paradict']['t_end'] == \
+               instructions['circuits'][i + 1]['env']['paradict']['t_start']

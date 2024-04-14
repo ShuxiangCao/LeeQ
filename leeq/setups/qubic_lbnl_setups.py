@@ -5,6 +5,7 @@ from uuid import UUID
 import numpy as np
 
 from leeq.compiler.lbnl_qubic.circuit_list_compiler import QubiCCircuitListLPBCompiler
+from leeq.compiler.lbnl_qubic.utils import register_leeq_pulse_shapes_to_qubic_pulse_shape_factory
 from leeq.core.context import ExperimentContext
 from leeq.core.engine.grid_sweep_engine import GridSerialSweepEngine, GridBatchSweepEngine
 from leeq.core.engine.measurement_result import MeasurementResult
@@ -283,8 +284,11 @@ class QubiCCircuitSetup(ExperimentalSetup):
         if self._status.get_parameters("QubiC_Debug_Print_Circuits"):
             pprint(circuits)
 
+        # Register leeq pulse shapes to QubiC
+        register_leeq_pulse_shapes_to_qubic_pulse_shape_factory()
+
         compiled_instructions = tc.run_compile_stage(
-            circuits, fpga_config=self._fpga_config, qchip=None
+            circuits, fpga_config=self._fpga_config, qchip=None, compiler_flags={'resolve_gates': False}
         )
 
         if self._status.get_parameters(

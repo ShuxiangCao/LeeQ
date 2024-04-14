@@ -10,7 +10,37 @@ __all__ = [
     "gaussian_drag",
     "soft_square",
     "square",
+    "clk",
+    "segment",
 ]
+
+def segment(sampling_rate: int, env_name:str, seg_t_start: float, seg_t_end: float, **kwargs) -> np.array:
+    """
+    Generates a complex wave packet that is a segment of another wave packet.
+    This function is for bypassing the restriction of the pulse shape function
+    to have a limited width.
+
+    Parameters:
+    - sampling_rate (int): The sampling rate in Megasamples per second.
+    - env_name (str): The name of the pulse shape.
+    - seg_t_start (float): The starting time of the segment.
+    - seg_t_end (float): The ending time of the segment.
+    - kwargs: The parameters of the pulse shape.
+    """
+
+    from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
+    pulse_shape_factory = PulseShapeFactory()
+    env_func = pulse_shape_factory.get_pulse_shape_function(env_name)
+
+    # Get the array of the entire pulse shape
+    env_array = env_func(sampling_rate, **kwargs)
+
+    dt = 1 / sampling_rate
+    t = np.arange(0, len(env_array) * dt, dt)
+
+    seg_array = env_array[(t >= seg_t_start) & (t < seg_t_end)]
+
+    return seg_array
 
 
 def gaussian(
@@ -375,3 +405,38 @@ def clear_square(
     y[(x_final_top < x) & (x < x_end)] = final_top * amp
 
     y = y
+
+def clk(
+        sampling_rate: int,
+        amp: float,
+        width: Optional[float] = None,
+        phase: Optional[float] = 0,
+        delay: float = 0.0,
+        phase_shift: float = 0,
+        dc_bias: float = 0,
+        ex_delay: float = 0,
+        kappa: float = 0,
+) -> np.ndarray:
+    """
+    Generate a decaying square wave, suitable for the transient part of the cloaking pulse.
+
+    Parameters:
+    - sampling_rate (int): Sampling rate in Megasamples per second.
+    - amp (float): Amplitude of the signal.
+    - phase (float, optional): Phase of the signal.
+    - width (float, optional): Width of the pulse.
+    - delay (float, optional): Delay of the signal.
+    - phase_shift (float, optional): Phase shift of the signal.
+    - dc_bias (float, optional): DC bias of the signal.
+    - ex_delay (float, optional): Extra delay of the signal.
+    - kappa (float, optional): Resonator linewidth.
+
+    Returns:
+    - np.ndarray: Generated square wave.
+    """
+    delay += ex_delay
+    x = get_t_list(sampling_rate, width + delay)
+    y = np.empty(shape=(len(x),), dtype="cfloat")
+    y.fill(amp * np.exp(1.0j * (phase + phase_shift)))
+    y[x < (delay - width) / 2.0] = 0.0
+    return y*np.exp(-kappa*x/2) + dc_bias
