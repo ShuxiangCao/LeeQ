@@ -191,8 +191,8 @@ def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
     segments = sorted([(x, y, 'flat') for x, y in regions_flat] + [(x, y, 'change') for x, y in regions_change],
                       key=lambda x: x[0])
 
-    # To make a proper dense pulse, we need to make sure the pulse width are multiples of 2 ns.
-    minimal_pulse_width = 2e-9
+    # To make a proper dense pulse, we need to make sure the pulse width are multiples of 4 ns.
+    minimal_pulse_width = 8e-9
     atomic_index_count = int(_sampling_rate * minimal_pulse_width)
 
     # Now we iterate over the segments and make corrections to the indexes
@@ -227,6 +227,10 @@ def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
 
     modified_segments.append(segments[-1])
     segments = modified_segments
+
+    # Assert all the start time are properly aligned
+    for i, (start, end, segment_type) in enumerate(segments):
+        assert start % atomic_index_count == 0, f"Start time is not properly aligned for segment {i}. {start}, {end},{segment_type}, {atomic_index_count}"
 
     pulses = []
     # Generate the pulses for each segment
@@ -546,7 +550,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                 new_sequence = []
 
                 if segment_type == 'flat':
-                    single_pulse_width = 150e-9  # In seconds, 150 ns
+                    single_pulse_width = 128e-9  # In seconds, 150 ns
 
                     # The flat region is too long, we need to split it into multiple pulses
                     num_pulses = int(np.ceil(pulse_width / single_pulse_width))
@@ -582,7 +586,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                         "dest": qubic_dest,  # The channel name
                     }
                     new_sequence.append(qubic_pulse_dict)
-                sequence += new_sequence
+                sequence += new_sequence[::-1]
 
         # new_sequence = [[x, {'name': 'delay', 't': 100e-9}] for x in sequence]
         # sequence = sum(new_sequence, [])
