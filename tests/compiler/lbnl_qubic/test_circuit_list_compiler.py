@@ -1,9 +1,10 @@
 import pytest
 from pytest import fixture
-from leeq.compiler.lbnl_qubic.circuit_list_compiler import QubiCCircuitListLPBCompiler
+from leeq.compiler.lbnl_qubic.circuit_list_compiler import QubiCCircuitListLPBCompiler, segment_array
 from leeq.core.context import ExperimentContext
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.core.primitives.built_in.common import Delay
+import numpy as np
 
 configuration_1 = {
     'lpb_collections': {
@@ -28,6 +29,17 @@ configuration_1 = {
             'width': 0.025,
             'alpha': 425.1365229849309,
             'trunc': 1.2
+        },
+        'f23': {
+            'type': 'SimpleDriveCollection',
+            'freq': 4104.417053428905,
+            'channel': 0,
+            'shape': 'soft_square',
+            'amp': 0.9,
+            'phase': 0.,
+            'rise': 0.1,
+            'width': 1,
+            'trunc': 1
         }
     },
     'measurement_primitives': {
@@ -220,9 +232,32 @@ def test_measurement_like_pulse_experiment_circuit(qubit_1, qubit_2):
     assert set(instructions['circuits'][3]['scope']) == {'Q1'}
     assert set(instructions['circuits'][10]['scope']) == {'Q0'}
 
+    #
+    # def test_automated_segmentation_of_very_long_pulses(qubit_1):
+    #     rotate_X_qubit = qubit_1.get_lpb_collection('f01')['Xp']
+    #     mlp = qubit_1.get_measurement_primitive('0')
+    #
+    #     rotate_X_qubit.update_parameters(width=1.2)
+    #
+    #     lpb = rotate_X_qubit + mlp
+    #
+    #     instructions = compile_lpb(lpb)
+    #
+    #     for i in range(3):
+    #         assert instructions['circuits'][i]['dest'] == 'Q0.qdrv'  # Three pulses are generated for the long pulse
+    #
+    #     total_width = sum(instructions['circuits'][i]['twidth'] for i in range(3)) * 1e6
+    #     assert total_width == 1.2
+    #
+    #     # Make sure each pulse starts at the time previous pulse ends
+    #     for i in range(2):
+    #         assert instructions['circuits'][i]['env']['paradict']['t_end'] == \
+    #                instructions['circuits'][i + 1]['env']['paradict']['t_start']
+    #
+
 
 def test_automated_segmentation_of_very_long_pulses(qubit_1):
-    rotate_X_qubit = qubit_1.get_lpb_collection('f01')['Xp']
+    rotate_X_qubit = qubit_1.get_lpb_collection('f23')['X']
     mlp = qubit_1.get_measurement_primitive('0')
 
     rotate_X_qubit.update_parameters(width=1.2)
@@ -231,13 +266,176 @@ def test_automated_segmentation_of_very_long_pulses(qubit_1):
 
     instructions = compile_lpb(lpb)
 
-    for i in range(3):
-        assert instructions['circuits'][i]['dest'] == 'Q0.qdrv'  # Three pulses are generated for the long pulse
+    total_width = 0
+    for i, circuit in enumerate(instructions['circuits']):
+        assert circuit['dest'] == 'Q0.qdrv'
+        total_width += circuit['twidth']
+        if i == 0:
+            assert circuit['env']['env_func'] == 'leeq_segment_by_index'
+        else:
+            if circuit['env']['env_func'] == 'leeq_segment_by_index':
+                break
 
-    total_width = sum(instructions['circuits'][i]['twidth'] for i in range(3)) * 1e6
-    assert total_width == 1.2
+    assert np.abs(total_width * 1e6 - 1.4) < 1e-10  # 1.2 + 0.2, include the rise time
 
-    # Make sure each pulse starts at the time previous pulse ends
-    for i in range(2):
-        assert instructions['circuits'][i]['env']['paradict']['t_end'] == \
-               instructions['circuits'][i + 1]['env']['paradict']['t_start']
+
+def generate_flat_sequence(length, value):
+    """Generate a sequence of flat complex values."""
+    return np.full(length, value, dtype=complex)
+
+
+def generate_changing_sequence(length, start_value, end_value):
+    """Generate a sequence of linearly changing complex values."""
+    real_part = np.linspace(start_value.real, end_value.real, length)
+    imag_part = np.linspace(start_value.imag, end_value.imag, length)
+    return real_part + 1j * imag_part
+
+
+# Segmentation tests
+
+def _test_segmentation(sequences, expected_flat, expected_change):
+    # Threshold for flat regions
+    threshold = 0.001
+    min_flat_length = 5  # Minimum length for flat regions
+
+    test_data = np.concatenate(sequences)
+
+    # Segment the data
+    flat_regions, change_regions = segment_array(test_data, threshold, min_flat_length)
+
+    # Assert results
+    assert flat_regions == expected_flat, f"Expected flat regions {expected_flat}, got {flat_regions}"
+    assert change_regions == expected_change, f"Expected change regions {expected_change}, got {change_regions}"
+
+
+def test_segmentation():
+    # Simple case
+    _test_segmentation(
+        sequences=[
+            generate_flat_sequence(6, 1 + 1j),
+            generate_changing_sequence(6, 1.5 + 1.5j, 2 + 2j),
+            generate_flat_sequence(6, 2.5 + 2.5j),
+            generate_changing_sequence(6, 4 + 4j, 5 + 5j),
+        ],
+        expected_flat=[(0, 6), (12, 18)],
+        expected_change=[(6, 12), (18, 24)]
+    )
+
+    # Start with a change region
+    _test_segmentation(
+        sequences=[
+            generate_changing_sequence(6, 1.5 + 1.5j, 2 + 2j),
+            generate_flat_sequence(6, 1 + 1j),
+            generate_changing_sequence(6, 4 + 4j, 5 + 5j),
+            generate_flat_sequence(6, 2.5 + 2.5j),
+        ],
+        expected_flat=[(6, 12), (18, 24)],
+        expected_change=[(0, 6), (12, 18)]
+    )
+
+    # Start and end with a change region
+    _test_segmentation(
+        sequences=[
+            generate_changing_sequence(6, 1.5 + 1.5j, 2 + 2j),
+            generate_flat_sequence(6, 1 + 1j),
+            generate_changing_sequence(6, 4 + 4j, 5 + 5j),
+            generate_flat_sequence(6, 2.5 + 2.5j),
+            generate_changing_sequence(6, 4 + 4j, 5 + 5j),
+        ],
+        expected_flat=[(6, 12), (18, 24)],
+        expected_change=[(0, 6), (12, 18), (24, 30)]
+    )
+
+    # Start and end with a flat region
+    _test_segmentation(
+        sequences=[
+            generate_flat_sequence(6, 1 + 1j),
+            generate_changing_sequence(6, 4 + 4j, 5 + 5j),
+            generate_flat_sequence(6, 2.5 + 2.5j),
+            generate_changing_sequence(6, 4 + 4j, 5 + 5j),
+            generate_flat_sequence(6, 1 + 1j),
+        ],
+        expected_flat=[(0, 6), (12, 18), (24, 30)],
+        expected_change=[(6, 12), (18, 24)],
+    )
+
+    # Consecutive flat regions
+    _test_segmentation(
+        sequences=[
+            generate_flat_sequence(6, 1 + 1j),
+            generate_flat_sequence(6, 2.5 + 2.5j),
+            generate_changing_sequence(6, 4 + 4j, 5 + 5j),
+            generate_flat_sequence(6, 1 + 1j),
+        ],
+        expected_flat=[(0, 6), (6, 12), (18, 24)],
+        expected_change=[(12, 18)],
+    )
+
+    # Short flat regions beginning
+    _test_segmentation(
+        sequences=[
+            generate_flat_sequence(3, 1 + 1j),
+            generate_flat_sequence(6, 2.5 + 2.5j),
+            generate_changing_sequence(6, 4 + 4j, 5 + 5j),
+            generate_flat_sequence(6, 1 + 1j),
+        ],
+        expected_flat=[(0, 3), (3, 9), (15, 21)],
+        expected_change=[(9, 15)],
+    )
+
+    # Short flat regions beginning
+    _test_segmentation(
+        sequences=[
+            generate_flat_sequence(3, 1 + 1j),
+            generate_changing_sequence(6, 4 + 4j, 5 + 5j),
+            generate_flat_sequence(3, 2.5 + 2.5j),
+            generate_flat_sequence(6, 1 + 1j),
+        ],
+        expected_change=[(0, 12)],
+        expected_flat=[(12, 18)],
+    )
+
+    # Short flat regions end
+    _test_segmentation(
+        sequences=[
+            generate_flat_sequence(3, 1 + 1j),
+            generate_flat_sequence(6, 2.5 + 2.5j),
+            generate_changing_sequence(6, 4 + 4j, 5 + 5j),
+            generate_flat_sequence(6, 1 + 1j),
+        ],
+        expected_flat=[(0, 3), (3, 9), (15, 21)],
+        expected_change=[(9, 15)],
+    )
+
+    # change regions beginning and end: Most of the cases
+    _test_segmentation(
+        sequences=[
+            generate_changing_sequence(6, 4 + 4j, 5 + 5j),
+            generate_flat_sequence(6, 1 + 1j),
+            generate_changing_sequence(6, 4 + 4j, 5 + 5j),
+        ],
+        expected_flat=[(6, 12)],
+        expected_change=[(0, 6), (12, 18)],
+    )
+
+    # flat regions beginning and end
+    _test_segmentation(
+        sequences=[
+            generate_flat_sequence(6, 1 + 1j),
+            generate_changing_sequence(6, 4 + 4j, 5 + 5j),
+            generate_flat_sequence(6, 1 + 1j),
+        ],
+        expected_flat=[(0, 6), (12, 18)],
+        expected_change=[(6, 12)],
+    )
+
+    # Short flat regions beginning and end
+    _test_segmentation(
+        sequences=[
+            generate_flat_sequence(3, 1 + 1j),
+            generate_changing_sequence(6, 4 + 4j, 5 + 5j),
+            generate_flat_sequence(3, 1 + 1j),
+        ],
+        expected_change=[(0, 12)],
+        expected_flat=[]
+    )

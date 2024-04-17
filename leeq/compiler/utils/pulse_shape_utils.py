@@ -142,11 +142,17 @@ class PulseShapeFactory(Singleton):
 
         @functools.wraps(self._pulse_shape_functions[pulse_shape_name])
         def func(**kwargs):
+
+            if 'segment' in pulse_shape_name:
+                # The segment pulse shape is a special case
+                return self._pulse_shape_functions[pulse_shape_name](**kwargs)
+
             # Filter the kwargs so that only the required parameters are passed to
             # the function
             required_parameters = inspect.signature(
                 self._pulse_shape_functions[pulse_shape_name]
             ).parameters
+
             kwargs_call = {key: kwargs[key]
                            for key in required_parameters if key in kwargs}
 

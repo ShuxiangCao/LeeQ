@@ -100,6 +100,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
                 "amp": self._parameters['amp_control'],
                 "phase": 0,
                 "width": self._parameters['width'],
+                "rise": self._parameters['rise'],
             },
             'stark_drive_target': {
                 "freq": self._parameters['freq'],
@@ -108,6 +109,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
                 "amp": self._parameters['amp_target'],
                 "phase": self._parameters['phase_diff'],
                 "width": self._parameters['width'],
+                "rise": self._parameters['rise'],
             },
         }
 
