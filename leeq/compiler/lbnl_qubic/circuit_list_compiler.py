@@ -180,7 +180,6 @@ def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
     Returns:
         A list of dictionaries, each representing a segment of the pulse
     """
-
     import inspect
     parameters_keeping = {key: paradict[key] for key in inspect.signature(env_func).parameters if key in paradict}
     data = env_func(sampling_rate=_sampling_rate / 1e6, **parameters_keeping)
@@ -191,6 +190,43 @@ def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
     # Merge into a list
     segments = sorted([(x, y, 'flat') for x, y in regions_flat] + [(x, y, 'change') for x, y in regions_change],
                       key=lambda x: x[0])
+
+    # To make a proper dense pulse, we need to make sure the pulse width are multiples of 2 ns.
+    minimal_pulse_width = 2e-9
+    atomic_index_count = int(_sampling_rate * minimal_pulse_width)
+
+    # Now we iterate over the segments and make corrections to the indexes
+    modified_segments = []
+    for i, (start, end, segment_type) in enumerate(segments):
+        if segment_type == 'flat':
+            # If the segment is flat
+            modified_start = np.ceil(start / atomic_index_count) * atomic_index_count
+            modified_end = np.floor(end / atomic_index_count) * atomic_index_count
+        else:
+            # If the segment is changing
+            modified_start = np.floor(start / atomic_index_count) * atomic_index_count
+            modified_end = np.ceil(end / atomic_index_count) * atomic_index_count
+
+        if modified_end - modified_start < atomic_index_count:
+            msg = "The pulse width is smaller than the minimal pulse width 2ns."
+            logger.error(msg)
+            raise ValueError(msg)
+
+        if i == len(segments) - 1:
+            modified_end = end
+
+        modified_segments.append((modified_start, modified_end, segment_type))
+
+    segments = modified_segments
+    modified_segments = []
+
+    # Now we make sure all the pulses are continuous
+    for i, (start, end, segment_type) in enumerate(segments[:-1]):
+        next_start = segments[i + 1][0]
+        modified_segments.append((int(start), int(next_start), segment_type))
+
+    modified_segments.append(segments[-1])
+    segments = modified_segments
 
     pulses = []
     # Generate the pulses for each segment
@@ -476,7 +512,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         parameters_keeping = {key: parameters[key] for key in required_parameters if (key in parameters) and \
                               key not in ['amp', 'freq', 'phase']}
 
-        if parameters['width'] <= 0.5:  # The pulse width is too long, we need to split it
+        if parameters['width'] <= 0.4:  # The pulse width is too long, we need to split it
             env = {"env_func": get_qubic_envelope_name_from_leeq_name(parameters['shape']),
                    "paradict": parameters_keeping}
 
@@ -507,23 +543,32 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
                 # Hard code 8 Gsps as sampling rate for now
                 pulse_width = (i_end - i_start) / _sampling_rate  # In seconds
+                new_sequence = []
 
                 if segment_type == 'flat':
-                    qubic_pulse_dict = {
-                        "name": "pulse",
-                        "freq": int(parameters['freq'] * 1e6),  # In Hz
-                        "twidth": pulse_width,  # In seconds
-                        "env": {'env_func': 'square',
-                                'paradict': {'phase': segmented_pulse['phase'],
-                                             'amplitude': segmented_pulse['amp'],
-                                             'twidth': pulse_width}},
-                        "dest": qubic_dest,  # The channel name
-                    }
+                    single_pulse_width = 150e-9  # In seconds, 150 ns
+
+                    # The flat region is too long, we need to split it into multiple pulses
+                    num_pulses = int(np.ceil(pulse_width / single_pulse_width))
+                    for i in range(num_pulses):
+                        small_pulse_width = min(single_pulse_width, pulse_width - i * single_pulse_width)
+                        qubic_pulse_dict = {
+                            "name": "pulse",
+                            "freq": int(parameters['freq'] * 1e6),  # In Hz
+                            "twidth": small_pulse_width,  # In seconds
+                            "env": {'env_func': 'square',
+                                    'paradict': {'phase': segmented_pulse['phase'],
+                                                 'amplitude': segmented_pulse['amp'],
+                                                 'twidth': small_pulse_width}},
+                            "dest": qubic_dest,  # The channel name
+                        }
+                        new_sequence.append(qubic_pulse_dict)
+
                 else:
                     parameters_segment = parameters_keeping.copy()
                     parameters_segment['width'] = parameters['width']
-                    parameters_segment['seg_i_start'] = i_start
-                    parameters_segment['seg_i_end'] = i_end
+                    parameters_segment['seg_i_start'] = int(i_start)
+                    parameters_segment['seg_i_end'] = int(i_end)
                     parameters_segment['env_name'] = parameters['shape']
 
                     env = {"env_func": env_func, "paradict": parameters_segment}
@@ -536,7 +581,11 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                         "env": env,
                         "dest": qubic_dest,  # The channel name
                     }
-                sequence.append(qubic_pulse_dict)
+                    new_sequence.append(qubic_pulse_dict)
+                sequence += new_sequence
+
+        # new_sequence = [[x, {'name': 'delay', 't': 100e-9}] for x in sequence]
+        # sequence = sum(new_sequence, [])
 
         return sequence, {qubic_dest}
 

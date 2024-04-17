@@ -253,11 +253,17 @@ def test_automated_segmentation_of_very_long_pulses(qubit_1):
 
     instructions = compile_lpb(lpb)
 
-    for i in range(3):
-        assert instructions['circuits'][i]['dest'] == 'Q0.qdrv'  # Three pulses are generated for the long pulse
+    total_width = 0
+    for i, circuit in enumerate(instructions['circuits']):
+        assert circuit['dest'] == 'Q0.qdrv'
+        total_width += circuit['twidth']
+        if i == 0:
+            assert circuit['env']['env_func'] == 'leeq_segment_by_index'
+        else:
+            if circuit['env']['env_func'] == 'leeq_segment_by_index':
+                break
 
-    total_width = sum(instructions['circuits'][i]['twidth'] for i in range(3)) * 1e6
-    assert total_width == 1.4  # 1.2 + 0.2, include the rise time
+    assert np.abs(total_width * 1e6 - 1.4) < 1e-10  # 1.2 + 0.2, include the rise time
 
 
 def generate_flat_sequence(length, value):
