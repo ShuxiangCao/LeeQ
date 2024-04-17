@@ -41,7 +41,8 @@ def fit_sinusoidal(
     if freq_guess is None:
         rfft = np.abs(np.fft.rfft(data))
         frequencies = np.fft.rfftfreq(len(data), time_step)
-        max_index = np.argmax(rfft[1:]) + 1  # Skip the first element which is the zero-frequency component
+        # Skip the first element which is the zero-frequency component
+        max_index = np.argmax(rfft[1:]) + 1
         dominant_freq = frequencies[max_index]
 
         omega = dominant_freq
@@ -55,7 +56,8 @@ def fit_sinusoidal(
         min_omega = omega * 0.5
 
     # Generate time data
-    time = np.linspace(start_time, start_time + time_step * (len(data) - 1), len(data))
+    time = np.linspace(start_time, start_time +
+                       time_step * (len(data) - 1), len(data))
 
     # Initial parameter guesses based on data properties
     offset = np.mean(data)
@@ -70,7 +72,11 @@ def fit_sinusoidal(
         fit = amplitude * np.sin(2. * np.pi * omega * t + phase) + offset
         return np.mean((fit - y) ** 2) * 1e5
 
-    def leastsq_without_omega(params: List[float], omega: float, t: np.ndarray, y: np.ndarray) -> float:
+    def leastsq_without_omega(
+            params: List[float],
+            omega: float,
+            t: np.ndarray,
+            y: np.ndarray) -> float:
         amplitude, phase, offset = params
         fit = amplitude * np.sin(2. * np.pi * omega * t + phase) + offset
         return np.mean((fit - y) ** 2) * 1e5
@@ -81,12 +87,14 @@ def fit_sinusoidal(
 
     if not fix_frequency:
         if use_freq_bound:
-            optimization_args['bounds'] = ((min_omega, max_omega), (None, None), (None, None), (None, None))
-        result = minimize(leastsq, np.array([omega, amplitude, phase, offset]), args=(time, data), **optimization_args)
+            optimization_args['bounds'] = (
+                (min_omega, max_omega), (None, None), (None, None), (None, None))
+        result = minimize(leastsq, np.array([omega, amplitude, phase, offset]), args=(
+            time, data), **optimization_args)
         omega, amplitude, phase, offset = result.x
     else:
-        result = minimize(leastsq_without_omega, np.array([amplitude, phase, offset]), args=(omega, time, data),
-                          **optimization_args)
+        result = minimize(leastsq_without_omega, np.array(
+            [amplitude, phase, offset]), args=(omega, time, data), **optimization_args)
         amplitude, phase, offset = result.x
 
     residual = result.fun
@@ -100,11 +108,20 @@ def fit_sinusoidal(
     if phase > np.pi:
         phase -= 2 * np.pi
 
-    return {'Frequency': omega, 'Amplitude': amplitude, 'Phase': phase, 'Offset': offset, 'Residual': residual}
+    return {
+        'Frequency': omega,
+        'Amplitude': amplitude,
+        'Phase': phase,
+        'Offset': offset,
+        'Residual': residual}
 
 
-def fit_exp_decay(z: np.ndarray, dt: Optional[float] = None, t: Optional[np.ndarray] = None) -> Dict[
-    str, Union[float, Tuple[float, float]]]:
+def fit_exp_decay(z: np.ndarray,
+                  dt: Optional[float] = None,
+                  t: Optional[np.ndarray] = None) -> Dict[str,
+                                                          Union[float,
+                                                                Tuple[float,
+                                                                      float]]]:
     """
     Fits an exponential decay to the data points in z.
 
@@ -135,8 +152,12 @@ def fit_exp_decay(z: np.ndarray, dt: Optional[float] = None, t: Optional[np.ndar
     return {'Amplitude': amp, 'Offset': offset, 'Decay': T}
 
 
-def fit_exp_decay_with_cov(z: np.ndarray, dt: Optional[float] = None, t: Optional[np.ndarray] = None) -> Dict[
-    str, Union[float, Tuple[float, float]]]:
+def fit_exp_decay_with_cov(z: np.ndarray,
+                           dt: Optional[float] = None,
+                           t: Optional[np.ndarray] = None) -> Dict[str,
+                                                                   Union[float,
+                                                                         Tuple[float,
+                                                                               float]]]:
     """
     Fits an exponential decay to the data points in z and calculates covariance.
 
@@ -158,7 +179,11 @@ def fit_exp_decay_with_cov(z: np.ndarray, dt: Optional[float] = None, t: Optiona
     offset = result['Offset']
     T = result['Decay']
 
-    def curve(t: np.ndarray, amp: float, T: float, offset: float) -> np.ndarray:
+    def curve(
+            t: np.ndarray,
+            amp: float,
+            T: float,
+            offset: float) -> np.ndarray:
         """Exponential decay curve function."""
         return amp * np.exp(-t / T) + offset
 
@@ -167,4 +192,8 @@ def fit_exp_decay_with_cov(z: np.ndarray, dt: Optional[float] = None, t: Optiona
     amp, T, offset = popt
     amp_std, T_std, offset_std = np.sqrt(np.diag(pcov)).tolist()
 
-    return {'Amplitude': (amp, amp_std), 'Offset': (offset, offset_std), 'Decay': (T, T_std), 'Cov': pcov}
+    return {
+        'Amplitude': (
+            amp, amp_std), 'Offset': (
+            offset, offset_std), 'Decay': (
+                T, T_std), 'Cov': pcov}

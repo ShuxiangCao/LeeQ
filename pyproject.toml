@@ -12,5 +12,11 @@ packages = [
     { include = "leeq" },
 ]
 
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+
 [tool.poetry.dev-dependencies]
 pytest = "^6.2"

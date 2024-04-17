@@ -77,7 +77,11 @@ class VirtualTransmon(object):
             ]
         )
 
-    def get_resonator_response(self, f: float, amp: float = 1, baseline: float = 0):
+    def get_resonator_response(
+            self,
+            f: float,
+            amp: float = 1,
+            baseline: float = 0):
         """
         Get the resonator response at a given frequency.
 
@@ -93,8 +97,11 @@ class VirtualTransmon(object):
         from leeq.theory.simulation.numpy.dispersive_readout.utils import root_lorentzian
 
         s_11 = root_lorentzian(
-            f=f, f0=self.readout_frequency, amp=amp, kappa=self.readout_linewidth, baseline=baseline
-        )
+            f=f,
+            f0=self.readout_frequency,
+            amp=amp,
+            kappa=self.readout_linewidth,
+            baseline=baseline)
 
         s_11 = np.asarray([
             root_lorentzian(
@@ -104,8 +111,13 @@ class VirtualTransmon(object):
 
         return s_11
 
-    def get_qubit_spectroscopy_response(self, f_qdrive: float, f_readout: float, amp_qdrive: float = 1,
-                                        amp_rdrive: float = 1, readout_baseline: float = 0) -> np.ndarray:
+    def get_qubit_spectroscopy_response(
+            self,
+            f_qdrive: float,
+            f_readout: float,
+            amp_qdrive: float = 1,
+            amp_rdrive: float = 1,
+            readout_baseline: float = 0) -> np.ndarray:
         """
         Get the qubit spectroscopy response. Not that it is assumed to simulate only
          single and two photon transitions.
@@ -129,14 +141,17 @@ class VirtualTransmon(object):
 
         # Get the resonator response at different state
 
-        resonator_responses = self.get_resonator_response(f_readout, amp_rdrive, readout_baseline)
+        resonator_responses = self.get_resonator_response(
+            f_readout, amp_rdrive, readout_baseline)
 
         # Work out the qubit state under the qubit drive
 
-        # The tuple stores (frequency, omega_correction_term, start_state, end_state) for the transitions
+        # The tuple stores (frequency, omega_correction_term, start_state,
+        # end_state) for the transitions
         single_photon_transition_frequencies_omega = [
             # empirical value
-            (self.qubit_frequency + i * self.anharmonicity * (1.1 ** (i - 1)), np.sqrt(i + 1), i, i + 1)
+            (self.qubit_frequency + i * self.anharmonicity * \
+             (1.1 ** (i - 1)), np.sqrt(i + 1), i, i + 1)
             for i in range(self.truncate_level - 1)
         ]
 
@@ -146,13 +161,15 @@ class VirtualTransmon(object):
             for i in range(self.truncate_level - 2)
         ]
 
-        # Given a initial state, work out the final state after applying the drive
+        # Given a initial state, work out the final state after applying the
+        # drive
         transition_matrices = np.zeros([
             self.truncate_level, self.truncate_level, len(f_qdrive)
         ])
 
         for i in range(self.truncate_level):
-            # Approximate the drive has little affect to the system (will be normalised later)
+            # Approximate the drive has little affect to the system (will be
+            # normalised later)
             transition_matrices[i, i, :] = 1
 
         for freq, omega_correction_term, start_state, end_state in (
@@ -160,10 +177,15 @@ class VirtualTransmon(object):
             delta = f_qdrive - freq
             omega = omega_correction_term * amp_qdrive
 
-            # The new eigen state under the drive is a linear combination of the original eigen states
-            transferred_population = (1 - delta ** 2 / (delta ** 2 + omega ** 2)) # / 2 It should be divided by two,
-            # however we leave it here and add an identity term to the transfer matrix to compensate it.
-            transition_matrices[start_state, end_state, :] = transferred_population
+            # The new eigen state under the drive is a linear combination of
+            # the original eigen states
+            # / 2 It should be divided by two,
+            transferred_population = (
+                1 - delta ** 2 / (delta ** 2 + omega ** 2))
+            # however we leave it here and add an identity term to the transfer
+            # matrix to compensate it.
+            transition_matrices[start_state,
+                                end_state, :] = transferred_population
 
         # Work out the new population distribution and normalize it
 
@@ -172,8 +194,10 @@ class VirtualTransmon(object):
             initial_state = np.zeros(self.truncate_level)
             initial_state[0] = 1
 
-        new_population_distribution = np.einsum('abc,a->bc',transition_matrices, initial_state)
-        new_population_distribution /= np.sum(new_population_distribution, axis=0)
+        new_population_distribution = np.einsum(
+            'abc,a->bc', transition_matrices, initial_state)
+        new_population_distribution /= np.sum(
+            new_population_distribution, axis=0)
 
         # Work out the response of the readout
         response = np.dot(new_population_distribution.T, resonator_responses)
@@ -196,13 +220,13 @@ class VirtualTransmon(object):
         ]
 
         level_energies = [0] + \
-                         list(np.cumsum(single_photon_transition_frequencies))
+            list(np.cumsum(single_photon_transition_frequencies))
 
         for i in range(self.truncate_level - 1):
             for j in range(i + 1, self.truncate_level):
                 photon_number = j - i
                 frequency = (
-                                    level_energies[j] - level_energies[i]) / photon_number
+                    level_energies[j] - level_energies[i]) / photon_number
 
                 X_term = np.zeros(
                     (self.truncate_level,
@@ -250,7 +274,7 @@ class VirtualTransmon(object):
             (transition_freq, transition_operators)
             for transition_freq, transition_operators in self._transition_ops.items()
             if np.abs(transition_freq - frequency)
-               < self.frequency_selectivity_window / 2
+            < self.frequency_selectivity_window / 2
         ]
 
         if len(transition_drives) == 0:
@@ -276,13 +300,13 @@ class VirtualTransmon(object):
         strength_y = np.imag(drive_aggregate)
 
         hamiltonian = (
-                np.pi
-                * 2
-                * (
-                        strength_x * operator_x
-                        + strength_y * operator_y
-                        + drive_frequency_difference * photon_number * operator_z
-                )
+            np.pi
+            * 2
+            * (
+                strength_x * operator_x
+                + strength_y * operator_y
+                + drive_frequency_difference * photon_number * operator_z
+            )
         )
 
         unitary = scipy.linalg.expm(
@@ -359,8 +383,10 @@ class VirtualTransmon(object):
             raise NotImplementedError()
 
     def _apply_averaged_iq(
-            self, readout_frequency: float, iq_noise_std: float, readout_width=None
-    ):
+            self,
+            readout_frequency: float,
+            iq_noise_std: float,
+            readout_width=None):
         """
         Apply the readout to the transmon and return the averaged IQ data.
 

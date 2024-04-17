@@ -60,7 +60,7 @@ class SimpleDrive(LogicalPrimitive, PulseArgsUpdatable):
 
         for parameter_name in SimpleDrive._parameter_names:
             assert (
-                    parameter_name in parameters
+                parameter_name in parameters
             ), f"The parameter {parameter_name} is not found."
 
     def clone_with_parameters(self, parameters: dict, name_postfix=None):
@@ -78,7 +78,10 @@ class SimpleDrive(LogicalPrimitive, PulseArgsUpdatable):
         if name_postfix is None:
             name_postfix = f"_clone_{uuid.uuid4()}"
 
-        cloned_primitive = SimpleDriveClone(name=self._name + name_postfix, parameters=parameters, original=self)
+        cloned_primitive = SimpleDriveClone(
+            name=self._name + name_postfix,
+            parameters=parameters,
+            original=self)
         return cloned_primitive
 
 
@@ -321,7 +324,7 @@ class SimpleDispersiveMeasurement(MeasurementPrimitive, PulseArgsUpdatable):
     @classmethod
     def _validate_parameters(cls, parameters: dict):
         assert (
-                "distinguishable_states" in parameters
+            "distinguishable_states" in parameters
         ), "The distinguishable states are not specified."
 
     def clone_with_parameters(self, parameters: dict, name_postfix=None):
@@ -339,10 +342,12 @@ class SimpleDispersiveMeasurement(MeasurementPrimitive, PulseArgsUpdatable):
         if name_postfix is None:
             name_postfix = f"_clone_{uuid.uuid4()}"
 
-        cloned_primitive = SimpleDispersiveMeasurementClone(name=self._name + name_postfix, parameters=parameters,
-                                                            original=self)
+        cloned_primitive = SimpleDispersiveMeasurementClone(
+            name=self._name + name_postfix, parameters=parameters, original=self)
         return cloned_primitive
 
 
-class SimpleDispersiveMeasurementClone(MeasurementPrimitiveClone, PulseArgsUpdatable):
+class SimpleDispersiveMeasurementClone(
+        MeasurementPrimitiveClone,
+        PulseArgsUpdatable):
     pass

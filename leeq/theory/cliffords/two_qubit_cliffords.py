@@ -53,7 +53,7 @@ C1p_Xp = sl.expm(-0.25j * np.pi * pX)
 C1p_Xm = sl.expm(+0.25j * np.pi * pX)
 C1p_Yp = sl.expm(-0.25j * np.pi * pY)
 C1p_Ym = sl.expm(+0.25j * np.pi * pY)
-## def Z gates
+# def Z gates
 C1p_Z = sl.expm(-0.50j * np.pi * pZ)
 C1p_Zp = sl.expm(-0.25j * np.pi * pZ)
 C1p_Zm = sl.expm(+0.25j * np.pi * pZ)
@@ -89,11 +89,18 @@ C1[23] = C1p_Xp.dot(C1p_Ym).dot(C1p_Xp)
 NC2 = 11520
 NC2_lim = 24 * 24
 
-# Definitions of specific Clifford operations using matrix multiplication and Kronecker products
+# Definitions of specific Clifford operations using matrix multiplication
+# and Kronecker products
 ZXm = sl.expm(+0.25j * np.pi * pZX)
 CNOTlike = ZXm
 iSWAPlike = ZXm.dot(np.kron(C1p_Ym, C1p_Ym)).dot(ZXm)
-SWAPlike = ZXm.dot(np.kron(C1p_Xp, C1p_Ym.dot(C1p_Xp))).dot(ZXm).dot(np.kron(C1p_Ym, C1p_Ym)).dot(ZXm)
+SWAPlike = ZXm.dot(
+    np.kron(
+        C1p_Xp,
+        C1p_Ym.dot(C1p_Xp))).dot(ZXm).dot(
+            np.kron(
+                C1p_Ym,
+                C1p_Ym)).dot(ZXm)
 
 # Initialize a placeholder for a set of two-qubit Clifford operations
 C2p = np.zeros(shape=(4, 4, 4), dtype='complex')
@@ -102,8 +109,8 @@ C2p[1] = CNOTlike
 C2p[2] = iSWAPlike
 C2p[3] = SWAPlike
 
-## ZX construction of cliffords - for implimenting virtual Z gates
-## may be more efficient construction available!
+# ZX construction of cliffords - for implimenting virtual Z gates
+# may be more efficient construction available!
 VZC1 = np.zeros(shape=(NC1, 2, 2), dtype='cfloat')
 VZC1[0] = pI
 VZC1[1] = C1p_Xp.dot(C1p_Zp)
@@ -151,7 +158,8 @@ def get_c2_vz(n: int) -> np.ndarray:
         C2VZ = np.zeros(shape=(NC2, 4, 4), dtype='complex')
         for i in range(NC2):
             c2type, q1c, q2c, q1s, q2s = get_c2_info(i)
-            C2VZ[i] = np.kron(VZC1[q1s], VZC1[q2s]) @ C2p[c2type] @ np.kron(VZC1[q1c], VZC1[q2c])
+            C2VZ[i] = np.kron(VZC1[q1s], VZC1[q2s]
+                              ) @ C2p[c2type] @ np.kron(VZC1[q1c], VZC1[q2c])
     return C2VZ[n]
 
 
@@ -171,7 +179,8 @@ def get_c2_xy(n: int) -> np.ndarray:
         C2 = np.zeros(shape=(NC2, 4, 4), dtype='complex')
         for i in range(NC2):
             c2type, q1c, q2c, q1s, q2s = get_c2_info(i)
-            C2[i] = np.kron(C1[q1s], C1[q2s]) @ C2p[c2type] @ np.kron(C1[q1c], C1[q2c])
+            C2[i] = np.kron(
+                C1[q1s], C1[q2s]) @ C2p[c2type] @ np.kron(C1[q1c], C1[q2c])
     return C2[n]
 
 
@@ -260,7 +269,9 @@ def find_inverse_C2(a: np.ndarray, cliff_set: str = 'XY') -> int:
     return None
 
 
-def append_inverse_C2(c2_index_list: list, cliff_set: str = 'XY') -> np.ndarray:
+def append_inverse_C2(
+        c2_index_list: list,
+        cliff_set: str = 'XY') -> np.ndarray:
     """
     Appends the index of the inverse Clifford operation to a list of indices.
 

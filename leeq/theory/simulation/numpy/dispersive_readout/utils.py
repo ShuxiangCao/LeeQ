@@ -97,15 +97,15 @@ def soft_square(
 
     if rise == 0:
         y = (
-                amp * np.ones_like(t)
-                * np.exp(1.0j * (phase + phase_shift))
+            amp * np.ones_like(t)
+            * np.exp(1.0j * (phase + phase_shift))
         )
     else:
         y = (
-                amp
-                * np.exp(1.0j * (phase + phase_shift))
-                * 0.5
-                * (np.tanh((t + 0.5 * width) / rise) - np.tanh((t - 0.5 * width) / rise))
+            amp
+            * np.exp(1.0j * (phase + phase_shift))
+            * 0.5
+            * (np.tanh((t + 0.5 * width) / rise) - np.tanh((t - 0.5 * width) / rise))
         )
 
     if ex_delay > 0:
@@ -115,7 +115,11 @@ def soft_square(
     return y
 
 
-def estimate_relative_entropy(dist_p, dist_q, kernel="gaussian", search_params={}):
+def estimate_relative_entropy(
+        dist_p,
+        dist_q,
+        kernel="gaussian",
+        search_params={}):
     """
     Estimate the relative entropy between two distributions, using kernel density estimation and
     monte carlo integration.

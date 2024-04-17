@@ -2,8 +2,11 @@ import pytest
 from sklearn.mixture import GaussianMixture
 import pytest
 import numpy as np
-from leeq.experiments.builtin import (fit_gmm_model, measurement_transform_gmm,
-                                      find_output_map, calculate_signal_to_noise_ratio)
+from leeq.experiments.builtin import (
+    fit_gmm_model,
+    measurement_transform_gmm,
+    find_output_map,
+    calculate_signal_to_noise_ratio)
 from sklearn.pipeline import Pipeline
 
 
@@ -25,8 +28,10 @@ def sample_complex_data_simple(sample_data):
 def sample_complex_data():
     # Generating some random sample complex data for testing purposes
     np.random.seed(0)
-    data_1 = (np.random.standard_normal(100) + 1j * np.random.standard_normal(100)) + (1 + 2.j)
-    data_2 = (np.random.standard_normal(100) + 1j * np.random.standard_normal(100)) + (5 + 6.j)
+    data_1 = (np.random.standard_normal(100) + 1j *
+              np.random.standard_normal(100)) + (1 + 2.j)
+    data_2 = (np.random.standard_normal(100) + 1j *
+              np.random.standard_normal(100)) + (5 + 6.j)
 
     # draw a dataset that is 30% from data_1 and 70% from data_2
     data_a = np.random.choice([0, 1], size=100, p=[0.3, 0.7])
@@ -70,16 +75,22 @@ def test_fit_gmm_model(sample_complex_data_simple):
 def test_measurement_transform_gmm(sample_complex_data, clf):
     output_map = {0: 0, 1: 1}
 
-    transformed_data = measurement_transform_gmm(sample_complex_data, '<zs>', clf, output_map)
+    transformed_data = measurement_transform_gmm(
+        sample_complex_data, '<zs>', clf, output_map)
     assert transformed_data.shape == sample_complex_data.shape
 
     # Test for different basis
-    result = measurement_transform_gmm(sample_complex_data, 'bin', clf, output_map)
+    result = measurement_transform_gmm(
+        sample_complex_data, 'bin', clf, output_map)
     assert isinstance(result, np.ndarray)
 
     # Test for RuntimeError with unknown basis
     with pytest.raises(RuntimeError):
-        measurement_transform_gmm(sample_complex_data, 'unknown_basis', clf, output_map)
+        measurement_transform_gmm(
+            sample_complex_data,
+            'unknown_basis',
+            clf,
+            output_map)
 
 
 def test_find_output_map(sample_data, sample_complex_data, clf):
@@ -88,7 +99,8 @@ def test_find_output_map(sample_data, sample_complex_data, clf):
     assert len(outcome_map) == n_components
 
     # Test for RuntimeError
-    clf_bad = Pipeline([('gmm', GaussianMixture(n_components=n_components + 1))])
+    clf_bad = Pipeline(
+        [('gmm', GaussianMixture(n_components=n_components + 1))])
     clf_bad.fit(sample_data)
     with pytest.raises(RuntimeError):
         find_output_map(sample_complex_data, clf_bad)

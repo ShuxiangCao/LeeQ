@@ -52,7 +52,8 @@ class NormalisedRabi(Experiment):
         rabi_pulse = c1['X'].clone()
 
         if amp is not None:
-            rabi_pulse.update_pulse_args(amp=amp, phase=0., shape='square', width=step)
+            rabi_pulse.update_pulse_args(
+                amp=amp, phase=0., shape='square', width=step)
         else:
             amp = rabi_pulse.amp
 
@@ -70,9 +71,8 @@ class NormalisedRabi(Experiment):
         else:
             # Sometimes it is expensive to update the pulse envelope everytime, so we can keep the envelope the same
             # and just change the number of pulses
-            pulse = LogicalPrimitiveBlockSweep([
-                prims.SerialLPB([rabi_pulse] * k, name='rabi_pulse') for k in range(int((stop - start) / step + 0.5))
-            ])
+            pulse = LogicalPrimitiveBlockSweep([prims.SerialLPB(
+                [rabi_pulse] * k, name='rabi_pulse') for k in range(int((stop - start) / step + 0.5))])
             swp = Sweeper.from_sweep_lpb(pulse)
 
         # Get the measurement primitive
@@ -98,7 +98,8 @@ class NormalisedRabi(Experiment):
         self.fit_params = fits.fit_sinusoidal(self.data, time_step=step)
 
         # Update the qubit parameters, to make one pulse width correspond to a pi pulse
-        # Here we suppose all pulse envelopes give unit area when width=1, amp=1
+        # Here we suppose all pulse envelopes give unit area when width=1,
+        # amp=1
         normalised_pulse_area = c1['X'].calculate_envelope_area() / c1['X'].amp
         two_pi_area = amp * (1 / self.fit_params['Frequency'])
         new_amp = two_pi_area / 2 / normalised_pulse_area
@@ -107,7 +108,6 @@ class NormalisedRabi(Experiment):
         if update:
             c1.update_parameters(amp=new_amp)
             print(f"Amplitude updated: {new_amp}")
-
 
     @log_and_record(overwrite_func_name='NormalisedRabi.run')
     def run_simulated(self,
@@ -150,7 +150,8 @@ class NormalisedRabi(Experiment):
         c1 = dut_qubit.get_c1(collection_name)
 
         # hard code a virtual dut here
-        rabi_rate_per_amp = simulator_setup.get_omega_per_amp(c1.channel)  # MHz
+        rabi_rate_per_amp = simulator_setup.get_omega_per_amp(
+            c1.channel)  # MHz
         omega = rabi_rate_per_amp * amp
 
         # Detuning
@@ -160,20 +161,24 @@ class NormalisedRabi(Experiment):
         t = np.arange(start, stop, step)  # 1000 points from 0 to 100 ns
 
         # Rabi oscillation formula
-        self.data = (omega ** 2) / (delta ** 2 + omega ** 2) * np.sin(0.5 * np.sqrt(delta ** 2 + omega ** 2) * t) ** 2
+        self.data = (omega ** 2) / (delta ** 2 + omega ** 2) * \
+            np.sin(0.5 * np.sqrt(delta ** 2 + omega ** 2) * t) ** 2
 
         # If sampling noise is enabled, simulate the noise
         if setup().status().get_param('Sampling_Noise'):
             # Get the number of shot used in the simulation
             shot_number = setup().status().get_param('Shot_Number')
 
-            # generate binomial distribution of the result to simulate the sampling noise
-            self.data = np.random.binomial(shot_number, self.data) / shot_number
+            # generate binomial distribution of the result to simulate the
+            # sampling noise
+            self.data = np.random.binomial(
+                shot_number, self.data) / shot_number
 
         # Fit data to a sinusoidal function and return the fit parameters
         self.fit_params = fits.fit_sinusoidal(self.data, time_step=step)
         # Update the qubit parameters, to make one pulse width correspond to a pi pulse
-        # Here we suppose all pulse envelopes give unit area when width=1, amp=1
+        # Here we suppose all pulse envelopes give unit area when width=1,
+        # amp=1
         normalised_pulse_area = c1['X'].calculate_envelope_area() / c1['X'].amp
         two_pi_area = amp * (1 / self.fit_params['Frequency'])
         new_amp = two_pi_area / 2 / normalised_pulse_area
@@ -196,7 +201,10 @@ class NormalisedRabi(Experiment):
 
         args = self.retrieve_args(self.run)
         t = np.arange(args['start'], args['stop'], args['step'])
-        t_interpolate = np.arange(args['start'], args['stop'], args['step'] / 5)
+        t_interpolate = np.arange(
+            args['start'],
+            args['stop'],
+            args['step'] / 5)
 
         # Create subplots: each qubit's data gets its own plot
         fig = go.Figure()
@@ -356,7 +364,8 @@ class MultiQubitRabi(Experiment):
             rabi_pulse = c1['X'].clone()
 
             if amp is not None:
-                rabi_pulse.update_pulse_args(amp=amp, phase=0., shape='square', width=step)
+                rabi_pulse.update_pulse_args(
+                    amp=amp, phase=0., shape='square', width=step)
             else:
                 amps[i] = rabi_pulse.amp
 
@@ -383,8 +392,8 @@ class MultiQubitRabi(Experiment):
             swp = Sweeper.from_sweep_lpb(pulse)
 
         # Get the measurement primitive
-        mprims = [dut_qubit.get_measurement_prim_intlist(mprim_index) for dut_qubit, mprim_index in
-                  zip(duts, mprim_indexes)]
+        mprims = [dut_qubit.get_measurement_prim_intlist(
+            mprim_index) for dut_qubit, mprim_index in zip(duts, mprim_indexes)]
         self.mps = mprims
 
         # Create the loopback pulse (lpb)
@@ -403,14 +412,18 @@ class MultiQubitRabi(Experiment):
             return None
 
         # Fit data to a sinusoidal function and return the fit parameters
-        self.fit_params = [fits.fit_sinusoidal(data, time_step=step) for data in self.data]
+        self.fit_params = [
+            fits.fit_sinusoidal(
+                data, time_step=step) for data in self.data]
 
         if update:
             for i in range(len(duts)):
                 # Update the qubit parameters, to make one pulse width correspond to a pi pulse
-                # Here we suppose all pulse envelopes give unit area when width=1, amp=1
+                # Here we suppose all pulse envelopes give unit area when
+                # width=1, amp=1
                 c1 = duts[i].get_c1(collection_names[i])
-                normalised_pulse_area = c1['X'].calculate_envelope_area() / c1['X'].amp
+                normalised_pulse_area = c1['X'].calculate_envelope_area(
+                ) / c1['X'].amp
                 two_pi_area = amps[i] * (1 / self.fit_params[i]['Frequency'])
                 new_amp = two_pi_area / 2 / normalised_pulse_area
                 c1.update_parameters(amp=new_amp)
@@ -437,7 +450,10 @@ class MultiQubitRabi(Experiment):
 
         args = self.retrieve_args(self.run)
         t = np.arange(args['start'], args['stop'], args['step'])
-        t_interpolate = np.arange(args['start'], args['stop'], args['step'] / 5)
+        t_interpolate = np.arange(
+            args['start'],
+            args['stop'],
+            args['step'] / 5)
 
         # Create subplots: each qubit's data gets its own plot
         fig = go.Figure()

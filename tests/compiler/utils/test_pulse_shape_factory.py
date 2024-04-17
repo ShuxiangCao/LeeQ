@@ -1,3 +1,4 @@
+from unittest.mock import patch, MagicMock
 import pytest
 import inspect
 
@@ -40,7 +41,7 @@ def test_register_pulse_shape():
 
     # Then
     assert factory._pulse_shape_functions[
-               pulse_shape_name] == pulse_shape_function, "Pulse shape should be registered correctly"
+        pulse_shape_name] == pulse_shape_function, "Pulse shape should be registered correctly"
 
     factory.kill_singleton()
 
@@ -81,16 +82,17 @@ def test_register_already_registered_pulse_shape(caplog):
     pulse_shape_function = sample_pulse_shape
 
     # When
-    factory.register_pulse_shape(pulse_shape_name, pulse_shape_function)  # Register once
-    factory.register_pulse_shape(pulse_shape_name, pulse_shape_function)  # Register twice
+    factory.register_pulse_shape(
+        pulse_shape_name,
+        pulse_shape_function)  # Register once
+    factory.register_pulse_shape(
+        pulse_shape_name,
+        pulse_shape_function)  # Register twice
 
     # Then
     assert "The pulse shape name sample_shape has already been registered." in caplog.text, "Warning should be logged"
 
     factory.kill_singleton()
-
-
-from unittest.mock import patch, MagicMock
 
 
 def mock_pulse_shape_function(sampling_rate):
@@ -116,18 +118,25 @@ def test_load_built_in_pulse_shapes(mock_pulse_shapes_module):
     # Mock inspect.getmembers to return our mocked pulse shape function
     with patch.object(inspect, 'getmembers',
                       return_value=[('mock_pulse_shape', mock_pulse_shapes_module.mock_pulse_shape)]):
-        factory._load_built_in_pulse_shapes()  # If _load_built_in_pulse_shapes is protected
+        # If _load_built_in_pulse_shapes is protected
+        factory._load_built_in_pulse_shapes()
 
         # Then
-        factory.register_pulse_shape.assert_called_once_with('mock_pulse_shape',
-                                                             mock_pulse_shapes_module.mock_pulse_shape)
+        factory.register_pulse_shape.assert_called_once_with(
+            'mock_pulse_shape', mock_pulse_shapes_module.mock_pulse_shape)
 
     factory.kill_singleton()
 
 
 def test_integrate_load_builtin_pulse_shapes():
-    pulse_shape_built_in_list = ['blackman', 'blackman_drag', 'clear_square', 'gaussian', 'gaussian_drag',
-                                 'soft_square', 'square']
+    pulse_shape_built_in_list = [
+        'blackman',
+        'blackman_drag',
+        'clear_square',
+        'gaussian',
+        'gaussian_drag',
+        'soft_square',
+        'square']
 
     factory = MockPulseShapeFactory()
     pulse_shapes = factory.get_available_pulse_shapes()

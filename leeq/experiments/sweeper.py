@@ -78,7 +78,10 @@ class SweepParametersSideEffectFunction(SweepParametersSideEffect):
             # A more complicated choice, usually not needed
             # name = self._function_name + '(' + self._argument_name + ')'
             name = self._argument_name
-        super().__init__(name="SideEffectFunction: " + function.__name__, sweep_attribute_name=name)
+        super().__init__(
+            name="SideEffectFunction: " +
+            function.__name__,
+            sweep_attribute_name=name)
 
         self._function = partial(function, **kwargs)
 
@@ -171,7 +174,8 @@ class SweepParametersSideEffectFactory(LeeQObject):
 
             name (str, Optional): The name of the side effect attributed, displayed in the progress bar
         """
-        return SweepParametersSideEffectAttribute(object_instance, attribute_name, name=name)
+        return SweepParametersSideEffectAttribute(
+            object_instance, attribute_name, name=name)
 
     @classmethod
     def attr(cls, object_instance, attribute_name, name=None):
@@ -195,9 +199,9 @@ class Sweeper(LeeQObject):
 
     def __init__(self,
                  sweep_parameters: Union[Iterable,
-                 Callable],
+                                         Callable],
                  params: List[Union[SweepParametersSideEffectAttribute,
-                 SweepParametersSideEffectFunction]],
+                                    SweepParametersSideEffectFunction]],
                  n_kwargs: Optional[Dict] = None,
                  child: "Sweeper" = None,
                  name: str = None,
@@ -336,7 +340,8 @@ class Sweeper(LeeQObject):
             self._sweep_parameters[step_no[0]]))
 
         if self._child is not None:
-            annotation_dict.update(self._child.execute_side_effects_by_step_no(step_no[1:]))
+            annotation_dict.update(
+                self._child.execute_side_effects_by_step_no(step_no[1:]))
 
         return annotation_dict
 

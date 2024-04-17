@@ -13,14 +13,16 @@ def dummy_function(arg1, arg2=0):
 
 # Test case for __init__ and __call__
 def test_SweepParametersSideEffectFunction():
-    sweep_func = SweepParametersSideEffectFunction(dummy_function, 'arg1', arg2=5)
+    sweep_func = SweepParametersSideEffectFunction(
+        dummy_function, 'arg1', arg2=5)
     assert sweep_func.__call__(10) == {'arg1': 10}
 
     # Test with different values
     assert sweep_func.__call__(20) == {'arg1': 20}
 
     # Test with overridden kwargs
-    sweep_func = SweepParametersSideEffectFunction(dummy_function, 'arg1', arg2=5)
+    sweep_func = SweepParametersSideEffectFunction(
+        dummy_function, 'arg1', arg2=5)
     assert sweep_func.__call__(30) == {'arg1': 30}
 
 
@@ -41,13 +43,16 @@ def test_SweepParametersSideEffectAttribute():
 
 def test_SweepParametersSideEffectFactory():
     dummy_obj = DummyObject()
-    sweep_func = SweepParametersSideEffectFactory.from_function(dummy_function, 'arg1', arg2=5)
+    sweep_func = SweepParametersSideEffectFactory.from_function(
+        dummy_function, 'arg1', arg2=5)
     assert sweep_func.__call__(10) == {'arg1': 10}
 
-    sweep_func = SweepParametersSideEffectFactory.func(dummy_function, {'arg2': 5}, 'arg1')
+    sweep_func = SweepParametersSideEffectFactory.func(
+        dummy_function, {'arg2': 5}, 'arg1')
     assert sweep_func.__call__(10) == {'arg1': 10}
 
-    sweep_attr = SweepParametersSideEffectFactory.from_attribute(dummy_obj, 'attribute')
+    sweep_attr = SweepParametersSideEffectFactory.from_attribute(
+        dummy_obj, 'attribute')
     assert sweep_attr.__call__(10) == {'attribute': 10}
     assert dummy_obj.attribute == 10
 

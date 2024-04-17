@@ -62,7 +62,11 @@ def test_commit_and_result_methods(primitive):
 
     stacked_data = np.array([data_1, data_2])
 
-    assert np.array_equal(primitive.result(result_id=0, raw_data=True), stacked_data)
+    assert np.array_equal(
+        primitive.result(
+            result_id=0,
+            raw_data=True),
+        stacked_data)
 
 
 def test_commit_and_result_methods_multiple_measurements(primitive):
@@ -88,8 +92,16 @@ def test_commit_and_result_methods_multiple_measurements(primitive):
     stacked_data_result_1 = np.array([data_step_1[0, :], data_step_2[0, :]])
     stacked_data_result_2 = np.array([data_step_1[1, :], data_step_2[1, :]])
 
-    assert np.array_equal(primitive.result(result_id=0, raw_data=True), stacked_data_result_1)
-    assert np.array_equal(primitive.result(result_id=1, raw_data=True), stacked_data_result_2)
+    assert np.array_equal(
+        primitive.result(
+            result_id=0,
+            raw_data=True),
+        stacked_data_result_1)
+    assert np.array_equal(
+        primitive.result(
+            result_id=1,
+            raw_data=True),
+        stacked_data_result_2)
 
 
 def test_commit_with_transfer_function(primitive):
@@ -117,5 +129,10 @@ def test_commit_with_transfer_function(primitive):
 
     assert primitive._transformed_measurement_buffer.shape == (2, 1, 1)
 
-    assert np.array_equal(primitive.result(result_id=0, raw_data=True), stacked_data)
-    assert np.array_equal(primitive.result(result_id=0, raw_data=False), np.asarray([2, 5]).reshape([2, 1, ]))
+    assert np.array_equal(
+        primitive.result(
+            result_id=0,
+            raw_data=True),
+        stacked_data)
+    assert np.array_equal(primitive.result(
+        result_id=0, raw_data=False), np.asarray([2, 5]).reshape([2, 1, ]))
