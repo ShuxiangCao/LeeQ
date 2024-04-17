@@ -62,11 +62,11 @@ class SimpleRamseyMultilevel(Experiment):
         end_level = int(collection_name[2])
         self.level_diff = end_level - start_level
 
+        c1q = qubit.get_c1(collection_name)  # Retrieve the gate collection object
         # Save original frequency
         original_freq = c1q['Xp'].freq
         self.original_freq = original_freq
 
-        c1q = qubit.get_c1(collection_name)  # Retrieve the gate collection object
         delay = prims.Delay(0) # Create a delay primitive
 
         # Update the frequency with the calculated offset

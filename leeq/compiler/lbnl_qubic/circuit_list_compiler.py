@@ -25,6 +25,8 @@ from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
 
+_sampling_rate = 8e9
+
 
 def compare_dicts(dict1, dict2, rtol=1e-05, atol=1e-08):
     """
@@ -66,6 +68,152 @@ def compare_dicts(dict1, dict2, rtol=1e-05, atol=1e-08):
 
     # If loop completes without returning False, dictionaries are equal
     return True
+
+
+def segment_array(data: np.ndarray, threshold=1e-5, min_flat_length=10):
+    """
+    Segment an array into flat and changing regions.
+
+    Args:
+        data (np.ndarray): The data to segment.
+        threshold (float): The threshold to consider a region flat.
+        min_flat_length (int): The minimum length for a flat region.
+
+    Returns:
+        Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]: The flat and changing regions.
+    """
+    differences = np.abs(np.diff(data))
+
+    flat_mask = (differences <= threshold).astype(int)
+    flat_mask = np.insert(flat_mask, 0, flat_mask[0])
+    switching_points_flat_to_change = np.where(np.diff(flat_mask) == -1)[0] + 1
+    switching_points_change_to_flat = np.where(np.diff(flat_mask) == 1)[0]
+
+    switching_points = np.concatenate([switching_points_flat_to_change, switching_points_change_to_flat])
+    switching_points = np.sort(switching_points)
+
+    current_location_flat = flat_mask[0] == 1
+
+    last_point = 0
+
+    regions_flat = []
+    regions_change = []
+
+    # Iterate over the switching points and segment the data
+    # into flat and changing regions. There are the following cases:
+
+    # 1. A flat region with a length greater than the minimum flat length
+    # 2. A changing region with a length greater than 0
+    # 3. A flat region with a length less than the minimum flat length
+    # 4. Two consecutive flat regions, they need to be separately added.
+    # 5. The last region is flat and has a length smaller than the minimum flat length
+
+    # To solve the cases above, we use multiple passes. First we add the regions without thinking about the
+    # minimum flat length, location, etc.
+    regions = []
+    for i in switching_points:
+        regions.append((last_point, i, 'flat' if current_location_flat else 'change'))
+        last_point = i
+        current_location_flat = not current_location_flat
+
+    regions.append((last_point, len(data), 'flat' if current_location_flat else 'change'))
+
+    # Now we iterate over the regions and add them to the final list step by step
+    # If it is a change region and it has length 1 (just a single point), we merge it with the next flat region
+    regions_merged = []
+    for i, (start, end, location) in enumerate(regions):
+        if len(regions_merged) > 0 and regions_merged[-1][1] == end:
+            # Skip this region, it was merged with the previous one
+            continue
+
+        if location == 'change' and end - start == 0:
+            continue
+
+        regions_merged.append((start, end, location))
+
+    regions = regions_merged
+    regions_merged = []
+
+    # If the flat region is at the begining and has length smaller than the minimum flat length,
+    # we merge it with the next change region, otherwise we add it to the previous change region.
+    # If they are both flat, we add them to the finalist.
+    for i, (start, end, region_type) in enumerate(regions):
+        if len(regions_merged) > 0 and regions_merged[-1][1] == end:
+            # Skip this region, it was merged with the previous one
+            continue
+
+        if region_type == 'flat' and (end - start) < min_flat_length:
+            if start == 0 or regions_merged[-1][-1] == 'flat':
+                # If it is the first region or the previous region is flat and cannot merge
+                if i + 1 < len(regions):
+                    next_start, next_end, next_type = regions[i + 1]
+                    if next_type == 'change':
+                        regions_merged.append((start, next_end, 'change'))
+                        continue
+            else:
+                if regions_merged[-1][-1] == 'change':
+                    regions_merged[-1] = (regions_merged[-1][0], end, 'change')
+                    continue
+
+        regions_merged.append((start, end, region_type))
+
+    regions = regions_merged
+
+    # Now we iterate over the regions and add them to the final list
+    for i, (start, end, location) in enumerate(regions):
+        if location == 'flat':
+            regions_flat.append((start, end))
+        else:
+            regions_change.append((start, end))
+
+    return regions_flat, regions_change
+
+
+def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
+    """
+    Segment the pulse and isolate flat regions.
+
+    Parameters:
+    - env_func: the envelope function
+    - paradict: the parameters of the pulse
+
+    Returns:
+        A list of dictionaries, each representing a segment of the pulse
+    """
+
+    import inspect
+    parameters_keeping = {key: paradict[key] for key in inspect.signature(env_func).parameters if key in paradict}
+    data = env_func(sampling_rate=_sampling_rate / 1e6, **parameters_keeping)
+
+    # Segment the pulse into flat and changing regions
+    regions_flat, regions_change = segment_array(data, threshold=threshold)
+
+    # Merge into a list
+    segments = sorted([(x, y, 'flat') for x, y in regions_flat] + [(x, y, 'change') for x, y in regions_change],
+                      key=lambda x: x[0])
+
+    pulses = []
+    # Generate the pulses for each segment
+    for i, (start, end, segment_type) in enumerate(segments):
+        if segment_type == 'flat':
+            # If the segment is flat, we just need to generate the pulse
+            pulse = {
+                'segment_type': 'flat',
+                'amp': np.abs(data[start]),
+                'phase': np.angle(data[start]),
+                'start': start,
+                'end': end,
+            }
+        else:
+            pulse = {
+                'segment_type': 'change',
+                'start': start,
+                'end': end,
+            }
+
+        pulses.append(pulse)
+
+    return pulses
 
 
 class QubiCCircuitListLPBCompiler(LPBCompiler):
@@ -344,38 +492,51 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
             sequence = [qubic_pulse_dict]
         else:
+            segments = _segment_pulse_and_isolate_flat_regions(
+                env_func, parameters, threshold=1e-5
+            )
+
             # The pulse width is too long, we need to split it into multiple pulses, each with a width less than 0.5s
             sequence = []
-            single_pulse_width = 0.5
-            total_width = parameters['width']
-            num_pulses = int(np.ceil(parameters['width'] / single_pulse_width))
-            t_start = 0
-            env_func = get_qubic_envelope_name_from_leeq_name('segment')
+            env_func = get_qubic_envelope_name_from_leeq_name('segment_by_index')
 
-            for i in range(num_pulses):
-                pulse_width = min(single_pulse_width, total_width)
-                total_width -= pulse_width
-                t_end = t_start + pulse_width
+            for segmented_pulse in segments:
+                i_end = segmented_pulse['end']
+                i_start = segmented_pulse['start']
+                segment_type = segmented_pulse['segment_type']
 
-                parameters_segment = parameters_keeping.copy()
-                parameters_segment['width'] = pulse_width
-                parameters_segment['t_start'] = t_start
-                parameters_segment['t_end'] = t_end
-                parameters_segment['env_name'] = parameters['shape']
+                # Hard code 8 Gsps as sampling rate for now
+                pulse_width = (i_end - i_start) / _sampling_rate  # In seconds
 
-                env = {"env_func": env_func, "paradict": parameters_segment}
-                qubic_pulse_dict = {
-                    "name": "pulse",
-                    "phase": phase_shift + parameters["phase"],
-                    "freq": int(parameters['freq'] * 1e6),  # In Hz
-                    "amp": parameters['amp'],
-                    "twidth": pulse_width / 1e6,  # In seconds
-                    "env": env,
-                    "dest": qubic_dest,  # The channel name
-                }
+                if segment_type == 'flat':
+                    qubic_pulse_dict = {
+                        "name": "pulse",
+                        "freq": int(parameters['freq'] * 1e6),  # In Hz
+                        "twidth": pulse_width,  # In seconds
+                        "env": {'env_func': 'square',
+                                'paradict': {'phase': segmented_pulse['phase'],
+                                             'amplitude': segmented_pulse['amp'],
+                                             'twidth': pulse_width}},
+                        "dest": qubic_dest,  # The channel name
+                    }
+                else:
+                    parameters_segment = parameters_keeping.copy()
+                    parameters_segment['width'] = parameters['width']
+                    parameters_segment['seg_i_start'] = i_start
+                    parameters_segment['seg_i_end'] = i_end
+                    parameters_segment['env_name'] = parameters['shape']
+
+                    env = {"env_func": env_func, "paradict": parameters_segment}
+                    qubic_pulse_dict = {
+                        "name": "pulse",
+                        "phase": phase_shift + parameters["phase"],
+                        "freq": int(parameters['freq'] * 1e6),  # In Hz
+                        "amp": parameters['amp'],
+                        "twidth": pulse_width,  # In seconds
+                        "env": env,
+                        "dest": qubic_dest,  # The channel name
+                    }
                 sequence.append(qubic_pulse_dict)
-
-                t_start = t_end
 
         return sequence, {qubic_dest}
 

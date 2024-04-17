@@ -1,3 +1,5 @@
+import inspect
+
 import numpy as np  # Assuming numpy is needed based on the provided function.
 from typing import Optional, Tuple
 from leeq.compiler.utils.time_base import get_t_list
@@ -11,10 +13,12 @@ __all__ = [
     "soft_square",
     "square",
     "clk",
-    "segment",
+    "segment_by_time",
+    "segment_by_index",
 ]
 
-def segment(sampling_rate: int, env_name:str, seg_t_start: float, seg_t_end: float, **kwargs) -> np.array:
+
+def segment_by_time(sampling_rate: int, env_name: str, seg_t_start: float, seg_t_end: float, **kwargs) -> np.array:
     """
     Generates a complex wave packet that is a segment of another wave packet.
     This function is for bypassing the restriction of the pulse shape function
@@ -32,13 +36,59 @@ def segment(sampling_rate: int, env_name:str, seg_t_start: float, seg_t_end: flo
     pulse_shape_factory = PulseShapeFactory()
     env_func = pulse_shape_factory.get_pulse_shape_function(env_name)
 
+    # Filter the kwargs so that only the required parameters are passed to
+    # the function
+    required_parameters = inspect.signature(env_func).parameters
+
+    kwargs_call = {key: kwargs[key]
+                   for key in required_parameters if key in kwargs}
+
+    print(kwargs_call)
     # Get the array of the entire pulse shape
-    env_array = env_func(sampling_rate, **kwargs)
+    env_array = env_func(sampling_rate=sampling_rate, **kwargs_call)
 
     dt = 1 / sampling_rate
     t = np.arange(0, len(env_array) * dt, dt)
 
     seg_array = env_array[(t >= seg_t_start) & (t < seg_t_end)]
+    print(seg_t_start, seg_t_end)
+    print(seg_array.shape)
+
+    return seg_array
+
+
+def segment_by_index(sampling_rate: int, env_name: str, seg_i_start: float, seg_i_end: float, **kwargs) -> np.array:
+    """
+    Generates a complex wave packet that is a segment of another wave packet.
+    This function is for bypassing the restriction of the pulse shape function
+    to have a limited width.
+
+    Parameters:
+    - sampling_rate (int): The sampling rate in Megasamples per second.
+    - env_name (str): The name of the pulse shape.
+    - seg_i_start (float): The starting time of the segment.
+    - seg_i_end (float): The ending time of the segment.
+    - kwargs: The parameters of the pulse shape.
+    """
+
+    from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
+    pulse_shape_factory = PulseShapeFactory()
+    env_func = pulse_shape_factory.get_pulse_shape_function(env_name)
+
+    # Filter the kwargs so that only the required parameters are passed to
+    # the function
+    required_parameters = inspect.signature(env_func).parameters
+
+    kwargs_call = {key: kwargs[key]
+                   for key in required_parameters if key in kwargs}
+
+    # Get the array of the entire pulse shape
+    env_array = env_func(sampling_rate=sampling_rate, **kwargs_call)
+
+    dt = 1 / sampling_rate
+    t = np.arange(0, len(env_array) * dt, dt)
+
+    seg_array = env_array[seg_i_start: seg_i_end]
 
     return seg_array
 
@@ -280,16 +330,16 @@ def soft_square(
     Returns:
     - np.ndarray: Generated soft square wave.
     """
-    full_width = width + 2.0 * rise * trunc + ex_delay
+
+    full_width = width + 2. * rise * trunc + ex_delay
     t = get_t_list(sampling_rate, full_width + delay)
 
     t -= 0.5 * delay
-    y = (
-            amp
-            * np.exp(1.0j * (phase + phase_shift))
-            * 0.5
-            * (np.tanh((t + 0.5 * width) / rise) - np.tanh((t - 0.5 * width) / rise))
-    )
+
+    part_1 = np.tanh((t + 0.5 * width - full_width / 2) / rise)
+    part_2 = np.tanh((t - 0.5 * width - full_width / 2) / rise)
+
+    y = amp * np.exp(1.0j * (phase + phase_shift)) * 0.5 * (part_1 - part_2)
 
     if ex_delay > 0:
         extra_delay_y = get_t_list(sampling_rate, delay)
@@ -402,6 +452,7 @@ def clear_square(
 
     y = y
 
+
 def clk(
         sampling_rate: int,
         amp: float,
@@ -435,4 +486,4 @@ def clk(
     y = np.empty(shape=(len(x),), dtype="cfloat")
     y.fill(amp * np.exp(1.0j * (phase + phase_shift)))
     y[x < (delay - width) / 2.0] = 0.0
-    return y*np.exp(-kappa*x/2) + dc_bias
+    return y * np.exp(-kappa * x / 2) + dc_bias
