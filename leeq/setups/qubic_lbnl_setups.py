@@ -347,7 +347,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
                 # time to delay acquisition, relative to circuit start.
                 # NOTE: this value, in units of clock cycles, is a 16-bit value. So, it
                 # maxes out at CLK_PERIOD*(2**16) = 131.072e-6
-                decimator=1,
+                decimator=0,
                 # decimation interval when sampling. e.g. 0 means full sample rate, 1
                 # means capture every other sample, 2 means capture every third sample, etc
             )

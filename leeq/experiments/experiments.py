@@ -75,9 +75,8 @@ class Experiment(LeeQObject):
                         root=self.__class__.__qualname__,
                         expanded=False)
                 else:
-                    msg = f"Failed to retrieve the record details for {self.run.__qualname__}"
-                    logger.error(msg)
-                    raise RuntimeError(msg)
+                    msg = f"Failed to retrieve and save the record details for {self.run.__qualname__}"
+                    logger.warning(msg)
 
         # Check if we need to plot
         if setup().status().get_parameters("Plot_Result_In_Jupyter"):

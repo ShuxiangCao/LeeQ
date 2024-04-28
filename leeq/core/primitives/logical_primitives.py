@@ -3,6 +3,7 @@ import uuid
 from typing import Dict, Any, Union
 
 import numpy
+import numpy as np
 from labchronicle import log_event
 
 from leeq.core import LeeQObject
@@ -811,9 +812,13 @@ class MeasurementPrimitive(LogicalPrimitive):
             transform_function = self._parameters['_transform_function']
             transform_function_kwargs = self._parameters['_transform_function_kwargs']
 
-            data_transformed = transform_function(
-                data, basis=basis, **transform_function_kwargs
-            )
+            transformed_result = []
+            for i in range(data.shape[0]): # iterate over the result id
+                transformed_result.append(transform_function(
+                    data[i], basis=basis, **transform_function_kwargs
+                ))
+
+            data_transformed = np.asarray(transformed_result)
 
             if len(data_transformed.shape) < 2:
                 msg = (

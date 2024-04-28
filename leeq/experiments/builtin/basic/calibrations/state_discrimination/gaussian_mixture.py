@@ -125,7 +125,7 @@ def measurement_transform_gmm(
     output = clf.predict(data_complex_to_real)
     # Map the output using output_map, ignore unmapped values
     output_mapped = np.asarray([output_map[x]
-                               for x in output if x in output_map])
+                                for x in output if x in output_map])
 
     output_reshaped = output_mapped.reshape(original_shape)
 
@@ -136,14 +136,14 @@ def measurement_transform_gmm(
 
     # Count the occurrences of each unique value in output_reshaped
     bins = np.asarray([np.sum((output_reshaped == i).astype(int))
-                      for i in range(max_output + 1)])
+                       for i in range(max_output + 1)])
 
     if basis == 'bin':
-        return bins
+        return bins[np.newaxis, :]
 
     if basis == 'prob':
         # Normalize the bin counts to get probabilities
-        return bins / np.sum(bins)
+        return (bins / np.sum(bins))[np.newaxis, :]
 
     zero_count = np.sum((output_reshaped < z_threshold).astype(int), axis=-1)
     one_count = np.sum((output_reshaped >= z_threshold).astype(int), axis=-1)
@@ -152,11 +152,11 @@ def measurement_transform_gmm(
 
     # Calculate probabilities or return z based on basis
     if basis == 'p(0)':
-        return (z + 1) / 2
+        return (z[np.newaxis, :] + 1) / 2
     elif basis == 'p(1)':
-        return (z - 1) / -2
+        return (z[np.newaxis, :] - 1) / -2
     elif basis == '<z>':
-        return z
+        return z[np.newaxis, :]
     else:
         msg = f"Unknown basis {basis}"
         logger.error(msg)
@@ -578,7 +578,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         """
 
         print({"Means": self.clf.named_steps['gmm'].means_,
-              "Cov": self.clf.named_steps['gmm'].covariances_})
+               "Cov": self.clf.named_steps['gmm'].covariances_})
 
         colors = [
             '#1f77b4',
