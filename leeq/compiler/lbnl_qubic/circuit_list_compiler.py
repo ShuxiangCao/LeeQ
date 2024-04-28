@@ -92,7 +92,7 @@ def segment_array(data: np.ndarray, threshold=1e-5, min_flat_length=10):
     switching_points_change_to_flat = np.where(np.diff(flat_mask) == 1)[0]
 
     switching_points = np.concatenate([switching_points_flat_to_change, switching_points_change_to_flat])
-    switching_points = np.sort(switching_points)
+    switching_points = np.sort(switching_points).astype(int)
 
     current_location_flat = flat_mask[0] == 1
 
@@ -217,7 +217,7 @@ def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
         if i == len(segments) - 1:
             modified_end = end
 
-        modified_segments.append((modified_start, modified_end, segment_type))
+        modified_segments.append((int(modified_start), int(modified_end), segment_type))
 
     segments = modified_segments
     modified_segments = []
