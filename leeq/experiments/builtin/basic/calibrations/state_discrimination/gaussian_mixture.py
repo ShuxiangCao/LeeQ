@@ -513,7 +513,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         if result_data is None:
             result_data = self.result
 
-        fig = plt.figure(figsize=(result_data.shape[1] * 5, 5))
+        fig = plt.figure(figsize=(result_data.shape[1] * 3.5, 3.5))
         colors = [
             '#1f77b4',
             '#d62728',
@@ -541,8 +541,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
             for index in np.unique(state_label):
                 percentage = np.average((state_label == index).astype(int))
                 ax.scatter(data[:, 0][state_label == index], data[:, 1][state_label == index],
-                           alpha=0.8, label=str(self.output_map[index]) + ":" + f"{percentage * 100:.2f}%",
-                           color=colors[index], s=1)
+                           alpha=0.5, label=str(self.output_map[index]) + ":" + f"{percentage * 100:.2f}%",
+                           color=colors[index], s=3)
 
                 mean = self.clf.named_steps['gmm'].means_[index]
                 std = np.sqrt(self.clf.named_steps['gmm'].covariances_[index])
