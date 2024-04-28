@@ -450,7 +450,7 @@ class VirtualTransmon(object):
 
         single_shot_response += noise * np.std(readout_response) * 3
 
-        return single_shot_response
+        return single_shot_response.reshape([-1, 1])
 
     def reset_state(self):
         """

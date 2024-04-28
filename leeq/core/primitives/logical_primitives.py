@@ -579,6 +579,11 @@ class MeasurementPrimitive(LogicalPrimitive):
             dtype (type, Optional): The data type of the measurement buffer.
         """
 
+        # TODO: Allow other data shapes in the future. To achieve this, we need to update the commit_measurement method
+        # and find the right way to locate the correct index instead of hard code it to -3.
+        assert len(data_shape) == 2, ("The data shape should be 2D. The first dimension should be the shot "
+                                      "number and the second is the data vector width.")
+
         if self.is_buffer_allocated():
             msg = (
                 f"Measurement buffer already allocated for {self._name}. It seems you are running the same "
@@ -785,7 +790,6 @@ class MeasurementPrimitive(LogicalPrimitive):
             data (numpy.ndarray): The measurement result.
             indices (tuple): The indices of the measurement result.
         """
-
 
         if not self.is_buffer_allocated():
             msg = f"Measurement buffer not allocated for {self._name}. Please allocate the buffer first."
