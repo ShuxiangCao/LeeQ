@@ -138,6 +138,112 @@ def fit_1d_freq_exp_with_cov(
             'Cov': pcov}
 
 
+def fit_2d_freq(z: np.ndarray, dt: float,
+                use_freq_bound: bool = True, fix_frequency=False, freq_guess=None, t=None, **kwargs) -> Dict[
+    str, float]:
+    """
+    Fits a 2D frequency exponential to a dataset.
+
+    Parameters:
+    z (np.ndarray): The dataset to fit.
+    dt (float): The time step.
+    use_freq_bound (bool): Whether to bound the frequency during fitting. Defaults to True.
+    fix_frequency (bool): Whether to fix the frequency during fitting. Defaults to False.
+    freq_guess (float): The initial guess for the frequency. Defaults to None.
+    t (np.ndarray): The time array. Defaults to None.
+    kwargs: Additional keyword arguments to pass to the minimizer.
+
+    Returns:
+    dict: A dictionary containing the parameters of the fitted function.
+    """
+
+    if fix_frequency:
+        assert freq_guess is not None
+
+    if freq_guess is None:
+        fft = np.abs(np.fft.fft(z))
+        f = np.fft.fftfreq(len(z), dt)
+        imax = np.argmax(fft[1:]) + 1
+        fmax = f[imax]
+        omega = fmax.real
+
+        df = f[1] - f[0]
+        min_omega = fmax - df
+        max_omega = fmax + df
+    else:
+        omega = freq_guess
+        omega_bound = [omega * 1.5, omega * 0.5]
+        max_omega = np.max(omega_bound)
+        min_omega = np.min(omega_bound)
+
+    if t is None:
+        t = np.linspace(0., dt * (len(z) - 1), len(z))
+
+    offset = np.mean(z)
+    offset_real = np.real(offset)
+    offset_imag = np.imag(offset)
+    # amp = 0.5 * (np.max(np.abs(z.real) - np.min( z.real))  # 2 * np.std(z) ** 0.5  # 2 ** 0.5 * np.mean((z - offset) ** 2) ** 0.5
+
+    amp = np.max(np.abs(z))
+
+    phi = np.angle(z[0] - offset)
+
+    def leastsq(x, t, z):
+        omega, amp, phi, offset_real, offset_imag = x
+        fit = amp * np.exp(1.j * (2. * np.pi * omega * t + phi)) + offset_real + 1.j * offset_imag
+        return np.mean(np.abs(fit - z) ** 2).real * 1e5
+
+    def leastsq_without_omega(x, omega, t, z):
+        amp, phi, offset_real, offset_imag = x
+        fit = amp * np.exp(1.j * (2. * np.pi * omega * t + phi)) + offset_real + 1.j * offset_imag
+        return np.mean(np.abs(fit - z) ** 2).real * 1e5
+
+    def leastsq_phi_only(phi, x, t, z):
+        omega, amp, offset_real, offset_imag = x
+        fit = amp * np.exp(1.j * (2. * np.pi * omega * t + phi)) + offset_real + 1.j * offset_imag
+        return np.mean(np.abs(fit - z) ** 2).real * 1e5
+
+    def leastsq_omega_only(omega, x, t, z):
+        omega, amp, offset_real, offset_imag = x
+        fit = amp * np.exp(1.j * (2. * np.pi * omega * t + phi)) + offset_real + 1.j * offset_imag
+        return np.mean(np.abs(fit - z) ** 2).real * 1e5
+
+    result = minimize(leastsq_phi_only, np.array([phi]), args=(np.array([omega, amp, offset_real, offset_imag]), t, z))
+    phi = result.x[0]
+
+    if not fix_frequency:
+        result = minimize(leastsq_omega_only, np.array([omega]),
+                          args=(np.array([phi, amp, offset_real, offset_imag]), t, z))
+        omega = result.x[0]
+
+    result = minimize(leastsq_phi_only, np.array([phi]), args=(np.array([omega, amp, offset_real, offset_imag]), t, z))
+    phi = result.x[0]
+
+    args = dict()
+
+    args.update(kwargs)
+
+    if not fix_frequency:
+        if use_freq_bound:
+            args['bounds'] = ((min_omega, max_omega), (None, None), (None, None), (None, None), (None, None))
+        result = minimize(leastsq, np.array([omega, amp, phi, offset_real, offset_imag]), args=(t, z), **args)
+        omega, amp, phi, offset_real, offset_imag = result.x
+    else:
+        result = minimize(leastsq_without_omega, np.array([amp, phi, offset_real, offset_imag]), args=(omega, t, z),
+                          **args)
+        amp, phi, offset_real, offset_imag = result.x
+
+    r = result.fun
+
+    # We here make sure amp > 0
+
+    if amp < 0:
+        phi = phi + np.pi
+        amp = -amp
+
+    return {'Frequency': omega, 'Amplitude': amp, 'Phase': phi, 'Offset': offset, 'Residual': r}
+
+
 def Fit_1D_Freq(
         z,
         dt,
