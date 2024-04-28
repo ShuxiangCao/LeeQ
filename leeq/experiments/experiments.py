@@ -65,13 +65,19 @@ class Experiment(LeeQObject):
             if Chronicle().is_recording():
                 # Print the record details
                 record_details = self.retrieve_latest_record_entry_details(
-                    self.run).copy()
-                record_details.update(
-                    {'print_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
-                display_json_dict(
-                    record_details,
-                    root=self.__class__.__qualname__,
-                    expanded=False)
+                    self.run)
+                if record_details is not None:
+                    record_details = record_details.copy()
+                    record_details.update(
+                        {'print_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+                    display_json_dict(
+                        record_details,
+                        root=self.__class__.__qualname__,
+                        expanded=False)
+                else:
+                    msg = f"Failed to retrieve the record details for {self.run.__qualname__}"
+                    logger.error(msg)
+                    raise RuntimeError(msg)
 
         # Check if we need to plot
         if setup().status().get_parameters("Plot_Result_In_Jupyter"):
@@ -96,7 +102,7 @@ class Experiment(LeeQObject):
                     result = func(*f_args, **filtered_kwargs)
                     if isinstance(
                             result, plotly.graph_objs.Figure) or isinstance(
-                            result, matplotlib.figure.Figure):
+                        result, matplotlib.figure.Figure):
                         result.show()
                 except Exception as e:
                     self.logger.warning(

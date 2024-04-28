@@ -227,7 +227,7 @@ class LogicalPrimitiveClone(LogicalPrimitive):
                 set(self._original.get_parameters().keys())):
             if not set(
                     parameters.keys()) == set(
-                    self._original.get_parameters().keys()):
+                self._original.get_parameters().keys()):
                 msg = (
                     f"The parameters of the logical primitive clone {self._name} "
                     f"is not a subset of the parameters of the original logical primitive {self._original._name}.")
@@ -607,7 +607,7 @@ class MeasurementPrimitive(LogicalPrimitive):
             raise RuntimeError(msg)
 
         shape = list(self._sweep_shape) + \
-            [self._number_of_measurements] + list(data_shape)
+                [self._number_of_measurements] + list(data_shape)
 
         self._transformed_measurement_buffer = numpy.zeros(shape, dtype=dtype)
 
@@ -669,7 +669,7 @@ class MeasurementPrimitive(LogicalPrimitive):
 
         total_dim = len(result_data.shape)
 
-        max_result_id = self._raw_measurement_buffer.shape[-2]
+        max_result_id = self._raw_measurement_buffer.shape[-3]
 
         if not self.is_buffer_allocated():
             msg = f"No measurement result is available for {self._name}."
@@ -685,7 +685,7 @@ class MeasurementPrimitive(LogicalPrimitive):
             raise ValueError(msg)
 
         slice_idx = tuple(
-            slice(None) if dim != total_dim - 2 else result_id + self._result_id_offset
+            slice(None) if dim != total_dim - 3 else result_id + self._result_id_offset
             for dim in range(total_dim)
         )
 
@@ -748,7 +748,7 @@ class MeasurementPrimitive(LogicalPrimitive):
         """
 
         return [
-            key - self._result_id_offset for key in range(self._raw_measurement_buffer.shape[-2])]
+            key - self._result_id_offset for key in range(self._raw_measurement_buffer.shape[-3])]
 
     def result_raw(self, result_id: int = None):
         """
@@ -785,6 +785,7 @@ class MeasurementPrimitive(LogicalPrimitive):
             data (numpy.ndarray): The measurement result.
             indices (tuple): The indices of the measurement result.
         """
+
 
         if not self.is_buffer_allocated():
             msg = f"Measurement buffer not allocated for {self._name}. Please allocate the buffer first."
@@ -846,7 +847,7 @@ class MeasurementPrimitiveClone(LogicalPrimitiveClone, MeasurementPrimitive):
                  name: str,
                  parameters: dict,
                  original: Union[MeasurementPrimitive,
-                                 'MeasurementPrimitiveClone']):
+                 'MeasurementPrimitiveClone']):
         """
         Initialize the measurement primitive clone.
         """

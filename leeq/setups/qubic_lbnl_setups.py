@@ -334,12 +334,12 @@ class QubiCCircuitSetup(ExperimentalSetup):
         elif acquisition_type == "traces":
             # load_and_run_acq is to load the program given by raw_asm_prog and acquire raw
             # (or downconverted) adc traces.
+            assert batch_size == 1, "Batch size should be 1 for traces acquisition."
             self._result = self._runner.load_and_run_acq(
                 raw_asm_prog=asm_prog,  # The compiled program
-                n_total_shots=1 * batch_size,  # number of shots to run. Program is restarted from
+                n_total_shots=n_total_shots,  # number of shots to run. Program is restarted from
                 # the beginning for each new shot
                 nsamples=8192,  # number of samples to read from the acq buffer
-                acq_chans=["0"],  # list of channels to acquire
                 # current channel mapping is:
                 # '0': ADC_237_2 (main readout ADC)
                 # '1': ADC_237_0 (other ADC connected in gateware)
@@ -347,12 +347,9 @@ class QubiCCircuitSetup(ExperimentalSetup):
                 # time to delay acquisition, relative to circuit start.
                 # NOTE: this value, in units of clock cycles, is a 16-bit value. So, it
                 # maxes out at CLK_PERIOD*(2**16) = 131.072e-6
-                decimator=0,
+                decimator=1,
                 # decimation interval when sampling. e.g. 0 means full sample rate, 1
                 # means capture every other sample, 2 means capture every third sample, etc
-                from_server=False,
-                # set to true if calling over RPC. If True, pack returned acq arrays into
-                # byte objects.
             )
 
     def fire_experiment(self, context=None):
@@ -393,7 +390,9 @@ class QubiCCircuitSetup(ExperimentalSetup):
         if acquisition_type == 'IQ_average':
             data_collect = np.asarray([data.mean(axis=0)])
         elif acquisition_type == 'IQ':
-            data_collect = data.transpose()
+            data_collect = data
+        elif acquisition_type == 'traces':
+            data_collect = data
         else:
             msg = f'Unsupported acquisition type {acquisition_type}.'
             logger.error(msg)
@@ -452,7 +451,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
         for context in contexts:
             combined_circuits += delay_between_shots + \
-                context.instructions["circuits"]
+                                 context.instructions["circuits"]
 
         # The dirtiness is true when at least one of the circuits is dirty
         merged_dirtiness = {
@@ -494,35 +493,46 @@ class QubiCCircuitSetup(ExperimentalSetup):
         for context in contexts:
             context.results = []
 
-        for core_ind, data in self._result.items():
-            qubic_channel = self._core_to_channel_map[int(core_ind)]
-
-            if qubic_channel not in qubic_channel_to_lpb_uuid:
-                # Sometimes qubic returns default data from the board, which we
-                # are not measuring
-                continue
-
-            mprim_uuid = qubic_channel_to_lpb_uuid[qubic_channel]
-
-            for i in range(len(contexts)):
-                context = contexts[i]
-
-                # data shape = (n_samples, n_measurement_number)
-
-                # Reshape the data to be 2D array, assume 1 measurement
-                data_step = data[:, i].reshape((-1, 1))
-                # each circuit
-
+        acquisition_type = self._status.get_parameters("Acquisition_Type")
+        if acquisition_type == 'traces':
+            for qubic_channel, mprim_uuid in qubic_channel_to_lpb_uuid.items():
                 measurement = MeasurementResult(
                     step_no=context.step_no,
                     # First index is different measurement, second index for
-                    # data
-                    data=self._qubic_result_format_to_leeq_result_format(
-                        data_step),
+                    data=self._qubic_result_format_to_leeq_result_format(self._result['0']),
                     mprim_uuid=mprim_uuid
                 )
-
                 context.results.append(measurement)
+        else:
+            for core_ind, data in self._result.items():
+                qubic_channel = self._core_to_channel_map[int(core_ind)]
+
+                if qubic_channel not in qubic_channel_to_lpb_uuid:
+                    # Sometimes qubic returns default data from the board, which we
+                    # are not measuring
+                    continue
+
+                mprim_uuid = qubic_channel_to_lpb_uuid[qubic_channel]
+
+                for i in range(len(contexts)):
+                    context = contexts[i]
+
+                    # data shape = (n_samples, n_measurement_number)
+
+                    # Reshape the data to be 2D array, assume 1 measurement
+                    data_step = data[:, i].reshape((-1, 1))
+                    # each circuit
+
+                    measurement = MeasurementResult(
+                        step_no=context.step_no,
+                        # First index is different measurement, second index for
+                        # data
+                        data=self._qubic_result_format_to_leeq_result_format(
+                            data_step),
+                        mprim_uuid=mprim_uuid
+                    )
+
+                    context.results.append(measurement)
 
         return contexts
 
