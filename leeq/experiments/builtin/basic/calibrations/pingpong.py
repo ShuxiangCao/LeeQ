@@ -159,7 +159,7 @@ class PingPongSingleQubitMultilevel(Experiment):
 
         basic_run(lpb, swp, '<z>')
 
-        self.result = mprim.result()
+        self.result = np.squeeze(mprim.result(),axis=-1)
         self.pulse_count = pulse_count
         self.amplitude = cur_amp
 
