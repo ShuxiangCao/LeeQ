@@ -453,9 +453,9 @@ class GateSet:
             np.ndarray: The ideal PTM of the gate.
         """
         if isinstance(name, tuple):
-            matrices = 1
+            matrices = np.eye(self.dimension ** 2)
             for n in name:
-                matrices = np.kron(matrices, self.get_ptm_ideal(n))
+                matrices = self.get_ptm_ideal(n) @ matrices
             return matrices
 
         return self._ptms_ideal[:, :, self._name_to_index[name]]
@@ -536,9 +536,9 @@ class GateSet:
         """
 
         if isinstance(name, tuple):
-            matrices = 1
+            matrices = np.eye(self.dimension)
             for n in name:
-                matrices = np.kron(matrices, self.get_unitary_ideal(n))
+                matrices = self.get_unitary_ideal(n) @ matrices
             return matrices
 
         return self._gate_ideal_matrices[:, :, self._name_to_index[name]]

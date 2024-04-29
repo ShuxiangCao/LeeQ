@@ -82,17 +82,6 @@ class StandardTomographyModels:
                                          preparation_operations=self._preparation_operations_sequence,
                                          initial_state_density_matrix=self._initial_state)
 
-    def get_model_gst_configuration(self) -> dict:
-        """Returns the complete configuration of the current gate set tomography model."""
-        return {
-            'gate_set': self._gate_set.dump_configuration(), 'germs': self._germs,
-            'max_germ_length': self._max_germ_length,
-            'measurement_operations': self._measurement_operations_sequence,
-            'measurement_operators': self._measurement_operators_implementable,
-            'preparation_operations': self._preparation_operations_sequence,
-            'initial_state_density_matrix': self._initial_state
-        }
-
     def plot_process_matrix(self, m: np.ndarray, title: str = None, ax=None):
         """Plots the process matrix with an optional title and on a specific axes."""
         return self._basis.plot_process_matrix(m=m, title=title, ax=ax)
@@ -164,3 +153,104 @@ class SingleQubitModel(StandardTomographyModels):
         super(SingleQubitModel, self).__init__(gate_set=gate_set,
                                                measurement_operations_sequence=measurement_sequence,
                                                preparation_operations_sequence=preparation_sequence)
+
+
+class MultiQubitModel(StandardTomographyModels):
+    def __init__(self, number_of_qubit) -> None:
+        """Initialize a model for multi-qubit tomography with standard bases and gates.
+
+        This class defines the identity and Pauli matrices as basis operators for single qubit space,
+        and constructs gates which are parameterized unitaries using these bases. The model includes
+        definitions for measurement and preparation sequences based on these gates.
+        """
+        # Identity matrix
+        I = np.eye(2)
+
+        # Pauli X matrix
+        X = np.asarray([
+            [0, 1],
+            [1, 0]
+        ])
+
+        # Pauli Y matrix with complex numbers
+        Y = np.asarray([
+            [0, -1.j],
+            [1.j, 0]
+        ])
+
+        # Pauli Z matrix
+        Z = np.asarray([
+            [1, 0],
+            [0, -1]
+        ])
+
+        # Stack the basis matrices along the third dimension
+        basis_operators = [I, X, Y, Z]
+        basis_name = ['I', 'X', 'Y', 'Z']
+
+        # Generate tensor products of the gates for multi-qubit system
+        full_basis_operators = basis_operators
+        full_basis_name = basis_name
+        for i in range(number_of_qubit - 1):
+            kron_basis_operators = []
+            kron_basis_name = []
+            for name, basis_operator in zip(full_basis_name, full_basis_operators):
+                for n, o in zip(basis_name, basis_operators):
+                    kron_basis_operators.append(np.kron(basis_operator, o))
+                    kron_basis_name.append(name + n)
+            full_basis_operators = kron_basis_operators
+            full_basis_name = kron_basis_name
+
+        basis_name = full_basis_name
+        basis_operators = np.dstack(full_basis_operators)
+
+        # Initialize Hilbert basis for the single qubit
+        basis = HilbertBasis(dimension=2 ** number_of_qubit, basis_name=basis_name, basis_matrices=basis_operators)
+
+        # Define gates with parameterized unitaries (e.g., rotation by pi/2 around X and Y)
+        gates = [
+            np.eye(2),
+            get_unitary_parametrized_by_angle(m=X, angle=np.pi / 2),
+            get_unitary_parametrized_by_angle(m=Y, angle=np.pi / 2),
+            get_unitary_parametrized_by_angle(m=X, angle=np.pi),
+        ]
+
+        gate_names = ['I', 'Xp', 'Yp', 'X']
+
+        # Generate tensor products of the gates for multi-qubit system
+        full_gates = gates
+        full_gates_name = gate_names
+
+        for i in range(number_of_qubit - 1):
+            kron_gates = []
+            kron_gates_name = []
+            for name, gate in zip(full_gates_name, full_gates):
+                for n, o in zip(gate_names, gates):
+                    kron_gates.append(np.kron(gate, o))
+                    kron_gates_name.append(name + ':' + n)
+            full_gates = kron_gates
+            full_gates_name = kron_gates_name
+
+        gates = np.dstack(full_gates)
+        gate_names = full_gates_name
+
+        # Define the gate set using these unitaries and the basis
+        gate_set = GateSet(gate_names=gate_names, gate_ideal_matrices=gates, basis=basis)
+
+        # Define standard sequences for measurement and preparation
+        measurement_sequence = [('I',), ('Xp',), ('Yp',)]
+        preparation_sequence = [('I',), ('Xp',), ('Yp',), ('X',)]
+
+        measurement_sequence_full = measurement_sequence
+        preparation_sequence_full = preparation_sequence
+        # Find the sequence for multi-qubit system
+        for i in range(number_of_qubit - 1):
+            measurement_sequence_full = [(x[0] + ':' + y[0],) for x in measurement_sequence_full for y in
+                                         measurement_sequence]
+            preparation_sequence_full = [(x[0] + ':' + y[0],) for x in preparation_sequence_full for y in
+                                         preparation_sequence]
+
+        # Initialize the superclass with these defined components
+        super(MultiQubitModel, self).__init__(gate_set=gate_set,
+                                              measurement_operations_sequence=measurement_sequence_full,
+                                              preparation_operations_sequence=preparation_sequence_full)
