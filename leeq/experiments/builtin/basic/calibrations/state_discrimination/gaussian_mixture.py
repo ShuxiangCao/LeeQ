@@ -135,6 +135,7 @@ def measurement_transform_gmm(
         return output_reshaped
 
     # Count the occurrences of each unique value in output_reshaped
+
     bins = np.asarray([np.sum((output_reshaped == i).astype(int))
                        for i in range(max_output + 1)])
 
@@ -145,8 +146,8 @@ def measurement_transform_gmm(
         # Normalize the bin counts to get probabilities
         return (bins / np.sum(bins))[np.newaxis, :]
 
-    zero_count = np.sum((output_reshaped < z_threshold).astype(int), axis=-1)
-    one_count = np.sum((output_reshaped >= z_threshold).astype(int), axis=-1)
+    zero_count = np.sum((output_reshaped < z_threshold).astype(int), axis=-2)
+    one_count = np.sum((output_reshaped >= z_threshold).astype(int), axis=-2)
 
     z = (zero_count - one_count) / (zero_count + one_count)
 
