@@ -82,13 +82,13 @@ class StandardTomographyModels:
                                          preparation_operations=self._preparation_operations_sequence,
                                          initial_state_density_matrix=self._initial_state)
 
-    def plot_process_matrix(self, m: np.ndarray, title: str = None, ax=None):
+    def plot_process_matrix(self, m: np.ndarray, title: str = None, ax=None, base=2):
         """Plots the process matrix with an optional title and on a specific axes."""
-        return self._basis.plot_process_matrix(m=m, title=title, ax=ax)
+        return self._basis.plot_process_matrix(m=m, title=title, ax=ax, base=base)
 
-    def plot_density_matrix(self, m: np.ndarray, title: str = None):
+    def plot_density_matrix(self, m: np.ndarray, title: str = None, base=2):
         """Plots the density matrix with an optional title."""
-        return self._basis.plot_density_matrix(m=m, title=title)
+        return self._basis.plot_density_matrix(m=m, title=title, base=base)
 
     @property
     def dimension(self) -> int:

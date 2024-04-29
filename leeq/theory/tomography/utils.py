@@ -244,7 +244,7 @@ class HilbertBasis(object):
         # qubit_number = int(np.log2(nx) / 2)
 
         # labels_single = ['I', 'Z', 'Y', 'X']
-        labels_single = self.basis_name
+        # labels_single = self.basis_name
 
         # Reverse order
         new_shape = [base ** 2] * qubit_number * 2
@@ -259,10 +259,7 @@ class HilbertBasis(object):
 
         m = m.reshape([nx, ny])
 
-        pauli_labels = [""]
-
-        for i in range(qubit_number):
-            pauli_labels = [l + x for l in labels_single for x in pauli_labels]
+        pauli_labels = self.basis_name
 
         do_adjust = False
 
