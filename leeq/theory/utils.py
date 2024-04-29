@@ -19,7 +19,7 @@ def to_dense_probabilities(data_measured, base=2):  # [qubit index,sample index,
     data_measured = copy.copy(data_measured)
 
     qubit_count = data_measured.shape[0]
-    aggregated_data = data_measured[0]
+    aggregated_data = data_measured[0].astype('float')
 
     for i in range(1, qubit_count):
         aggregated_data += base ** i * data_measured[i]
