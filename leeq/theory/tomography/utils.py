@@ -100,13 +100,14 @@ class HilbertBasis(object):
         """
         return self.basis_matrices
 
-    def plot_density_matrix(self, m: np.ndarray, title: Optional[str] = None):
+    def plot_density_matrix(self, m: np.ndarray, title: Optional[str] = None, base: int = 2):
         """
         Plots a density matrix using color-coded phases and magnitudes.
 
         Args:
             m (np.ndarray): The density matrix to plot.
             title (Optional[str]): Title of the plot.
+            base_value (int): The base of the qudit space. Qubit is 2, qudit is 3, etc.
         """
 
         from matplotlib import pyplot as plt
@@ -115,7 +116,6 @@ class HilbertBasis(object):
 
         nx = m.shape[0]
         ny = m.shape[1]
-        base = self.dimension
         qubit_number = int(np.round(np.log(nx) / np.log(base)))
 
         fig, ax = plt.subplots()
@@ -222,7 +222,8 @@ class HilbertBasis(object):
 
         plt.show()
 
-    def plot_process_matrix(self, m: np.ndarray, ax: Optional[plt.Axes] = None, title: Optional[str] = None):
+    def plot_process_matrix(self, m: np.ndarray, ax: Optional[plt.Axes] = None, title: Optional[str] = None,
+                            base: int = 2):
         """
         Plots a process matrix using color-coded phases and magnitudes.
 
@@ -230,13 +231,12 @@ class HilbertBasis(object):
             m (np.ndarray): The process matrix to plot.
             ax (Optional[plt.Axes]): Axis on which to plot the matrix. If None, a new figure is created.
             title (Optional[str]): Title of the plot.
+            base (int): The base of the qudit space. Qubit is 2, qudit is 3, etc.
         """
 
         from matplotlib import pyplot as plt
         from matplotlib.colors import hsv_to_rgb
         import matplotlib.patches as mpatches
-
-        base = self.dimension
 
         nx = m.shape[0]
         ny = m.shape[1]
