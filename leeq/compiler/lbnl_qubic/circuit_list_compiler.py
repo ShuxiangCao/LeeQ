@@ -701,7 +701,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         # drive signal being picked up
         delay_between_drive_and_measure = {
             'name': 'delay',
-            't': 100e-9,
+            't': 200e-9,
             'scope': [primitive_scope]
         }
 
