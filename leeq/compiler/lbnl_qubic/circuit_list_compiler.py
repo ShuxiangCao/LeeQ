@@ -721,7 +721,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                     "env_func": "square",
                     # Here we use square pulse for demodulation, which means no
                     # window function is applied
-                    "paradict": {"phase": 0.0, "amplitude": 1.0, "twidth": modified_parameters['width'] / 1e6},
+                    "paradict": {"phase": modified_parameters['phase'], "amplitude": 1.0, "twidth": modified_parameters['width'] / 1e6},
                 }
             ],
         }

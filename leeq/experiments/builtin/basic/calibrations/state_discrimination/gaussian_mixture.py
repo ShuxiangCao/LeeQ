@@ -235,6 +235,39 @@ def find_output_map(data: np.ndarray, clf: Pipeline) -> Dict[int, int]:
     return outcome_map
 
 
+def find_rotation_phase(clf: Pipeline, output_map: Dict[int, int]) -> Dict[int, float]:
+    """
+    Find the phase of the |0> and |1> states that need to be rotated to align with the I channel.
+
+    Parameters:
+    clf (Pipeline): Classifier pipeline containing the GMM.
+    output_map (Dict[int, int]): Dictionary mapping the predicted state to an outcome index.
+
+    Returns:
+        float : The phase for updating.
+    """
+
+    assert len(output_map) == 2, "The output map should have 2 entries."
+    means = clf.named_steps['gmm'].means_
+
+    means_0 = means[output_map[0], :]
+    means_1 = means[output_map[1], :]
+
+    def wrap(angle):
+        tmp = np.arctan2(np.sin(angle), np.cos(angle))
+        return float(np.where(tmp < 0, 2 * np.pi + tmp, tmp))
+
+    phase_0 = np.angle(means_0[0] + 1j * means_0[1])
+    phase_1 = np.angle(means_1[0] + 1j * means_1[1])
+
+    # Now we need to find the rotation angle applying to the |0> and |1> states
+    # so that the 0 state aligns with the I channel greater than 0 and the 1 state aligns with the I channel less than 0.
+
+    phase_mid = (wrap(phase_0) + wrap(phase_1)) / 2
+    target_angle = np.pi * 2 / 3
+    return target_angle - phase_mid
+
+
 def calculate_signal_to_noise_ratio(
         clf: Pipeline, outcome_map: List[int]) -> Dict[tuple, float]:
     """
@@ -308,7 +341,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
             amp: Optional[float] = None,
             update: bool = False,
             extra_readout_duts: Optional[List['DeviceUnderTest']] = None,
-            z_threshold: Optional[int] = None) -> None:
+            z_threshold: Optional[int] = None, update_phase_for_two_level=False) -> None:
         """
         Run the measurement process on a transmon qubit, potentially
         altering frequency and amplitude, and calculate the signal-to-noise ratio.
@@ -322,6 +355,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         update (bool): Flag indicating if the original frequency/amplitude should be restored.
         extra_readout_duts (Optional[List[DeviceUnderTest]]): Additional DUTs for readout.
         z_threshold (Optional[int]): Threshold for measurement, defaults to mprim_index + 1 or mprim_index.
+        update_phase_for_two_level (bool): Flag to update the phase for two-level systems for further
+            processing on FPGA mid-circuit measurement.
 
         Returns:
         None: This method updates class attributes with the results.
@@ -384,6 +419,12 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                                      clf=self.clf,
                                      output_map=self.output_map,
                                      z_threshold=z_threshold)
+
+        if update_phase_for_two_level and len(self.output_map) == 2:
+            # Find the phase of 0 and 1 state
+
+            original_phase = mprim.get_parameters()['phase']
+            mprim.update_parameters(phase=original_phase + find_rotation_phase(self.clf, self.output_map))
 
         # If not updating, restore original frequency and amplitude
         if not update:
