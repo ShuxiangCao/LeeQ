@@ -522,12 +522,6 @@ class MultiQuditModel(MultiDutTomographyModels):
 
         gate_set = GateSet(gate_names=gate_names, gate_ideal_matrices=gates, basis=basis)
 
-        germs = [
-            ('Xp_01', 'Yp_01'),
-            ('Xp_12', 'Yp_12'),
-            ('Xp_23', 'Yp_23'),
-        ]
-
         measurement_sequence = [
             ('I',),  # I
             ('Xp_01',),  # Xp01
