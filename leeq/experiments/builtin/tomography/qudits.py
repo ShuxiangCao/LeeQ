@@ -42,7 +42,7 @@ class MultiQubitsStateTomography(GeneralisedStateTomography, QuditTomographyBase
     @log_and_record
     def run(self, duts, mprim_index=2, initial_lpb=None, extra_measurement_duts=None):
         model = MultiQuditModel(len(duts))
-        super().run(duts, model, mprim_index, initial_lpb, extra_measurement_duts)
+        super().run(duts, model, mprim_index, initial_lpb, extra_measurement_duts, base=4)
 
 
 class MultiQubitsProcessTomography(GeneralisedProcessTomography, QuditTomographyBase):
@@ -50,4 +50,4 @@ class MultiQubitsProcessTomography(GeneralisedProcessTomography, QuditTomography
     def run(self, duts, lpb, mprim_index=2, initial_lpb=None, extra_measurement_duts=None):
         model = MultiQuditModel(len(duts))
         super().run(duts=duts, model=model, lpb=lpb, mprim_index=mprim_index,
-                    extra_measurement_duts=extra_measurement_duts)
+                    extra_measurement_duts=extra_measurement_duts, base=4)

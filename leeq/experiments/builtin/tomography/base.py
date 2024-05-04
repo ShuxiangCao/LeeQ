@@ -88,8 +88,9 @@ class GeneralisedSingleDutProcessTomography(Experiment, GeneralisedTomographyBas
 
 
 class GeneralisedStateTomography(Experiment, GeneralisedTomographyBase):
-    def run(self, duts, model, mprim_index=1, initial_lpb=None, extra_measurement_duts=None):
+    def run(self, duts, model, mprim_index=1, initial_lpb=None, extra_measurement_duts=None, base=2):
         self.model = model
+        self.base = base
         self.initialize_gate_lpbs(duts=duts)
 
         self.state_tomography_model = self.model.construct_state_tomography()
@@ -109,12 +110,14 @@ class GeneralisedStateTomography(Experiment, GeneralisedTomographyBase):
         basic_run(lpb, swp_measurement, '<zs>')
         self.result = np.squeeze([mprim.result() for mprim in mprims])
 
-        self.prob = to_dense_probabilities(self.result.transpose([0, 2, 1]))
+    def analyze_data(self):
+        self.prob = to_dense_probabilities(self.result.transpose([0, 2, 1]), base=self.base)
 
         self.vec, self.dm = self.state_tomography_model.linear_inverse_state_tomography(self.prob)
 
     @register_browser_function(available_after=(run,))
     def plot(self):
+        self.analyze_data()
         self.model.plot_density_matrix(self.dm)
         plt.show()
 
@@ -122,9 +125,10 @@ class GeneralisedStateTomography(Experiment, GeneralisedTomographyBase):
 class GeneralisedProcessTomography(Experiment, GeneralisedTomographyBase):
 
     @log_and_record
-    def run(self, duts, model, lpb=None, mprim_index=1, extra_measurement_duts=None):
+    def run(self, duts, model, lpb=None, mprim_index=1, extra_measurement_duts=None, base=2):
         self.model = model
         self.initialize_gate_lpbs(duts=duts)
+        self.base = base
 
         self.process_tomography_model = self.model.construct_process_tomography()
 
@@ -148,8 +152,7 @@ class GeneralisedProcessTomography(Experiment, GeneralisedTomographyBase):
         self.result = np.squeeze([mprim.result() for mprim in mprims])
 
     def analyze_data(self):
-
-        self.prob = to_dense_probabilities(self.result.transpose([0, 3, 1, 2]))
+        self.prob = to_dense_probabilities(self.result.transpose([0, 3, 1, 2]), base=self.base)
         self.ptm = self.process_tomography_model.linear_inverse_process_tomography(self.prob)
 
     @register_browser_function(available_after=(run,))
