@@ -108,7 +108,7 @@ class GeneralisedStateTomography(Experiment, GeneralisedTomographyBase):
             lpb = initial_lpb + lpb
 
         basic_run(lpb, swp_measurement, '<zs>')
-        self.result = np.squeeze([mprim.result() for mprim in mprims])
+        self.result = np.squeeze(np.asarray([mprim.result() for mprim in mprims]), axis=-1)
 
     def analyze_data(self):
         self.prob = to_dense_probabilities(self.result.transpose([0, 2, 1]), base=self.base)
@@ -118,7 +118,7 @@ class GeneralisedStateTomography(Experiment, GeneralisedTomographyBase):
     @register_browser_function(available_after=(run,))
     def plot(self):
         self.analyze_data()
-        self.model.plot_density_matrix(self.dm)
+        self.model.plot_density_matrix(self.dm, base=self.base)
         plt.show()
 
 
@@ -149,7 +149,7 @@ class GeneralisedProcessTomography(Experiment, GeneralisedTomographyBase):
             lpb = preparation_lpb + measurement_lpb + prims.ParallelLPB(mprims)
 
         basic_run(lpb, swp_measurement + swp_preparation, '<zs>')
-        self.result = np.squeeze([mprim.result() for mprim in mprims])
+        self.result = np.squeeze(np.asarray([mprim.result() for mprim in mprims]), axis=-1)
 
     def analyze_data(self):
         self.prob = to_dense_probabilities(self.result.transpose([0, 3, 1, 2]), base=self.base)
@@ -158,5 +158,5 @@ class GeneralisedProcessTomography(Experiment, GeneralisedTomographyBase):
     @register_browser_function(available_after=(run,))
     def plot(self):
         self.analyze_data()
-        self.model.plot_process_matrix(self.ptm, base=2)
+        self.model.plot_process_matrix(self.ptm, base=self.base)
         plt.show()

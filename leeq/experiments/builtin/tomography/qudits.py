@@ -1,6 +1,8 @@
 from labchronicle import log_and_record
 
-from leeq.experiments.builtin import GeneralisedTomographyBase, GeneralisedStateTomography, GeneralisedProcessTomography
+from .base import GeneralisedTomographyBase, GeneralisedSingleDutStateTomography, GeneralisedStateTomography, \
+    GeneralisedProcessTomography
+
 from leeq.theory.tomography import MultiQuditModel
 from leeq.utils.compatibility import prims
 
@@ -38,14 +40,14 @@ class QuditTomographyBase(GeneralisedTomographyBase):
         self._gate_lpbs = dict(zip(full_gate_names, [_get_multi_qubit_lpb_from_name(name) for name in full_gate_names]))
 
 
-class MultiQubitsStateTomography(GeneralisedStateTomography, QuditTomographyBase):
+class MultiQuditsStateTomography(GeneralisedStateTomography, QuditTomographyBase):
     @log_and_record
     def run(self, duts, mprim_index=2, initial_lpb=None, extra_measurement_duts=None):
         model = MultiQuditModel(len(duts))
         super().run(duts, model, mprim_index, initial_lpb, extra_measurement_duts, base=4)
 
 
-class MultiQubitsProcessTomography(GeneralisedProcessTomography, QuditTomographyBase):
+class MultiQuditsProcessTomography(GeneralisedProcessTomography, QuditTomographyBase):
     @log_and_record
     def run(self, duts, lpb, mprim_index=2, initial_lpb=None, extra_measurement_duts=None):
         model = MultiQuditModel(len(duts))

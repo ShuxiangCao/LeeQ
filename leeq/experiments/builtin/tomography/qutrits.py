@@ -40,14 +40,14 @@ class QutritTomographyBase(GeneralisedTomographyBase):
         self._gate_lpbs = dict(zip(full_gate_names, [_get_multi_qubit_lpb_from_name(name) for name in full_gate_names]))
 
 
-class MultiQubitsStateTomography(GeneralisedStateTomography, QutritTomographyBase):
+class MultiQutritsStateTomography(GeneralisedStateTomography, QutritTomographyBase):
     @log_and_record
     def run(self, duts, mprim_index=1, initial_lpb=None, extra_measurement_duts=None):
         model = MultiQutritModel(len(duts))
         super().run(duts, model, mprim_index, initial_lpb, extra_measurement_duts, base=3)
 
 
-class MultiQubitsProcessTomography(GeneralisedProcessTomography, QutritTomographyBase):
+class MultiQutritsProcessTomography(GeneralisedProcessTomography, QutritTomographyBase):
     @log_and_record
     def run(self, duts, lpb, mprim_index=1, initial_lpb=None, extra_measurement_duts=None):
         model = MultiQutritModel(len(duts))
