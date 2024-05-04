@@ -69,7 +69,9 @@ class HilbertBasis(object):
         Returns:
             np.ndarray: The corresponding PTM.
         """
-        assert unitary.shape[0] == unitary.shape[1] == self.dimension
+        assert unitary.shape[0] == unitary.shape[1] == self.dimension, ("Unitary matrix must be square and equal to "
+                                                                        f"the dimension {self.dimension}. Got shape: ",
+                                                                        unitary.shape)
         transformed_result = np.einsum("abc,ad,be->dec", self.basis_matrices, unitary.conjugate(), unitary)
         ptm = np.einsum("abc,baf->fc", transformed_result, self.basis_matrices) / self.dimension
 
@@ -375,7 +377,8 @@ class GateSet:
                             or if the gate matrices are not square.
         """
         # Ensure the gate matrix is square and matches the number of gate names
-        assert gate_ideal_matrices.shape[0] == gate_ideal_matrices.shape[1], "Gate matrices must be square."
+        assert gate_ideal_matrices.shape[0] == gate_ideal_matrices.shape[
+            1], f"Gate matrices must be square, got shape {gate_ideal_matrices.shape}."
         assert len(gate_names) == gate_ideal_matrices.shape[-1], "Number of gate names must match number of gates."
 
         # Store the dimension from the matrix size
@@ -520,6 +523,15 @@ class GateSet:
             np.ndarray: A 3D array of all ideal PTMs.
         """
         return self._ptms_ideal
+
+    def get_all_unitary_ideal(self) -> np.ndarray:
+        """
+        Returns all ideal unitary matrices for the gates.
+
+        Returns:
+            np.ndarray: A 3D array of all ideal unitary matrices.
+        """
+        return self._gate_ideal_matrices
 
     def get_unitary_ideal(self, name: Union[str, Tuple[str]]) -> np.ndarray:
         """
