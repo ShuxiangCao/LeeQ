@@ -483,6 +483,35 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         f_r = virtual_transmon.readout_frequency
         kappa = virtual_transmon.readout_linewidth
         chis = np.cumsum([virtual_transmon.readout_dipsersive_shift] * 4)
+        quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+
+        def _get_state_based_on_quiescent_state_distribution(target_state):
+            """
+            Get the state based on the quiescent state distribution. If target state == 0,
+            return a sample of the quiescent state distribution. If it equals to 1, swap 0 and 1
+            then return a sample of the quiescent state distribution. If it equals to 2, swap 0 and 2, 1 and 0.
+            Parameters
+            ----------
+            target_state : int
+                The target state.
+
+            Returns
+            -------
+            int
+                The state based on the quiescent state distribution.
+            """
+            if target_state == 0:
+                r = np.random.choice([0, 1, 2, 3], p=quiescent_state_distribution)
+            elif target_state == 1:
+                r = np.random.choice([1, 0, 2, 3], p=quiescent_state_distribution)
+            elif target_state == 2:
+                r = np.random.choice([1, 2, 0, 3], p=quiescent_state_distribution)
+            elif target_state == 3:
+                r = np.random.choice([1, 2, 3, 0], p=quiescent_state_distribution)
+            else:
+                raise ValueError("The target state is not supported.")
+
+            return int(r)
 
         simulator = DispersiveReadoutSimulatorSyntheticData(
             f_r, kappa, chis, amp, baseline, width,
@@ -492,7 +521,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         shot_number = setup().status().get_param('Shot_Number')
 
         data = np.asarray([[simulator._simulate_trace(
-            state=i, noise_std=0.005, f_prob=mp.freq
+            state=_get_state_based_on_quiescent_state_distribution(i), noise_std=0.005, f_prob=mp.freq
         ).sum() for i in range(len(sweep_lpb_list))] for x in range(shot_number)])
 
         self.result = data

@@ -174,6 +174,18 @@ class NormalisedRabi(Experiment):
             self.data = np.random.binomial(
                 shot_number, self.data) / shot_number
 
+        quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+        standard_deviation = np.sum(quiescent_state_distribution[1:])
+
+        random_noise_factor = 1+np.random.normal(
+            0, standard_deviation, self.data.shape)
+
+        print(random_noise_factor)
+
+        self.data = (2*self.data -1)
+
+        self.data = np.clip(self.data * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
+
         # Fit data to a sinusoidal function and return the fit parameters
         self.fit_params = fits.fit_sinusoidal(self.data, time_step=step)
         # Update the qubit parameters, to make one pulse width correspond to a pi pulse
