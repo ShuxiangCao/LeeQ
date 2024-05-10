@@ -180,8 +180,6 @@ class NormalisedRabi(Experiment):
         random_noise_factor = 1+np.random.normal(
             0, standard_deviation, self.data.shape)
 
-        print(random_noise_factor)
-
         self.data = (2*self.data -1)
 
         self.data = np.clip(self.data * quiescent_state_distribution[0] * random_noise_factor, -1, 1)

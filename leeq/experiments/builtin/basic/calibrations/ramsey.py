@@ -161,7 +161,12 @@ class SimpleRamseyMultilevel(Experiment):
 
         t = np.arange(start, stop, step)
 
-        decay_rate = 0.1  # TODO: Implement decay rate
+        if isinstance(virtual_transmon.t1,list) :
+            t1 = virtual_transmon.t1[0]
+        else:
+            t1 = virtual_transmon.t1
+
+        decay_rate = 1/t1
 
         # Ramsey fringes formula
 
@@ -171,6 +176,16 @@ class SimpleRamseyMultilevel(Experiment):
                           * np.exp(-decay_rate * t)) / 2
 
         self.data = ramsey_fringes
+
+        quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+        standard_deviation = np.sum(quiescent_state_distribution[1:])
+
+        random_noise_factor = 1+np.random.normal(
+            0, standard_deviation, self.data.shape)
+
+        self.data = (2*self.data -1)
+
+        self.data = np.clip(self.data * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
 
         # If sampling noise is enabled, simulate the noise
         if setup().status().get_param('Sampling_Noise'):
