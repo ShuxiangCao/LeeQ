@@ -15,6 +15,8 @@ from leeq.utils.compatibility import *
 from leeq.theory import fits
 from plotly import graph_objects as go
 
+from leeq.utils.prompt import visual_analyze_prompt
+
 logger = setup_logging(__name__)
 
 
@@ -183,9 +185,8 @@ class SimpleRamseyMultilevel(Experiment):
         random_noise_factor = 1+np.random.normal(
             0, standard_deviation, self.data.shape)
 
-        self.data = (2*self.data -1)
 
-        self.data = np.clip(self.data * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
+        self.data = np.clip(self.data * quiescent_state_distribution[0] * random_noise_factor, 0, 1)
 
         # If sampling noise is enabled, simulate the noise
         if setup().status().get_param('Sampling_Noise'):

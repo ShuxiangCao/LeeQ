@@ -17,6 +17,7 @@ from typing import List, Tuple, Dict, Any
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
+from leeq.utils.prompt import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 
@@ -352,6 +353,13 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         return z, f0, Q, amp, baseline, direction
 
     @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt("""
+     I have a new resonator spectroscopy magnitude plot, and I need to determine if it shows evidence of a resonator.
+     Can you analyze the plot and tell me if there are any sharp dips or peaks at certain frequencies which would
+     typically indicate a resonator? Please focuse on the stability of the signal, the presence of noise, and the
+     specific behavior around suspected resonant frequencies. Provide a detailed analysis of the magnitude and
+     frequency data shown in the plot.
+    """)
     def plot_magnitude(self):
         args = self.retrieve_args(self.run)
         f = np.arange(args["start"], args["stop"], args["step"])
@@ -428,7 +436,7 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
                         Q,
                         amp,
                         baseline) *
-                    direction,
+                      direction,
                     mode="lines",
                     name="Lorentzian fit",
                 ))

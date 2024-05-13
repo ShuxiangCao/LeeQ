@@ -9,6 +9,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+from leeq.utils.prompt import visual_analyze_prompt
 
 
 class QubitSpectroscopyFrequency(Experiment):
@@ -223,6 +224,16 @@ class QubitSpectroscopyFrequency(Experiment):
             np.argmax(abs(self.result['Magnitude'] - mean_level))]
 
     @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt(
+        """
+        Given a plot of the phase response of a resonator as a function of frequency, analyze the stability and 
+        features of the phase curve. Identify any distinct and sharp deviations from the baseline phase level, 
+        such as steep dips or peaks. If such features are present at specific frequencies, indicating a significant
+        change in the phase response, conclude that a qubit has been detected at these frequencies. If the plot 
+        shows a noisy or relatively stable phase without any pronounced features across the frequency range, conclude
+        that no qubit has been observed
+        """
+    )
     def plot_magnitude(self, step_no: tuple[int] = None) -> go.Figure:
         """
         Generates a plot for the magnitude response from the frequency sweep data.

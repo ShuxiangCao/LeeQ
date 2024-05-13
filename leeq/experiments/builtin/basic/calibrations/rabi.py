@@ -6,6 +6,7 @@ from leeq import Experiment, SweepParametersSideEffectFactory, Sweeper
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils.compatibility import *
+from leeq.utils.prompt import visual_analyze_prompt
 from leeq.theory import fits
 from plotly import graph_objects as go
 
@@ -162,7 +163,7 @@ class NormalisedRabi(Experiment):
 
         # Rabi oscillation formula
         self.data = (omega ** 2) / (delta ** 2 + omega ** 2) * \
-            np.sin(0.5 * np.sqrt(delta ** 2 + omega ** 2) * t) ** 2
+                    np.sin(0.5 * np.sqrt(delta ** 2 + omega ** 2) * t) ** 2
 
         # If sampling noise is enabled, simulate the noise
         if setup().status().get_param('Sampling_Noise'):
@@ -177,10 +178,10 @@ class NormalisedRabi(Experiment):
         quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
         standard_deviation = np.sum(quiescent_state_distribution[1:])
 
-        random_noise_factor = 1+np.random.normal(
+        random_noise_factor = 1 + np.random.normal(
             0, standard_deviation, self.data.shape)
 
-        self.data = (2*self.data -1)
+        self.data = (2 * self.data - 1)
 
         self.data = np.clip(self.data * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
 
@@ -199,6 +200,16 @@ class NormalisedRabi(Experiment):
             print(f"Amplitude updated: {new_amp}")
 
     @register_browser_function()
+    @visual_analyze_prompt("""
+    Here is a plot of data from a quantum mechanics experiment involving Rabi oscillations. Can you analyze whether 
+        this plot shows a successful experiment or a failed one? Please consider the following aspects in your analysis:
+    1. Clarity of Oscillation: Describe if the data points show a clear, regular oscillatory pattern.
+    2. Fit Quality: Evaluate whether the fit line closely follows the data points throughout the plot.
+    3. Data Spread: Assess if the data points are tightly clustered around the fit line or if they are widely dispersed.
+    4. Amplitude and Frequency: Note any inconsistencies in the amplitude and frequency of the oscillations.
+    5. Overall Pattern: Provide a general assessment of the plot based on the typical characteristics of successful
+        Rabi oscillation experiments.
+    """)
     def plot(self) -> go.Figure:
         """
         Plots Rabi oscillations using data from an experiment run.

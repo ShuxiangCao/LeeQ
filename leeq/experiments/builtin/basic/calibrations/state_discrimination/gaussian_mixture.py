@@ -13,6 +13,7 @@ from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.simulation.numpy.dispersive_readout.simulator import DispersiveReadoutSimulatorSyntheticData
 from leeq.utils import setup_logging
+from leeq.utils.prompt import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 
@@ -529,6 +530,23 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         self.analyze_gmm_result(dut, mprim_index, self.result)
 
     @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt("""
+    Describe the Image: Provide a brief description of the image, particularly focusing on the distribution of points,
+        difference between two distributions and the overlap of clusters if any.
+    Identify Clusters: Note the color and arrangement of the clusters. Are there distinct groups of different colors 
+        (e.g., red and blue)?
+    Assess Overlap: Look at the central areas of the plot where the clusters might overlap. How much do the clusters 
+        mix in these regions?
+    Assess Distribution: Look at the distribution 0 and distribution 1. Do they have a clear difference?
+    Check Circles/Ellipses: Observe the circles or ellipses drawn around the clusters. Do these shapes encompass
+        predominantly one color, or do they contain a significant mixture of both colors?
+    Legend Information: If there are percentages or ratios in the legend, they might indicate the extent of separation
+        or overlap. Lower values suggest less overlap and better separation.
+    Overall Impression: Based on the above factors, decide 1) if the clusters are well separated (little to no overlap,
+        clear boundaries) or not well separated (significant overlap, indistinct boundaries). 2) if the two distributions
+         have clear difference. If they have difference but not separated means the experiment works but fitting failed.
+          If there is no difference means the experiment failed.
+    """)
     def gmm_iq(self, result_data=None):
         """
         Plot the IQ data with the fitted Gaussian Mixture Model with matplotlib.
