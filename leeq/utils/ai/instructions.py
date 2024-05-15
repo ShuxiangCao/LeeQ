@@ -32,7 +32,7 @@ You are trying to use some knowledge to rewrite some Python code.
 <knowledge>
 Whenever you need to run experiment `{self.exp_name}`, you should create a new instance of the experiment. The experiment
 will be carried out when the experiment object is created.
-To create new instance: `experiment_<experiment_name> = {self.exp_cls.__name__}(argument1,argument2, ...)`
+To create new instance: `instruct_experiment = {self.exp_cls.__name__}(argument1,argument2, ...)`
 Signature:
 {inspect.signature(self.exp_cls.run)}
 Documentation:
@@ -81,7 +81,7 @@ def build_leeq_idea_base(refresh=False) -> Ideabase:
         _leeq_idea_base = None
 
     if _leeq_idea_base is not None:
-        return _leeq_idea_base
+        return _leeq_idea_base, _aeval
 
     aeval = asteval.Interpreter()
 
@@ -125,6 +125,10 @@ def do(instruction: str, symtable: Optional[dict[str, Any]] = None, display_chat
     instruction_in_code = init_code_for_wm(instruction)
     diffuser = CodeDiffuser(idea_base)
 
+    if symtable is not None:
+        symtable_prompt = f"""You must use only use following symbols in the function call: {",".join(list(symtable.keys()))}"""
+        instruction_in_code = f"{symtable_prompt}\n{instruction_in_code}"
+
     generated_code, _ = diffuser.build_functions(instruction_in_code)
 
     if display_code:
@@ -133,9 +137,12 @@ def do(instruction: str, symtable: Optional[dict[str, Any]] = None, display_chat
         else:
             print(generated_code)
 
+    if symtable is not None:
+        aeval.symtable.update(symtable)
+
     aeval.eval(generated_code)
 
-    return aeval.symtable
+    return aeval.symtable['instruct_experiment']
 
 
 if __name__ == '__main__':
