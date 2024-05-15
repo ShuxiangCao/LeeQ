@@ -6,7 +6,7 @@ from leeq import Experiment, SweepParametersSideEffectFactory, Sweeper
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils.compatibility import *
-from leeq.utils.ai.prompt import visual_analyze_prompt
+from leeq.utils.ai.vlms import visual_analyze_prompt
 from leeq.theory import fits
 from plotly import graph_objects as go
 
