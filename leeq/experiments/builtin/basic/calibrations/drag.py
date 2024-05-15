@@ -227,3 +227,31 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
         # Update the alpha parameter in the DUT if the update flag is set.
         if update:
             dut.get_c1(collection_name).update_parameters(alpha=alpha_0)
+
+
+class DragPhaseCalibrationMultiQubitsMultilevel(Experiment):
+    @log_and_record
+    def run(self,
+            duts,
+            collection_name: str = 'f01',
+            mprim_index: int = 0,
+            initial_lpb=None,
+            N: int = 1,
+            inv_alpha_start: float = None,
+            inv_alpha_stop: float = None,
+            num: int = 21
+            ) -> None:
+        """
+        Runs the AllXY drag experiment.
+
+        Parameters:
+            dut (Any): The device under test.
+            collection_name (str): The name of the collection.
+            mprim_index (int): The index of the measurement primitive.
+            initial_lpb (LogicalPrimitiveBlock): The initial pulse sequence.
+            N (int): The number of repetitions for the All XY value.
+            inv_alpha_start (float): The start value of the 1/alpha parameter.
+            inv_alpha_stop (float): The stop value of the 1/alpha parameter.
+            num (int): The number of points in the sweep.
+        """
+        pass
