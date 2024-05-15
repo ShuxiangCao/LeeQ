@@ -100,9 +100,14 @@ class Experiment(LeeQObject):
                 try:
                     result = func(*f_args, **filtered_kwargs)
                     if isinstance(
-                            result, plotly.graph_objs.Figure) or isinstance(
-                        result, matplotlib.figure.Figure):
+                            result, plotly.graph_objs.Figure) :
                         result.show()
+                    if isinstance(result, matplotlib.figure.Figure):
+                        from IPython.display import display
+                        from matplotlib import pyplot as plt
+                        display(result)
+                        plt.close(result)
+
                 except Exception as e:
                     self.logger.warning(
                         f"Error when executing {func.__qualname__} with parameters ({f_args},{f_kwargs}): {e}"
