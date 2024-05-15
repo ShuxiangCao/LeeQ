@@ -1,9 +1,11 @@
 import datetime
+from IPython.display import display
 import inspect
 
 import matplotlib
 import numpy as np
 import plotly
+from IPython.core.display import Markdown
 
 from labchronicle import Chronicle
 
@@ -13,6 +15,7 @@ from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import SetupStatusParameters
 from leeq.utils import Singleton, setup_logging, display_json_dict
 import leeq.experiments.plots.live_dash_app as live_monitor
+from leeq.utils.ai.vlms import has_visual_analyze_prompt
 
 logger = setup_logging(__name__)
 
@@ -79,7 +82,10 @@ class Experiment(LeeQObject):
                     logger.warning(msg)
 
         # Check if we need to plot
-        if setup().status().get_parameters("Plot_Result_In_Jupyter"):
+        show_plots = setup().status().get_parameters("Plot_Result_In_Jupyter")
+        run_ai_inspection = setup().status().get_parameters("AIAutoInspectPlots")
+
+        if show_plots or run_ai_inspection:
             for name, func in self.get_browser_functions():
                 f_args, f_kwargs = (
                     func._browser_function_args,
@@ -99,14 +105,8 @@ class Experiment(LeeQObject):
 
                 try:
                     result = func(*f_args, **filtered_kwargs)
-                    if isinstance(
-                            result, plotly.graph_objs.Figure) :
-                        result.show()
-                    if isinstance(result, matplotlib.figure.Figure):
-                        from IPython.display import display
-                        from matplotlib import pyplot as plt
-                        display(result)
-                        plt.close(result)
+                    from leeq.utils.ai.utils import matplotlib_plotly_to_pil
+                    image = matplotlib_plotly_to_pil(result)
 
                 except Exception as e:
                     self.logger.warning(
@@ -114,6 +114,36 @@ class Experiment(LeeQObject):
                     )
                     self.logger.warning(f"Ignore the error and continue.")
                     self.logger.warning(f"{e}")
+
+                if show_plots:
+                    try:
+                        if isinstance(
+                                result, plotly.graph_objs.Figure):
+                            result.show()
+                        if isinstance(result, matplotlib.figure.Figure):
+                            from matplotlib import pyplot as plt
+                            display(result)
+                            plt.close(result)
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Error when displaying experiment result of {func.__qualname__} with parameters ({f_args},{f_kwargs}): {e}"
+                        )
+                        self.logger.warning(f"Ignore the error and continue.")
+                        self.logger.warning(f"{e}")
+
+                if run_ai_inspection:
+                    try:
+                        if has_visual_analyze_prompt(func):
+                            print(f"AI is thinking...")
+                            inspect_answer = func.ai_inspect(image)
+                            markdown = "\n".join([f"***{key}***: {value}\n" for key, value in inspect_answer.items()])
+                            display(Markdown(markdown))
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Error when doing AI inspection on {func.__qualname__} with parameters ({f_args},{f_kwargs}): {e}"
+                        )
+                        self.logger.warning(f"Ignore the error and continue.")
+                        self.logger.warning(f"{e}")
 
     def run_simulated(self, *args, **kwargs):
         """

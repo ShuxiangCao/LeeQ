@@ -12,13 +12,11 @@ from ideanet.codegen.code_diffuse import CodeDiffuser
 from ideanet.codegen.code_diffuse_ideas import init_code_for_wm
 from ideanet.core.idea import IdeaResult, Idea, WorkingMemory
 from ideanet.core.ideabase import Ideabase
-from leeq import Experiment
+
 from leeq.utils import is_running_in_jupyter
 
 _leeq_idea_base = None
 _aeval = None
-
-
 
 
 class LeeQExpIdea(Idea):
@@ -91,6 +89,7 @@ def build_leeq_idea_base(refresh=False) -> Ideabase:
 
     module_root = get_tree_for_module(builtin)
     ideas = []
+    from leeq import Experiment
     for node in module_root.iter_subtree_with_dfs():
         if get_type(node) == "class":
             class_obj = get_obj(node)
