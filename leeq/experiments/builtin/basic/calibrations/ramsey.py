@@ -9,13 +9,9 @@ from labchronicle import register_browser_function, log_and_record
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
-from leeq import Experiment, SweepParametersSideEffectFactory, Sweeper
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
+from leeq import Experiment
 from leeq.utils.compatibility import *
-from leeq.theory import fits
 from plotly import graph_objects as go
-
-from leeq.utils.prompt import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 

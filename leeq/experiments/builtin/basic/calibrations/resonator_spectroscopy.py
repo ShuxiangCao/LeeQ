@@ -3,11 +3,9 @@ import pickle
 import numpy as np
 from typing import Optional, Union
 from scipy import optimize as so
-import plotly.graph_objects as go
 import plotly
 from labchronicle import log_and_record, register_browser_function
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
-from leeq.core.primitives.built_in.common import *
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import SweepParametersSideEffectFactory
 from leeq import Experiment, Sweeper, ExperimentManager, setup
@@ -17,7 +15,7 @@ from typing import List, Tuple, Dict, Any
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
-from leeq.utils.prompt import visual_analyze_prompt
+from leeq.utils.ai.prompt import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 

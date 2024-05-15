@@ -1,15 +1,13 @@
-import numpy as np
-import plotly.graph_objects as go
 from labchronicle import log_and_record, register_browser_function
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, ExperimentManager
 from leeq.utils.compatibility import *
 
-from typing import Dict, Any, Union, List, Tuple, Optional
+from typing import Dict, Any, Union, Optional
 import numpy as np
 import plotly.graph_objects as go
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
-from leeq.utils.prompt import visual_analyze_prompt
+from leeq.utils.ai.prompt import visual_analyze_prompt
 
 
 class QubitSpectroscopyFrequency(Experiment):

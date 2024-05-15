@@ -1,19 +1,17 @@
 from sklearn.pipeline import Pipeline
-from typing import Optional, Union, List, Dict, Any
+from typing import Optional, Union, List, Dict
 from plotly import graph_objects as go
 from plotly import subplots
-from sklearn import mixture
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from labchronicle import register_browser_function, log_and_record
 from leeq import *
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel, \
-    LogicalPrimitiveBlockSerial
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.simulation.numpy.dispersive_readout.simulator import DispersiveReadoutSimulatorSyntheticData
 from leeq.utils import setup_logging
-from leeq.utils.prompt import visual_analyze_prompt
+from leeq.utils.ai.prompt import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 
