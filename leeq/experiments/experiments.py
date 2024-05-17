@@ -45,6 +45,91 @@ class Experiment(LeeQObject):
          allows the function to be executed later when data loaded from the log file.
     """
 
+    def _run_ai_inspection_on_single_function(self, func):
+        """
+        Run the AI inspection on a single function.
+
+        Parameters:
+            func (callable): The function to analyze.
+        Returns:
+            dict: The result of the analysis.
+        """
+        try:
+            if has_visual_analyze_prompt(func):
+                if not hasattr(func, '_image'):
+                    self._execute_single_browsable_plot_function(func)
+                print(f"AI is thinking...")
+                inspect_answer = func.ai_inspect()
+                return inspect_answer
+
+        except Exception as e:
+            self.logger.warning(
+                f"Error when running single AI inspection on {func.__qualname__}: {e}"
+            )
+            self.logger.warning(f"Ignore the error and continue.")
+            self.logger.warning(f"{e}")
+
+        return None
+
+    def _execute_browsable_plot_function(self):
+        """
+        Execute the browsable plot function.
+        """
+        for name, func in self.get_browser_functions():
+            try:
+                self._execute_single_browsable_plot_function(func)
+            except Exception as e:
+                msg = f"Error when executing the browsable plot function {name}:{e}."
+                self.logger.warning(msg)
+
+    def _execute_single_browsable_plot_function(self, func: callable):
+        """
+        Execute the browsable plot function.
+
+        Parameters:
+            func (callable): The browsable plot function.
+
+        """
+        f_args, f_kwargs = (
+            func._browser_function_args,
+            func._browser_function_kwargs,
+        )
+
+        # For compatibility, select the argument that the function
+        # accepts with inspect
+        sig = inspect.signature(func)
+
+        # Extract the parameter names that the function accepts
+        valid_parameter_names = set(sig.parameters.keys())
+
+        # Filter the kwargs
+        filtered_kwargs = {
+            k: v for k, v in f_kwargs.items() if k in valid_parameter_names}
+
+        try:
+            result = func(*f_args, **filtered_kwargs)
+            from leeq.utils.ai.utils import matplotlib_plotly_to_pil
+            image = matplotlib_plotly_to_pil(result)
+            func.__dict__['_result'] = result
+            func.__dict__['_image'] = image
+
+        except Exception as e:
+            self.logger.warning(
+                f"Error when executing {func.__qualname__} with parameters ({f_args},{f_kwargs}): {e}"
+            )
+            self.logger.warning(f"Ignore the error and continue.")
+            self.logger.warning(f"{e}")
+
+    def _get_all_ai_inspectable_functions(self) -> dict:
+        """
+        Get all the AI inspectable functions.
+
+        Returns:
+            dict: The AI inspectable functions.
+        """
+        return dict(
+            [(name, func) for name, func in self.get_browser_functions() if has_visual_analyze_prompt(func)])
+
     def __init__(self, *args, **kwargs):
         """
         Initialize the experiment.
@@ -87,33 +172,16 @@ class Experiment(LeeQObject):
 
         if show_plots or run_ai_inspection:
             for name, func in self.get_browser_functions():
-                f_args, f_kwargs = (
-                    func._browser_function_args,
-                    func._browser_function_kwargs,
-                )
-
-                # For compatibility, select the argument that the function
-                # accepts with inspect
-                sig = inspect.signature(func)
-
-                # Extract the parameter names that the function accepts
-                valid_parameter_names = set(sig.parameters.keys())
-
-                # Filter the kwargs
-                filtered_kwargs = {
-                    k: v for k, v in f_kwargs.items() if k in valid_parameter_names}
-
                 try:
-                    result = func(*f_args, **filtered_kwargs)
-                    from leeq.utils.ai.utils import matplotlib_plotly_to_pil
-                    image = matplotlib_plotly_to_pil(result)
-
+                    self._execute_single_browsable_plot_function(func)
+                    result, image = func._result, func._image
                 except Exception as e:
                     self.logger.warning(
-                        f"Error when executing {func.__qualname__} with parameters ({f_args},{f_kwargs}): {e}"
+                        f"Error when executing the browsable plot function {name}:{e}."
                     )
                     self.logger.warning(f"Ignore the error and continue.")
                     self.logger.warning(f"{e}")
+                    continue
 
                 if show_plots:
                     try:
@@ -126,24 +194,16 @@ class Experiment(LeeQObject):
                             plt.close(result)
                     except Exception as e:
                         self.logger.warning(
-                            f"Error when displaying experiment result of {func.__qualname__} with parameters ({f_args},{f_kwargs}): {e}"
+                            f"Error when displaying experiment result of {func.__qualname__}: {e}"
                         )
                         self.logger.warning(f"Ignore the error and continue.")
                         self.logger.warning(f"{e}")
 
                 if run_ai_inspection:
-                    try:
-                        if has_visual_analyze_prompt(func):
-                            print(f"AI is thinking...")
-                            inspect_answer = func.ai_inspect(image)
-                            markdown = "\n".join([f"***{key}***: {value}\n" for key, value in inspect_answer.items()])
-                            display(Markdown(markdown))
-                    except Exception as e:
-                        self.logger.warning(
-                            f"Error when doing AI inspection on {func.__qualname__} with parameters ({f_args},{f_kwargs}): {e}"
-                        )
-                        self.logger.warning(f"Ignore the error and continue.")
-                        self.logger.warning(f"{e}")
+                    inspect_answer = self._run_ai_inspection_on_single_function(func)
+                    if inspect_answer is not None:
+                        markdown = "\n".join([f"***{key}***: {value}\n" for key, value in inspect_answer.items()])
+                        display(Markdown(markdown))
 
     def run_simulated(self, *args, **kwargs):
         """
@@ -156,6 +216,32 @@ class Experiment(LeeQObject):
         The main experiment script. Should be decorated by `labchronicle.log_and_record` to log the experiment.
         """
         raise NotImplementedError()
+
+    def get_ai_inspection_results(self):
+        """
+        Get the AI inspection results.
+
+        Returns:
+            dict: The AI inspection results.
+        """
+        ai_inspection_results = {}
+        for name, func in self._get_all_ai_inspectable_functions().items():
+
+            if hasattr(func, '_ai_inspect_result'):
+                ai_inspection_results[name] = func._ai_inspect_result
+                continue
+            try:
+                ai_inspection_results[name] = self._run_ai_inspection_on_single_function(
+                    func)
+                ai_inspection_results[name] = func._ai_inspect_result
+            except Exception as e:
+                self.logger.warning(
+                    f"Error when doing get AI inspection on {func.__qualname__}: {e}"
+                )
+                self.logger.warning(f"Ignore the error and continue.")
+                self.logger.warning(f"{e}")
+
+        return ai_inspection_results
 
     def get_experiment_details(self):
         """

@@ -127,6 +127,14 @@ def _fast_visual_inspection(func, image=None, prompt=None, func_kwargs=None, llm
             raise ValueError(f"No default prompt for function {func.__qualname__}.")
 
     if image is None:
-        image = func(**func_kwargs)
+        if hasattr(func, '_image'):
+            image = func._image
+        else:
+            image = func(**func_kwargs)
+            func.__dict__['_image'] = image
 
-    return visual_inspection(image, prompt, **llm_kwargs)
+    res = visual_inspection(image, prompt, **llm_kwargs)
+
+    func.__dict__['_ai_inspect_result'] = res
+
+    return res
