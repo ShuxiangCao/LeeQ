@@ -35,14 +35,14 @@ Here are a few of im:
 - Do the AllXY drag experiment.
 </example>
 <instruction>
-You should output a python list. The keys should be indices of the sentences and the values should be the sentences. 
+You should output a JSON dict. The keys should be string of indices of the sentences and the values should be the sentences. 
 Each sentence should be complete and independent. Name of the experiment should be transformed to natural language and be mentioned.
 The sentences should be imperative and should be based on the documentation.
 You should output 4 sentences.
 </instruction>
 """
     chat = Chat(prompt)
-    res = chat.complete(parse="obj", expensive=True, cache=True)
+    res = chat.complete(parse="dict", expensive=True, cache=True)
     values = list(res.values())
     return values
 
@@ -64,7 +64,7 @@ You are trying to use some knowledge to rewrite some Python code.
 <knowledge>
 Whenever you need to run experiment `{self.exp_name}`, you should create a new instance of the experiment. The experiment
 will be carried out when the experiment object is created.
-To create new instance: `instruct_experiment = {self.exp_cls.__name__}(argument1,argument2, ...)`
+To create new instance: `experiment_<name> = {self.exp_cls.__name__}(argument1,argument2, ...)`
 Signature:
 {inspect.signature(self.exp_cls.run)}
 Documentation:
