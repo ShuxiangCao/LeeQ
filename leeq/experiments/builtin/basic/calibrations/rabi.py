@@ -14,6 +14,7 @@ from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
 
+__all__ = ["NormalisedRabi", "MultiQubitRabi"]
 
 class NormalisedRabi(Experiment):
     @log_and_record
@@ -328,6 +329,17 @@ class NormalisedRabi(Experiment):
         )
 
         return fig
+
+    def get_analyzed_result_prompt(self) -> str:
+        """
+        Get the prompt to analyze the result.
+
+        Returns:
+        str: The prompt to analyze the result.
+        """
+        return (f"The fitting result of the Rabi oscillation suggest the amplitude of {self.fit_params['Amplitude']}, "
+                f"the frequency of {self.fit_params['Frequency']}, the phase of {self.fit_params['Phase']}. The offset of"
+                f" {self.fit_params['Offset']}. The suggested new driving amplitude is {self.guess_amp}.")
 
 
 class MultiQubitRabi(Experiment):

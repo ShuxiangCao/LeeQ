@@ -1,4 +1,6 @@
 import datetime
+from typing import Union
+
 from IPython.display import display
 import inspect
 
@@ -217,6 +219,16 @@ class Experiment(LeeQObject):
         """
         raise NotImplementedError()
 
+    def get_analyzed_result_prompt(self)->Union[str,None]:
+        """
+        Get the natual language description of the analyzed result for AI.
+
+        Returns
+        -------
+        str: The prompt to analyze the result.
+        """
+        return None
+
     def get_ai_inspection_results(self):
         """
         Get the AI inspection results.
@@ -240,6 +252,11 @@ class Experiment(LeeQObject):
                 )
                 self.logger.warning(f"Ignore the error and continue.")
                 self.logger.warning(f"{e}")
+
+        fitting_results = self.get_analyzed_result_prompt()
+
+        if fitting_results is not None:
+            ai_inspection_results['fitting'] = fitting_results
 
         return ai_inspection_results
 

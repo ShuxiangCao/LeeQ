@@ -19,6 +19,12 @@ from leeq.utils.ai.vlms import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 
+__all__ = [
+    'ResonatorSweepTransmissionWithExtraInitialLPB',
+    'ResonatorSweepTransmissionWithExtraInitialLPB',
+    'ResonatorSweepAmpFreqWithExtraInitialLPB',
+    'ResonatorSweepTransmissionXiComparison'
+]
 
 class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
     """
@@ -460,6 +466,23 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             )
 
         return fig
+
+    def get_analyzed_result_prompt(self) -> str:
+        """
+        Get the analyzed result prompt.
+
+        Returns:
+            str: The analyzed result prompt.
+        """
+
+        try:
+            z, f0, Q, amp, baseline, direction = self._fit_phase_gradient()
+            fit_succeed = True
+        except Exception as e:
+            return f"The experiment has an error fitting phase gradient: {e}"
+
+        return ("The fitting suggest that the resonant frequency is at %f MHz, "
+                "with a quality factor of %f, an amplitude of %f, and a baseline of %f.") % (f0, Q, amp, baseline)
 
 
 class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):

@@ -11,6 +11,10 @@ from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_exp_decay_with_cov
 from leeq.theory.utils import to_dense_probabilities
 from leeq.utils.compatibility import *
 
+__all__ = [
+    'SpinEchoMultiLevel',
+    'MultiQubitSpinEchoMultiLevel'
+]
 
 class SpinEchoMultiLevel(
     Experiment):  # Class names should follow the CapWords convention

@@ -10,6 +10,7 @@ from leeq.theory.cliffords import get_clifford_from_id
 from leeq.utils.compatibility import prims
 import scipy.optimize as so
 
+__all__ = ['RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem']
 
 class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
     """

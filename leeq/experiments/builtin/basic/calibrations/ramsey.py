@@ -10,11 +10,13 @@ from labchronicle import register_browser_function, log_and_record
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
 from leeq import Experiment
+from leeq.utils.ai import visual_analyze_prompt
 from leeq.utils.compatibility import *
 from plotly import graph_objects as go
 
 logger = setup_logging(__name__)
 
+__all__ = ['SimpleRamseyMultilevel', 'MultiQubitRamseyMultilevel']
 
 class SimpleRamseyMultilevel(Experiment):
     """
@@ -64,13 +66,13 @@ class SimpleRamseyMultilevel(Experiment):
         original_freq = c1q['Xp'].freq
         self.original_freq = original_freq
 
-        delay = prims.Delay(0) # Create a delay primitive
+        delay = prims.Delay(0)  # Create a delay primitive
 
         # Update the frequency with the calculated offset
         c1q.update_parameters(
             freq=original_freq +
-            set_offset /
-            self.level_diff)
+                 set_offset /
+                 self.level_diff)
 
         # Setup the sweeper for the Ramsey experiment
         swp = sweeper(
@@ -159,12 +161,12 @@ class SimpleRamseyMultilevel(Experiment):
 
         t = np.arange(start, stop, step)
 
-        if isinstance(virtual_transmon.t1,list) :
+        if isinstance(virtual_transmon.t1, list):
             t1 = virtual_transmon.t1[0]
         else:
             t1 = virtual_transmon.t1
 
-        decay_rate = 1/t1
+        decay_rate = 1 / t1
 
         # Ramsey fringes formula
 
@@ -178,9 +180,8 @@ class SimpleRamseyMultilevel(Experiment):
         quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
         standard_deviation = np.sum(quiescent_state_distribution[1:])
 
-        random_noise_factor = 1+np.random.normal(
+        random_noise_factor = 1 + np.random.normal(
             0, standard_deviation, self.data.shape)
-
 
         self.data = np.clip(self.data * quiescent_state_distribution[0] * random_noise_factor, 0, 1)
 
@@ -250,7 +251,7 @@ class SimpleRamseyMultilevel(Experiment):
             self.fit_params = fit_1d_freq_exp_with_cov(
                 self.data, dt=args['step'])
             fitted_freq_offset = (
-                self.fit_params['Frequency'][0] - self.set_offset) / self.level_diff
+                                         self.fit_params['Frequency'][0] - self.set_offset) / self.level_diff
             self.frequency_guess = self.original_freq - fitted_freq_offset
             self.error_bar = self.fit_params['Frequency'][1]
 
@@ -260,7 +261,7 @@ class SimpleRamseyMultilevel(Experiment):
             self.error_bar = np.inf
 
     def dump_results_and_configuration(self) -> Tuple[
-            float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
+        float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
         """
         Dump the results and configuration of the experiment.
 
@@ -275,6 +276,16 @@ class SimpleRamseyMultilevel(Experiment):
         return self.frequency_guess, self.error_bar, self.trace, args, datetime.datetime.now()
 
     @register_browser_function(available_after=('run',))
+    @visual_analyze_prompt("""
+        Here is a plot of data from a quantum mechanics experiment involving Ramsey oscillations. Can you analyze whether 
+            this plot shows a successful experiment or a failed one? Please consider the following aspects in your analysis:
+        1. Clarity of Oscillation: Describe if the data points show a clear, regular oscillatory pattern.
+        2. Fit Quality: Evaluate whether the fit line closely follows the data points throughout the plot.
+        3. Data Spread: Assess if the data points are tightly clustered around the fit line or if they are widely dispersed.
+        4. Amplitude and Frequency: Note any inconsistencies in the amplitude and frequency of the oscillations.
+        5. Overall Pattern: Provide a general assessment of the plot based on the typical characteristics of successful
+            Ramsey oscillation experiments.
+        """)
     def plot(self) -> go.Figure:
         """
         Plots the Ramsey decay with fitted curve using data from the experiment.
@@ -307,13 +318,13 @@ class SimpleRamseyMultilevel(Experiment):
             frequency = self.fit_params['Frequency'][0]
             amplitude = self.fit_params['Amplitude'][0]
             phase = self.fit_params['Phase'][0] - \
-                2.0 * np.pi * frequency * args['start']
+                    2.0 * np.pi * frequency * args['start']
             offset = self.fit_params['Offset'][0]
             decay = self.fit_params['Decay'][0]
 
             # Generate the fitted curve
             fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * \
-                np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
+                           np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
 
             fig.add_trace(
                 go.Scatter(
@@ -383,6 +394,22 @@ class SimpleRamseyMultilevel(Experiment):
                           plot_bgcolor="white")
         return fig
 
+    def get_analyzed_result_prompt(self) -> str:
+        """
+        Get a prompt for the analyzed result of the Ramsey experiment.
+
+        Returns:
+            A string containing the prompt for the analyzed result.
+        """
+
+        self.analyze_data()
+
+        if self.error_bar == np.inf:
+            return "The Ramsey experiment failed to fit the data."
+
+        return (f"The Ramsey experiment for qubit {self.retrieve_args(self.run)['qubit'].hrid} has been analyzed. " \
+                f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured offset is "
+                f"{self.fitted_freq_offset:.3f}+- {self.error_bar:.3f} MHz.")
 
 class MultiQubitRamseyMultilevel(Experiment):
     """
@@ -457,8 +484,8 @@ class MultiQubitRamseyMultilevel(Experiment):
         for i, c1 in enumerate(c1s):
             c1.update_parameters(
                 freq=original_freqs[i] +
-                set_offset /
-                self.level_diffs[i])
+                     set_offset /
+                     self.level_diffs[i])
 
         # Setup the sweeper for the Ramsey experiment
         swp = sweeper(
@@ -483,7 +510,7 @@ class MultiQubitRamseyMultilevel(Experiment):
 
         # Construct the logic primitive block
         lpb = prims.ParallelLPB([c1['Xp'] for c1 in c1s]) + delay + \
-            prims.ParallelLPB([c1['Xm'] for c1 in c1s]) + prims.ParallelLPB(mprims)
+              prims.ParallelLPB([c1['Xm'] for c1 in c1s]) + prims.ParallelLPB(mprims)
 
         if initial_lpb is not None:
             lpb = initial_lpb + lpb
@@ -607,7 +634,7 @@ class MultiQubitRamseyMultilevel(Experiment):
         frequency = fit_params['Frequency'][0]
         amplitude = fit_params['Amplitude'][0]
         phase = fit_params['Phase'][0] - 2.0 * \
-            np.pi * frequency * args['start']
+                np.pi * frequency * args['start']
         offset = fit_params['Offset'][0]
         decay = fit_params['Decay'][0]
 
