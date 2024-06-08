@@ -252,6 +252,7 @@ class SimpleRamseyMultilevel(Experiment):
                 self.data, dt=args['step'])
             fitted_freq_offset = (
                                          self.fit_params['Frequency'][0] - self.set_offset) / self.level_diff
+            self.fitted_freq_offset = fitted_freq_offset
             self.frequency_guess = self.original_freq - fitted_freq_offset
             self.error_bar = self.fit_params['Frequency'][1]
 
@@ -591,6 +592,7 @@ class MultiQubitRamseyMultilevel(Experiment):
                 self.level_diffs[i] for i in range(
                     len(
                         self.data))]
+            self.fitted_freq_offsets = fitted_freq_offsets
             self.frequency_guess = [
                 self.original_freqs[i] - fitted_freq_offset for i,
                 fitted_freq_offset in enumerate(fitted_freq_offsets)]
