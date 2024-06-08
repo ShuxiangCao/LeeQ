@@ -208,7 +208,8 @@ class NormalisedRabi(Experiment):
     2. Fit Quality: Evaluate whether the fit line closely follows the data points throughout the plot.
     3. Data Spread: Assess if the data points are tightly clustered around the fit line or if they are widely dispersed.
     4. Amplitude and Frequency: Note any inconsistencies in the amplitude and frequency of the oscillations.
-    5. Overall Pattern: Provide a general assessment of the plot based on the typical characteristics of successful
+    5. Count the Number of Oscillations: Determine the number of oscillations present in the plot.
+    6. Overall Pattern: Provide a general assessment of the plot based on the typical characteristics of successful
         Rabi oscillation experiments.
     """)
     def plot(self) -> go.Figure:
