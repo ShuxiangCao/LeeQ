@@ -289,78 +289,79 @@ class MultiQubitT1(Experiment):
         return fig
 
 
-class MultiQuditT1Decay(Experiment):
-    color_set = ['orange', 'b', 'g', 'r']
-
-    title_dict = {
-        '00': rf"Qubit prepared to |0$\rangle$",
-        '01': rf"Qubit prepared to |1$\rangle$",
-        '12': rf"Qubit prepared to |2$\rangle$",
-        '23': rf"Qubit prepared to |3$\rangle$",
-        0: rf"Qubit prepared to |0$\rangle$",
-        1: rf"Qubit prepared to |1$\rangle$",
-        2: rf"Qubit prepared to |2$\rangle$",
-        3: rf"Qubit prepared to |3$\rangle$",
-    }
-
-    @log_and_record
-    def run(self,
-            duts: List[Any],
-            time_length: float = 200,
-            time_resolution: float = 5,
-            mprim_indexes: Union[int, List[int]] = 2
-            ):
-        """
-        Run the T1 experiment with the specified parameters.
-
-        Parameters:
-        duts (List[Any]): A list of qubit objects to be used in the experiment.
-        time_length (float): Total time length of the experiment in microseconds.
-        time_resolution (float): Time resolution for the experiment in microseconds.
-        mprim_indexes (Union[int, List[int]]): Index of the measurement primitive.
-        """
-
-        self.time_length = time_length
-        self.time_resolution = time_resolution
-
-        if isinstance(mprim_indexes, int):
-            mprim_indexes = [mprim_indexes] * len(duts)
-
-        c1_01s = [dut.get_c1('f01') for dut in duts]
-        c1_12s = [dut.get_c1('f12') for dut in duts]
-        c1_23s = [dut.get_c1('f23') for dut in duts]
-
-        c1_01_pulses = prims.ParallelLPB([c1['X'] for c1 in c1_01s])
-        c1_12_pulses = prims.ParallelLPB([c1['X'] for c1 in c1_12s])
-        c1_23_pulses = prims.ParallelLPB([c1['X'] for c1 in c1_23s])
-
-        delay = prims.Delay(0)
-
-        lpb = SweepLPB([
-            c1_01_pulses,
-            c1_01_pulses + c1_12_pulses,
-            c1_01_pulses + c1_12_pulses + c1_23_pulses]
-        )
-
-        swp_lpb = sweeper.from_sweep_lpb(lpb)
-
-        delay = prims.Delay(0)
-
-        lpb = lpb + delay
-        swp_time = sweeper(np.arange, n_kwargs={'start': 0.0, 'stop': time_length, 'step': time_resolution},
-                      params=[sparam.func(delay.set_delay, {}, 'delay')])
-
-
-
-        mprims = [dut.get_measurement_prim_intlist(mprim_index) for mprim_index,dut in zip(mprim_indexes,duts)]
-
-        lpb = lpb + prims.ParallelLPB(mprims)
-
-        basic(lpb, swp_time + swp_lpb, '<zs>')
-
-        self.results = [
-            np.squeeze(mprim.result()) for mprim in mprims
-        ]
-
-    def analyze_data(self):
-        pass
+# class
+#     (Experiment):
+#     color_set = ['orange', 'b', 'g', 'r']
+#
+#     title_dict = {
+#         '00': rf"Qubit prepared to |0$\rangle$",
+#         '01': rf"Qubit prepared to |1$\rangle$",
+#         '12': rf"Qubit prepared to |2$\rangle$",
+#         '23': rf"Qubit prepared to |3$\rangle$",
+#         0: rf"Qubit prepared to |0$\rangle$",
+#         1: rf"Qubit prepared to |1$\rangle$",
+#         2: rf"Qubit prepared to |2$\rangle$",
+#         3: rf"Qubit prepared to |3$\rangle$",
+#     }
+#
+#     @log_and_record
+#     def run(self,
+#             duts: List[Any],
+#             time_length: float = 200,
+#             time_resolution: float = 5,
+#             mprim_indexes: Union[int, List[int]] = 2
+#             ):
+#         """
+#         Run the T1 experiment with the specified parameters.
+#
+#         Parameters:
+#         duts (List[Any]): A list of qubit objects to be used in the experiment.
+#         time_length (float): Total time length of the experiment in microseconds.
+#         time_resolution (float): Time resolution for the experiment in microseconds.
+#         mprim_indexes (Union[int, List[int]]): Index of the measurement primitive.
+#         """
+#
+#         self.time_length = time_length
+#         self.time_resolution = time_resolution
+#
+#         if isinstance(mprim_indexes, int):
+#             mprim_indexes = [mprim_indexes] * len(duts)
+#
+#         c1_01s = [dut.get_c1('f01') for dut in duts]
+#         c1_12s = [dut.get_c1('f12') for dut in duts]
+#         c1_23s = [dut.get_c1('f23') for dut in duts]
+#
+#         c1_01_pulses = prims.ParallelLPB([c1['X'] for c1 in c1_01s])
+#         c1_12_pulses = prims.ParallelLPB([c1['X'] for c1 in c1_12s])
+#         c1_23_pulses = prims.ParallelLPB([c1['X'] for c1 in c1_23s])
+#
+#         delay = prims.Delay(0)
+#
+#         lpb = SweepLPB([
+#             c1_01_pulses,
+#             c1_01_pulses + c1_12_pulses,
+#             c1_01_pulses + c1_12_pulses + c1_23_pulses]
+#         )
+#
+#         swp_lpb = sweeper.from_sweep_lpb(lpb)
+#
+#         delay = prims.Delay(0)
+#
+#         lpb = lpb + delay
+#         swp_time = sweeper(np.arange, n_kwargs={'start': 0.0, 'stop': time_length, 'step': time_resolution},
+#                       params=[sparam.func(delay.set_delay, {}, 'delay')])
+#
+#
+#
+#         mprims = [dut.get_measurement_prim_intlist(mprim_index) for mprim_index,dut in zip(mprim_indexes,duts)]
+#
+#         lpb = lpb + prims.ParallelLPB(mprims)
+#
+#         basic(lpb, swp_time + swp_lpb, '<zs>')
+#
+#         self.results = [
+#             np.squeeze(mprim.result()) for mprim in mprims
+#         ]
+#
+#     def analyze_data(self):
+#         pass
