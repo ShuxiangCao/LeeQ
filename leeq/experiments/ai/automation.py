@@ -3,13 +3,10 @@ import numpy as np
 
 from labchronicle import register_browser_function, log_and_record
 
-from leeq import Experiment
+from ..experiments import Experiment
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
 
 from leeq.utils import setup_logging
-from leeq.utils.ai.staging.stage_execution import Stage, get_exp_from_var_table, get_codegen_wm, get_code_from_wm
-from leeq.utils.ai.staging.stage_generation import stages_to_html
-from leeq.utils.ai.display_chat.notebooks import display_chat,code_to_html, dict_to_html
 from leeq.utils.notebook import show_spinner, hide_spinner
 
 logger = setup_logging(__name__)
@@ -22,7 +19,7 @@ class AIStagedExperiment(Experiment):
     An experiment that contains multiple stages to be run.
     """
 
-    def run(self, stages: List[Stage], **kwargs):
+    def run(self, stages: List['Stage'], **kwargs):
         """
         Run the staged experiment powered by language model.
 
@@ -41,6 +38,10 @@ class AIStagedExperiment(Experiment):
         from ideanet.codegen.codegen_cog_model import CodegenModel
         from leeq.utils.ai.staging.stage_transition import get_next_stage_label
         from leeq.utils.ai.staging.stage_transition import generate_new_stage_description
+        from leeq.utils.ai.staging.stage_execution import Stage, get_exp_from_var_table, get_codegen_wm, \
+            get_code_from_wm
+        from leeq.utils.ai.staging.stage_generation import stages_to_html
+        from leeq.utils.ai.display_chat.notebooks import display_chat, code_to_html, dict_to_html
 
         stages_html = stages_to_html(stages)
         display_chat("Stage planning AI",'#fff0f5',"The planned experiments are:<br>"+stages_html)
@@ -58,7 +59,7 @@ class AIStagedExperiment(Experiment):
         var_table.add_parent_table(exps_var_table)
         var_table.add_parent_table(input_var_table)
         self.n_step_multiplier = 6  # Multiplier to control the number of execution steps
-        def run_stage_description(stage: Stage):
+        def run_stage_description(stage: 'Stage'):
             """
             Run the stage description powered by language model.
 

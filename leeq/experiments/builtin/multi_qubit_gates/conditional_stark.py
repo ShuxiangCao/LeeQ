@@ -128,20 +128,19 @@ class ConditionalStarkTuneUpRabiXY(experiment):
 
         basic(lpb, swp=swp + swp_flip + swp_readout, basis="<z>")
 
-        self.result = mprim_target.result()
-        self.result_control = mprim_control.result()
+        self.result = np.squeeze(mprim_target.result())
+        self.result_control = np.squeeze(mprim_control.result())
 
-    @register_browser_function(available_after=(run,))
     def analyze_results(self):
-        print("Shape of result@register_browser_function(available_after=(run,)):", self.result.shape)
+        print("Shape of result:", self.result.shape)
 
         self.fitting_2D = []
         for i in range(2):
-            self.real_part = self.result[:, i, 0, 0]
-            self.imag_part = self.result[:, i, 1, 0]
+            self.real_part = self.result[:, i, 0]
+            self.imag_part = self.result[:, i, 1]
             self.complex_data = self.real_part + 1j * self.imag_part
 
-            self.fit_result = Fit_2D_Freq(self.complex_data, dt=self.step)
+            self.fit_result = fits.fit_2d_freq(self.complex_data, dt=self.step)
             self.fitting_2D.append(self.fit_result)
             print(f"Fit Results for {i}: {self.fit_result}")  # Debugging output
 
@@ -160,7 +159,6 @@ class ConditionalStarkTuneUpRabiXY(experiment):
             'phase_contribution_from_pulse_rise_up': self.phase_contribution_from_pulse_rise_up
         }
 
-    @register_browser_function(available_after=(run,))
     def analyze_results_with_errs(self):
         print("Shape of result:", self.result.shape)
 
@@ -168,8 +166,8 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         self.fitting_2D_cf = []
 
         for i in range(2):
-            self.real_part = self.result[:, i, 0, 0]
-            self.imag_part = self.result[:, i, 1, 0]
+            self.real_part = self.result[:, i, 0]
+            self.imag_part = self.result[:, i, 1]
             self.complex_data = self.real_part + 1j * self.imag_part
 
             fit_results = Fit_2D_Freq_Master(self.complex_data, dt=self.step)
@@ -232,8 +230,8 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         self.fitting_2D = []
         self.rescaled_fitting_2D = []
         for i in range(2):
-            self.real_part = self.result[:, i, 0, 0]
-            self.imag_part = self.result[:, i, 1, 0]
+            self.real_part = self.result[:, i, 0]
+            self.imag_part = self.result[:, i, 1]
             self.complex_data = self.real_part + 1j * self.imag_part
 
             # Fit original data
@@ -309,6 +307,8 @@ class ConditionalStarkTuneUpRabiXY(experiment):
     @register_browser_function(available_after=(run,))
     def plot(self):
 
+        self.analyze_results()
+
         args = {'start': self.start, 'stop': self.stop, 'step': self.step}
 
         t = np.arange(args['start'], args['stop'], args['step'])
@@ -322,7 +322,6 @@ class ConditionalStarkTuneUpRabiXY(experiment):
             a = fit_params['Amplitude']
             p = fit_params['Phase'] - 2.0 * np.pi * f * args['start']
             o = fit_params['Offset']
-            decay = fit_params['Decay']
 
             # fit = a * np.exp(-decay * t_interpolate) * np.exp(1j * (2.0 * np.pi * f * t_interpolate + p)) + o
             fit = a * np.exp(1.j * (2.0 * np.pi * f * t_interpolate + p)) + o
@@ -340,6 +339,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         plt.xlabel("Pulse width [us]")
         plt.ylabel("<X>")
         plt.legend()
+        plt.show()
 
         plt.figure(figsize=(20, 5))
         plt.title(f"ZZ interaction Hamiltonian tomography - Y axis")
@@ -353,7 +353,6 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         plt.legend()
         plt.show()
 
-    @register_browser_function(available_after=(run,))
     def plot_blochsphere(self):
         # Define colors
         dark_navy = '#000080'
@@ -433,7 +432,6 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         plt.tight_layout()
         plt.show()
 
-    @register_browser_function(available_after=(run,))
     def plot_rescaled_after_fit(self):
         args = {'start': self.start, 'stop': self.stop, 'step': self.step}
 

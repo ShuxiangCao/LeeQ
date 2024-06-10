@@ -61,7 +61,7 @@ class Experiment(LeeQObject):
         try:
             if has_visual_analyze_prompt(func):
                 if not hasattr(func, '_image'):
-                    self._execute_single_browsable_plot_function(func)
+                    self._execute_single_browsable_plot_function(func, build_static_image=True)
 
                 spinner_id = show_spinner(f"Vision AI is inspecting plots...")
                 inspect_answer = func.ai_inspect()
@@ -77,23 +77,28 @@ class Experiment(LeeQObject):
 
         return None
 
-    def _execute_browsable_plot_function(self):
-        """
-        Execute the browsable plot function.
-        """
-        for name, func in self.get_browser_functions():
-            try:
-                self._execute_single_browsable_plot_function(func)
-            except Exception as e:
-                msg = f"Error when executing the browsable plot function {name}:{e}."
-                self.logger.warning(msg)
-
-    def _execute_single_browsable_plot_function(self, func: callable):
+    def _execute_browsable_plot_function(self, build_static_image=False):
         """
         Execute the browsable plot function.
 
         Parameters:
+            build_static_image (bool): Whether to build the static image.
+        """
+        for name, func in self.get_browser_functions():
+            try:
+                self._execute_single_browsable_plot_function(func, build_static_image=build_static_image)
+            except Exception as e:
+                msg = f"Error when executing the browsable plot function {name}:{e}."
+                self.logger.warning(msg)
+
+    def _execute_single_browsable_plot_function(self, func: callable, build_static_image=False):
+        """
+        Execute the browsable plot function. The result and image will be stored in the function object
+        attributes '_result' and '_image'.
+
+        Parameters:
             func (callable): The browsable plot function.
+            build_static_image (bool): Whether to build the static image.
 
         """
         f_args, f_kwargs = (
@@ -112,12 +117,14 @@ class Experiment(LeeQObject):
         filtered_kwargs = {
             k: v for k, v in f_kwargs.items() if k in valid_parameter_names}
 
+        result = None
+
         try:
             result = func(*f_args, **filtered_kwargs)
-            from leeq.utils.ai.utils import matplotlib_plotly_to_pil
-            image = matplotlib_plotly_to_pil(result)
-            func.__dict__['_result'] = result
-            func.__dict__['_image'] = image
+            if build_static_image:
+                from leeq.utils.ai.utils import matplotlib_plotly_to_pil
+                image = matplotlib_plotly_to_pil(result)
+                func.__dict__['_image'] = image
 
         except Exception as e:
             self.logger.warning(
@@ -125,6 +132,8 @@ class Experiment(LeeQObject):
             )
             self.logger.warning(f"Ignore the error and continue.")
             self.logger.warning(f"{e}")
+
+        func.__dict__['_result'] = result
 
     def _get_all_ai_inspectable_functions(self) -> dict:
         """
@@ -180,7 +189,7 @@ class Experiment(LeeQObject):
             for name, func in self.get_browser_functions():
                 try:
                     self._execute_single_browsable_plot_function(func)
-                    result, image = func._result, func._image
+                    result = func._result
                 except Exception as e:
                     self.logger.warning(
                         f"Error when executing the browsable plot function {name}:{e}."

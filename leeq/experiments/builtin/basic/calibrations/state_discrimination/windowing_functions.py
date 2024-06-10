@@ -21,7 +21,7 @@ colors = [
     '#17becf']
 
 
-class MeasurementCalibrationTraces(Experiment):
+class MeasurementCollectTraces(Experiment):
     @log_and_record
     def run(self,
             duts: 'TransmonElement',
@@ -30,16 +30,12 @@ class MeasurementCalibrationTraces(Experiment):
             number_of_traces: int = 100,
             samples_per_seg=256):
         """
-        Run the measurement process on a transmon qubit, potentially
-        altering frequency and amplitude, and calculate the signal-to-noise ratio.
+        Run the experiment to collect measurement traces for the qubit.
 
         Parameters:
         dut (TransmonElement): The qubit instance.
         sweep_lpb_list (List[LogicalPrimitiveBlock]): List of LPBs to be included in the sweep.
         mprim_index (int): Index of the measurement primitive in use.
-
-        Returns:
-        None: This method updates class attributes with the results.
         """
 
         original_acquisition_type = setup().status().get_param("Acquisition_Type")

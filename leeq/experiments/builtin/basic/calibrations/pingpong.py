@@ -210,8 +210,7 @@ class PingPongSingleQubitMultilevel(Experiment):
         axes.set_xlabel(u"Repetition")
         axes.set_ylabel(u"<z>")
 
-        plt.show()
-
+        return fig
 
 class PingPongMultiQubitMultilevel(Experiment):
     """
@@ -322,7 +321,8 @@ class PingPongMultiQubitMultilevel(Experiment):
         Plots the results of the ping pong experiment.
         """
         for i in range(len(self.results)):
-            self.plot(i)
+            fig = self.plot(i)
+            plt.show()
 
     def plot(self, i) -> None:
         """
@@ -342,7 +342,7 @@ class PingPongMultiQubitMultilevel(Experiment):
         axes.set_xlabel(u"Repetition")
         axes.set_ylabel(u"<z>")
         fig.suptitle(f"Qubit {duts[i].hrid}")
-        plt.show()
+        return fig
 
 
 class AmpTuneUpSingleQubitMultilevel(Experiment):

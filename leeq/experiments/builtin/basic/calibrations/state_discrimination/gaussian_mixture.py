@@ -357,8 +357,18 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         update_phase_for_two_level (bool): Flag to update the phase for two-level systems for further
             processing on FPGA mid-circuit measurement.
 
-        Returns:
-        None: This method updates class attributes with the results.
+        Example;
+            Run the experiment for a qubit system
+            >>> lpb_scan = (dut.get_c1('f01')['I'], dut.get_c1('f01')['X'])
+            >>> calib = MeasurementCalibrationMultilevelGMM(dut, mprim_index=0,sweep_lpb_list=lpb_scan)
+
+            Run the experiment for a qutrit system
+            >>> lpb_scan = (dut.get_c1('f01')['I'], dut.get_c1('f01')['X'],dut.get_c1('f01')['X']+dut.get_c1('f12')['X'])
+            >>> calib = MeasurementCalibrationMultilevelGMM(dut, mprim_index=1,sweep_lpb_list=lpb_scan)
+
+            Run the experiment for a 4-level system
+            >>> lpb_scan = (dut.get_c1('f01')['I'], dut.get_c1('f01')['X'], dut.get_c1('f01')['X']+dut.get_c1('f12')['X'],dut.get_c1('f01')['X']+dut.get_c1('f12')['X']+dut.get_c1('f23')['X'])
+            >>> calib = MeasurementCalibrationMultilevelGMM(dut, mprim_index=2,sweep_lpb_list=lpb_scan)
         """
 
         self.result = None

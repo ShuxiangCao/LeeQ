@@ -24,7 +24,7 @@ def matplotlib_plotly_to_pil(fig: Union[go.Figure, plt.Figure]):
     elif isinstance(fig, plt.Figure):
         fig.savefig(buf, format='png')
     else:
-        raise ValueError("The input must be a Matplotlib or Plotly figure.")
+        raise ValueError(f"The input must be a Matplotlib or Plotly figure. Got {type(fig)}.")
 
     buf.seek(0)
 
