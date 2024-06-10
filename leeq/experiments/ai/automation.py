@@ -99,12 +99,14 @@ class AIStagedExperiment(Experiment):
             if next_stage_label == "Complete":
 
                 display_chat("Stage Planning AI", '#fff0f5',
-                             f"Experiment complete.")
+                             f"Experiment complete.<br>"
+                                    f"{next_stage_info['analysis']}")
                 hide_spinner(spinner_id)
                 return
             elif next_stage_label == "Fail":
                 display_chat("Stage Planning AI", '#fff0f5',
-                             f"Experiment failed.")
+                             f"Experiment failed.<br>"
+                                    f"{next_stage_info['analysis']}")
                 hide_spinner(spinner_id)
                 return
             next_stage: Stage
@@ -117,7 +119,9 @@ class AIStagedExperiment(Experiment):
 
             new_description = generate_new_stage_description(next_stage, additional_info)
             hide_spinner(spinner_id)
-            display_chat("Stage Planning AI",'#fff0f5',f"Transitioning to the next stage {next_stage.label} with the following description:<br>{new_description}")
+            display_chat("Stage Planning AI",'#fff0f5',f"Transitioning to the next"
+                                        f" stage {next_stage.label} with the following description:<br>{new_description}<br>"
+                                                       f"{next_stage_info['analysis']}")
             next_stage.description = new_description
             curr_stage = next_stage
 
@@ -142,7 +146,7 @@ class AIInstructionExperiment(AIStagedExperiment):
         -------
         """
         from leeq.utils.ai.staging.stage_execution import Stage
-        stage = Stage("Stage1", "Experiment", prompt, "Go to Complete unless there is an error.")
+        stage = Stage("Stage1", "Experiment", prompt, "Go to Complete if success, otherwise go to Fail.")
         stage_complete = Stage("Complete", "Complete", "The experiment is complete.", "End of experiment.")
         stage_fail = Stage("Fail", "Fail", "The experiment has failed.", "End of experiment.")
         stages = [stage, stage_complete, stage_fail]

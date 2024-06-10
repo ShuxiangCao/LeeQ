@@ -787,3 +787,38 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         """
         if self.result is None:
             return go.Figure()
+
+
+    def get_analyzed_result_prompt(self) ->Union[str,None]:
+        """
+        Get the prompt for the analyzed result.
+
+        Returns:
+        """
+        result_data = self.result
+
+        if self.clf is None:
+            return None
+
+        distribution_prompt = []
+
+        for i in range(result_data.shape[1]):
+            percentage_strings = []
+            data = np.vstack([
+                np.real(result_data[:, i]),
+                np.imag(result_data[:, i])
+            ]).transpose()
+
+            state_label = self.clf.predict(data)
+            data = self.clf.named_steps['scaler'].transform(data)
+
+            for index in np.unique(state_label):
+                percentage = np.average((state_label == index).astype(int))
+                percentage_strings.append(f"{self.output_map[index]}: {percentage * 100:.2f}%")
+
+            distribution_prompt.append(f"Distribution {i}"+", ".join(percentage_strings))
+
+        distribution_prompt = "\n".join(distribution_prompt)
+
+        return (f"Signal to noise ratio: {self.snr}"
+                f"Distribution in the plot: {distribution_prompt}")
