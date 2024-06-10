@@ -50,13 +50,13 @@ Return in JSON format, example:
     return new_description
 
 
-def get_next_stage_label(current_stage: Stage, exp_object: Experiment)->dict[str, str]:
+def get_next_stage_label(current_stage: Stage, experiment_result: dict[str,str])->dict[str, str]:
     """
     Get the next stage label based on the current stage and the experiment object.
 
     Parameters:
         current_stage (Stage): The current stage.
-        exp_object (Experiment): The experiment object.
+        experiment_result (dict[str,str]): The experiment results.
 
     Returns:
         next_stage_label (dict[str,str]): The next stage label and the additional information for executing
@@ -64,7 +64,6 @@ def get_next_stage_label(current_stage: Stage, exp_object: Experiment)->dict[str
     """
 
     rules = current_stage.next_stage_guide
-    experiment_result = exp_object.get_ai_inspection_results()
 
     result_prompt = ""
 
@@ -90,6 +89,7 @@ Based on the rules and the result provided, determine the next stage of the stat
 """ + """
 Example JSON Output:
 {
+    "analysis": "<Your analysis of the results and the rules>",
     "next": "<Name of the next stage>",
     "additional_info": "<Natural language description of any information about changing the argument value of the next stage>"
 }

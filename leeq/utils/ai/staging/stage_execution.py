@@ -15,6 +15,27 @@ class Stage:
         self.next_stage_guide = next_stage_guide  # Guidance for transitioning to the next stage
         self.var_table = None  # Variable table specific to this stage, initialized later
 
+    def to_dict(self) -> dict:
+        """Converts the stage to a dictionary."""
+        return {
+            "Title": self.title,
+            "ExperimentDescription": self.description,
+            "Next": self.next_stage_guide,
+        }
+    def display(self):
+        """
+        Display information about the stage in a jupyter notebook.
+        First converts the stage to a dictionary into a markdown format.
+        then display it using IPython
+        """
+        from IPython.display import display, Markdown
+
+        stage_markdown = f"""##{self.title}
+        **Label**: {self.label}
+        **Description**: {self.description}
+        **Next Stage Guide**: {self.next_stage_guide}
+        """
+        display(Markdown(stage_markdown))
 
 def get_exp_from_var_table(var_table: VariableTable) -> Optional[Experiment]:
     """Searches the variable table for an Experiment object."""
@@ -55,6 +76,13 @@ def get_codegen_wm(description: str, var_table: VariableTable) -> WorkingMemory:
     wm = WorkingMemory()
     if not var_table.is_empty():
         var_table_in_prompt = var_table.get_local_prompt()
-        prompt = f'{var_table_in_prompt}\ndo("""{description}""")'
+        prompt = f'''
+{var_table_in_prompt}
+'''
         wm.add_item(WMemoryNoStimuliItem(prompt, "available_variables"))
+    prompt = f'''
+do("""{description}""")
+'''
+    wm.add_item(CodeWMemoryItem(prompt))
     return wm
+

@@ -16,6 +16,8 @@ from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import SetupStatusParameters
 from leeq.utils import Singleton, setup_logging, display_json_dict
+from leeq.utils.notebook import show_spinner,hide_spinner
+from leeq.utils.ai.display_chat.notebooks import display_chat, dict_to_html
 import leeq.experiments.plots.live_dash_app as live_monitor
 from leeq.utils.ai.vlms import has_visual_analyze_prompt
 
@@ -60,8 +62,10 @@ class Experiment(LeeQObject):
             if has_visual_analyze_prompt(func):
                 if not hasattr(func, '_image'):
                     self._execute_single_browsable_plot_function(func)
-                print(f"AI is thinking...")
+
+                spinner_id = show_spinner(f"Vision AI is inspecting plots...")
                 inspect_answer = func.ai_inspect()
+                hide_spinner(spinner_id)
                 return inspect_answer
 
         except Exception as e:
@@ -185,6 +189,7 @@ class Experiment(LeeQObject):
                     self.logger.warning(f"{e}")
                     continue
 
+
                 if show_plots:
                     try:
                         if isinstance(
@@ -204,8 +209,10 @@ class Experiment(LeeQObject):
                 if run_ai_inspection:
                     inspect_answer = self._run_ai_inspection_on_single_function(func)
                     if inspect_answer is not None:
-                        markdown = "\n".join([f"***{key}***: {value}\n" for key, value in inspect_answer.items()])
-                        display(Markdown(markdown))
+                        html = dict_to_html(inspect_answer)
+                        display_chat(agent_name=f"Inspection AI",
+                                     content='<br>'+html,
+                                     background_color='#f0f8ff')
 
     def run_simulated(self, *args, **kwargs):
         """

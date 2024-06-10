@@ -2,6 +2,29 @@ from typing import List
 
 from .stage_execution import Stage
 
+def stages_to_html(stages_list):
+
+    stages_dict = {stage.label: stage.to_dict() for stage in stages_list}
+
+    html_content = '<div style="font-family: Arial, sans-serif;">'
+
+    # Loop through each stage in the dictionary
+    for stage_key, stage_info in stages_dict.items():
+        # Skip "Complete" and "Fail" stages
+        if stage_key in ["Complete", "Fail"]:
+            continue
+
+        # Adding HTML content for each stage
+        html_content += f'''
+            <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 8px;">
+                <h3>{stage_info['Title']}</h3>
+                <p><strong>Description:</strong> {stage_info['ExperimentDescription']}</p>
+                <p><strong>Next Steps:</strong> {stage_info['Next']}</p>
+            </div>
+        '''
+
+    html_content += '</div>'
+    return html_content
 
 def get_stages_from_description(description: str) -> List[Stage]:
     """

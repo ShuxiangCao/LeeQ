@@ -8,7 +8,7 @@ from mllm.utils import parallel_map
 
 from ideanet.codegen.code_wmemory import CodeEditingItem
 from ideanet.core.idea import IdeaResult, WorkingMemory, LongTermMemory, EmbedIdea
-from var_table import VariableTable
+from .variable_table import VariableTable
 
 
 def imagine_applications(exp_cls: Type[Any]) -> List[str]:

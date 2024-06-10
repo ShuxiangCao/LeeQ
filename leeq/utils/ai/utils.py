@@ -17,16 +17,17 @@ def matplotlib_plotly_to_pil(fig: Union[go.Figure, plt.Figure]):
     """
 
     # Save the Matplotlib figure to a BytesIO object
-    buf = io.BytesIO()
 
+    buf = io.BytesIO()
     if isinstance(fig, go.Figure):
-        fig.write_image(buf, format='png')
+        fig.write_image(buf,format='png',engine='orca')
     elif isinstance(fig, plt.Figure):
         fig.savefig(buf, format='png')
     else:
         raise ValueError("The input must be a Matplotlib or Plotly figure.")
 
     buf.seek(0)
+
     # Open the image with PIL
     image = Image.open(buf)
     return image
