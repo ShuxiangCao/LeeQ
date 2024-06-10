@@ -11,7 +11,7 @@ from ideanet.core.idea import IdeaResult, WorkingMemory, LongTermMemory, EmbedId
 from .variable_table import VariableTable
 
 
-def imagine_applications(exp_cls: Type[Any]) -> List[str]:
+def imagine_applications(exp_name, exp_docs) -> List[str]:
     """
     Generate a list of imperative sentences based on the documentation of an experiment class method.
 
@@ -22,10 +22,10 @@ def imagine_applications(exp_cls: Type[Any]) -> List[str]:
         List[str]: A list of imperative sentences derived from the experiment's documentation.
     """
     # Retrieve the docstring for the `run` method of the experiment class
-    doc_string = inspect.getdoc(exp_cls.run)
+    doc_string = exp_docs
     # Construct the prompt for the Chat model
     prompt = f"""
-You are trying to produce imperative sentences that would invoke the execution of experiment `{exp_cls.__name__}` based on its documentation.
+You are trying to produce imperative sentences that would invoke the execution of experiment `{exp_name}` based on its documentation.
 <docstring>
 {doc_string}
 </docstring>
@@ -62,8 +62,11 @@ class LeeQExpIdea(EmbedIdea):
         exp_name = exp_cls.__name__
         self.exp_name = exp_name
         self.exp_cls = exp_cls
-        # Generating sentences for the idea
-        embedding_src = imagine_applications(exp_cls)
+        if "needing_situation" in exp_cls.__dict__:
+            embedding_src = exp_cls.needing_situations
+        else:
+            # Generating sentences for the idea
+            embedding_src = imagine_applications(exp_cls.__name__, inspect.getdoc(exp_cls.run))
         triggering_src = [exp_name] + embedding_src
         super().__init__(f"{exp_name} suggestion", triggering_src)
 
@@ -115,6 +118,20 @@ You should output a JSON dict. The keys should be
         return idea_res
 
 
+def add_leeq_exp_to_ltm(lt_memory: LongTermMemory, var_table: VariableTable, exp_cls: Type[Any]) -> None:
+    """
+    Add an experiment class to the long term memory and variable table for leeq.
+
+    Args:
+        lt_memory (LongTermMemory): The long term memory for leeq.
+        var_table (VariableTable): The variable table for leeq.
+        exp_cls (Type[Any]): The experiment class to be added.
+    """
+    idea = LeeQExpIdea(exp_cls)
+    lt_memory.add_idea(idea)
+    var_table.add_variable(exp_cls.__name__, exp_cls, exp_cls.__name__)
+
+
 def build_leeq_code_ltm() -> Tuple[LongTermMemory, VariableTable]:
     """
     Build the idea base for leeq. It scans built-in experiments and creates ideas for them.
@@ -123,6 +140,8 @@ def build_leeq_code_ltm() -> Tuple[LongTermMemory, VariableTable]:
         Tuple[LongTermMemory, VariableTable]: The long term memory for leeq and the loaded variable table.
     """
     from leeq.experiments.builtin.basic import calibrations
+
+    lt_memory = LongTermMemory()
     var_table = VariableTable()
     # Load the module root and scan for experiment classes
     module_root = get_tree_for_module(calibrations)
@@ -134,11 +153,11 @@ def build_leeq_code_ltm() -> Tuple[LongTermMemory, VariableTable]:
             if not issubclass(class_obj, Experiment):
                 continue
             classes.append(class_obj)
-            var_table.add_variable(class_obj.__name__, class_obj, class_obj.__name__)
 
-    lt_memory = LongTermMemory()
-    # Parallel map to create and add ideas to the long term memory
-    for i, idea in parallel_map(LeeQExpIdea, classes):
-        lt_memory.add_idea(idea)
+    def _add_leeq_exp_to_ltm(exp_cls: Type[Any]):
+        add_leeq_exp_to_ltm(lt_memory, var_table, exp_cls)
+
+    for i, idea in parallel_map(_add_leeq_exp_to_ltm, [cls for cls in classes], title = "Adding experiment to memory"):
+        ...
 
     return lt_memory, var_table
