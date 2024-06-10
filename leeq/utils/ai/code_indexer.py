@@ -88,9 +88,11 @@ Whenever you need to run experiment `{self.exp_name}`, you should create a new i
 will be carried out when the experiment object is created.
 To create new instance: `experiment_<name> = {self.exp_cls.__name__}(argument1,argument2, ...)`
 Signature:
-{inspect.signature(self.exp_cls.run)}
+<singature> {inspect.signature(self.exp_cls.run)} </signature>
 Documentation:
-{inspect.getdoc(self.exp_cls.run)}
+<documentation> 
+{inspect.getdoc(self.exp_cls.run)} 
+</documentation>
 </knowledge>
 The knowledge might be useful to implement some `do` functions in the code.
 {w_memory.get_in_prompt_format(tag="code_to_edit")}
