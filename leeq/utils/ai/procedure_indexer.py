@@ -1,3 +1,4 @@
+import inspect
 import os.path
 
 import markdown
@@ -61,6 +62,13 @@ def automated_experiment_factory(title_prompt):
         def run(self, **kwargs):
             super().run(prompt, **kwargs)
 
+    AutomatedExperiment.run.__doc__ = f"""
+Usage: put related variables in the kwargs and run the experiment.
+The keys can be just need to be reasonable and meaningful.
+Title: {title_prompt[0]}
+{title_prompt[1]}    
+"""
+
     AutomatedExperiment.__name__ = name
 
     return AutomatedExperiment
@@ -77,14 +85,22 @@ def extract_procedures(markdown_path):
 
 def extract_procedures_to_lt_memory(markdown_path, var_table, lt_memory):
     exp_classes = extract_procedures(markdown_path)
-    for exp_class in exp_classes:
+    def _add_leeq_exp_to_ltm(exp_class):
         add_leeq_exp_to_ltm(lt_memory, var_table, exp_class)
+
+    for i, res in parallel_map(_add_leeq_exp_to_ltm, exp_classes, title="Adding procedures to memory"):
+        ...
 
 
 if __name__ == '__main__':
-    lt_memory, var_table = build_leeq_code_ltm()
+    #lt_memory, var_table = build_leeq_code_ltm()
     from leeq.experiments.builtin.basic import calibrations
-
+    from ideanet.core.idea import LongTermMemory
+    from leeq.utils.ai.variable_table import VariableTable
+    lt_memory = LongTermMemory()
+    var_table = VariableTable()
     root = os.path.dirname(calibrations.__file__)
     extract_procedures_to_lt_memory(root + "/procedures/calibration.md", var_table,
                                     lt_memory)
+
+    print("Done")
