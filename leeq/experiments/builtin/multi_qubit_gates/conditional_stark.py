@@ -31,7 +31,8 @@ from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.utils.compatibility import *
 
 import matplotlib.pyplot as plt
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockParallel, LogicalPrimitiveBlock
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockParallel, \
+    LogicalPrimitiveBlock
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -51,7 +52,7 @@ from qutip import Bloch
 class ConditionalStarkTuneUpRabiXY(experiment):
     @log_and_record
     def run(self, qubits, amp_control, amp_target, frequency=None, rise=0.01, start=0, stop=3, step=0.03, axis='Y',
-            echo=False, iz_rate_cancel=0, phase=0):
+            echo=False, iz_rate_cancel=0, phase=0, iz_rise_drop=0):
         """
         Sweep time and find the initial guess of amplitude
 
@@ -110,8 +111,10 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         swp_readout = sweeper.from_sweep_lpb(lpb_readout)
 
         iz_gate = c1_target.z_omega(iz_rate_cancel * 2 * np.pi)
+        iz_gate_fix = c1_target.z(-iz_rise_drop)
 
-        lpb = c1_target['Xp'] * lpb_flip_control + lpb + iz_gate + lpb_readout + mprim_target * mprim_control
+        lpb = c1_target[
+                  'Ym'] * lpb_flip_control + lpb + iz_gate + iz_gate_fix + lpb_readout + mprim_target * mprim_control
 
         swpparams = [
             sparam.func(stark_drive_target_pulse.update_pulse_args, {}, 'width'),
@@ -146,17 +149,20 @@ class ConditionalStarkTuneUpRabiXY(experiment):
 
         self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
         self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
-        self.phase_contribution_from_pulse_rise_up = (self.fitting_2D[0]['Phase'] - (
-                self.fitting_2D[1]['Phase'] + np.pi)) / 2
+
+        self.iz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] + (self.fitting_2D[1]['Phase'])) / 2
+        self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (self.fitting_2D[1]['Phase'])) / 2
 
         print(f"IZ: {self.iz_rate: 0.5f} MHz, ZZ: {self.zz_rate: 0.5f} MHz")
-        print(f"Phase Contributions from Pulse Rise Up: {self.phase_contribution_from_pulse_rise_up: 0.5f}")
+        print(f"Phase IZ Contributions from Pulse Rise Drop: {self.iz_from_pulse_rise_drop: 0.5f} rad")
+        print(f"Phase ZZ Contributions from Pulse Rise Drop: {self.zz_from_pulse_rise_drop: 0.5f} rad")
 
         return {
             'fitting_2D': self.fitting_2D,
             'iz_rate': self.iz_rate,
             'zz_rate': self.zz_rate,
-            'phase_contribution_from_pulse_rise_up': self.phase_contribution_from_pulse_rise_up
+            'iz_from_pulse_rise_drop': self.iz_from_pulse_rise_drop,
+            'zz_from_pulse_rise_drop': self.zz_from_pulse_rise_drop
         }
 
     def analyze_results_with_errs(self):
@@ -302,7 +308,6 @@ class ConditionalStarkTuneUpRabiXY(experiment):
             f"ZZ Rate - Original vs. Rescaled: {results['zz_rate']:0.5f} MHz vs. {results['rescaled_zz_rate']:0.5f} MHz")
         print(
             f"Phase Contributions from Pulse Rise Up - Original vs. Rescaled: {results['phase_contribution_from_pulse_rise_up']:0.5f} vs. {results['rescaled_phase_contribution_from_pulse_rise_up']:0.5f}")
-
 
     @register_browser_function(available_after=(run,))
     def plot(self):
@@ -604,6 +609,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         plot_axis(data1=result[:, 0, 1], data2=self.result[:, 1, 1], label1="Ground - ZZ interaction rabi drive Y axis",
                   label2="Excited - ZZ interaction rabi drive Y axis", fit_params1=self.fitting_2D[0],
                   fit_params2=self.fitting_2D[1], t=t, use_imaginary_part=True)
+
 
 class ConditionalStarkTuneUpRepeatedGateXY(experiment):
 
@@ -907,6 +913,7 @@ class Arrow3D(FancyArrowPatch):
         self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
         FancyArrowPatch.draw(self, renderer)
 
+
 class BlochSphere:
     def __init__(self,
                  figsize=None,
@@ -1091,7 +1098,7 @@ class BlochSphere:
             if self.show_3d_projection is True:
                 circle = Circle((0, 0), 1, color='grey', fill=False)
                 self.ax.add_patch(circle)
-                art3d.pathpatch_2d_to_3d(circle, z=-1*self.sign_yz, zdir='x')
+                art3d.pathpatch_2d_to_3d(circle, z=-1 * self.sign_yz, zdir='x')
 
             if self.plot_2d_slice is True:
                 circle = plt.Circle((0, 0), 1, color='grey', lw=5, fill=False)
@@ -1112,7 +1119,7 @@ class BlochSphere:
             if self.show_3d_projection is True:
                 circle = Circle((0, 0), 1, color='grey', fill=False)
                 self.ax.add_patch(circle)
-                art3d.pathpatch_2d_to_3d(circle, z=-1*self.sign_zx, zdir='y')
+                art3d.pathpatch_2d_to_3d(circle, z=-1 * self.sign_zx, zdir='y')
 
             if self.plot_2d_slice is True:
                 circle = plt.Circle((0, 0), 1, color='grey', lw=5, fill=False)
@@ -1172,24 +1179,26 @@ class BlochSphere:
         if self.yz_projection is True:
 
             if self.show_3d_projection is True:
-                self.ax.scatter(y, z, zs=-1*self.sign_yz, zdir='x', color=color,
+                self.ax.scatter(y, z, zs=-1 * self.sign_yz, zdir='x', color=color,
                                 alpha=self.point_alpha, edgecolor=self.point_edgecolor, lw=linewidth,
                                 zorder=self.zorder, s=self.point_size if size is None else size)
 
             if self.plot_2d_slice is True:
                 self.ax3.scatter(y, z, color=color, alpha=self.point_alpha,
-                                 edgecolor=self.point_edgecolor, lw=linewidth, s=self.point_size if size is None else size)
+                                 edgecolor=self.point_edgecolor, lw=linewidth,
+                                 s=self.point_size if size is None else size)
 
         if self.zx_projection is True:
 
             if self.show_3d_projection is True:
-                self.ax.scatter(x, z, zs=-1*self.sign_zx, zdir='y', color=color,
+                self.ax.scatter(x, z, zs=-1 * self.sign_zx, zdir='y', color=color,
                                 alpha=self.point_alpha, edgecolor=self.point_edgecolor, lw=linewidth,
                                 zorder=self.zorder, s=self.point_size if size is None else size)
 
             if self.plot_2d_slice is True:
                 self.ax2.scatter(x, z, color=color, alpha=self.point_alpha,
-                                 edgecolor=self.point_edgecolor, lw=linewidth, s=self.point_size if size is None else size)
+                                 edgecolor=self.point_edgecolor, lw=linewidth,
+                                 s=self.point_size if size is None else size)
 
         self.zorder += 1
 
@@ -1223,7 +1232,7 @@ class BlochSphere:
 
             if self.show_3d_projection is True:
                 self.ax.plot(x, y, zs=-1, zdir='z', alpha=self.point_alpha, color=color, ls=linestyle, lw=linewidth,
-                             marker=marker,  ms=self.point_size if ms is None else ms, zorder=self.zorder)
+                             marker=marker, ms=self.point_size if ms is None else ms, zorder=self.zorder)
 
             if self.plot_2d_slice is True:
                 self.ax1.plot(x, y, alpha=self.point_alpha, color=color, ls=linestyle, lw=linewidth, marker=marker,
@@ -1232,7 +1241,7 @@ class BlochSphere:
         if self.yz_projection is True:
 
             if self.show_3d_projection is True:
-                self.ax.plot(y, z, zs=-1*self.sign_yz, zdir='x', alpha=self.point_alpha, color=color, ls=linestyle,
+                self.ax.plot(y, z, zs=-1 * self.sign_yz, zdir='x', alpha=self.point_alpha, color=color, ls=linestyle,
                              lw=linewidth, marker=marker, ms=self.point_size if ms is None else ms, zorder=self.zorder)
 
             if self.plot_2d_slice is True:
@@ -1242,7 +1251,7 @@ class BlochSphere:
         if self.zx_projection is True:
 
             if self.show_3d_projection is True:
-                self.ax.plot(x, z, zs=-1*self.sign_zx, zdir='y', alpha=self.point_alpha, color=color, ls=linestyle,
+                self.ax.plot(x, z, zs=-1 * self.sign_zx, zdir='y', alpha=self.point_alpha, color=color, ls=linestyle,
                              lw=linewidth, marker=marker, ms=self.point_size if ms is None else ms, zorder=self.zorder)
 
             if self.plot_2d_slice is True:
@@ -1279,10 +1288,10 @@ class BlochSphere:
         if self.xy_projection is True:
 
             if self.show_3d_projection is True:
-                self.ax.plot([0, x], [0, y], zs=-1, zdir='z', color=color, lw=self.vector_linewdith-2,
-                             zorder=self.zorder+1)
-                a = Arrow3D([0, x], [0, y], [-1, -1], mutation_scale=self.vector_arrowhead_scale-10, arrowstyle='-|>',
-                            color=color, zorder=self.zorder+2)
+                self.ax.plot([0, x], [0, y], zs=-1, zdir='z', color=color, lw=self.vector_linewdith - 2,
+                             zorder=self.zorder + 1)
+                a = Arrow3D([0, x], [0, y], [-1, -1], mutation_scale=self.vector_arrowhead_scale - 10, arrowstyle='-|>',
+                            color=color, zorder=self.zorder + 2)
                 self.ax.add_artist(a)
 
             if self.plot_2d_slice is True:
@@ -1292,11 +1301,11 @@ class BlochSphere:
         if self.yz_projection is True:
 
             if self.show_3d_projection is True:
-                self.ax.plot([0, y], [0, z], zs=-1*self.sign_yz, zdir='x', color=color,
-                             lw=self.vector_linewdith-2, zorder=self.zorder+1)
-                a = Arrow3D([-1*self.sign_yz, -1*self.sign_yz], [0, y], [0, z],
-                            mutation_scale=self.vector_arrowhead_scale-10, arrowstyle='-|>', color=color,
-                            zorder=self.zorder+2)
+                self.ax.plot([0, y], [0, z], zs=-1 * self.sign_yz, zdir='x', color=color,
+                             lw=self.vector_linewdith - 2, zorder=self.zorder + 1)
+                a = Arrow3D([-1 * self.sign_yz, -1 * self.sign_yz], [0, y], [0, z],
+                            mutation_scale=self.vector_arrowhead_scale - 10, arrowstyle='-|>', color=color,
+                            zorder=self.zorder + 2)
                 self.ax.add_artist(a)
 
             if self.plot_2d_slice is True:
@@ -1306,11 +1315,11 @@ class BlochSphere:
         if self.zx_projection is True:
 
             if self.show_3d_projection is True:
-                self.ax.plot([0, x], [0, z], zs=-1*self.sign_zx, zdir='y', color=color,
-                             lw=self.vector_linewdith-2, zorder=self.zorder+1)
-                a = Arrow3D([0, x], [-1*self.sign_zx, -1*self.sign_zx], [0, z],
-                            mutation_scale=self.vector_arrowhead_scale-10, arrowstyle='-|>', color=color,
-                            zorder=self.zorder+2)
+                self.ax.plot([0, x], [0, z], zs=-1 * self.sign_zx, zdir='y', color=color,
+                             lw=self.vector_linewdith - 2, zorder=self.zorder + 1)
+                a = Arrow3D([0, x], [-1 * self.sign_zx, -1 * self.sign_zx], [0, z],
+                            mutation_scale=self.vector_arrowhead_scale - 10, arrowstyle='-|>', color=color,
+                            zorder=self.zorder + 2)
                 self.ax.add_artist(a)
 
             if self.plot_2d_slice is True:
@@ -1348,60 +1357,113 @@ class BlochSphere:
         plt.show()
 
 
+from typing import List, Any
+
 
 class ConditionalStarkSpectroscopyDiff(experiment):
+    """
+    A class to execute conditional Stark spectroscopy differential experiments on devices under test (DUTs).
+    This involves varying the frequency and amplitude parameters to generate Stark spectroscopy data.
+    """
+
     @log_and_record
-    def run(self, duts, freq_start=4100, freq_stop=4144, freq_step=1, amp_start=0, amp_stop=0.2, amp_step=0.02,
-            rise=0.01, trunc=1.2,
-            width=0.2):
-        channel_from = [dut.get_c1('f01')['X'].primary_channel() for dut in duts]
+    def run(self, duts: List[Any], freq_start: float = 4100, freq_stop: float = 4144, freq_step: float = 1,
+            amp_start: float = 0, amp_stop: float = 0.2, amp_step: float = 0.02,
+            rise: float = 0.01, trunc: float = 1.2, width: float = 0.2) -> None:
+        """
+        Executes the spectroscopy experiment by sweeping the amplitude and frequency.
 
-        cs_pulses = [prims.LogicalPrimitive(channels=x, freq=0) for x in channel_from]
+        Args:
+            duts (List[Any]): List of device under test instances.
+            freq_start (float): Starting frequency for the sweep (MHz).
+            freq_stop (float): Stopping frequency for the sweep (MHz).
+            freq_step (float): Step size for the frequency sweep (MHz).
+            amp_start (float): Starting amplitude for the sweep.
+            amp_stop (float): Stopping amplitude for the sweep.
+            amp_step (float): Step size for the amplitude sweep.
+            rise (float): Rise time for the pulse shape.
+            trunc (float): Truncation factor for the pulse shape.
+            width (float): Width of the pulse shape.
 
+        Returns:
+            None
+        """
+        # Clone the control pulse from each DUT for manipulation.
+        cs_pulses = [dut.get_c1('f01')['X'].clone() for dut in duts]
+
+        # Get the measurement primitives from each DUT.
         mprims = [dut.get_measurement_prim_intlist(0) for dut in duts]
 
+        # Update the pulse parameters for all cloned pulses.
         for i, cs_pulse in enumerate(cs_pulses):
-            cs_pulse.set_pulse_shapes(prims.SoftSquare, amp=0, phase=0, width=width, rise=rise, trunc=trunc)
+            cs_pulse.update_pulse_args(shape='soft_square', amp=0, phase=0, width=width, rise=rise, trunc=trunc)
 
+        # Create amplitude sweeper.
         swp_amp = sweeper(np.arange, n_kwargs={'start': amp_start, 'stop': amp_stop, 'step': amp_step},
                           params=[sparam.func(cs_pulse.update_pulse_args, {}, 'amp') for cs_pulse in cs_pulses])
 
+        # Create frequency sweeper.
         swp_freq = sweeper(np.arange, n_kwargs={'start': freq_start, 'stop': freq_stop, 'step': freq_step},
                            params=[sparam.func(cs_pulse.update_freq, {}, 'freq') for cs_pulse in cs_pulses])
 
+        # Get the default control pulse for each DUT.
         c1s = [dut.get_default_c1() for dut in duts]
 
+        # Set up additional pulse sequences and sweep.
         flip_sweep_lpb = prims.SweepLPB([c1s[1]['I'], c1s[1]['X']])
         swp_flip = sweeper.from_sweep_lpb(flip_sweep_lpb)
 
         lpb_zz = prims.ParallelLPB(cs_pulses)
-
         lpb = flip_sweep_lpb + c1s[0]['Xp'] + lpb_zz + c1s[0]['Ym'] + prims.ParallelLPB(mprims)
 
-        basic(lpb, sweep=swp_amp + swp_freq + swp_flip, basis="<z>")
+        self.mp = mprims[0]
 
-        self.result = mprims[0].result()
+        # Execute the basic spectroscopy sequence with all sweeps combined.
+        basic(lpb, swp=swp_amp + swp_freq + swp_flip, basis="<z>")
 
-        pass
+        self.result = np.squeeze(self.mp.result())
+
+        # Store the result for later analysis.
 
     @register_browser_function(available_after=(run,))
-    def plot(self):
+    def plot(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as a heatmap.
+
+        Returns:
+            go.Figure: A heatmap plot of the differential measurement results.
+        """
+        # Retrieve arguments used during the run for axis scaling.
         args = self.retrieve_args(self.run)
+        self.result = np.squeeze(self.mp.result())
 
         xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
         ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
 
+        # Generate the heatmap.
         fig = go.Figure(data=go.Heatmap(
-            z=(self.result[0, :, :] - self.result[1, :, :]).T, x=ys, y=xs,
+            z=(self.result[:, :, 0] - self.result[:, :, 1]), x=ys, y=xs,
             colorscale='Viridis'),
         )
 
+        # Set plot titles.
         fig.update_layout(
             xaxis_title="Frequency (MHz)",
             yaxis_title="Driving amplitude",
         )
 
-        fig.show()
+        return fig
+
+    def live_plots(self, step_no: tuple[int] = None):
+        """
+        Generate the live plots. This function is called by the live monitor.
+        The step no denotes the number of data points to plot, while the
+        buffer size is the total number of data points to plot. Some of the data
+        in the buffer is note yet valid, so they should not be plotted.
+        """
+
+        return self.plot()
+
 
 class ConditionalStarkSpectroscopyEchoNoFitting(experiment):
     @log_and_record
@@ -1455,6 +1517,7 @@ class ConditionalStarkSpectroscopyEchoNoFitting(experiment):
         )
 
         fig.show()
+
 
 class ConditionalStarkSpectroscopyFreqAmp(experiment):
     @log_and_record
@@ -1520,6 +1583,7 @@ class ConditionalStarkSpectroscopyFreqAmp(experiment):
         )
 
         fig.show()
+
 
 class ConditionalStarkTuneUpRabiYDriveSweepPhase(experiment):
     @log_and_record
@@ -1703,6 +1767,7 @@ class ConditionalStarkTuneUpRabiYDriveSweepPhase(experiment):
         plt.legend()
         plt.show()
 
+
 class ConditionalStarkTuneUpRabiYDriveSweepOmega(experiment):
 
     def update_omega(self, omega):
@@ -1820,6 +1885,8 @@ class ConditionalStarkTuneUpRabiYDriveSweepOmega(experiment):
         plt.ylabel("<z>")
         plt.legend()
         plt.show()
+
+
 class ConditionalStarkPingPong(experiment):
     @log_and_record
     def run(self, duts, cs_params, pulse_count):
@@ -1903,6 +1970,7 @@ class ConditionalStarkPingPong(experiment):
     @register_browser_function(available_after=(run,))
     def plot_excited(self):
         self.plot(pp=self.pulse_train_excited, title="Control at excited state")
+
 
 class ConditionalStarkTuneUp(experiment):
     @log_and_record
@@ -2282,6 +2350,7 @@ class ConditionalStarkTuneUp(experiment):
                     if np.abs(correction_zz * total_count) < self.pingpong_tolerance:
                         break
 
+
 class ConditionalStartContinuesProcessTomography(experiment):
     @log_and_record
     def run(self, duts, frequency, dut_amps, width_start=0, width_stop=1, width_step=0.05, rise=0.01, trunc=1.2):
@@ -2298,6 +2367,7 @@ class ConditionalStartContinuesProcessTomography(experiment):
                       params=swpparams)
 
         self.tomo = ProcessTomographyNQubits(duts, prims.ParallelLPB(cs_pulses), swp=swp)
+
 
 class ConditionalStarkHamiltonianTomography(experiment):
     @log_and_record
