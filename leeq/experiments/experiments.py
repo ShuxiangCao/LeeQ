@@ -256,12 +256,12 @@ class Experiment(LeeQObject):
         for name, func in self._get_all_ai_inspectable_functions().items():
 
             if hasattr(func, '_ai_inspect_result'):
-                ai_inspection_results[name] = func._ai_inspect_result
+                ai_inspection_results[name] = func._ai_inspect_result['analysis']
                 continue
             try:
                 ai_inspection_results[name] = self._run_ai_inspection_on_single_function(
                     func)
-                ai_inspection_results[name] = func._ai_inspect_result
+                ai_inspection_results[name] = func._ai_inspect_result['analysis']
             except Exception as e:
                 self.logger.warning(
                     f"Error when doing get AI inspection on {func.__qualname__}: {e}"

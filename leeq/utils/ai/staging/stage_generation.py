@@ -2,8 +2,8 @@ from typing import List
 
 from .stage_execution import Stage
 
-def stages_to_html(stages_list):
 
+def stages_to_html(stages_list):
     stages_dict = {stage.label: stage.to_dict() for stage in stages_list}
 
     html_content = '<div style="font-family: Arial, sans-serif;">'
@@ -18,6 +18,7 @@ def stages_to_html(stages_list):
         html_content += f'''
             <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 8px;">
                 <h3>{stage_info['Title']}</h3>
+                <p><strong>Overview:</strong> {stage_info['Overview']}</p>
                 <p><strong>Description:</strong> {stage_info['ExperimentDescription']}</p>
                 <p><strong>Next Steps:</strong> {stage_info['Next']}</p>
             </div>
@@ -25,6 +26,7 @@ def stages_to_html(stages_list):
 
     html_content += '</div>'
     return html_content
+
 
 def get_stages_from_description(description: str) -> List[Stage]:
     """
@@ -37,12 +39,14 @@ def get_stages_from_description(description: str) -> List[Stage]:
         List[Stage]: The list of stages of the experiment.
     """
     prompt = """
-**Objective**: Develop a systematic workflow for a series of scientific experiments involving sequential function calls to operate experimental equipment. The outcomes of each stage guide the next, ensuring logical progression.
+**Objective**: Develop a systematic workflow for a series of scientific experiments involving sequential function calls to operate experimental equipment. The outcomes of each stage guide the next, ensuring logical progression. 
+
+**Overview**: Summarize the requirement of the experiment.
 
 **Instructions**:
 
 - **Stages**: Divide the experiment into distinct stages, each representing a specific operation. The same experiment run needs to be classified into the same stage, even if the parameters may be different.
-- **Experiment Description**: Detail the procedures for each stage.
+- **Experiment Description**: Detail the procedures for each stage. *MUST* Include what to do (The name of the experiment), with what parameters. 
 - **Stage Transitions**:
     - **Advance**: Define conditions for progressing to the next stage.
     - **Retry**: Specify when to repeat a stage with adjustments.
@@ -54,6 +58,7 @@ The NEXT key must be a string detailing the transition conditions. Do not use "r
 
 ```json
 {
+    "Overview": <Summary of the experiment>
   "Stage1": {
     "Title": "Experiment1",
     "ExperimentDescription": "Implement the first experiment.",
@@ -81,7 +86,6 @@ The NEXT key must be a string detailing the transition conditions. Do not use "r
   }
 }
 ```
-
 **Deliverables**: Provide a complete JSON detailing all stages, descriptions, and transition criteria for efficient experimentation and analysis. Only return the JSON object.
     """
 
@@ -91,8 +95,11 @@ The NEXT key must be a string detailing the transition conditions. Do not use "r
     res = chat.complete(parse="dict", expensive=True, cache=True)
     stages = []
 
+    overview = res.pop("Overview")
+
     for stage_name, stage_content in res.items():
         stage = Stage(label=stage_name, title=stage_content['Title'],
+                      overview=overview,
                       description=stage_content['ExperimentDescription'],
                       next_stage_guide=stage_content['Next'])
         stages.append(stage)

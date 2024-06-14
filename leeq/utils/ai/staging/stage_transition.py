@@ -79,8 +79,8 @@ Current stage:
 Here are the rules:
 {rules}
 
-Here are the results from the experiments. Note that results from fitting provides the accurate 
-values, but it is not valid if the inspection from the plots suggest the experiment has failed.
+Here are the results from the experiments. Note that results from fitting and the inspection must be consistant to indicate
+the validity. Otherwise they are both invalid.
 {result_prompt}
 
 Based on the rules and the result provided, determine the next stage of the state machine. Return your decision in

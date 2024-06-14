@@ -50,7 +50,8 @@ class QubitSpectroscopyFrequency(Experiment):
             mp_width: float = 0.5,
             amp: float = 0.01) -> None:
         """
-        Conducts a frequency sweep on the designated qubit and records the response.
+        Conducts a qubit spectroscopy experiment which fixes the resonator frequency and probes the qubit at different
+         frequencies. Records the response.
 
         Parameters
         ----------

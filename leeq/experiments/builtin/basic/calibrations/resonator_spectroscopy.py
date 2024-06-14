@@ -44,20 +44,20 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             initial_lpb=None,
             amp: float = 0.02) -> None:
         """
-        Run the resonator sweep transmission experiment.
+        Run the resonator sweep transmission experiment. Usually used to find the resonator.
 
         The initial lpb is for exciting the qubit to a different state.
 
         Parameters:
             dut_qubit: The device under test (DUT) qubit.
-            start (float): Start frequency for the sweep. Default is 8000.
-            stop (float): Stop frequency for the sweep. Default is 9000.
-            step (float): Frequency step for the sweep. Default is 5.0.
+            start (float): Start frequency for the sweep. Unit: MHz Default is 8000.
+            stop (float): Stop frequency for the sweep. Unit: MHz Default is 9000.
+            step (float): Frequency step for the sweep. Unit: MHz Default is 5.0.
             num_avs (int): Number of averages. Default is 1000.
-            rep_rate (float): Repetition rate. Default is 10.0.
-            mp_width (float): Measurement pulse width. If None, uses rep_rate. Default is None.
+            rep_rate (float): Repetition rate. Default is 0.0.
+            mp_width (float): Measurement pulse width. Unit us.:w If None, uses rep_rate. Default is None.
             initial_lpb: Initial linear phase behavior (LPB). Default is None.
-            amp (float): Amplitude. Default is 1.0.
+            amp (float): Amplitude. Default is 0.02.
         """
         # Sweep the frequency
         mp = dut_qubit.get_default_measurement_prim_intlist().clone()
@@ -500,7 +500,8 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
             amp_stop: float = 1,
             amp_step: float = 0.05) -> None:
         """
-        Run an experiment by sweeping the frequency and amplitude of a qubit.
+        Run an experiment by sweeping the frequency and amplitude of a qubit. Do not use this
+        if you are not sweeping the amplitude.
 
         Parameters:
         - dut_qubit: The qubit under test.
@@ -520,7 +521,7 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         None
         """
         # Get the original measurement primitive.
-        mprim_index = 0
+        mprim_index = '0'
         mp = dut_qubit.get_measurement_prim_intlist(mprim_index).clone()
         original_freq = mp.freq
 
@@ -728,7 +729,8 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
             mp_width: Optional[float] = None,
             amp: Optional[float] = None) -> None:
         """
-        Runs the resonator sweep transmission experiment.
+        Runs the resonator sweep transmission experiment and compare the response from the different state of the qubit.
+        Not used for resonator discovery.
 
         Parameters:
             dut_qubit: The device under test (DUT) qubit.

@@ -9,6 +9,8 @@ from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
 from leeq.utils import setup_logging
 from leeq.utils.notebook import show_spinner, hide_spinner
 
+from ideanet.core.logger import IdeaBaseLogger
+
 logger = setup_logging(__name__)
 
 __all__ = ["AIInstructionExperiment", "FullyAutomatedExperiment", "AIRun", "AutoRun"]
@@ -44,7 +46,7 @@ class AIStagedExperiment(Experiment):
         from leeq.utils.ai.display_chat.notebooks import display_chat, code_to_html, dict_to_html
 
         stages_html = stages_to_html(stages)
-        display_chat("Stage planning AI",'#fff0f5',"The planned experiments are:<br>"+stages_html)
+        display_chat("Stage planning AI", '#fff0f5', "The planned experiments are:<br>" + stages_html)
 
         input_var_table = VariableTable()
         for key, value in kwargs.items():
@@ -59,6 +61,7 @@ class AIStagedExperiment(Experiment):
         var_table.add_parent_table(exps_var_table)
         var_table.add_parent_table(input_var_table)
         self.n_step_multiplier = 6  # Multiplier to control the number of execution steps
+
         def run_stage_description(stage: 'Stage'):
             """
             Run the stage description powered by language model.
@@ -69,14 +72,23 @@ class AIStagedExperiment(Experiment):
                 The stage to run.
             """
             spinner_id = show_spinner(f"Generating code for {stage.label}")
-            codegen_wm = get_codegen_wm(stage.description, input_var_table)
+
+            prompt = f"""
+            Overview of the funcationality: {stage.overview}
+            Current stage: {stage.label}
+            """
+
+
+            codegen_wm = get_codegen_wm(stage.description, input_var_table, hint=prompt)
             recall_res = code_cog_model.recall(codegen_wm)
             new_codegen_wm = code_cog_model.act(codegen_wm, recall_res)
             new_var_table = var_table.new_child_table()
-            codes = get_code_from_wm(new_codegen_wm)
+            with IdeaBaseLogger():
+                codes = get_code_from_wm(new_codegen_wm)
+
             hide_spinner(spinner_id)
             code_html = code_to_html(codes)
-            display_chat("Code generation AI",'#fff0f5',f"Generated code are as follows:<br>{code_html}")
+            display_chat("Code generation AI", '#fff0f5', f"Generated code are as follows:<br>{code_html}")
             new_var_table.interpret(codes)
             return new_var_table
 
@@ -90,9 +102,9 @@ class AIStagedExperiment(Experiment):
             experiment_analysis_html = dict_to_html(experiment_result)
 
             display_chat("Inspection AI",
-                         '#f0f8ff',f"Experiment analysis results are as follows:<br>{experiment_analysis_html}")
+                         '#f0f8ff', f"Experiment analysis results are as follows:<br>{experiment_analysis_html}")
 
-            spinner_id = show_spinner(f"Considering next stage...")
+            spinner_id = show_spinner(f"Considering the next stage...")
             next_stage_info = get_next_stage_label(curr_stage, experiment_result)
             next_stage_label = next_stage_info["next"]
             additional_info = next_stage_info["additional_info"]
@@ -100,13 +112,13 @@ class AIStagedExperiment(Experiment):
 
                 display_chat("Stage Planning AI", '#fff0f5',
                              f"Experiment complete.<br>"
-                                    f"{next_stage_info['analysis']}")
+                             f"{next_stage_info['analysis']}")
                 hide_spinner(spinner_id)
                 return
             elif next_stage_label == "Fail":
                 display_chat("Stage Planning AI", '#fff0f5',
                              f"Experiment failed.<br>"
-                                    f"{next_stage_info['analysis']}")
+                             f"{next_stage_info['analysis']}")
                 hide_spinner(spinner_id)
                 return
             next_stage: Stage
@@ -119,11 +131,12 @@ class AIStagedExperiment(Experiment):
 
             new_description = generate_new_stage_description(next_stage, additional_info)
             hide_spinner(spinner_id)
-            display_chat("Stage Planning AI",'#fff0f5',f"Transitioning to the next"
-                                        f" stage {next_stage.label} with the following description:<br>{new_description}<br>"
-                                                       f"{next_stage_info['analysis']}")
+            display_chat("Stage Planning AI", '#fff0f5', f"Transitioning to the next"
+                                                         f" stage {next_stage.label} with the following description:<br>{new_description}<br>"
+                                                         f"{next_stage_info['analysis']}")
             next_stage.description = new_description
             curr_stage = next_stage
+
 
 class AIInstructionExperiment(AIStagedExperiment):
     """
