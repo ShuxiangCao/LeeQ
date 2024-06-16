@@ -98,9 +98,9 @@ SWAPlike = ZXm.dot(
     np.kron(
         C1p_Xp,
         C1p_Ym.dot(C1p_Xp))).dot(ZXm).dot(
-            np.kron(
-                C1p_Ym,
-                C1p_Ym)).dot(ZXm)
+    np.kron(
+        C1p_Ym,
+        C1p_Ym)).dot(ZXm)
 
 # Initialize a placeholder for a set of two-qubit Clifford operations
 C2p = np.zeros(shape=(4, 4, 4), dtype='complex')

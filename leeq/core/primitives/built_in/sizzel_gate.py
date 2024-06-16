@@ -133,8 +133,8 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         """
         width = self.get_parameters()['width']
 
-        z_control_cancel = self.iz_control * np.pi * 2 * width
-        z_target_cancel = self.iz_target * np.pi * 2 * width
+        z_control_cancel = self.iz_control
+        z_target_cancel = self.iz_target
 
         return self.c1_control.z(z_control_cancel) * \
             self.c1_target.z(z_target_cancel)
@@ -146,6 +146,11 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         """
 
         full_pulse = self.get_stark_drive_pulses()
+
+        if self.echo:
+
+            flip_both = self.c1_control['X'] * self.c1_target['X']
+            return full_pulse + flip_both + full_pulse+ flip_both + self.get_z_cancellation_pulse()
 
         return full_pulse + self.get_z_cancellation_pulse()
 

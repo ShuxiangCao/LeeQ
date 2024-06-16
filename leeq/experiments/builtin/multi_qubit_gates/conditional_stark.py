@@ -4,6 +4,7 @@ from datetime import datetime
 from plotly.subplots import make_subplots
 from labchronicle import register_browser_function, log_and_record
 
+import leeq.theory.fits
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
 from leeq import Experiment, SweepParametersSideEffectFactory, Sweeper
@@ -70,6 +71,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         self.start = start
         self.stop = stop
         self.step = step
+        self.fitting_2D = None
 
         if frequency is None:
             freq_01 = qubits[1].get_c1('f01')['X'].freq
@@ -91,7 +93,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
                                                   iz_control=0,
                                                   iz_target=0,
                                                   echo=False,
-                                                  trunc=1.05)
+                                                  trunc=1.0)
 
         mprim_control = self.duts[0].get_measurement_prim_intlist(0)
         mprim_target = self.duts[1].get_measurement_prim_intlist(0)
@@ -100,9 +102,12 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         stark_drive_target_pulse = c2['stark_drive_target']
         stark_drive_control_pulse = c2['stark_drive_control']
 
-        lpb_zz = c2.get_zzp()
+        flip_both = c1_control['Y'] * c1_target['Y']
 
-        lpb = lpb_zz if echo else cs_pulse
+        if echo:
+            lpb = cs_pulse + flip_both + cs_pulse + flip_both
+        else:
+            lpb = cs_pulse
 
         lpb_flip_control = prims.SweepLPB([c1_control['I'], c1_control['X']])
         swp_flip = sweeper.from_sweep_lpb(lpb_flip_control)
@@ -135,27 +140,29 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         self.result_control = np.squeeze(mprim_control.result())
 
     def analyze_results(self):
-        print("Shape of result:", self.result.shape)
+        # print("Shape of result:", self.result.shape)
 
-        self.fitting_2D = []
-        for i in range(2):
-            self.real_part = self.result[:, i, 0]
-            self.imag_part = self.result[:, i, 1]
-            self.complex_data = self.real_part + 1j * self.imag_part
+        if self.fitting_2D is None:
 
-            self.fit_result = fits.fit_2d_freq(self.complex_data, dt=self.step)
-            self.fitting_2D.append(self.fit_result)
-            print(f"Fit Results for {i}: {self.fit_result}")  # Debugging output
+            self.fitting_2D = []
+            for i in range(2):
+                self.real_part = self.result[:, i, 0]
+                self.imag_part = self.result[:, i, 1]
+                self.complex_data = self.real_part + 1j * self.imag_part
 
-        self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
-        self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
+                self.fit_result = fits.fit_2d_freq(self.complex_data, dt=self.step, use_freq_bound=False)
+                self.fitting_2D.append(self.fit_result)
+                # print(f"Fit Results for {i}: {self.fit_result}")  # Debugging output
 
-        self.iz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] + (self.fitting_2D[1]['Phase'])) / 2
-        self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (self.fitting_2D[1]['Phase'])) / 2
+            self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
+            self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
 
-        print(f"IZ: {self.iz_rate: 0.5f} MHz, ZZ: {self.zz_rate: 0.5f} MHz")
-        print(f"Phase IZ Contributions from Pulse Rise Drop: {self.iz_from_pulse_rise_drop: 0.5f} rad")
-        print(f"Phase ZZ Contributions from Pulse Rise Drop: {self.zz_from_pulse_rise_drop: 0.5f} rad")
+            self.iz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] + (self.fitting_2D[1]['Phase'])) / 2
+            self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (self.fitting_2D[1]['Phase'])) / 2
+
+            print(f"IZ: {self.iz_rate: 0.5f} MHz, ZZ: {self.zz_rate: 0.5f} MHz")
+            print(f"Phase IZ Contributions from Pulse Rise Drop: {self.iz_from_pulse_rise_drop: 0.5f} rad")
+            print(f"Phase ZZ Contributions from Pulse Rise Drop: {self.zz_from_pulse_rise_drop: 0.5f} rad")
 
         return {
             'fitting_2D': self.fitting_2D,
@@ -166,153 +173,40 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         }
 
     def analyze_results_with_errs(self):
-        print("Shape of result:", self.result.shape)
+        # print("Shape of result:", self.result.shape)
 
-        self.fitting_2D_ls = []
-        self.fitting_2D_cf = []
+        if self.fitting_2D is None:
+            self.fitting_2D = []
+            for i in range(2):
+                self.real_part = self.result[:, i, 0]
+                self.imag_part = self.result[:, i, 1]
+                self.complex_data = self.real_part + 1j * self.imag_part
 
-        for i in range(2):
-            self.real_part = self.result[:, i, 0]
-            self.imag_part = self.result[:, i, 1]
-            self.complex_data = self.real_part + 1j * self.imag_part
+                fit_results = fits.fit_2d_freq_with_cov(self.complex_data, dt=self.step, use_freq_bound=False)
+                self.fitting_2D.append(fit_results)
+                # print(f"Fit Results for {i}: {fit_results}")  # Debugging output
 
-            fit_results = Fit_2D_Freq_Master(self.complex_data, dt=self.step)
-            self.fitting_2D_ls.append(fit_results['Least Squares'])
-            self.fitting_2D_cf.append(fit_results['Curve Fit'])
-            print(f"Least Squares Fit Results for {i}: {fit_results['Least Squares']}")  # Debugging output
-            print(f"Curve Fit Results for {i}: {fit_results['Curve Fit']}")  # Debugging output
+            # Calculate iz_rate and zz_rate for Curve Fit
+            self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
+            self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
+            self.iz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] + (self.fitting_2D[1]['Phase'])) / 2
+            self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (self.fitting_2D[1]['Phase'])) / 2
 
-        # Calculate iz_rate and zz_rate for Least Squares
-        self.iz_rate_ls = (self.fitting_2D_ls[0]['Frequency'] + self.fitting_2D_ls[1]['Frequency']) / 2
-        self.zz_rate_ls = (self.fitting_2D_ls[0]['Frequency'] - self.fitting_2D_ls[1]['Frequency']) / 2
-        self.phase_contribution_from_pulse_rise_up_ls = (self.fitting_2D_ls[0]['Phase'] - (
-                self.fitting_2D_ls[1]['Phase'] + np.pi)) / 2
-
-        # Calculate iz_rate and zz_rate for Curve Fit
-        self.iz_rate_cf = (self.fitting_2D_cf[0]['Frequency'] + self.fitting_2D_cf[1]['Frequency']) / 2
-        self.zz_rate_cf = (self.fitting_2D_cf[0]['Frequency'] - self.fitting_2D_cf[1]['Frequency']) / 2
-        self.phase_contribution_from_pulse_rise_up_cf = (self.fitting_2D_cf[0]['Phase'] - (
-                self.fitting_2D_cf[1]['Phase'] + np.pi)) / 2
-
-        # Calculate uncertainties for iz_rate and zz_rate for Curve Fit
-        self.iz_rate_uncertainty = np.sqrt(self.fitting_2D_cf[0]['Parameter Uncertainties'][0] ** 2 +
-                                           self.fitting_2D_cf[1]['Parameter Uncertainties'][0] ** 2) / 2
-        self.zz_rate_uncertainty = np.sqrt(self.fitting_2D_cf[0]['Parameter Uncertainties'][0] ** 2 +
-                                           self.fitting_2D_cf[1]['Parameter Uncertainties'][0] ** 2) / 2
-
-        print(f"IZ (Least Squares): {self.iz_rate_ls: 0.5f} MHz, ZZ (Least Squares): {self.zz_rate_ls: 0.5f} MHz")
-        print(
-            f"Phase Contributions from Pulse Rise Up (Least Squares): {self.phase_contribution_from_pulse_rise_up_ls: 0.5f}")
-
-        print(
-            f"IZ (Curve Fit): {self.iz_rate_cf: 0.5f} MHz ± {self.iz_rate_uncertainty: 0.5f} MHz, ZZ (Curve Fit): {self.zz_rate_cf: 0.5f} MHz ± {self.zz_rate_uncertainty: 0.5f} MHz")
-        print(
-            f"Phase Contributions from Pulse Rise Up (Curve Fit): {self.phase_contribution_from_pulse_rise_up_cf: 0.5f}")
-
-        return {
-            'fitting_2D_ls': self.fitting_2D_ls,
-            'fitting_2D_cf': self.fitting_2D_cf,
-            'iz_rate_ls': self.iz_rate_ls,
-            'zz_rate_ls': self.zz_rate_ls,
-            'phase_contribution_from_pulse_rise_up_ls': self.phase_contribution_from_pulse_rise_up_ls,
-            'iz_rate_cf': self.iz_rate_cf,
-            'zz_rate_cf': self.zz_rate_cf,
-            'phase_contribution_from_pulse_rise_up_cf': self.phase_contribution_from_pulse_rise_up_cf,
-            'iz_rate_uncertainty': self.iz_rate_uncertainty,
-            'zz_rate_uncertainty': self.zz_rate_uncertainty
-        }
-
-    # @register_browser_function(available_after=(run,))
-    def analyze_results_rescaled(self):
-        def rescale_and_center(data):
-            data_centered = data - np.mean(data)
-            data_min = np.min(data_centered)
-            data_max = np.max(data_centered)
-            data_rescaled = 2 * (data_centered - data_min) / (data_max - data_min) - 1
-            return data_rescaled
-
-        print("Shape of result:", self.result.shape)
-
-        self.fitting_2D = []
-        self.rescaled_fitting_2D = []
-        for i in range(2):
-            self.real_part = self.result[:, i, 0]
-            self.imag_part = self.result[:, i, 1]
-            self.complex_data = self.real_part + 1j * self.imag_part
-
-            # Fit original data
-            self.fit_result = Fit_2D_Freq(self.complex_data, dt=self.step)
-            self.fitting_2D.append(self.fit_result)
-            print(f"Original Fit Results for {i}: {self.fit_result}")  # Debugging output
-
-            # Rescale data before fitting
-            self.rescaled_real_part = rescale_and_center(self.real_part)
-            self.rescaled_imag_part = rescale_and_center(self.imag_part)
-            self.rescaled_complex_data = self.rescaled_real_part + 1j * self.rescaled_imag_part
-
-            # Fit rescaled data
-            self.rescaled_fit_result = Fit_2D_Freq(self.rescaled_complex_data, dt=self.step)
-            self.rescaled_fitting_2D.append(self.rescaled_fit_result)
-            print(f"Rescaled Fit Results for {i}: {self.rescaled_fit_result}")  # Debugging output
-
-        # Calculate metrics for original fits
-        self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
-        self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
-        self.phase_contribution_from_pulse_rise_up = (self.fitting_2D[0]['Phase'] - (
-                self.fitting_2D[1]['Phase'] + np.pi)) / 2
-
-        # Calculate met`rics for rescaled fits
-        self.rescaled_iz_rate = (self.rescaled_fitting_2D[0]['Frequency'] + self.rescaled_fitting_2D[1][
-            'Frequency']) / 2
-        self.rescaled_zz_rate = (self.rescaled_fitting_2D[0]['Frequency'] - self.rescaled_fitting_2D[1][
-            'Frequency']) / 2
-        self.rescaled_phase_contribution_from_pulse_rise_up = (self.rescaled_fitting_2D[0]['Phase'] - (
-                self.rescaled_fitting_2D[1]['Phase'] + np.pi)) / 2
-
-        print(f"Original IZ: {self.iz_rate: 0.5f} MHz, ZZ: {self.zz_rate: 0.5f} MHz")
-        print(f"Original Phase Contributions from Pulse Rise Up: {self.phase_contribution_from_pulse_rise_up: 0.5f}")
-
-        print(f"Rescaled IZ: {self.rescaled_iz_rate: 0.5f} MHz, ZZ: {self.rescaled_zz_rate: 0.5f} MHz")
-        print(
-            f"Rescaled Phase Contributions from Pulse Rise Up: {self.rescaled_phase_contribution_from_pulse_rise_up: 0.5f}")
+            print(f"IZ: {self.iz_rate: 0.5f} MHz: {self.zz_rate: 0.5f} MHz")
+            print(f"Phase IZ Contributions from Pulse Rise Drop: {self.iz_from_pulse_rise_drop: 0.5f} rad")
 
         return {
             'fitting_2D': self.fitting_2D,
-            'rescaled_fitting_2D': self.rescaled_fitting_2D,
             'iz_rate': self.iz_rate,
             'zz_rate': self.zz_rate,
-            'phase_contribution_from_pulse_rise_up': self.phase_contribution_from_pulse_rise_up,
-            'rescaled_iz_rate': self.rescaled_iz_rate,
-            'rescaled_zz_rate': self.rescaled_zz_rate,
-            'rescaled_phase_contribution_from_pulse_rise_up': self.rescaled_phase_contribution_from_pulse_rise_up
+            'iz_from_pulse_rise_drop': self.iz_from_pulse_rise_drop,
+            'zz_from_pulse_rise_drop': self.zz_from_pulse_rise_drop
         }
-
-    # @register_browser_function(available_after=(analyze_results_rescaled,))
-    def compare_fit_results(self):
-        results = self.analyze_results_rescaled()
-
-        original_fitting_2D = results['fitting_2D']
-        rescaled_fitting_2D = results['rescaled_fitting_2D']
-
-        print("Comparing Original and Rescaled Fit Results:")
-
-        for i in range(2):
-            print(f"\nFit {i} - Original vs. Rescaled:")
-            print(
-                f"Frequency: {original_fitting_2D[i]['Frequency']:0.5f} MHz vs. {rescaled_fitting_2D[i]['Frequency']:0.5f} MHz")
-            print(f"Phase: {original_fitting_2D[i]['Phase']:0.5f} vs. {rescaled_fitting_2D[i]['Phase']:0.5f}")
-
-        print(
-            f"\nIZ Rate - Original vs. Rescaled: {results['iz_rate']:0.5f} MHz vs. {results['rescaled_iz_rate']:0.5f} MHz")
-        print(
-            f"ZZ Rate - Original vs. Rescaled: {results['zz_rate']:0.5f} MHz vs. {results['rescaled_zz_rate']:0.5f} MHz")
-        print(
-            f"Phase Contributions from Pulse Rise Up - Original vs. Rescaled: {results['phase_contribution_from_pulse_rise_up']:0.5f} vs. {results['rescaled_phase_contribution_from_pulse_rise_up']:0.5f}")
 
     @register_browser_function(available_after=(run,))
     def plot(self):
 
-        self.analyze_results()
+        self.analyze_results_with_errs()
 
         args = {'start': self.start, 'stop': self.stop, 'step': self.step}
 
@@ -323,10 +217,10 @@ class ConditionalStarkTuneUpRabiXY(experiment):
             plt.scatter(t, data, label=label, alpha=0.5)
             # plt.plot(t, data)
 
-            f = fit_params['Frequency']
-            a = fit_params['Amplitude']
-            p = fit_params['Phase'] - 2.0 * np.pi * f * args['start']
-            o = fit_params['Offset']
+            f = fit_params['Frequency'].nominal_value
+            a = fit_params['Amplitude'].nominal_value
+            p = fit_params['Phase'].nominal_value - 2.0 * np.pi * f * args['start']
+            o = fit_params['Offset_real'].nominal_value + 1j * fit_params['Offset_imag'].nominal_value
 
             # fit = a * np.exp(-decay * t_interpolate) * np.exp(1j * (2.0 * np.pi * f * t_interpolate + p)) + o
             fit = a * np.exp(1.j * (2.0 * np.pi * f * t_interpolate + p)) + o
@@ -1369,7 +1263,7 @@ class ConditionalStarkSpectroscopyDiff(experiment):
     @log_and_record
     def run(self, duts: List[Any], freq_start: float = 4100, freq_stop: float = 4144, freq_step: float = 1,
             amp_start: float = 0, amp_stop: float = 0.2, amp_step: float = 0.02,
-            rise: float = 0.01, trunc: float = 1.2, width: float = 0.2) -> None:
+            rise: float = 0.01, trunc: float = 1.2, width: float = 0.7, echo=False) -> None:
         """
         Executes the spectroscopy experiment by sweeping the amplitude and frequency.
 
@@ -1384,6 +1278,7 @@ class ConditionalStarkSpectroscopyDiff(experiment):
             rise (float): Rise time for the pulse shape.
             trunc (float): Truncation factor for the pulse shape.
             width (float): Width of the pulse shape.
+            echo (bool): Whether to include an echo pulse in the sequence.
 
         Returns:
             None
@@ -1394,9 +1289,16 @@ class ConditionalStarkSpectroscopyDiff(experiment):
         # Get the measurement primitives from each DUT.
         mprims = [dut.get_measurement_prim_intlist(0) for dut in duts]
 
+        # Get the default control pulse for each DUT.
+        c1s = [dut.get_default_c1() for dut in duts]
+
+        # Flip both
+        flip_both = prims.ParallelLPB([c1s[0]['Y'], c1s[1]['Y']])
+
         # Update the pulse parameters for all cloned pulses.
         for i, cs_pulse in enumerate(cs_pulses):
-            cs_pulse.update_pulse_args(shape='soft_square', amp=0, phase=0, width=width, rise=rise, trunc=trunc)
+            cs_pulse.update_pulse_args(shape='soft_square', amp=0, phase=0, width=width if not echo else width / 2,
+                                       rise=rise, trunc=trunc)
 
         # Create amplitude sweeper.
         swp_amp = sweeper(np.arange, n_kwargs={'start': amp_start, 'stop': amp_stop, 'step': amp_step},
@@ -1406,14 +1308,14 @@ class ConditionalStarkSpectroscopyDiff(experiment):
         swp_freq = sweeper(np.arange, n_kwargs={'start': freq_start, 'stop': freq_stop, 'step': freq_step},
                            params=[sparam.func(cs_pulse.update_freq, {}, 'freq') for cs_pulse in cs_pulses])
 
-        # Get the default control pulse for each DUT.
-        c1s = [dut.get_default_c1() for dut in duts]
-
         # Set up additional pulse sequences and sweep.
         flip_sweep_lpb = prims.SweepLPB([c1s[1]['I'], c1s[1]['X']])
         swp_flip = sweeper.from_sweep_lpb(flip_sweep_lpb)
 
         lpb_zz = prims.ParallelLPB(cs_pulses)
+        if echo:
+            lpb_zz = lpb_zz + flip_both + lpb_zz + flip_both
+
         lpb = flip_sweep_lpb + c1s[0]['Xp'] + lpb_zz + c1s[0]['Ym'] + prims.ParallelLPB(mprims)
 
         self.mp = mprims[0]
@@ -1470,14 +1372,15 @@ class ConditionalStarkSpectroscopyEchoNoFitting(experiment):
     def run(self, duts, freq_start=4100, freq_stop=4144, freq_step=1, amp_start=0, amp_stop=0.2, amp_step=0.02,
             rise=0.01, trunc=1.2,
             width=0.2):
-        channel_from = [dut.get_c1('f01')['X'].primary_channel() for dut in duts]
-
-        cs_pulses = [prims.LogicalPrimitive(channels=x, freq=0) for x in channel_from]
+        cs_pulses = [dut.get_c1('f01')['X'].clone() for dut in duts]
 
         mprims = [dut.get_measurement_prim_intlist(0) for dut in duts]
 
         for i, cs_pulse in enumerate(cs_pulses):
             cs_pulse.set_pulse_shapes(prims.SoftSquare, amp=0, phase=0, width=width, rise=rise, trunc=trunc)
+
+        for i, cs_pulse in enumerate(cs_pulses):
+            cs_pulse.update_pulse_args(shape='soft_square', amp=0, phase=0, width=width, rise=rise, trunc=trunc)
 
         swp_amp = sweeper(np.arange, n_kwargs={'start': amp_start, 'stop': amp_stop, 'step': amp_step},
                           params=[sparam.func(cs_pulse.update_pulse_args, {}, 'amp') for cs_pulse in cs_pulses])
@@ -1516,7 +1419,7 @@ class ConditionalStarkSpectroscopyEchoNoFitting(experiment):
             yaxis_title="Driving amplitude",
         )
 
-        fig.show()
+        return fig
 
 
 class ConditionalStarkSpectroscopyFreqAmp(experiment):

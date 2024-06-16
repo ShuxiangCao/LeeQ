@@ -16,5 +16,6 @@ fsspec
 pyyaml
 decorator
 h5py
+uncertainties
 labchronicle @ git+https://github.com/ShuxiangCao/LabChronicle
 MinimalLLM @ git+https://github.com/EvoEvolver/MinimalLLM

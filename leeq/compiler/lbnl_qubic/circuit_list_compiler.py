@@ -54,7 +54,7 @@ def compare_dicts(dict1, dict2, rtol=1e-05, atol=1e-08):
         # If values are both numbers, use np.allclose for comparison
         if isinstance(
                 value1, (int, float)) and isinstance(
-                value2, (int, float)):
+            value2, (int, float)):
             if not np.allclose(value1, value2, rtol=rtol, atol=atol):
                 return False
 
@@ -330,7 +330,6 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         """
         return PulseShapeFactory().get_pulse_shape_function(pulse_shape_name)
 
-
     def compile_lpb(self, context: ExperimentContext,
                     lpb: LogicalPrimitiveCombinable):
         """
@@ -423,8 +422,9 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         # the tracking data structure
         self._compiled_lpb_uuid.append(lpb.uuid)
 
-        def _parameter_diff(x): return x in parameters and \
-            parameters[x] != self._lpb_uuid_to_parameter_last_compiled[lpb.uuid][x]
+        def _parameter_diff(x):
+            return x in parameters and \
+                parameters[x] != self._lpb_uuid_to_parameter_last_compiled[lpb.uuid][x]
 
         parameters = lpb.get_parameters()
         lpb_id = lpb.uuid
@@ -525,10 +525,10 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         required_parameters = inspect.signature(env_func).parameters
         parameters_keeping = {
             key: parameters[key] for key in required_parameters if (
-                key in parameters) and key not in [
-                'amp', 'freq', 'phase']}
+                                                                           key in parameters) and key not in [
+                                                                       'amp', 'freq', 'phase']}
 
-        if parameters['width'] <= 0.4:  # The pulse width is too long, we need to split it
+        if parameters['width'] <= 0.3:  # The pulse width is too long, we need to split it
             env = {"env_func": get_qubic_envelope_name_from_leeq_name(parameters['shape']),
                    "paradict": parameters_keeping}
 
@@ -559,15 +559,16 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
                 # Hard code 8 Gsps as sampling rate for now
                 pulse_width = (i_end - i_start) / _sampling_rate  # In seconds
-                new_sequence = []
 
+                new_sequence = []
                 if segment_type == 'flat':
-                    single_pulse_width = 128e-9  # In seconds, 150 ns
+                    single_pulse_width = 64e-9  # In seconds, 64 ns
 
                     # The flat region is too long, we need to split it into multiple pulses
                     num_pulses = int(np.ceil(pulse_width / single_pulse_width))
                     for i in range(num_pulses):
                         small_pulse_width = min(single_pulse_width, pulse_width - i * single_pulse_width)
+
                         qubic_pulse_dict = {
                             "name": "pulse",
                             "freq": int(parameters['freq'] * 1e6),  # In Hz
@@ -679,8 +680,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         required_parameters = inspect.signature(env_func).parameters
         parameters_keeping = {
             key: modified_parameters[key] for key in required_parameters if (
-                key in modified_parameters) and key not in [
-                'amp', 'freq', 'phase']}
+                                                                                    key in modified_parameters) and key not in [
+                                                                                'amp', 'freq', 'phase']}
 
         env = {"env_func": get_qubic_envelope_name_from_leeq_name(modified_parameters['shape']),
                "paradict": parameters_keeping}
@@ -721,13 +722,14 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                     "env_func": "square",
                     # Here we use square pulse for demodulation, which means no
                     # window function is applied
-                    "paradict": {"phase": modified_parameters['phase'], "amplitude": 1.0, "twidth": modified_parameters['width'] / 1e6},
+                    "paradict": {"phase": modified_parameters['phase'], "amplitude": 1.0,
+                                 "twidth": modified_parameters['width'] / 1e6},
                 }
             ],
         }
 
         if primitive_scope in self._qubic_channel_to_lpb_uuid and self._qubic_channel_to_lpb_uuid[
-                primitive_scope] != lpb.uuid:
+            primitive_scope] != lpb.uuid:
             msg = "Two measurement primitives exists for a same channel, which is not supported."
             logger.error(msg)
             raise NotImplementedError(msg)
@@ -886,7 +888,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         self._check_parameter_if_dirty(lpb)
 
         return [{"name": "delay", "t": lpb.get_delay_time() /
-                 1e6}], set()  # In seconds
+                                       1e6}], set()  # In seconds
 
     @_compile_lpb.register
     def _(self, lpb: PhaseShift):
@@ -907,9 +909,9 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         for k, m in parameters["transition_multiplier"].items():
             if k not in self._phase_shift[lpb.channel]:
                 self._phase_shift[lpb.channel][k] = m * \
-                    parameters["phase_shift"]
+                                                    parameters["phase_shift"]
             else:
                 self._phase_shift[lpb.channel][k] += m * \
-                    parameters["phase_shift"]
+                                                     parameters["phase_shift"]
 
         return [], set()

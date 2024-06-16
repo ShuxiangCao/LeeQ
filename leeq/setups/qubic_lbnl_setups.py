@@ -1,4 +1,5 @@
 import copy
+from http.client import CannotSendRequest
 from typing import List, Union, Dict, Any
 from uuid import UUID
 
@@ -380,19 +381,26 @@ class QubiCCircuitSetup(ExperimentalSetup):
         )
 
         if acquisition_type == "IQ" or acquisition_type == "IQ_average":
-            self._runner.load_circuit(
-                rawasm=asm_prog,
-                # if True, (default), zero out all cmd buffers before loading
-                # circuit
-                zero=zero,
-                # load command buffers when the circuit or parameters (amp or
-                # phase) has changed.
-                load_commands=load_commands,
-                # load frequency buffers when frequency changed.
-                load_freqs=load_freqs,
-                # load envelope buffers when envelope changed.
-                load_envs=load_envs
-            )
+            while True:
+                try:
+                    self._runner.load_circuit(
+                        rawasm=asm_prog,
+                        # if True, (default), zero out all cmd buffers before loading
+                        # circuit
+                        zero=zero,
+                        # load command buffers when the circuit or parameters (amp or
+                        # phase) has changed.
+                        load_commands=load_commands,
+                        # load frequency buffers when frequency changed.
+                        load_freqs=load_freqs,
+                        # load envelope buffers when envelope changed.
+                        load_envs=load_envs
+                    )
+                    break
+                except CannotSendRequest as e:
+                    logger.warning(f"Http request cannot be sent. Retrying...{e}")
+                    continue
+
             self._result = self._runner.run_circuit(
                 n_total_shots=n_total_shots,
                 reads_per_shot=1 * batch_size,
