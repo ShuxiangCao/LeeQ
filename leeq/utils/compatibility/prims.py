@@ -50,6 +50,7 @@ def build_CZ_stark_from_parameters(
         amp_target (float): The amplitude of the target qubit.
         frequency (float): The frequency of the gate.
         rise (float): The rise time of the gate.
+        zz_interaction_positive (bool): Whether the interaction is positive. Determines the direction of the gate.
         iz_control (float): The z component of the control qubit.
         iz_target (float): The z component of the target qubit.
         phase_diff (float): The phase difference between the control and target qubits.

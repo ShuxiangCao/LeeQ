@@ -8,7 +8,7 @@ from leeq.core.primitives.built_in.compatibility import PulseArgsUpdatable
 from leeq.core.primitives.logical_primitives import (
     LogicalPrimitive,
     LogicalPrimitiveFactory,
-    MeasurementPrimitive, LogicalPrimitiveClone, MeasurementPrimitiveClone,
+    MeasurementPrimitive, LogicalPrimitiveClone, MeasurementPrimitiveClone, LogicalPrimitiveBlockSerial,
 )
 from leeq.core.primitives.collections import LogicalPrimitiveCollection
 
@@ -60,7 +60,7 @@ class SimpleDrive(LogicalPrimitive, PulseArgsUpdatable):
 
         for parameter_name in SimpleDrive._parameter_names:
             assert (
-                parameter_name in parameters
+                    parameter_name in parameters
             ), f"The parameter {parameter_name} is not found."
 
     def clone_with_parameters(self, parameters: dict, name_postfix=None):
@@ -251,6 +251,25 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
         vz.set_omega(omega)
         return vz
 
+    def get_clifford(self, clifford_id: int, ignore_identity=False):
+        """
+        Get a Clifford gate.
+
+        Parameters:
+            clifford_id (int): The id of the Clifford gate.
+            ignore_identity (bool): Whether to ignore the identity gate.
+
+        Returns:
+            LogicalPrimitiveBlockSerial: The Clifford gate.
+        """
+        from leeq.theory.cliffords import get_clifford_from_id
+
+        if ignore_identity and clifford_id == 0:
+            return LogicalPrimitiveBlockSerial([])
+
+        return LogicalPrimitiveBlockSerial(
+            [self[x] for x in get_clifford_from_id(clifford_id)])
+
 
 class QuditVirtualZCollection(LogicalPrimitiveCollection):
     @classmethod
@@ -324,7 +343,7 @@ class SimpleDispersiveMeasurement(MeasurementPrimitive, PulseArgsUpdatable):
     @classmethod
     def _validate_parameters(cls, parameters: dict):
         assert (
-            "distinguishable_states" in parameters
+                "distinguishable_states" in parameters
         ), "The distinguishable states are not specified."
 
     def clone_with_parameters(self, parameters: dict, name_postfix=None):
@@ -348,6 +367,6 @@ class SimpleDispersiveMeasurement(MeasurementPrimitive, PulseArgsUpdatable):
 
 
 class SimpleDispersiveMeasurementClone(
-        MeasurementPrimitiveClone,
-        PulseArgsUpdatable):
+    MeasurementPrimitiveClone,
+    PulseArgsUpdatable):
     pass

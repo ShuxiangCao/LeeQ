@@ -89,6 +89,8 @@ C1[23] = C1p_Xp.dot(C1p_Ym).dot(C1p_Xp)
 NC2 = 11520
 NC2_lim = 24 * 24
 
+C2 = None
+
 # Definitions of specific Clifford operations using matrix multiplication
 # and Kronecker products
 ZXm = sl.expm(+0.25j * np.pi * pZX)
@@ -243,6 +245,7 @@ def get_c2_info(i: int) -> tuple:
 
 
 CNOT_INDEX = 11429
+CZ_INDEX = 10299
 TOLERANCE = 1e-9
 inverse_c2_mem = {}
 

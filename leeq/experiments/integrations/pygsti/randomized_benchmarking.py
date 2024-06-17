@@ -1,3 +1,4 @@
+import numpy as np
 from labchronicle import register_browser_function, log_and_record
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockParallel
 from .base import PyGSTiRBExperiment
@@ -11,8 +12,8 @@ class PyGSTiSingleQubitRB(PyGSTiRBExperiment):
     """
 
     @log_and_record
-    def run(self, dut, depths: Optional[List[int]] = None, k: int = 50, randomizeout: bool = True,
-            citerations: int = 20):
+    def run(self, dut, depths: Optional[List[int]] = None, k: int = 10, randomizeout: bool = True,
+            citerations: int = 20, mprim_indexes=0):
         """
         Executes the randomized benchmarking experiment.
 
@@ -23,6 +24,7 @@ class PyGSTiSingleQubitRB(PyGSTiRBExperiment):
         - k (int): Number of random Clifford sequences to generate per depth.
         - randomizeout (bool): Whether to randomize output errors in the experiment.
         - citerations (int): Number of compiler iterations for the experiment setup.
+        - mprim_indexes (int): The index of the measurement primitive.
 
         Imports pyGSTi related modules and sets up the processor and experiment design.
         """
@@ -31,8 +33,9 @@ class PyGSTiSingleQubitRB(PyGSTiRBExperiment):
         from pygsti.processors import CliffordCompilationRules as CCR
 
         if depths is None:
-            depths = [1, 2, 4, 8, 16, 32, 64, 128, 256, 384, 512, 640, 768, 896, 1024, 1152, 1280, 1408, 1536, 1664,
-                      1792]
+            # depths = [1, 2, 4, 8, 16, 32, 64, 128, 256, 384, 512, 640, 768, 896, 1024, 1152, 1280, 1408, 1536, 1664,
+            #           1792]
+            depths = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
         qubit_labels = ['Q0']
         gate_names = ['Gxpi2', 'Gxmpi2', 'Gypi2', 'Gympi2']
@@ -46,7 +49,7 @@ class PyGSTiSingleQubitRB(PyGSTiRBExperiment):
         design = pygsti.protocols.CliffordRBDesign(pspec, compilations, depths, k, qubit_labels=qubit_labels,
                                                    randomizeout=randomizeout, citerations=citerations)
 
-        super().run(dut, design)
+        super().run(duts=[dut], design=design, mprim_indexes=mprim_indexes)
 
     def _construct_lpbs(self):
         """

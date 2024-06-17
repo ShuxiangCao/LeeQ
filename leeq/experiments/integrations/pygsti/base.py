@@ -123,6 +123,12 @@ class PyGSTiExperiment(Experiment):
         if not isinstance(design, CircuitListsDesign):
             raise ValueError("Design must be a pyGSTi Design object")
 
+        if mprim_indexes is None:
+            mprim_indexes = 0
+
+        if isinstance(mprim_indexes, int):
+            mprim_indexes = [mprim_indexes] * len(duts)
+
         self.duts = duts
         self.exp_design = design
         self._construct_lpbs()

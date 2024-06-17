@@ -243,8 +243,6 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
     def get_clifford(
             self,
             i,
-            control_c1=None,
-            target_c1=None,
             ignore_identity=False,
             additional_echo=None):
         """

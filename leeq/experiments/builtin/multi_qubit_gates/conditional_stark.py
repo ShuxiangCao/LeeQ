@@ -58,15 +58,7 @@ from qutip import Bloch
 class ConditionalStarkTuneUpRabiXY(experiment):
     @log_and_record
     def run(self, qubits, amp_control, amp_target, frequency=None, rise=0.01, start=0, stop=3, step=0.03, axis='Y',
-            echo=False, iz_rate_cancel=0, phase=0, iz_rise_drop=0):
-        """
-        Sweep time and find the initial guess of amplitude
-
-        :param start: start sweeping time
-        :param stop: stop sweeping time
-        :param step: time resolution
-        :return:
-        """
+            echo=False, iz_rate_cancel=0, phase_diff=0, iz_rise_drop=0):
         self.duts = qubits
         self.frequency = frequency
         self.amp_control = amp_control
@@ -77,6 +69,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         self.stop = stop
         self.step = step
         self.fitting_2D = None
+        self.phase_diff = phase_diff
 
         if frequency is None:
             freq_01 = qubits[1].get_c1('f01')['X'].freq
@@ -94,11 +87,11 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         c2 = prims.build_CZ_stark_from_parameters(control_q=self.duts[0], target_q=self.duts[1],
                                                   amp_target=self.amp_target, amp_control=self.amp_control,
                                                   frequency=self.frequency, rise=rise, width=self.width,
-                                                  phase_diff=self.phase,
+                                                  phase_diff=self.phase_diff,
                                                   iz_control=0,
                                                   iz_target=0,
                                                   echo=False,
-                                                  trunc=1.0)
+                                                  trunc=1.0, zz_interaction_positive=True)
 
         mprim_control = self.duts[0].get_measurement_prim_intlist(0)
         mprim_target = self.duts[1].get_measurement_prim_intlist(0)
@@ -1441,7 +1434,7 @@ class ConditionalStarkTuneUpRabiYDriveSweepOmega(experiment):
         self.c2 = prims.build_CZ_stark_from_parameters(control_q=self.duts[0], target_q=self.duts[1],
                                                        amp_target=0, amp_control=0,
                                                        frequency=self.frequency,
-                                                       rise=rise, width=self.width, echo=True)
+                                                       rise=rise, width=self.width, echo=True, phase_diff=phase_diff)
 
         # c2['cs_pulse'].set_pulse_shapes(shape, 0, amp=amp_control, phase=0, width=width, **shape_args)
         # c2['cs_pulse'].set_pulse_shapes(shape, 1, amp=amp_target, phase=0, width=width, **shape_args)
@@ -1554,7 +1547,8 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
             iz_control=self.iz_control,
             iz_target=self.iz_target,
             echo=echo,
-            trunc=1.05
+            trunc=1.05,
+            zz_interaction_positive=True  # It doesn't matter what to use here, after one tomography we will find out.
         )
 
         cs_pulse = c2.get_z_canceled_cs_pulse()
@@ -1739,6 +1733,8 @@ class ConditionalStarkEchoTuneUp(Experiment):
                 'rise': rise,
                 'width': 0,
                 'phase_diff': phase_diff,
+                'zz_interaction_positive': True,
+                'echo': True
             }
 
         self.current_params = params
@@ -1767,7 +1763,7 @@ class ConditionalStarkEchoTuneUp(Experiment):
             start=t_start,
             stop=t_stop,
             step=t_step,
-            phase=self.current_params['phase'],
+            phase_diff=self.current_params['phase_diff'],
             iz_rate_cancel=0,
             iz_rise_drop=0,
             echo=True)
@@ -1817,7 +1813,7 @@ class ConditionalStarkEchoTuneUp(Experiment):
                 width=width,
                 start_gate_number=n_start,
                 gate_count=n_stop,
-                echo=True
+                echo=True,
             )
 
             iz_target_measured = iz_target + repeated_gate.iz_rate.nominal_value * np.pi * 2
