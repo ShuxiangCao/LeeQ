@@ -175,8 +175,8 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
             'interleaved': interleaved_rb.success_probability
         }
 
-        p_s = uexp(unc.ufloat(standard_rb.popt[1], np.sqrt(standard_rb.pcov[1])))
-        p_i = uexp(unc.ufloat(interleaved_rb.popt[1], np.sqrt(interleaved_rb.pcov[1])))
+        p_s = uexp(unc.ufloat(standard_rb.popt[1], standard_rb.perr[1]))
+        p_i = uexp(unc.ufloat(interleaved_rb.popt[1], interleaved_rb.perr[1]))
 
         self.infidelity = (4 - 1) / 4 * (1 - (p_i / p_s))
 
