@@ -16,6 +16,11 @@ from leeq.core.primitives.built_in.sizzel_gate import *
 from leeq.theory.fits.fit_exp import *
 from matplotlib import pyplot as plt
 
+from leeq.theory.fits.fit_exp import fit_2d_freq, fit_2d_freq_with_cov
+import uncertainties as unc
+
+from leeq.theory.estimator.kalman import KalmanFilter1D
+
 logger = setup_logging(__name__)
 
 from typing import Any, Optional, Tuple, Dict, Union
@@ -503,284 +508,6 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         plot_axis(data1=result[:, 0, 1], data2=self.result[:, 1, 1], label1="Ground - ZZ interaction rabi drive Y axis",
                   label2="Excited - ZZ interaction rabi drive Y axis", fit_params1=self.fitting_2D[0],
                   fit_params2=self.fitting_2D[1], t=t, use_imaginary_part=True)
-
-
-class ConditionalStarkTuneUpRepeatedGateXY(experiment):
-
-    @log_and_record
-    def run(self, duts, amp_control, amp_target, frequency, phase=0, rise=0.01, axis='Y',
-            echo=False, iz_control=0, iz_target=0, width=0, start_gate_number=0, gate_count=40):
-        """
-        Sweep time and find the initial guess of amplitude
-
-        :return:
-        """
-        self.duts = duts
-        self.frequency = frequency
-        self.amp_control = amp_control
-        self.amp_target = amp_target
-        self.phase = phase
-        self.width = width
-        self.iz_control = iz_control
-        self.iz_target = iz_target
-        self.rise = rise
-        self.start_gate_number = start_gate_number
-        self.gate_count = gate_count
-
-        c1_control = self.duts[0].get_default_c1()
-        c1_target = self.duts[1].get_default_c1()
-
-        c2 = prims.build_CZ_stark_from_parameters(
-            control_q=self.duts[0],
-            target_q=self.duts[1],
-            amp_target=self.amp_target,
-            amp_control=self.amp_control,
-            frequency=self.frequency,
-            rise=self.rise,
-            width=self.width,
-            phase_diff=self.phase,
-            iz_control=self.iz_control,
-            iz_target=self.iz_target,
-            echo=False,
-            trunc=1.05
-        )
-
-        cs_pulse = c2.get_z_canceled_cs_pulse()
-
-        lpb = cs_pulse
-
-        lpb_flip_control = prims.SweepLPB([c1_control['I'], c1_control['X']])
-        swp_flip = sweeper.from_sweep_lpb(lpb_flip_control)
-
-        lpb_readout = prims.SweepLPB([c1_target['Yp'], c1_target['Xm']])
-        swp_readout = sweeper.from_sweep_lpb(lpb_readout)
-
-        self.pulse_train, self.result = self.run_repeated_gate_experiment(
-            initial_lpb=c1_target['Xp'],
-            initial_gate=lpb_flip_control,
-            repeated_block=lpb,
-            final_gate=lpb_readout,
-            pulse_count=range(start_gate_number, start_gate_number + gate_count),
-            swp_initial=swp_flip,
-            swp_posterior=swp_readout,
-            fit=False
-        )
-
-        self.analyze_results()
-
-    def fit(self):
-        """
-        Fit the results.
-        """
-        self.popts = []
-        self.pcovs = []
-
-        for i in range(self.N):
-            x = np.arange(len(self.result)) + 0.5
-            popt, pcov = so.curve_fit(self.lin, self.pulse_count + 0.5, self.result)
-            self.popts.append(popt)
-            self.pcovs.append(pcov)
-
-    def lin(self, xvec, a, b):
-        return a * xvec + b
-
-    def run_repeated_gate_experiment(self, initial_lpb, initial_gate, repeated_block, final_gate, pulse_count,
-                                     swp_initial, swp_posterior, fit=True):
-        """
-        Function to run the repeated gate experiment based on inatial lpb, gate and pulse count.
-        """
-
-        int_target = initial_lpb
-        ini_control = initial_gate
-        rep = repeated_block
-        fin = final_gate
-
-        mprim_control = self.duts[0].get_measurement_prim_intlist(0)
-        mprim_target = self.duts[1].get_measurement_prim_intlist(0)
-
-        sequence_lpb = []
-        results = []
-
-        for n in pulse_count:
-            sequence = LogicalPrimitiveBlockSerial(
-                [int_target * ini_control] + [rep] * (n) + [fin + mprim_target * mprim_control])
-            sequence_lpb.append(sequence)
-
-        lpb = LogicalPrimitiveBlockSweep(sequence_lpb)
-        swp = sweeper.from_sweep_lpb(lpb)
-
-        swp_flip = swp_initial
-        swp_readout = swp_posterior
-
-        basic(lpb, swp=swp + swp_flip + swp_readout, basis="<z>")
-
-        self.result = mprim_target.result()
-        self.result_control = mprim_control.result()
-
-        self.N = 1
-        self.pulse_count = pulse_count
-
-        if fit:
-            self.fit()
-
-        return lpb, self.result
-
-    def analyze_results(self):
-        print("Shape of result:", self.result.shape)
-
-        t_start = self.start_gate_number
-        t_stop = self.start_gate_number + self.gate_count
-        t_step = 1
-
-        t = np.arange(t_start, t_stop, t_step)
-
-        self.fitting_2D = []
-        for i in range(2):
-            self.real_part = self.result[:, i, 0, 0]
-            self.imag_part = self.result[:, i, 1, 0]
-
-            self.complex_data = self.real_part + 1j * self.imag_part
-
-            self.fit_result = Fit_2D_Freq(self.complex_data, dt=t_step)
-            self.fitting_2D.append(self.fit_result)
-            print(f"Fit Results for {i}: {self.fit_result}")
-
-        self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
-        self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
-        self.phase_contribution_from_pulse_rise_up = (self.fitting_2D[0]['Phase'] - (
-                self.fitting_2D[1]['Phase'] + np.pi)) / 2
-
-        print(f"IZ: {self.iz_rate: 0.5f} PGC, ZZ: {self.zz_rate: 0.5f} PGC (per gate count)")
-        print(f"Phase Contributions from Pulse Rise Up: {self.phase_contribution_from_pulse_rise_up: 0.5f}")
-
-        return {
-            'fitting_2D': self.fitting_2D,
-            'iz_rate': self.iz_rate,
-            'zz_rate': self.zz_rate,
-            'phase_contribution_from_pulse_rise_up': self.phase_contribution_from_pulse_rise_up
-        }
-
-    @register_browser_function(available_after=(run,))
-    def plot(self):
-        """
-        Plot the results.
-        """
-        args = self.retrieve_args(self.run)
-
-        print("Phase from edges", self.phase_contribution_from_pulse_rise_up)
-
-        t = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1)
-        t_interpolate = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1 / 10)
-
-        def plot_specific_axis(data, label, fit_params, use_imaginary_part):
-            data = data.squeeze()
-
-            plt.scatter(t, data, label=label, alpha=0.5)
-            # plt.plot(t, data)
-
-            f = fit_params['Frequency']
-            a = fit_params['Amplitude']
-            p = fit_params['Phase'] - 2.0 * np.pi * f * args['start_gate_number']
-            o = fit_params['Offset']
-            decay = fit_params['Decay']
-
-            # fit = a * np.exp(-decay * t_interpolate) * np.exp(1j * (2.0 * np.pi * f * t_interpolate + p)) + o
-            fit = a * np.exp(1.j * (2.0 * np.pi * f * t_interpolate + p)) + o
-
-            plt.plot(t_interpolate, np.real(fit) if not use_imaginary_part else np.imag(fit))
-
-        plt.figure(figsize=(20, 5))
-
-        desired_num_ticks = 10  # Desired number of ticks
-        step = max(1, len(t) // desired_num_ticks)
-        xticks_subset = t[::step]
-        plt.title(f"ZZ interaction repeated gate tomography - X axis")
-
-        plot_specific_axis(data=self.result[:, 0, 0], label="Ground", fit_params=self.fitting_2D[0],
-                           use_imaginary_part=False)
-        plot_specific_axis(data=self.result[:, 1, 0], label="Excited", fit_params=self.fitting_2D[1],
-                           use_imaginary_part=False)
-
-        plt.xlabel("Pulse count")
-        plt.ylabel("<X>")
-        plt.legend()
-        plt.xticks(xticks_subset)
-
-        plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction repeated gate tomography - Y axis")
-
-        plot_specific_axis(data=self.result[:, 0, 1], label="Ground", fit_params=self.fitting_2D[0],
-                           use_imaginary_part=True)
-        plot_specific_axis(data=self.result[:, 1, 1], label="Excited", fit_params=self.fitting_2D[1],
-                           use_imaginary_part=True)
-
-        plt.xlabel("Pulse count")
-        plt.ylabel("<Y>")
-        plt.legend()
-        plt.xticks(xticks_subset)
-
-        plt.show()
-
-    @register_browser_function(available_after=(run,))
-    def plot_rescaled(self):
-
-        args = self.retrieve_args(self.run)
-        t = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1)
-        t_interpolate = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1 / 10)
-
-        def rescale_and_center(data):
-            data_centered = data - np.mean(data)
-            data_min = np.min(data_centered)
-            data_max = np.max(data_centered)
-            data_rescaled = 2 * (data_centered - data_min) / (data_max - data_min) - 1
-            return data_rescaled
-
-        def plot_specific_axis(data, label, fit_params, use_imaginary_part=False, color='blue'):
-            data_rescaled = rescale_and_center(data)
-            plt.scatter(t, data_rescaled, label=label, alpha=0.5, color=color)
-
-            f = fit_params['Frequency']
-            a = 1  # Fixed amplitude
-            p = fit_params['Phase'] - 2.0 * np.pi * f * args['start_gate_number']
-            o = 0  # Offset is set to 0 for centering
-
-            fit = a * np.exp(1.j * (2.0 * np.pi * f * t_interpolate + p)) + o
-            fit_rescaled = rescale_and_center(np.real(fit) if not use_imaginary_part else np.imag(fit))
-
-            plt.plot(t_interpolate, fit_rescaled, color=color)
-
-        dark_navy = '#000080'
-        dark_purple = '#800080'
-
-        desired_num_ticks = 10  # Desired number of ticks
-        step = max(1, len(t) // desired_num_ticks)
-        xticks_subset = t[::step]
-
-        plt.figure(figsize=(20, 5))
-        plt.title("ZZ interaction rescaled repeated gate tomography - X axis")
-        plot_specific_axis(data=self.result[:, 0, 0], label="Ground", fit_params=self.fitting_2D[0],
-                           use_imaginary_part=False, color=dark_navy)
-        plot_specific_axis(data=self.result[:, 1, 0], label="Excited", fit_params=self.fitting_2D[1],
-                           use_imaginary_part=False, color=dark_purple)
-
-        plt.xlabel("Pulse width [us]")
-        plt.ylabel("<X>")
-        plt.legend()
-        plt.xticks(xticks_subset)
-
-        plt.figure(figsize=(20, 5))
-        plt.title("ZZ interaction rescaled repeated gate tomography - Y axis")
-        plot_specific_axis(data=self.result[:, 0, 1], label="Ground", fit_params=self.fitting_2D[0],
-                           use_imaginary_part=True, color=dark_navy)
-        plot_specific_axis(data=self.result[:, 1, 1], label="Excited", fit_params=self.fitting_2D[1],
-                           use_imaginary_part=True, color=dark_purple)
-
-        plt.xlabel("Pulse width [us]")
-        plt.ylabel("<Y>")
-        plt.legend()
-        plt.xticks(xticks_subset)
-
-        plt.show()
 
 
 class Arrow3D(FancyArrowPatch):
@@ -1790,89 +1517,382 @@ class ConditionalStarkTuneUpRabiYDriveSweepOmega(experiment):
         plt.show()
 
 
-class ConditionalStarkPingPong(experiment):
+class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
+
     @log_and_record
-    def run(self, duts, cs_params, pulse_count):
+    def run(self, duts, amp_control, amp_target, frequency, phase=0, rise=0.03, axis='Y',
+            echo=False, iz_control=0, iz_target=0, width=0, start_gate_number=0, gate_count=40):
+        """
+        Sweep time and find the initial guess of amplitude
 
-        print(pulse_count)
-
-        self.pulse_count = np.asarray(pulse_count)
-
+        :return:
+        """
         self.duts = duts
+        self.frequency = frequency
+        self.amp_control = amp_control
+        self.amp_target = amp_target
+        self.phase = phase
+        self.width = width
+        self.iz_control = iz_control
+        self.iz_target = iz_target
+        self.rise = rise
+        self.start_gate_number = start_gate_number
+        self.gate_count = gate_count
 
         c1_control = self.duts[0].get_default_c1()
         c1_target = self.duts[1].get_default_c1()
 
-        c2 = prims.build_CZ_stark_from_parameters(control_q=self.duts[0], target_q=self.duts[1],
-                                                  **cs_params)
+        c2 = prims.build_CZ_stark_from_parameters(
+            control_q=self.duts[0],
+            target_q=self.duts[1],
+            amp_target=self.amp_target,
+            amp_control=self.amp_control,
+            frequency=self.frequency,
+            rise=self.rise,
+            width=self.width,
+            phase_diff=self.phase,
+            iz_control=self.iz_control,
+            iz_target=self.iz_target,
+            echo=echo,
+            trunc=1.05
+        )
 
-        cs_pulse = c2.get_zzm_pi_over_4()
+        cs_pulse = c2.get_z_canceled_cs_pulse()
 
-        lpb_zz = c2.get_zzp()
+        lpb = cs_pulse
 
-        lpb = cs_pulse  # lpb_zz if cs_params['echo'] else cs_pulse
+        lpb_flip_control = prims.SweepLPB([c1_control['I'], c1_control['X']])
+        swp_flip = sweeper.from_sweep_lpb(lpb_flip_control)
 
-        # lpb_flip_control = prims.SweepLPB([c1_control['I'], c1_control['X']])
+        lpb_readout = prims.SweepLPB([c1_target['Yp'], c1_target['Xm']])
+        swp_readout = sweeper.from_sweep_lpb(lpb_readout)
 
-        lpb_readout = c1_target['Yp']
+        self.pulse_train, self.result = self.run_repeated_gate_experiment(
+            initial_lpb=c1_target['Ym'],
+            initial_gate=lpb_flip_control,
+            repeated_block=lpb,
+            final_gate=lpb_readout,
+            pulse_count=range(start_gate_number, start_gate_number + gate_count),
+            swp_initial=swp_flip,
+            swp_posterior=swp_readout,
+            fit=False
+        )
 
-        # lpb_readout = prims.SweepLPB([c1_target['Yp'], c1_target['Xm']])
+        self.analyze_results()
 
-        # swp_initial = sweeper.from_sweep_lpb(lpb_flip_control)
-        # swp_posterior = sweeper.from_sweep_lpb(lpb_readout)
+    def run_repeated_gate_experiment(self, initial_lpb, initial_gate, repeated_block, final_gate, pulse_count,
+                                     swp_initial, swp_posterior, fit=True):
+        """
+        Function to run the repeated gate experiment based on inatial lpb, gate and pulse count.
+        """
 
-        self.pulse_train_ground = SelectedPulseTrainSingleQubitMultilevel(dut=self.duts[1], name='f01',
-                                                                          mprim_index=0,
-                                                                          initial_lpb=c1_target['Xp'],
-                                                                          initial_gate=c1_target['I'],
-                                                                          repeated_block=lpb_zz + lpb_zz,
-                                                                          final_gate=lpb_readout,
-                                                                          pulse_count=self.pulse_count,
-                                                                          extra_measurement_duts=[self.duts[0]],
-                                                                          swp=None)  # swp_initial + swp_posterior)
+        int_target = initial_lpb
+        ini_control = initial_gate
+        rep = repeated_block
+        fin = final_gate
 
-        self.pulse_train_excited = SelectedPulseTrainSingleQubitMultilevel(dut=self.duts[1], name='f01',
-                                                                           mprim_index=0,
-                                                                           initial_lpb=c1_target['Xp'],
-                                                                           initial_gate=c1_control['X'],
-                                                                           repeated_block=lpb_zz + lpb_zz,
-                                                                           final_gate=lpb_readout,
-                                                                           pulse_count=self.pulse_count,
-                                                                           extra_measurement_duts=[self.duts[0]],
-                                                                           swp=None)  # swp_initial + swp_posterior)
+        mprim_control = self.duts[0].get_measurement_prim_intlist(0)
+        mprim_target = self.duts[1].get_measurement_prim_intlist(0)
 
-        pass
+        sequence_lpb = []
+        results = []
 
-    def plot(self, pp, title):
+        for n in pulse_count:
+            sequence = LogicalPrimitiveBlockSerial(
+                [int_target * ini_control] + [rep] * (n) + [fin + mprim_target * mprim_control])
+            sequence_lpb.append(sequence)
 
-        # x = self.pulse_count
-        x = self.pulse_count + 0.5  # np.linspace(0, pt.rep, pt.rep + 1)
+        lpb = LogicalPrimitiveBlockSweep(sequence_lpb)
+        swp = sweeper.from_sweep_lpb(lpb)
 
-        fig, axes = plt.subplots(nrows=1, ncols=pp.N)
+        swp_flip = swp_initial
+        swp_readout = swp_posterior
 
-        if pp.N == 1:
-            axes.scatter(x, pp.result, alpha=0.5)
-            axes.plot(x, pp.popts[0][0] * x + pp.popts[0][1], 'r-')
-            axes.set_ylim(-1.1, 1.1)
-            axes.set_xlabel(u"Repetition", fontsize=18)
-            axes.set_ylabel(u"<z>", fontsize=18)
-        else:
-            for i in range(pp.N):
-                axes[i].scatter(x, pp.result[i], alpha=0.5)
-                axes[i].plot(x, pp.popts[i][0] * x + pp.popts[i][1], 'r-')
-                axes[i].set_ylim(-1.1, 1.1)
-                axes[i].set_xlabel(u"Repetition", fontsize=18)
-                axes[i].set_ylabel(u"<z>", fontsize=18)
-        plt.title(title)
+        basic(lpb, swp=swp + swp_flip + swp_readout, basis="<z>")
+
+        self.result = np.squeeze(mprim_target.result())
+        self.result_control = np.squeeze(mprim_control.result())
+
+        self.N = 1
+        self.pulse_count = pulse_count
+
+        if fit:
+            self.fit()
+
+        return lpb, self.result
+
+    def analyze_results(self):
+        print("Shape of result:", self.result.shape)
+
+        t_start = self.start_gate_number
+        t_stop = self.start_gate_number + self.gate_count
+        t_step = 1
+
+        t = np.arange(t_start, t_stop, t_step)
+
+        self.fitting_2D = []
+        for i in range(2):
+            self.real_part = self.result[:, i, 0]
+            self.imag_part = self.result[:, i, 1]
+
+            self.complex_data = self.real_part + 1j * self.imag_part
+
+            self.fit_result = fit_2d_freq_with_cov(self.complex_data, dt=t_step, freq_guess=0.125, use_freq_bound=True)
+            self.fitting_2D.append(self.fit_result)
+            # print(f"Fit Results for {i}: {self.fit_result}")
+
+        self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
+        self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
+
+        print(f"IZ: {self.iz_rate: 0.5f} PGC, ZZ: {self.zz_rate: 0.5f} PGC (per gate count)")
+
+        return {
+            'fitting_2D': self.fitting_2D,
+            'iz_rate': self.iz_rate,
+            'zz_rate': self.zz_rate,
+        }
+
+    @register_browser_function(available_after=(run,))
+    def plot(self):
+        """
+        Plot the results.
+        """
+        args = self.retrieve_args(self.run)
+
+        t = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1)
+        t_interpolate = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1 / 10)
+
+        def plot_specific_axis(data, label, fit_params, use_imaginary_part):
+            data = data.squeeze()
+
+            plt.scatter(t, data, label=label, alpha=0.5)
+            # plt.plot(t, data)
+
+            f = fit_params['Frequency'].nominal_value
+            a = fit_params['Amplitude'].nominal_value
+            p = fit_params['Phase'].nominal_value - 2.0 * np.pi * f * args['start_gate_number']
+            o = fit_params['Offset_real'].nominal_value + 1j * fit_params['Offset_imag'].nominal_value
+
+            # fit = a * np.exp(-decay * t_interpolate) * np.exp(1j * (2.0 * np.pi * f * t_interpolate + p)) + o
+            fit = a * np.exp(1.j * (2.0 * np.pi * f * t_interpolate + p)) + o
+
+            plt.plot(t_interpolate, np.real(fit) if not use_imaginary_part else np.imag(fit))
+
+        plt.figure(figsize=(20, 5))
+
+        desired_num_ticks = 10  # Desired number of ticks
+        step = max(1, len(t) // desired_num_ticks)
+        xticks_subset = t[::step]
+        plt.title(f"ZZ interaction repeated gate tomography - X axis")
+
+        plot_specific_axis(data=self.result[:, 0, 0], label="Ground", fit_params=self.fitting_2D[0],
+                           use_imaginary_part=False)
+        plot_specific_axis(data=self.result[:, 1, 0], label="Excited", fit_params=self.fitting_2D[1],
+                           use_imaginary_part=False)
+
+        plt.xlabel("Pulse count")
+        plt.ylabel("<X>")
+        plt.legend()
+        plt.xticks(xticks_subset)
+
+        plt.figure(figsize=(20, 5))
+        plt.title(f"ZZ interaction repeated gate tomography - Y axis")
+
+        plot_specific_axis(data=self.result[:, 0, 1], label="Ground", fit_params=self.fitting_2D[0],
+                           use_imaginary_part=True)
+        plot_specific_axis(data=self.result[:, 1, 1], label="Excited", fit_params=self.fitting_2D[1],
+                           use_imaginary_part=True)
+
+        plt.xlabel("Pulse count")
+        plt.ylabel("<Y>")
+        plt.legend()
+        plt.xticks(xticks_subset)
+
         plt.show()
 
-    @register_browser_function(available_after=(run,))
-    def plot_ground(self):
-        self.plot(pp=self.pulse_train_ground, title="Control at ground state")
 
-    @register_browser_function(available_after=(run,))
-    def plot_excited(self):
-        self.plot(pp=self.pulse_train_excited, title="Control at excited state")
+class ConditionalStarkEchoTuneUp(Experiment):
+
+    @log_and_record
+    def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0, rise=0.01,
+            t_start=0, t_stop=20, sweep_points=30,
+            n_start=0, n_stop=32, update_iz=False, update_zz=True, n_max_iteration=20
+            ):
+        self.duts = duts
+        self.n_max_iteration = n_max_iteration
+
+        assert update_iz == False
+
+        if params is None:
+            amp_rabi_control = duts[0].get_c1('f01')['X'].amp
+            amp_rabi_target = duts[1].get_c1('f01')['X'].amp
+
+            area_control = amp_rabi_control * duts[0].get_c1('f01')['X'].width
+            area_target = amp_rabi_target * duts[1].get_c1('f01')['X'].width
+
+            params = {
+                'iz_control': 0,
+                'iz_target': 0,
+                'frequency': frequency,
+                'amp_control': amp_control,
+                'amp_target': amp_control * area_target / area_control,
+                'rise': rise,
+                'width': 0,
+                'phase_diff': phase_diff,
+            }
+
+        self.current_params = params
+        self.params_list = [params]
+
+        iz_rate, zz_rate = self.run_sizzel_xy_hamiltonian_tomography(t_start=t_start, t_stop=t_stop,
+                                                                     sweep_points=sweep_points)
+
+        self.current_params['zz_interaction_positive'] = zz_rate.nominal_value > 0
+
+        self.run_repeated_gate_hamiltonian_tomography(duts=self.duts, zz_rate=zz_rate, n_start=n_start, n_stop=n_stop,
+                                                      update_iz=False, update_zz=True)
+
+    def run_sizzel_xy_hamiltonian_tomography(self, t_start, t_stop, sweep_points=60):
+        setup().status().set_param("Shot_Period", 500)
+        setup().status().set_param("Shot_Number", 500)
+
+        t_step = (t_stop - t_start) / sweep_points
+
+        sizzel_xy = ConditionalStarkTuneUpRabiXY(
+            qubits=self.duts,
+            frequency=self.current_params['frequency'],
+            amp_control=self.current_params['amp_control'],
+            amp_target=self.current_params['amp_target'],
+            rise=self.current_params['rise'],
+            start=t_start,
+            stop=t_stop,
+            step=t_step,
+            phase=self.current_params['phase'],
+            iz_rate_cancel=0,
+            iz_rise_drop=0,
+            echo=True)
+
+        result = sizzel_xy.analyze_results_with_errs()
+
+        iz_rate = result['iz_rate']
+        zz_rate = result['zz_rate']
+
+        new_params = self.current_params.copy()
+        new_params['width'] = np.abs(0.125 / zz_rate.nominal_value) / 2
+
+        print(f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]} us')
+
+        self.params_list.append(new_params)
+        self.current_params = new_params
+
+        return iz_rate, zz_rate
+
+    def run_repeated_gate_hamiltonian_tomography(self, duts, zz_rate, n_start=0, n_stop=32, update_iz=False,
+                                                 update_zz=True,
+                                                 ):
+
+        iz_target = self.current_params['iz_target']
+        width = self.current_params['width']
+        iz_check_pass = False
+        zz_check_pass = False
+
+        measured_iz_list = []
+        measured_zz_list = []
+
+        estimated_iz_list = []
+        estimated_zz_list = []
+
+        kalman_iz = None
+        kalman_zz = None
+
+        for i in range(self.n_max_iteration):
+            repeated_gate = ConditionalStarkTuneUpRepeatedGateXY(
+                duts=self.duts,
+                iz_control=0,
+                iz_target=iz_target,
+                frequency=self.current_params['frequency'],
+                amp_control=self.current_params['amp_control'],
+                amp_target=self.current_params['amp_target'],
+                rise=self.current_params['rise'],
+                width=width,
+                start_gate_number=n_start,
+                gate_count=n_stop,
+                echo=True
+            )
+
+            iz_target_measured = iz_target + repeated_gate.iz_rate.nominal_value * np.pi * 2
+            zz_measured = repeated_gate.zz_rate.nominal_value
+
+            measured_iz_list.append(iz_target_measured)
+            measured_zz_list.append(zz_measured)
+
+            if kalman_iz is None:
+                kalman_iz = KalmanFilter1D(initial_position=iz_target_measured,
+                                           position_variance=(repeated_gate.iz_rate.std_dev * np.pi * 2) ** 2)
+                kalman_zz = KalmanFilter1D(initial_position=zz_measured,
+                                           position_variance=(repeated_gate.zz_rate.std_dev * np.pi * 2) ** 2)
+            else:
+                kalman_iz.update(measurement=iz_target_measured,
+                                 measurement_variance=(repeated_gate.iz_rate.std_dev * np.pi * 2) ** 2)
+
+                kalman_zz.update(measurement=zz_measured,
+                                 measurement_variance=(repeated_gate.zz_rate.std_dev * np.pi * 2) ** 2)
+
+            print(f'Kalman estimated ZZ pgc after measurement = {kalman_zz.x}+-{np.sqrt(kalman_zz.P)}')
+            print(f'Kalman estimated IZ pgc after measurement = {kalman_iz.x}+-{np.sqrt(kalman_iz.P)}')
+
+            if update_iz:
+                iz_target = kalman_iz.x
+                iz_check_pass = kalman_iz.P < 1e-2
+                if not update_zz:
+                    estimated_iz_list.append(unc.ufloat(kalman_iz.x, np.sqrt(kalman_iz.P)))
+
+            if update_zz:
+                zz_pgc = kalman_zz.x
+
+                target_zz = np.sign(zz_pgc) * 0.125
+                zz_diff = target_zz - zz_pgc
+                width_diff = np.sign(zz_diff / zz_rate.nominal_value) * min(np.abs(zz_diff / zz_rate.nominal_value / 2),
+                                                                            0.05 * self.current_params['width'])
+                zz_diff = zz_rate.nominal_value * width_diff * 2
+                width += width_diff
+                iz_diff = 0
+                # iz_rate_tQ1_cQ2 * width_diff * np.pi * 2
+                print(f'Update width to {width} us')
+                kalman_zz.predict(movement=zz_diff,
+                                  position_variance=(zz_rate.std_dev * width_diff * np.pi * 2) ** 2)
+                kalman_iz.predict(movement=iz_diff,
+                                  position_variance=(zz_rate.std_dev * width_diff * np.pi * 2) ** 2)
+
+                estimated_iz_list.append(unc.ufloat(kalman_iz.x, np.sqrt(kalman_iz.P)))
+                estimated_zz_list.append(unc.ufloat(kalman_zz.x, np.sqrt(kalman_zz.P)))
+
+            zz_accuracy_check = np.abs(target_zz - zz_pgc) < 1e-3
+            zz_uncertainty_check = np.sqrt(kalman_zz.P) < 1e-3
+            zz_check_pass = zz_accuracy_check and zz_uncertainty_check
+
+            print(f'Kalman estimated ZZ pgc after update = {kalman_zz.x}+-{np.sqrt(kalman_zz.P)}')
+            print(f'Kalman estimated IZ pgc after update = {kalman_iz.x}+-{np.sqrt(kalman_iz.P)}')
+
+            print(
+                f'ZZ accuracy check pass: {zz_accuracy_check}, ZZ uncertainty check pass: {zz_uncertainty_check}')
+            print(f'IZ uncertainty check pass: {iz_check_pass} ')
+
+            if (iz_check_pass or not update_iz) and (zz_check_pass or not update_zz):
+                break
+
+        new_params = self.current_params.copy()
+
+        new_params['iz_target'] = iz_target
+        new_params['width'] = width
+
+        print(f'Estimated IZ = {iz_target}, ZZ = {zz_pgc}, width = {width}')
+
+        self.params_list.append(new_params)
+        self.current_params = new_params
+
+        self.estimated_iz_list = estimated_iz_list
+        self.estimated_zz_list = estimated_zz_list
 
 
 class ConditionalStarkTuneUp(experiment):
@@ -1927,8 +1947,9 @@ class ConditionalStarkTuneUp(experiment):
                 print("amp_control", amp_control)
 
             if amp_target is None:
-                amp_target = drive_omega * qubits[1].get_c1('f01')['X'].get_pulse_args('amp') * qubits[1].get_c1('f01')[
-                    'X'].get_pulse_args('width') * 2
+                amp_target = drive_omega * qubits[1].get_c1('f01')['X'].get_pulse_args('amp') * \
+                             qubits[1].get_c1('f01')[
+                                 'X'].get_pulse_args('width') * 2
 
                 print("amp_target", amp_target)
 
@@ -2097,11 +2118,13 @@ class ConditionalStarkTuneUp(experiment):
 
             if not self.repeated_gate_calibration_ignore_zz:
                 control_params = self.repeated_gate_calibration_single_qubit(start_point=i, gate_count=gate_count,
-                                                                             flip_control_target=False, tuneup_zz=True)
+                                                                             flip_control_target=False,
+                                                                             tuneup_zz=True)
                 self.guessed_params['iz_control'] = control_params['iz_control']
                 self.guessed_params['width'] = control_params['width']
                 target_params = self.repeated_gate_calibration_single_qubit(start_point=i, gate_count=gate_count,
-                                                                            flip_control_target=True, tuneup_zz=True)
+                                                                            flip_control_target=True,
+                                                                            tuneup_zz=True)
 
             self.guessed_params['width'] = (control_params['width'] + target_params['width']) / 2
             self.guessed_params['iz_control'] = control_params['iz_control']
@@ -2362,6 +2385,7 @@ class ConditionalStarkHamiltonianTomography(experiment):
 
             plt.figure()
             vec = np.asarray([x, y, z])
+            import qutip
             b = qutip.Bloch()
             b.add_vectors(vec.T)
             b.show()

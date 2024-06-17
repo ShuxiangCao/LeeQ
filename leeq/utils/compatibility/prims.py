@@ -32,6 +32,7 @@ def build_CZ_stark_from_parameters(
         amp_target,
         frequency,
         rise,
+        zz_interaction_positive,
         iz_control=0,
         iz_target=0,
         phase_diff=0,
@@ -69,6 +70,8 @@ def build_CZ_stark_from_parameters(
             'iz_target': iz_target,
             'phase_diff': phase_diff,
             'echo': echo,
-            'trunc': trunc, }
+            'trunc': trunc,
+            'zz_interaction_positive': zz_interaction_positive
+        }
     )
     return lpb

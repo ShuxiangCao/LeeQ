@@ -20,6 +20,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         'rise': 0.01,
         'trunc': 1.0,
         'width': 0.1,
+        'zz_interaction_positive': True
     }
 
     def validate_parameters(self):
@@ -35,6 +36,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         assert 'phase_diff' in self._parameters, "The phase difference is not found in the parameters."
         assert 'echo' in self._parameters, "The echo configuration is not found in the parameters."
         assert 'width' in self._parameters, "The width is not found in the parameters."
+        assert 'zz_interaction_positive' in self._parameters, "The zz_interaction_positive is not found in the parameters."
 
     def update_parameters(self, **kwargs):
         """
@@ -51,7 +53,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
             "trunc": self._parameters['trunc'],
             "phase": 0,
         }
-        )
+                                                      )
         self['stark_drive_target'].update_parameters(**{
             "freq": self._parameters['freq'],
             "amp": self._parameters['amp_target'],
@@ -148,9 +150,8 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         full_pulse = self.get_stark_drive_pulses()
 
         if self.echo:
-
             flip_both = self.c1_control['X'] * self.c1_target['X']
-            return full_pulse + flip_both + full_pulse+ flip_both + self.get_z_cancellation_pulse()
+            return full_pulse + flip_both + full_pulse + flip_both + self.get_z_cancellation_pulse()
 
         return full_pulse + self.get_z_cancellation_pulse()
 
@@ -158,15 +159,11 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         """
         Get the zzm gate with pi/4 rotation.
         """
+        full_pulse = self.get_z_canceled_cs_pulse()
+        lpb = full_pulse + full_pulse
 
-        if self.echo:
-            flip_both = self.c1_control['X'] * self.c1_target['X']
-            full_pulse = self.get_stark_drive_pulses()
-            lpb = full_pulse + flip_both + full_pulse + flip_both + \
-                self.get_z_cancellation_pulse() + self.get_z_cancellation_pulse()
-        else:
-            full_pulse = self.get_z_canceled_cs_pulse()
-            lpb = full_pulse + full_pulse
+        if self.zz_interaction_positive:
+            lpb = lpb + self.c1_control.z(np.pi) * self.c1_target.z(np.pi)
 
         return lpb
 
@@ -177,16 +174,11 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
 
         # Each pulse do a np.pi/8 rotation , each gate requires pi/2 rotation
 
-        if self.echo:
-            flip_both = self.c1_control['X'] * self.c1_target['X']
-            full_pulse = self.get_stark_drive_pulses()
-            lpb = full_pulse + full_pulse + flip_both + full_pulse + full_pulse + flip_both + self.get_z_cancellation_pulse() \
-                + self.get_z_cancellation_pulse() + self.get_z_cancellation_pulse() + self.get_z_cancellation_pulse()
+        full_pulse = self.get_z_canceled_cs_pulse()
+        lpb = full_pulse + full_pulse
 
-        else:
-
-            full_pulse = self.get_z_canceled_cs_pulse()
-            lpb = full_pulse + full_pulse + full_pulse + full_pulse
+        if self.zz_interaction_positive:
+            lpb = lpb + self.c1_control.z(np.pi) * self.c1_target.z(np.pi)
 
         return lpb
 
@@ -236,7 +228,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         control_c1, target_c1 = self.c1_control, self.c1_target
 
         return self.get_zxm(additional_echo) + (
-            control_c1['Ym'] * target_c1['Ym']) + self.get_zxm(additional_echo)
+                control_c1['Ym'] * target_c1['Ym']) + self.get_zxm(additional_echo)
 
     def get_swap_like(self, additional_echo=None):
         """
@@ -245,8 +237,8 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         control_c1, target_c1 = self.c1_control, self.c1_target
 
         return self.get_zxm(additional_echo) + (
-            control_c1['Ym'] * target_c1['Ym']) + self.get_zxm(additional_echo) + (
-            control_c1['Xp'] * (target_c1['Xp'] + target_c1['Ym'])) + self.get_zxm(additional_echo)
+                control_c1['Ym'] * target_c1['Ym']) + self.get_zxm(additional_echo) + (
+                control_c1['Xp'] * (target_c1['Xp'] + target_c1['Ym'])) + self.get_zxm(additional_echo)
 
     def get_clifford(
             self,
