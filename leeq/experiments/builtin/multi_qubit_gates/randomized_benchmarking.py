@@ -197,8 +197,8 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         fit_curve_interleaved = self.fit_params['interleaved']['popt'][0] * np.exp(
             self.fit_params['interleaved']['popt'][1]) ** lseq + self.fit_params['interleaved']['popt'][2]
 
-        plt.plot(lseq, fit_curve_standard, label='Fitting', color='k')
-        plt.plot(lseq, fit_curve_interleaved, label='Fitting', color='r')
+        plt.plot(lseq, fit_curve_standard, label='Fitting standard RB', color='k')
+        plt.plot(lseq, fit_curve_interleaved, label='Fitting interleaved RB', color='r')
 
         plt.title(f'Randomized benchmarking 2Q \n F={1 - self.infidelity}')
         plt.xlabel(u"Number of of 2Q Cliffords")
