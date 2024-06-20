@@ -8,7 +8,7 @@ from leeq.core.primitives.built_in.compatibility import PulseArgsUpdatable
 from leeq.core.primitives.logical_primitives import (
     LogicalPrimitive,
     LogicalPrimitiveFactory,
-    MeasurementPrimitive, LogicalPrimitiveClone, MeasurementPrimitiveClone,
+    MeasurementPrimitive, LogicalPrimitiveClone, MeasurementPrimitiveClone, LogicalPrimitiveBlockSerial,
 )
 from leeq.core.primitives.collections import LogicalPrimitiveCollection
 
@@ -78,7 +78,10 @@ class SimpleDrive(LogicalPrimitive, PulseArgsUpdatable):
         if name_postfix is None:
             name_postfix = f"_clone_{uuid.uuid4()}"
 
-        cloned_primitive = SimpleDriveClone(name=self._name + name_postfix, parameters=parameters, original=self)
+        cloned_primitive = SimpleDriveClone(
+            name=self._name + name_postfix,
+            parameters=parameters,
+            original=self)
         return cloned_primitive
 
 
@@ -248,6 +251,25 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
         vz.set_omega(omega)
         return vz
 
+    def get_clifford(self, clifford_id: int, ignore_identity=False):
+        """
+        Get a Clifford gate.
+
+        Parameters:
+            clifford_id (int): The id of the Clifford gate.
+            ignore_identity (bool): Whether to ignore the identity gate.
+
+        Returns:
+            LogicalPrimitiveBlockSerial: The Clifford gate.
+        """
+        from leeq.theory.cliffords import get_clifford_from_id
+
+        if ignore_identity and clifford_id == 0:
+            return LogicalPrimitiveBlockSerial([])
+
+        return LogicalPrimitiveBlockSerial(
+            [self[x] for x in get_clifford_from_id(clifford_id)])
+
 
 class QuditVirtualZCollection(LogicalPrimitiveCollection):
     @classmethod
@@ -339,10 +361,12 @@ class SimpleDispersiveMeasurement(MeasurementPrimitive, PulseArgsUpdatable):
         if name_postfix is None:
             name_postfix = f"_clone_{uuid.uuid4()}"
 
-        cloned_primitive = SimpleDispersiveMeasurementClone(name=self._name + name_postfix, parameters=parameters,
-                                                            original=self)
+        cloned_primitive = SimpleDispersiveMeasurementClone(
+            name=self._name + name_postfix, parameters=parameters, original=self)
         return cloned_primitive
 
 
-class SimpleDispersiveMeasurementClone(MeasurementPrimitiveClone, PulseArgsUpdatable):
+class SimpleDispersiveMeasurementClone(
+    MeasurementPrimitiveClone,
+    PulseArgsUpdatable):
     pass

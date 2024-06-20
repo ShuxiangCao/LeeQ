@@ -4,6 +4,7 @@ from datetime import datetime
 from plotly.subplots import make_subplots
 from labchronicle import register_browser_function, log_and_record
 
+import leeq.theory.fits
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
 from leeq import Experiment, SweepParametersSideEffectFactory, Sweeper
@@ -14,6 +15,11 @@ from plotly import graph_objects as go
 from leeq.core.primitives.built_in.sizzel_gate import *
 from leeq.theory.fits.fit_exp import *
 from matplotlib import pyplot as plt
+
+from leeq.theory.fits.fit_exp import fit_2d_freq, fit_2d_freq_with_cov
+import uncertainties as unc
+
+from leeq.theory.estimator.kalman import KalmanFilter1D
 
 logger = setup_logging(__name__)
 
@@ -31,7 +37,8 @@ from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.utils.compatibility import *
 
 import matplotlib.pyplot as plt
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockParallel, LogicalPrimitiveBlock
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockParallel, \
+    LogicalPrimitiveBlock
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -51,15 +58,7 @@ from qutip import Bloch
 class ConditionalStarkTuneUpRabiXY(experiment):
     @log_and_record
     def run(self, qubits, amp_control, amp_target, frequency=None, rise=0.01, start=0, stop=3, step=0.03, axis='Y',
-            echo=False, iz_rate_cancel=0, phase=0):
-        """
-        Sweep time and find the initial guess of amplitude
-
-        :param start: start sweeping time
-        :param stop: stop sweeping time
-        :param step: time resolution
-        :return:
-        """
+            echo=False, iz_rate_cancel=0, phase_diff=0, iz_rise_drop=0):
         self.duts = qubits
         self.frequency = frequency
         self.amp_control = amp_control
@@ -69,6 +68,8 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         self.start = start
         self.stop = stop
         self.step = step
+        self.fitting_2D = None
+        self.phase_diff = phase_diff
 
         if frequency is None:
             freq_01 = qubits[1].get_c1('f01')['X'].freq
@@ -86,11 +87,11 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         c2 = prims.build_CZ_stark_from_parameters(control_q=self.duts[0], target_q=self.duts[1],
                                                   amp_target=self.amp_target, amp_control=self.amp_control,
                                                   frequency=self.frequency, rise=rise, width=self.width,
-                                                  phase_diff=self.phase,
+                                                  phase_diff=self.phase_diff,
                                                   iz_control=0,
                                                   iz_target=0,
                                                   echo=False,
-                                                  trunc=1.05)
+                                                  trunc=1.0, zz_interaction_positive=True)
 
         mprim_control = self.duts[0].get_measurement_prim_intlist(0)
         mprim_target = self.duts[1].get_measurement_prim_intlist(0)
@@ -99,9 +100,12 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         stark_drive_target_pulse = c2['stark_drive_target']
         stark_drive_control_pulse = c2['stark_drive_control']
 
-        lpb_zz = c2.get_zzp()
+        flip_both = c1_control['Y'] * c1_target['Y']
 
-        lpb = lpb_zz if echo else cs_pulse
+        if echo:
+            lpb = cs_pulse + flip_both + cs_pulse + flip_both
+        else:
+            lpb = cs_pulse
 
         lpb_flip_control = prims.SweepLPB([c1_control['I'], c1_control['X']])
         swp_flip = sweeper.from_sweep_lpb(lpb_flip_control)
@@ -110,8 +114,10 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         swp_readout = sweeper.from_sweep_lpb(lpb_readout)
 
         iz_gate = c1_target.z_omega(iz_rate_cancel * 2 * np.pi)
+        iz_gate_fix = c1_target.z(-iz_rise_drop)
 
-        lpb = c1_target['Xp'] * lpb_flip_control + lpb + iz_gate + lpb_readout + mprim_target * mprim_control
+        lpb = c1_target[
+                  'Ym'] * lpb_flip_control + lpb + iz_gate + iz_gate_fix + lpb_readout + mprim_target * mprim_control
 
         swpparams = [
             sparam.func(stark_drive_target_pulse.update_pulse_args, {}, 'width'),
@@ -128,186 +134,77 @@ class ConditionalStarkTuneUpRabiXY(experiment):
 
         basic(lpb, swp=swp + swp_flip + swp_readout, basis="<z>")
 
-        self.result = mprim_target.result()
-        self.result_control = mprim_control.result()
+        self.result = np.squeeze(mprim_target.result())
+        self.result_control = np.squeeze(mprim_control.result())
 
-    @register_browser_function(available_after=(run,))
     def analyze_results(self):
-        print("Shape of result@register_browser_function(available_after=(run,)):", self.result.shape)
+        # print("Shape of result:", self.result.shape)
 
-        self.fitting_2D = []
-        for i in range(2):
-            self.real_part = self.result[:, i, 0, 0]
-            self.imag_part = self.result[:, i, 1, 0]
-            self.complex_data = self.real_part + 1j * self.imag_part
+        if self.fitting_2D is None:
 
-            self.fit_result = Fit_2D_Freq(self.complex_data, dt=self.step)
-            self.fitting_2D.append(self.fit_result)
-            print(f"Fit Results for {i}: {self.fit_result}")  # Debugging output
+            self.fitting_2D = []
+            for i in range(2):
+                self.real_part = self.result[:, i, 0]
+                self.imag_part = self.result[:, i, 1]
+                self.complex_data = self.real_part + 1j * self.imag_part
 
-        self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
-        self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
-        self.phase_contribution_from_pulse_rise_up = (self.fitting_2D[0]['Phase'] - (
-                self.fitting_2D[1]['Phase'] + np.pi)) / 2
+                self.fit_result = fits.fit_2d_freq(self.complex_data, dt=self.step, use_freq_bound=False)
+                self.fitting_2D.append(self.fit_result)
+                # print(f"Fit Results for {i}: {self.fit_result}")  # Debugging output
 
-        print(f"IZ: {self.iz_rate: 0.5f} MHz, ZZ: {self.zz_rate: 0.5f} MHz")
-        print(f"Phase Contributions from Pulse Rise Up: {self.phase_contribution_from_pulse_rise_up: 0.5f}")
+            self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
+            self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
+
+            self.iz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] + (self.fitting_2D[1]['Phase'])) / 2
+            self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (self.fitting_2D[1]['Phase'])) / 2
+
+            print(f"IZ: {self.iz_rate: 0.5f} MHz, ZZ: {self.zz_rate: 0.5f} MHz")
+            print(f"Phase IZ Contributions from Pulse Rise Drop: {self.iz_from_pulse_rise_drop: 0.5f} rad")
+            print(f"Phase ZZ Contributions from Pulse Rise Drop: {self.zz_from_pulse_rise_drop: 0.5f} rad")
 
         return {
             'fitting_2D': self.fitting_2D,
             'iz_rate': self.iz_rate,
             'zz_rate': self.zz_rate,
-            'phase_contribution_from_pulse_rise_up': self.phase_contribution_from_pulse_rise_up
+            'iz_from_pulse_rise_drop': self.iz_from_pulse_rise_drop,
+            'zz_from_pulse_rise_drop': self.zz_from_pulse_rise_drop
         }
 
-    @register_browser_function(available_after=(run,))
     def analyze_results_with_errs(self):
-        print("Shape of result:", self.result.shape)
+        # print("Shape of result:", self.result.shape)
 
-        self.fitting_2D_ls = []
-        self.fitting_2D_cf = []
+        if self.fitting_2D is None:
+            self.fitting_2D = []
+            for i in range(2):
+                self.real_part = self.result[:, i, 0]
+                self.imag_part = self.result[:, i, 1]
+                self.complex_data = self.real_part + 1j * self.imag_part
 
-        for i in range(2):
-            self.real_part = self.result[:, i, 0, 0]
-            self.imag_part = self.result[:, i, 1, 0]
-            self.complex_data = self.real_part + 1j * self.imag_part
+                fit_results = fits.fit_2d_freq_with_cov(self.complex_data, dt=self.step, use_freq_bound=False)
+                self.fitting_2D.append(fit_results)
+                # print(f"Fit Results for {i}: {fit_results}")  # Debugging output
 
-            fit_results = Fit_2D_Freq_Master(self.complex_data, dt=self.step)
-            self.fitting_2D_ls.append(fit_results['Least Squares'])
-            self.fitting_2D_cf.append(fit_results['Curve Fit'])
-            print(f"Least Squares Fit Results for {i}: {fit_results['Least Squares']}")  # Debugging output
-            print(f"Curve Fit Results for {i}: {fit_results['Curve Fit']}")  # Debugging output
+            # Calculate iz_rate and zz_rate for Curve Fit
+            self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
+            self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
+            self.iz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] + (self.fitting_2D[1]['Phase'])) / 2
+            self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (self.fitting_2D[1]['Phase'])) / 2
 
-        # Calculate iz_rate and zz_rate for Least Squares
-        self.iz_rate_ls = (self.fitting_2D_ls[0]['Frequency'] + self.fitting_2D_ls[1]['Frequency']) / 2
-        self.zz_rate_ls = (self.fitting_2D_ls[0]['Frequency'] - self.fitting_2D_ls[1]['Frequency']) / 2
-        self.phase_contribution_from_pulse_rise_up_ls = (self.fitting_2D_ls[0]['Phase'] - (
-                self.fitting_2D_ls[1]['Phase'] + np.pi)) / 2
-
-        # Calculate iz_rate and zz_rate for Curve Fit
-        self.iz_rate_cf = (self.fitting_2D_cf[0]['Frequency'] + self.fitting_2D_cf[1]['Frequency']) / 2
-        self.zz_rate_cf = (self.fitting_2D_cf[0]['Frequency'] - self.fitting_2D_cf[1]['Frequency']) / 2
-        self.phase_contribution_from_pulse_rise_up_cf = (self.fitting_2D_cf[0]['Phase'] - (
-                self.fitting_2D_cf[1]['Phase'] + np.pi)) / 2
-
-        # Calculate uncertainties for iz_rate and zz_rate for Curve Fit
-        self.iz_rate_uncertainty = np.sqrt(self.fitting_2D_cf[0]['Parameter Uncertainties'][0] ** 2 +
-                                           self.fitting_2D_cf[1]['Parameter Uncertainties'][0] ** 2) / 2
-        self.zz_rate_uncertainty = np.sqrt(self.fitting_2D_cf[0]['Parameter Uncertainties'][0] ** 2 +
-                                           self.fitting_2D_cf[1]['Parameter Uncertainties'][0] ** 2) / 2
-
-        print(f"IZ (Least Squares): {self.iz_rate_ls: 0.5f} MHz, ZZ (Least Squares): {self.zz_rate_ls: 0.5f} MHz")
-        print(
-            f"Phase Contributions from Pulse Rise Up (Least Squares): {self.phase_contribution_from_pulse_rise_up_ls: 0.5f}")
-
-        print(
-            f"IZ (Curve Fit): {self.iz_rate_cf: 0.5f} MHz ± {self.iz_rate_uncertainty: 0.5f} MHz, ZZ (Curve Fit): {self.zz_rate_cf: 0.5f} MHz ± {self.zz_rate_uncertainty: 0.5f} MHz")
-        print(
-            f"Phase Contributions from Pulse Rise Up (Curve Fit): {self.phase_contribution_from_pulse_rise_up_cf: 0.5f}")
-
-        return {
-            'fitting_2D_ls': self.fitting_2D_ls,
-            'fitting_2D_cf': self.fitting_2D_cf,
-            'iz_rate_ls': self.iz_rate_ls,
-            'zz_rate_ls': self.zz_rate_ls,
-            'phase_contribution_from_pulse_rise_up_ls': self.phase_contribution_from_pulse_rise_up_ls,
-            'iz_rate_cf': self.iz_rate_cf,
-            'zz_rate_cf': self.zz_rate_cf,
-            'phase_contribution_from_pulse_rise_up_cf': self.phase_contribution_from_pulse_rise_up_cf,
-            'iz_rate_uncertainty': self.iz_rate_uncertainty,
-            'zz_rate_uncertainty': self.zz_rate_uncertainty
-        }
-
-    # @register_browser_function(available_after=(run,))
-    def analyze_results_rescaled(self):
-        def rescale_and_center(data):
-            data_centered = data - np.mean(data)
-            data_min = np.min(data_centered)
-            data_max = np.max(data_centered)
-            data_rescaled = 2 * (data_centered - data_min) / (data_max - data_min) - 1
-            return data_rescaled
-
-        print("Shape of result:", self.result.shape)
-
-        self.fitting_2D = []
-        self.rescaled_fitting_2D = []
-        for i in range(2):
-            self.real_part = self.result[:, i, 0, 0]
-            self.imag_part = self.result[:, i, 1, 0]
-            self.complex_data = self.real_part + 1j * self.imag_part
-
-            # Fit original data
-            self.fit_result = Fit_2D_Freq(self.complex_data, dt=self.step)
-            self.fitting_2D.append(self.fit_result)
-            print(f"Original Fit Results for {i}: {self.fit_result}")  # Debugging output
-
-            # Rescale data before fitting
-            self.rescaled_real_part = rescale_and_center(self.real_part)
-            self.rescaled_imag_part = rescale_and_center(self.imag_part)
-            self.rescaled_complex_data = self.rescaled_real_part + 1j * self.rescaled_imag_part
-
-            # Fit rescaled data
-            self.rescaled_fit_result = Fit_2D_Freq(self.rescaled_complex_data, dt=self.step)
-            self.rescaled_fitting_2D.append(self.rescaled_fit_result)
-            print(f"Rescaled Fit Results for {i}: {self.rescaled_fit_result}")  # Debugging output
-
-        # Calculate metrics for original fits
-        self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
-        self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
-        self.phase_contribution_from_pulse_rise_up = (self.fitting_2D[0]['Phase'] - (
-                self.fitting_2D[1]['Phase'] + np.pi)) / 2
-
-        # Calculate met`rics for rescaled fits
-        self.rescaled_iz_rate = (self.rescaled_fitting_2D[0]['Frequency'] + self.rescaled_fitting_2D[1][
-            'Frequency']) / 2
-        self.rescaled_zz_rate = (self.rescaled_fitting_2D[0]['Frequency'] - self.rescaled_fitting_2D[1][
-            'Frequency']) / 2
-        self.rescaled_phase_contribution_from_pulse_rise_up = (self.rescaled_fitting_2D[0]['Phase'] - (
-                self.rescaled_fitting_2D[1]['Phase'] + np.pi)) / 2
-
-        print(f"Original IZ: {self.iz_rate: 0.5f} MHz, ZZ: {self.zz_rate: 0.5f} MHz")
-        print(f"Original Phase Contributions from Pulse Rise Up: {self.phase_contribution_from_pulse_rise_up: 0.5f}")
-
-        print(f"Rescaled IZ: {self.rescaled_iz_rate: 0.5f} MHz, ZZ: {self.rescaled_zz_rate: 0.5f} MHz")
-        print(
-            f"Rescaled Phase Contributions from Pulse Rise Up: {self.rescaled_phase_contribution_from_pulse_rise_up: 0.5f}")
+            print(f"IZ: {self.iz_rate: 0.5f} MHz: {self.zz_rate: 0.5f} MHz")
+            print(f"Phase IZ Contributions from Pulse Rise Drop: {self.iz_from_pulse_rise_drop: 0.5f} rad")
 
         return {
             'fitting_2D': self.fitting_2D,
-            'rescaled_fitting_2D': self.rescaled_fitting_2D,
             'iz_rate': self.iz_rate,
             'zz_rate': self.zz_rate,
-            'phase_contribution_from_pulse_rise_up': self.phase_contribution_from_pulse_rise_up,
-            'rescaled_iz_rate': self.rescaled_iz_rate,
-            'rescaled_zz_rate': self.rescaled_zz_rate,
-            'rescaled_phase_contribution_from_pulse_rise_up': self.rescaled_phase_contribution_from_pulse_rise_up
+            'iz_from_pulse_rise_drop': self.iz_from_pulse_rise_drop,
+            'zz_from_pulse_rise_drop': self.zz_from_pulse_rise_drop
         }
-
-    # @register_browser_function(available_after=(analyze_results_rescaled,))
-    def compare_fit_results(self):
-        results = self.analyze_results_rescaled()
-
-        original_fitting_2D = results['fitting_2D']
-        rescaled_fitting_2D = results['rescaled_fitting_2D']
-
-        print("Comparing Original and Rescaled Fit Results:")
-
-        for i in range(2):
-            print(f"\nFit {i} - Original vs. Rescaled:")
-            print(
-                f"Frequency: {original_fitting_2D[i]['Frequency']:0.5f} MHz vs. {rescaled_fitting_2D[i]['Frequency']:0.5f} MHz")
-            print(f"Phase: {original_fitting_2D[i]['Phase']:0.5f} vs. {rescaled_fitting_2D[i]['Phase']:0.5f}")
-
-        print(
-            f"\nIZ Rate - Original vs. Rescaled: {results['iz_rate']:0.5f} MHz vs. {results['rescaled_iz_rate']:0.5f} MHz")
-        print(
-            f"ZZ Rate - Original vs. Rescaled: {results['zz_rate']:0.5f} MHz vs. {results['rescaled_zz_rate']:0.5f} MHz")
-        print(
-            f"Phase Contributions from Pulse Rise Up - Original vs. Rescaled: {results['phase_contribution_from_pulse_rise_up']:0.5f} vs. {results['rescaled_phase_contribution_from_pulse_rise_up']:0.5f}")
-
 
     @register_browser_function(available_after=(run,))
     def plot(self):
+
+        self.analyze_results_with_errs()
 
         args = {'start': self.start, 'stop': self.stop, 'step': self.step}
 
@@ -318,11 +215,10 @@ class ConditionalStarkTuneUpRabiXY(experiment):
             plt.scatter(t, data, label=label, alpha=0.5)
             # plt.plot(t, data)
 
-            f = fit_params['Frequency']
-            a = fit_params['Amplitude']
-            p = fit_params['Phase'] - 2.0 * np.pi * f * args['start']
-            o = fit_params['Offset']
-            decay = fit_params['Decay']
+            f = fit_params['Frequency'].nominal_value
+            a = fit_params['Amplitude'].nominal_value
+            p = fit_params['Phase'].nominal_value - 2.0 * np.pi * f * args['start']
+            o = fit_params['Offset_real'].nominal_value + 1j * fit_params['Offset_imag'].nominal_value
 
             # fit = a * np.exp(-decay * t_interpolate) * np.exp(1j * (2.0 * np.pi * f * t_interpolate + p)) + o
             fit = a * np.exp(1.j * (2.0 * np.pi * f * t_interpolate + p)) + o
@@ -340,6 +236,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         plt.xlabel("Pulse width [us]")
         plt.ylabel("<X>")
         plt.legend()
+        plt.show()
 
         plt.figure(figsize=(20, 5))
         plt.title(f"ZZ interaction Hamiltonian tomography - Y axis")
@@ -353,7 +250,6 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         plt.legend()
         plt.show()
 
-    @register_browser_function(available_after=(run,))
     def plot_blochsphere(self):
         # Define colors
         dark_navy = '#000080'
@@ -433,7 +329,6 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         plt.tight_layout()
         plt.show()
 
-    @register_browser_function(available_after=(run,))
     def plot_rescaled_after_fit(self):
         args = {'start': self.start, 'stop': self.stop, 'step': self.step}
 
@@ -607,283 +502,6 @@ class ConditionalStarkTuneUpRabiXY(experiment):
                   label2="Excited - ZZ interaction rabi drive Y axis", fit_params1=self.fitting_2D[0],
                   fit_params2=self.fitting_2D[1], t=t, use_imaginary_part=True)
 
-class ConditionalStarkTuneUpRepeatedGateXY(experiment):
-
-    @log_and_record
-    def run(self, duts, amp_control, amp_target, frequency, phase=0, rise=0.01, axis='Y',
-            echo=False, iz_control=0, iz_target=0, width=0, start_gate_number=0, gate_count=40):
-        """
-        Sweep time and find the initial guess of amplitude
-
-        :return:
-        """
-        self.duts = duts
-        self.frequency = frequency
-        self.amp_control = amp_control
-        self.amp_target = amp_target
-        self.phase = phase
-        self.width = width
-        self.iz_control = iz_control
-        self.iz_target = iz_target
-        self.rise = rise
-        self.start_gate_number = start_gate_number
-        self.gate_count = gate_count
-
-        c1_control = self.duts[0].get_default_c1()
-        c1_target = self.duts[1].get_default_c1()
-
-        c2 = prims.build_CZ_stark_from_parameters(
-            control_q=self.duts[0],
-            target_q=self.duts[1],
-            amp_target=self.amp_target,
-            amp_control=self.amp_control,
-            frequency=self.frequency,
-            rise=self.rise,
-            width=self.width,
-            phase_diff=self.phase,
-            iz_control=self.iz_control,
-            iz_target=self.iz_target,
-            echo=False,
-            trunc=1.05
-        )
-
-        cs_pulse = c2.get_z_canceled_cs_pulse()
-
-        lpb = cs_pulse
-
-        lpb_flip_control = prims.SweepLPB([c1_control['I'], c1_control['X']])
-        swp_flip = sweeper.from_sweep_lpb(lpb_flip_control)
-
-        lpb_readout = prims.SweepLPB([c1_target['Yp'], c1_target['Xm']])
-        swp_readout = sweeper.from_sweep_lpb(lpb_readout)
-
-        self.pulse_train, self.result = self.run_repeated_gate_experiment(
-            initial_lpb=c1_target['Xp'],
-            initial_gate=lpb_flip_control,
-            repeated_block=lpb,
-            final_gate=lpb_readout,
-            pulse_count=range(start_gate_number, start_gate_number + gate_count),
-            swp_initial=swp_flip,
-            swp_posterior=swp_readout,
-            fit=False
-        )
-
-        self.analyze_results()
-
-    def fit(self):
-        """
-        Fit the results.
-        """
-        self.popts = []
-        self.pcovs = []
-
-        for i in range(self.N):
-            x = np.arange(len(self.result)) + 0.5
-            popt, pcov = so.curve_fit(self.lin, self.pulse_count + 0.5, self.result)
-            self.popts.append(popt)
-            self.pcovs.append(pcov)
-
-    def lin(self, xvec, a, b):
-        return a * xvec + b
-
-    def run_repeated_gate_experiment(self, initial_lpb, initial_gate, repeated_block, final_gate, pulse_count,
-                                     swp_initial, swp_posterior, fit=True):
-        """
-        Function to run the repeated gate experiment based on inatial lpb, gate and pulse count.
-        """
-
-        int_target = initial_lpb
-        ini_control = initial_gate
-        rep = repeated_block
-        fin = final_gate
-
-        mprim_control = self.duts[0].get_measurement_prim_intlist(0)
-        mprim_target = self.duts[1].get_measurement_prim_intlist(0)
-
-        sequence_lpb = []
-        results = []
-
-        for n in pulse_count:
-            sequence = LogicalPrimitiveBlockSerial(
-                [int_target * ini_control] + [rep] * (n) + [fin + mprim_target * mprim_control])
-            sequence_lpb.append(sequence)
-
-        lpb = LogicalPrimitiveBlockSweep(sequence_lpb)
-        swp = sweeper.from_sweep_lpb(lpb)
-
-        swp_flip = swp_initial
-        swp_readout = swp_posterior
-
-        basic(lpb, swp=swp + swp_flip + swp_readout, basis="<z>")
-
-        self.result = mprim_target.result()
-        self.result_control = mprim_control.result()
-
-        self.N = 1
-        self.pulse_count = pulse_count
-
-        if fit:
-            self.fit()
-
-        return lpb, self.result
-
-    def analyze_results(self):
-        print("Shape of result:", self.result.shape)
-
-        t_start = self.start_gate_number
-        t_stop = self.start_gate_number + self.gate_count
-        t_step = 1
-
-        t = np.arange(t_start, t_stop, t_step)
-
-        self.fitting_2D = []
-        for i in range(2):
-            self.real_part = self.result[:, i, 0, 0]
-            self.imag_part = self.result[:, i, 1, 0]
-
-            self.complex_data = self.real_part + 1j * self.imag_part
-
-            self.fit_result = Fit_2D_Freq(self.complex_data, dt=t_step)
-            self.fitting_2D.append(self.fit_result)
-            print(f"Fit Results for {i}: {self.fit_result}")
-
-        self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
-        self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
-        self.phase_contribution_from_pulse_rise_up = (self.fitting_2D[0]['Phase'] - (
-                self.fitting_2D[1]['Phase'] + np.pi)) / 2
-
-        print(f"IZ: {self.iz_rate: 0.5f} PGC, ZZ: {self.zz_rate: 0.5f} PGC (per gate count)")
-        print(f"Phase Contributions from Pulse Rise Up: {self.phase_contribution_from_pulse_rise_up: 0.5f}")
-
-        return {
-            'fitting_2D': self.fitting_2D,
-            'iz_rate': self.iz_rate,
-            'zz_rate': self.zz_rate,
-            'phase_contribution_from_pulse_rise_up': self.phase_contribution_from_pulse_rise_up
-        }
-
-    @register_browser_function(available_after=(run,))
-    def plot(self):
-        """
-        Plot the results.
-        """
-        args = self.retrieve_args(self.run)
-
-        print("Phase from edges", self.phase_contribution_from_pulse_rise_up)
-
-        t = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1)
-        t_interpolate = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1 / 10)
-
-        def plot_specific_axis(data, label, fit_params, use_imaginary_part):
-            data = data.squeeze()
-
-            plt.scatter(t, data, label=label, alpha=0.5)
-            # plt.plot(t, data)
-
-            f = fit_params['Frequency']
-            a = fit_params['Amplitude']
-            p = fit_params['Phase'] - 2.0 * np.pi * f * args['start_gate_number']
-            o = fit_params['Offset']
-            decay = fit_params['Decay']
-
-            # fit = a * np.exp(-decay * t_interpolate) * np.exp(1j * (2.0 * np.pi * f * t_interpolate + p)) + o
-            fit = a * np.exp(1.j * (2.0 * np.pi * f * t_interpolate + p)) + o
-
-            plt.plot(t_interpolate, np.real(fit) if not use_imaginary_part else np.imag(fit))
-
-        plt.figure(figsize=(20, 5))
-
-        desired_num_ticks = 10  # Desired number of ticks
-        step = max(1, len(t) // desired_num_ticks)
-        xticks_subset = t[::step]
-        plt.title(f"ZZ interaction repeated gate tomography - X axis")
-
-        plot_specific_axis(data=self.result[:, 0, 0], label="Ground", fit_params=self.fitting_2D[0],
-                           use_imaginary_part=False)
-        plot_specific_axis(data=self.result[:, 1, 0], label="Excited", fit_params=self.fitting_2D[1],
-                           use_imaginary_part=False)
-
-        plt.xlabel("Pulse count")
-        plt.ylabel("<X>")
-        plt.legend()
-        plt.xticks(xticks_subset)
-
-        plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction repeated gate tomography - Y axis")
-
-        plot_specific_axis(data=self.result[:, 0, 1], label="Ground", fit_params=self.fitting_2D[0],
-                           use_imaginary_part=True)
-        plot_specific_axis(data=self.result[:, 1, 1], label="Excited", fit_params=self.fitting_2D[1],
-                           use_imaginary_part=True)
-
-        plt.xlabel("Pulse count")
-        plt.ylabel("<Y>")
-        plt.legend()
-        plt.xticks(xticks_subset)
-
-        plt.show()
-
-    @register_browser_function(available_after=(run,))
-    def plot_rescaled(self):
-
-        args = self.retrieve_args(self.run)
-        t = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1)
-        t_interpolate = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1 / 10)
-
-        def rescale_and_center(data):
-            data_centered = data - np.mean(data)
-            data_min = np.min(data_centered)
-            data_max = np.max(data_centered)
-            data_rescaled = 2 * (data_centered - data_min) / (data_max - data_min) - 1
-            return data_rescaled
-
-        def plot_specific_axis(data, label, fit_params, use_imaginary_part=False, color='blue'):
-            data_rescaled = rescale_and_center(data)
-            plt.scatter(t, data_rescaled, label=label, alpha=0.5, color=color)
-
-            f = fit_params['Frequency']
-            a = 1  # Fixed amplitude
-            p = fit_params['Phase'] - 2.0 * np.pi * f * args['start_gate_number']
-            o = 0  # Offset is set to 0 for centering
-
-            fit = a * np.exp(1.j * (2.0 * np.pi * f * t_interpolate + p)) + o
-            fit_rescaled = rescale_and_center(np.real(fit) if not use_imaginary_part else np.imag(fit))
-
-            plt.plot(t_interpolate, fit_rescaled, color=color)
-
-        dark_navy = '#000080'
-        dark_purple = '#800080'
-
-        desired_num_ticks = 10  # Desired number of ticks
-        step = max(1, len(t) // desired_num_ticks)
-        xticks_subset = t[::step]
-
-        plt.figure(figsize=(20, 5))
-        plt.title("ZZ interaction rescaled repeated gate tomography - X axis")
-        plot_specific_axis(data=self.result[:, 0, 0], label="Ground", fit_params=self.fitting_2D[0],
-                           use_imaginary_part=False, color=dark_navy)
-        plot_specific_axis(data=self.result[:, 1, 0], label="Excited", fit_params=self.fitting_2D[1],
-                           use_imaginary_part=False, color=dark_purple)
-
-        plt.xlabel("Pulse width [us]")
-        plt.ylabel("<X>")
-        plt.legend()
-        plt.xticks(xticks_subset)
-
-        plt.figure(figsize=(20, 5))
-        plt.title("ZZ interaction rescaled repeated gate tomography - Y axis")
-        plot_specific_axis(data=self.result[:, 0, 1], label="Ground", fit_params=self.fitting_2D[0],
-                           use_imaginary_part=True, color=dark_navy)
-        plot_specific_axis(data=self.result[:, 1, 1], label="Excited", fit_params=self.fitting_2D[1],
-                           use_imaginary_part=True, color=dark_purple)
-
-        plt.xlabel("Pulse width [us]")
-        plt.ylabel("<Y>")
-        plt.legend()
-        plt.xticks(xticks_subset)
-
-        plt.show()
-
 
 class Arrow3D(FancyArrowPatch):
     def __init__(self, xs, ys, zs, *args, **kwargs):
@@ -908,6 +526,7 @@ class Arrow3D(FancyArrowPatch):
         xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
         self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
         FancyArrowPatch.draw(self, renderer)
+
 
 class BlochSphere:
     def __init__(self,
@@ -1093,7 +712,7 @@ class BlochSphere:
             if self.show_3d_projection is True:
                 circle = Circle((0, 0), 1, color='grey', fill=False)
                 self.ax.add_patch(circle)
-                art3d.pathpatch_2d_to_3d(circle, z=-1*self.sign_yz, zdir='x')
+                art3d.pathpatch_2d_to_3d(circle, z=-1 * self.sign_yz, zdir='x')
 
             if self.plot_2d_slice is True:
                 circle = plt.Circle((0, 0), 1, color='grey', lw=5, fill=False)
@@ -1114,7 +733,7 @@ class BlochSphere:
             if self.show_3d_projection is True:
                 circle = Circle((0, 0), 1, color='grey', fill=False)
                 self.ax.add_patch(circle)
-                art3d.pathpatch_2d_to_3d(circle, z=-1*self.sign_zx, zdir='y')
+                art3d.pathpatch_2d_to_3d(circle, z=-1 * self.sign_zx, zdir='y')
 
             if self.plot_2d_slice is True:
                 circle = plt.Circle((0, 0), 1, color='grey', lw=5, fill=False)
@@ -1174,24 +793,26 @@ class BlochSphere:
         if self.yz_projection is True:
 
             if self.show_3d_projection is True:
-                self.ax.scatter(y, z, zs=-1*self.sign_yz, zdir='x', color=color,
+                self.ax.scatter(y, z, zs=-1 * self.sign_yz, zdir='x', color=color,
                                 alpha=self.point_alpha, edgecolor=self.point_edgecolor, lw=linewidth,
                                 zorder=self.zorder, s=self.point_size if size is None else size)
 
             if self.plot_2d_slice is True:
                 self.ax3.scatter(y, z, color=color, alpha=self.point_alpha,
-                                 edgecolor=self.point_edgecolor, lw=linewidth, s=self.point_size if size is None else size)
+                                 edgecolor=self.point_edgecolor, lw=linewidth,
+                                 s=self.point_size if size is None else size)
 
         if self.zx_projection is True:
 
             if self.show_3d_projection is True:
-                self.ax.scatter(x, z, zs=-1*self.sign_zx, zdir='y', color=color,
+                self.ax.scatter(x, z, zs=-1 * self.sign_zx, zdir='y', color=color,
                                 alpha=self.point_alpha, edgecolor=self.point_edgecolor, lw=linewidth,
                                 zorder=self.zorder, s=self.point_size if size is None else size)
 
             if self.plot_2d_slice is True:
                 self.ax2.scatter(x, z, color=color, alpha=self.point_alpha,
-                                 edgecolor=self.point_edgecolor, lw=linewidth, s=self.point_size if size is None else size)
+                                 edgecolor=self.point_edgecolor, lw=linewidth,
+                                 s=self.point_size if size is None else size)
 
         self.zorder += 1
 
@@ -1225,7 +846,7 @@ class BlochSphere:
 
             if self.show_3d_projection is True:
                 self.ax.plot(x, y, zs=-1, zdir='z', alpha=self.point_alpha, color=color, ls=linestyle, lw=linewidth,
-                             marker=marker,  ms=self.point_size if ms is None else ms, zorder=self.zorder)
+                             marker=marker, ms=self.point_size if ms is None else ms, zorder=self.zorder)
 
             if self.plot_2d_slice is True:
                 self.ax1.plot(x, y, alpha=self.point_alpha, color=color, ls=linestyle, lw=linewidth, marker=marker,
@@ -1234,7 +855,7 @@ class BlochSphere:
         if self.yz_projection is True:
 
             if self.show_3d_projection is True:
-                self.ax.plot(y, z, zs=-1*self.sign_yz, zdir='x', alpha=self.point_alpha, color=color, ls=linestyle,
+                self.ax.plot(y, z, zs=-1 * self.sign_yz, zdir='x', alpha=self.point_alpha, color=color, ls=linestyle,
                              lw=linewidth, marker=marker, ms=self.point_size if ms is None else ms, zorder=self.zorder)
 
             if self.plot_2d_slice is True:
@@ -1244,7 +865,7 @@ class BlochSphere:
         if self.zx_projection is True:
 
             if self.show_3d_projection is True:
-                self.ax.plot(x, z, zs=-1*self.sign_zx, zdir='y', alpha=self.point_alpha, color=color, ls=linestyle,
+                self.ax.plot(x, z, zs=-1 * self.sign_zx, zdir='y', alpha=self.point_alpha, color=color, ls=linestyle,
                              lw=linewidth, marker=marker, ms=self.point_size if ms is None else ms, zorder=self.zorder)
 
             if self.plot_2d_slice is True:
@@ -1281,10 +902,10 @@ class BlochSphere:
         if self.xy_projection is True:
 
             if self.show_3d_projection is True:
-                self.ax.plot([0, x], [0, y], zs=-1, zdir='z', color=color, lw=self.vector_linewdith-2,
-                             zorder=self.zorder+1)
-                a = Arrow3D([0, x], [0, y], [-1, -1], mutation_scale=self.vector_arrowhead_scale-10, arrowstyle='-|>',
-                            color=color, zorder=self.zorder+2)
+                self.ax.plot([0, x], [0, y], zs=-1, zdir='z', color=color, lw=self.vector_linewdith - 2,
+                             zorder=self.zorder + 1)
+                a = Arrow3D([0, x], [0, y], [-1, -1], mutation_scale=self.vector_arrowhead_scale - 10, arrowstyle='-|>',
+                            color=color, zorder=self.zorder + 2)
                 self.ax.add_artist(a)
 
             if self.plot_2d_slice is True:
@@ -1294,11 +915,11 @@ class BlochSphere:
         if self.yz_projection is True:
 
             if self.show_3d_projection is True:
-                self.ax.plot([0, y], [0, z], zs=-1*self.sign_yz, zdir='x', color=color,
-                             lw=self.vector_linewdith-2, zorder=self.zorder+1)
-                a = Arrow3D([-1*self.sign_yz, -1*self.sign_yz], [0, y], [0, z],
-                            mutation_scale=self.vector_arrowhead_scale-10, arrowstyle='-|>', color=color,
-                            zorder=self.zorder+2)
+                self.ax.plot([0, y], [0, z], zs=-1 * self.sign_yz, zdir='x', color=color,
+                             lw=self.vector_linewdith - 2, zorder=self.zorder + 1)
+                a = Arrow3D([-1 * self.sign_yz, -1 * self.sign_yz], [0, y], [0, z],
+                            mutation_scale=self.vector_arrowhead_scale - 10, arrowstyle='-|>', color=color,
+                            zorder=self.zorder + 2)
                 self.ax.add_artist(a)
 
             if self.plot_2d_slice is True:
@@ -1308,11 +929,11 @@ class BlochSphere:
         if self.zx_projection is True:
 
             if self.show_3d_projection is True:
-                self.ax.plot([0, x], [0, z], zs=-1*self.sign_zx, zdir='y', color=color,
-                             lw=self.vector_linewdith-2, zorder=self.zorder+1)
-                a = Arrow3D([0, x], [-1*self.sign_zx, -1*self.sign_zx], [0, z],
-                            mutation_scale=self.vector_arrowhead_scale-10, arrowstyle='-|>', color=color,
-                            zorder=self.zorder+2)
+                self.ax.plot([0, x], [0, z], zs=-1 * self.sign_zx, zdir='y', color=color,
+                             lw=self.vector_linewdith - 2, zorder=self.zorder + 1)
+                a = Arrow3D([0, x], [-1 * self.sign_zx, -1 * self.sign_zx], [0, z],
+                            mutation_scale=self.vector_arrowhead_scale - 10, arrowstyle='-|>', color=color,
+                            zorder=self.zorder + 2)
                 self.ax.add_artist(a)
 
             if self.plot_2d_slice is True:
@@ -1350,74 +971,136 @@ class BlochSphere:
         plt.show()
 
 
+from typing import List, Any
+
 
 class ConditionalStarkSpectroscopyDiff(experiment):
+    """
+    A class to execute conditional Stark spectroscopy differential experiments on devices under test (DUTs).
+    This involves varying the frequency and amplitude parameters to generate Stark spectroscopy data.
+    """
+
     @log_and_record
-    def run(self, duts, freq_start=4100, freq_stop=4144, freq_step=1, amp_start=0, amp_stop=0.2, amp_step=0.02,
-            rise=0.01, trunc=1.2,
-            width=0.2):
-        channel_from = [dut.get_c1('f01')['X'].primary_channel() for dut in duts]
+    def run(self, duts: List[Any], freq_start: float = 4100, freq_stop: float = 4144, freq_step: float = 1,
+            amp_start: float = 0, amp_stop: float = 0.2, amp_step: float = 0.02,
+            rise: float = 0.01, trunc: float = 1.2, width: float = 0.7, echo=False) -> None:
+        """
+        Executes the spectroscopy experiment by sweeping the amplitude and frequency.
 
-        cs_pulses = [prims.LogicalPrimitive(channels=x, freq=0) for x in channel_from]
+        Args:
+            duts (List[Any]): List of device under test instances.
+            freq_start (float): Starting frequency for the sweep (MHz).
+            freq_stop (float): Stopping frequency for the sweep (MHz).
+            freq_step (float): Step size for the frequency sweep (MHz).
+            amp_start (float): Starting amplitude for the sweep.
+            amp_stop (float): Stopping amplitude for the sweep.
+            amp_step (float): Step size for the amplitude sweep.
+            rise (float): Rise time for the pulse shape.
+            trunc (float): Truncation factor for the pulse shape.
+            width (float): Width of the pulse shape.
+            echo (bool): Whether to include an echo pulse in the sequence.
 
+        Returns:
+            None
+        """
+        # Clone the control pulse from each DUT for manipulation.
+        cs_pulses = [dut.get_c1('f01')['X'].clone() for dut in duts]
+
+        # Get the measurement primitives from each DUT.
         mprims = [dut.get_measurement_prim_intlist(0) for dut in duts]
 
-        for i, cs_pulse in enumerate(cs_pulses):
-            cs_pulse.set_pulse_shapes(prims.SoftSquare, amp=0, phase=0, width=width, rise=rise, trunc=trunc)
+        # Get the default control pulse for each DUT.
+        c1s = [dut.get_default_c1() for dut in duts]
 
+        # Flip both
+        flip_both = prims.ParallelLPB([c1s[0]['Y'], c1s[1]['Y']])
+
+        # Update the pulse parameters for all cloned pulses.
+        for i, cs_pulse in enumerate(cs_pulses):
+            cs_pulse.update_pulse_args(shape='soft_square', amp=0, phase=0, width=width if not echo else width / 2,
+                                       rise=rise, trunc=trunc)
+
+        # Create amplitude sweeper.
         swp_amp = sweeper(np.arange, n_kwargs={'start': amp_start, 'stop': amp_stop, 'step': amp_step},
                           params=[sparam.func(cs_pulse.update_pulse_args, {}, 'amp') for cs_pulse in cs_pulses])
 
+        # Create frequency sweeper.
         swp_freq = sweeper(np.arange, n_kwargs={'start': freq_start, 'stop': freq_stop, 'step': freq_step},
                            params=[sparam.func(cs_pulse.update_freq, {}, 'freq') for cs_pulse in cs_pulses])
 
-        c1s = [dut.get_default_c1() for dut in duts]
-
+        # Set up additional pulse sequences and sweep.
         flip_sweep_lpb = prims.SweepLPB([c1s[1]['I'], c1s[1]['X']])
         swp_flip = sweeper.from_sweep_lpb(flip_sweep_lpb)
 
         lpb_zz = prims.ParallelLPB(cs_pulses)
+        if echo:
+            lpb_zz = lpb_zz + flip_both + lpb_zz + flip_both
 
         lpb = flip_sweep_lpb + c1s[0]['Xp'] + lpb_zz + c1s[0]['Ym'] + prims.ParallelLPB(mprims)
 
-        basic(lpb, sweep=swp_amp + swp_freq + swp_flip, basis="<z>")
+        self.mp = mprims[0]
 
-        self.result = mprims[0].result()
+        # Execute the basic spectroscopy sequence with all sweeps combined.
+        basic(lpb, swp=swp_amp + swp_freq + swp_flip, basis="<z>")
 
-        pass
+        self.result = np.squeeze(self.mp.result())
+
+        # Store the result for later analysis.
 
     @register_browser_function(available_after=(run,))
-    def plot(self):
+    def plot(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as a heatmap.
+
+        Returns:
+            go.Figure: A heatmap plot of the differential measurement results.
+        """
+        # Retrieve arguments used during the run for axis scaling.
         args = self.retrieve_args(self.run)
+        self.result = np.squeeze(self.mp.result())
 
         xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
         ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
 
+        # Generate the heatmap.
         fig = go.Figure(data=go.Heatmap(
-            z=(self.result[0, :, :] - self.result[1, :, :]).T, x=ys, y=xs,
+            z=(self.result[:, :, 0] - self.result[:, :, 1]), x=ys, y=xs,
             colorscale='Viridis'),
         )
 
+        # Set plot titles.
         fig.update_layout(
             xaxis_title="Frequency (MHz)",
             yaxis_title="Driving amplitude",
         )
 
-        fig.show()
+        return fig
+
+    def live_plots(self, step_no: tuple[int] = None):
+        """
+        Generate the live plots. This function is called by the live monitor.
+        The step no denotes the number of data points to plot, while the
+        buffer size is the total number of data points to plot. Some of the data
+        in the buffer is note yet valid, so they should not be plotted.
+        """
+
+        return self.plot()
+
 
 class ConditionalStarkSpectroscopyEchoNoFitting(experiment):
     @log_and_record
     def run(self, duts, freq_start=4100, freq_stop=4144, freq_step=1, amp_start=0, amp_stop=0.2, amp_step=0.02,
             rise=0.01, trunc=1.2,
             width=0.2):
-        channel_from = [dut.get_c1('f01')['X'].primary_channel() for dut in duts]
-
-        cs_pulses = [prims.LogicalPrimitive(channels=x, freq=0) for x in channel_from]
+        cs_pulses = [dut.get_c1('f01')['X'].clone() for dut in duts]
 
         mprims = [dut.get_measurement_prim_intlist(0) for dut in duts]
 
         for i, cs_pulse in enumerate(cs_pulses):
             cs_pulse.set_pulse_shapes(prims.SoftSquare, amp=0, phase=0, width=width, rise=rise, trunc=trunc)
+
+        for i, cs_pulse in enumerate(cs_pulses):
+            cs_pulse.update_pulse_args(shape='soft_square', amp=0, phase=0, width=width, rise=rise, trunc=trunc)
 
         swp_amp = sweeper(np.arange, n_kwargs={'start': amp_start, 'stop': amp_stop, 'step': amp_step},
                           params=[sparam.func(cs_pulse.update_pulse_args, {}, 'amp') for cs_pulse in cs_pulses])
@@ -1456,7 +1139,8 @@ class ConditionalStarkSpectroscopyEchoNoFitting(experiment):
             yaxis_title="Driving amplitude",
         )
 
-        fig.show()
+        return fig
+
 
 class ConditionalStarkSpectroscopyFreqAmp(experiment):
     @log_and_record
@@ -1522,6 +1206,7 @@ class ConditionalStarkSpectroscopyFreqAmp(experiment):
         )
 
         fig.show()
+
 
 class ConditionalStarkTuneUpRabiYDriveSweepPhase(experiment):
     @log_and_record
@@ -1705,6 +1390,7 @@ class ConditionalStarkTuneUpRabiYDriveSweepPhase(experiment):
         plt.legend()
         plt.show()
 
+
 class ConditionalStarkTuneUpRabiYDriveSweepOmega(experiment):
 
     def update_omega(self, omega):
@@ -1748,7 +1434,7 @@ class ConditionalStarkTuneUpRabiYDriveSweepOmega(experiment):
         self.c2 = prims.build_CZ_stark_from_parameters(control_q=self.duts[0], target_q=self.duts[1],
                                                        amp_target=0, amp_control=0,
                                                        frequency=self.frequency,
-                                                       rise=rise, width=self.width, echo=True)
+                                                       rise=rise, width=self.width, echo=True, phase_diff=phase_diff)
 
         # c2['cs_pulse'].set_pulse_shapes(shape, 0, amp=amp_control, phase=0, width=width, **shape_args)
         # c2['cs_pulse'].set_pulse_shapes(shape, 1, amp=amp_target, phase=0, width=width, **shape_args)
@@ -1822,89 +1508,388 @@ class ConditionalStarkTuneUpRabiYDriveSweepOmega(experiment):
         plt.ylabel("<z>")
         plt.legend()
         plt.show()
-class ConditionalStarkPingPong(experiment):
+
+
+class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
+
     @log_and_record
-    def run(self, duts, cs_params, pulse_count):
+    def run(self, duts, amp_control, amp_target, frequency, phase=0, rise=0.03, axis='Y',
+            echo=False, iz_control=0, iz_target=0, width=0, start_gate_number=0, gate_count=40):
+        """
+        Sweep time and find the initial guess of amplitude
 
-        print(pulse_count)
-
-        self.pulse_count = np.asarray(pulse_count)
-
+        :return:
+        """
         self.duts = duts
+        self.frequency = frequency
+        self.amp_control = amp_control
+        self.amp_target = amp_target
+        self.phase = phase
+        self.width = width
+        self.iz_control = iz_control
+        self.iz_target = iz_target
+        self.rise = rise
+        self.start_gate_number = start_gate_number
+        self.gate_count = gate_count
 
         c1_control = self.duts[0].get_default_c1()
         c1_target = self.duts[1].get_default_c1()
 
-        c2 = prims.build_CZ_stark_from_parameters(control_q=self.duts[0], target_q=self.duts[1],
-                                                  **cs_params)
+        c2 = prims.build_CZ_stark_from_parameters(
+            control_q=self.duts[0],
+            target_q=self.duts[1],
+            amp_target=self.amp_target,
+            amp_control=self.amp_control,
+            frequency=self.frequency,
+            rise=self.rise,
+            width=self.width,
+            phase_diff=self.phase,
+            iz_control=self.iz_control,
+            iz_target=self.iz_target,
+            echo=echo,
+            trunc=1.05,
+            zz_interaction_positive=True  # It doesn't matter what to use here, after one tomography we will find out.
+        )
 
-        cs_pulse = c2.get_zzm_pi_over_4()
+        cs_pulse = c2.get_z_canceled_cs_pulse()
 
-        lpb_zz = c2.get_zzp()
+        lpb = cs_pulse
 
-        lpb = cs_pulse  # lpb_zz if cs_params['echo'] else cs_pulse
+        lpb_flip_control = prims.SweepLPB([c1_control['I'], c1_control['X']])
+        swp_flip = sweeper.from_sweep_lpb(lpb_flip_control)
 
-        # lpb_flip_control = prims.SweepLPB([c1_control['I'], c1_control['X']])
+        lpb_readout = prims.SweepLPB([c1_target['Yp'], c1_target['Xm']])
+        swp_readout = sweeper.from_sweep_lpb(lpb_readout)
 
-        lpb_readout = c1_target['Yp']
+        self.pulse_train, self.result = self.run_repeated_gate_experiment(
+            initial_lpb=c1_target['Ym'],
+            initial_gate=lpb_flip_control,
+            repeated_block=lpb,
+            final_gate=lpb_readout,
+            pulse_count=range(start_gate_number, start_gate_number + gate_count),
+            swp_initial=swp_flip,
+            swp_posterior=swp_readout,
+            fit=False
+        )
 
-        # lpb_readout = prims.SweepLPB([c1_target['Yp'], c1_target['Xm']])
+        self.analyze_results()
 
-        # swp_initial = sweeper.from_sweep_lpb(lpb_flip_control)
-        # swp_posterior = sweeper.from_sweep_lpb(lpb_readout)
+    def run_repeated_gate_experiment(self, initial_lpb, initial_gate, repeated_block, final_gate, pulse_count,
+                                     swp_initial, swp_posterior, fit=True):
+        """
+        Function to run the repeated gate experiment based on inatial lpb, gate and pulse count.
+        """
 
-        self.pulse_train_ground = SelectedPulseTrainSingleQubitMultilevel(dut=self.duts[1], name='f01',
-                                                                          mprim_index=0,
-                                                                          initial_lpb=c1_target['Xp'],
-                                                                          initial_gate=c1_target['I'],
-                                                                          repeated_block=lpb_zz + lpb_zz,
-                                                                          final_gate=lpb_readout,
-                                                                          pulse_count=self.pulse_count,
-                                                                          extra_measurement_duts=[self.duts[0]],
-                                                                          swp=None)  # swp_initial + swp_posterior)
+        int_target = initial_lpb
+        ini_control = initial_gate
+        rep = repeated_block
+        fin = final_gate
 
-        self.pulse_train_excited = SelectedPulseTrainSingleQubitMultilevel(dut=self.duts[1], name='f01',
-                                                                           mprim_index=0,
-                                                                           initial_lpb=c1_target['Xp'],
-                                                                           initial_gate=c1_control['X'],
-                                                                           repeated_block=lpb_zz + lpb_zz,
-                                                                           final_gate=lpb_readout,
-                                                                           pulse_count=self.pulse_count,
-                                                                           extra_measurement_duts=[self.duts[0]],
-                                                                           swp=None)  # swp_initial + swp_posterior)
+        mprim_control = self.duts[0].get_measurement_prim_intlist(0)
+        mprim_target = self.duts[1].get_measurement_prim_intlist(0)
 
-        pass
+        sequence_lpb = []
+        results = []
 
-    def plot(self, pp, title):
+        for n in pulse_count:
+            sequence = LogicalPrimitiveBlockSerial(
+                [int_target * ini_control] + [rep] * (n) + [fin + mprim_target * mprim_control])
+            sequence_lpb.append(sequence)
 
-        # x = self.pulse_count
-        x = self.pulse_count + 0.5  # np.linspace(0, pt.rep, pt.rep + 1)
+        lpb = LogicalPrimitiveBlockSweep(sequence_lpb)
+        swp = sweeper.from_sweep_lpb(lpb)
 
-        fig, axes = plt.subplots(nrows=1, ncols=pp.N)
+        swp_flip = swp_initial
+        swp_readout = swp_posterior
 
-        if pp.N == 1:
-            axes.scatter(x, pp.result, alpha=0.5)
-            axes.plot(x, pp.popts[0][0] * x + pp.popts[0][1], 'r-')
-            axes.set_ylim(-1.1, 1.1)
-            axes.set_xlabel(u"Repetition", fontsize=18)
-            axes.set_ylabel(u"<z>", fontsize=18)
-        else:
-            for i in range(pp.N):
-                axes[i].scatter(x, pp.result[i], alpha=0.5)
-                axes[i].plot(x, pp.popts[i][0] * x + pp.popts[i][1], 'r-')
-                axes[i].set_ylim(-1.1, 1.1)
-                axes[i].set_xlabel(u"Repetition", fontsize=18)
-                axes[i].set_ylabel(u"<z>", fontsize=18)
-        plt.title(title)
+        basic(lpb, swp=swp + swp_flip + swp_readout, basis="<z>")
+
+        self.result = np.squeeze(mprim_target.result())
+        self.result_control = np.squeeze(mprim_control.result())
+
+        self.N = 1
+        self.pulse_count = pulse_count
+
+        if fit:
+            self.fit()
+
+        return lpb, self.result
+
+    def analyze_results(self):
+        print("Shape of result:", self.result.shape)
+
+        t_start = self.start_gate_number
+        t_stop = self.start_gate_number + self.gate_count
+        t_step = 1
+
+        t = np.arange(t_start, t_stop, t_step)
+
+        self.fitting_2D = []
+        for i in range(2):
+            self.real_part = self.result[:, i, 0]
+            self.imag_part = self.result[:, i, 1]
+
+            self.complex_data = self.real_part + 1j * self.imag_part
+
+            self.fit_result = fit_2d_freq_with_cov(self.complex_data, dt=t_step, freq_guess=0.125, use_freq_bound=True)
+            self.fitting_2D.append(self.fit_result)
+            # print(f"Fit Results for {i}: {self.fit_result}")
+
+        self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
+        self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
+
+        print(f"IZ: {self.iz_rate: 0.5f} PGC, ZZ: {self.zz_rate: 0.5f} PGC (per gate count)")
+
+        return {
+            'fitting_2D': self.fitting_2D,
+            'iz_rate': self.iz_rate,
+            'zz_rate': self.zz_rate,
+        }
+
+    @register_browser_function(available_after=(run,))
+    def plot(self):
+        """
+        Plot the results.
+        """
+        args = self.retrieve_args(self.run)
+
+        t = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1)
+        t_interpolate = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1 / 10)
+
+        def plot_specific_axis(data, label, fit_params, use_imaginary_part):
+            data = data.squeeze()
+
+            plt.scatter(t, data, label=label, alpha=0.5)
+            # plt.plot(t, data)
+
+            f = fit_params['Frequency'].nominal_value
+            a = fit_params['Amplitude'].nominal_value
+            p = fit_params['Phase'].nominal_value - 2.0 * np.pi * f * args['start_gate_number']
+            o = fit_params['Offset_real'].nominal_value + 1j * fit_params['Offset_imag'].nominal_value
+
+            # fit = a * np.exp(-decay * t_interpolate) * np.exp(1j * (2.0 * np.pi * f * t_interpolate + p)) + o
+            fit = a * np.exp(1.j * (2.0 * np.pi * f * t_interpolate + p)) + o
+
+            plt.plot(t_interpolate, np.real(fit) if not use_imaginary_part else np.imag(fit))
+
+        plt.figure(figsize=(20, 5))
+
+        desired_num_ticks = 10  # Desired number of ticks
+        step = max(1, len(t) // desired_num_ticks)
+        xticks_subset = t[::step]
+        plt.title(f"ZZ interaction repeated gate tomography - X axis")
+
+        plot_specific_axis(data=self.result[:, 0, 0], label="Ground", fit_params=self.fitting_2D[0],
+                           use_imaginary_part=False)
+        plot_specific_axis(data=self.result[:, 1, 0], label="Excited", fit_params=self.fitting_2D[1],
+                           use_imaginary_part=False)
+
+        plt.xlabel("Pulse count")
+        plt.ylabel("<X>")
+        plt.legend()
+        plt.xticks(xticks_subset)
+
+        plt.figure(figsize=(20, 5))
+        plt.title(f"ZZ interaction repeated gate tomography - Y axis")
+
+        plot_specific_axis(data=self.result[:, 0, 1], label="Ground", fit_params=self.fitting_2D[0],
+                           use_imaginary_part=True)
+        plot_specific_axis(data=self.result[:, 1, 1], label="Excited", fit_params=self.fitting_2D[1],
+                           use_imaginary_part=True)
+
+        plt.xlabel("Pulse count")
+        plt.ylabel("<Y>")
+        plt.legend()
+        plt.xticks(xticks_subset)
+
         plt.show()
 
-    @register_browser_function(available_after=(run,))
-    def plot_ground(self):
-        self.plot(pp=self.pulse_train_ground, title="Control at ground state")
 
-    @register_browser_function(available_after=(run,))
-    def plot_excited(self):
-        self.plot(pp=self.pulse_train_excited, title="Control at excited state")
+class ConditionalStarkEchoTuneUp(Experiment):
+
+    @log_and_record
+    def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0, rise=0.01,
+            t_start=0, t_stop=20, sweep_points=30,
+            n_start=0, n_stop=32, update_iz=False, update_zz=True, n_max_iteration=20
+            ):
+        self.duts = duts
+        self.n_max_iteration = n_max_iteration
+
+        assert update_iz == False
+
+        if params is None:
+            amp_rabi_control = duts[0].get_c1('f01')['X'].amp
+            amp_rabi_target = duts[1].get_c1('f01')['X'].amp
+
+            area_control = amp_rabi_control * duts[0].get_c1('f01')['X'].width
+            area_target = amp_rabi_target * duts[1].get_c1('f01')['X'].width
+
+            params = {
+                'iz_control': 0,
+                'iz_target': 0,
+                'frequency': frequency,
+                'amp_control': amp_control,
+                'amp_target': amp_control * area_target / area_control,
+                'rise': rise,
+                'width': 0,
+                'phase_diff': phase_diff,
+                'zz_interaction_positive': True,
+                'echo': True
+            }
+
+        self.current_params = params
+        self.params_list = [params]
+
+        iz_rate, zz_rate = self.run_sizzel_xy_hamiltonian_tomography(t_start=t_start, t_stop=t_stop,
+                                                                     sweep_points=sweep_points)
+
+        self.current_params['zz_interaction_positive'] = zz_rate.nominal_value > 0
+
+        self.run_repeated_gate_hamiltonian_tomography(duts=self.duts, zz_rate=zz_rate, n_start=n_start, n_stop=n_stop,
+                                                      update_iz=False, update_zz=True)
+
+    def run_sizzel_xy_hamiltonian_tomography(self, t_start, t_stop, sweep_points=60):
+        setup().status().set_param("Shot_Period", 500)
+        setup().status().set_param("Shot_Number", 500)
+
+        t_step = (t_stop - t_start) / sweep_points
+
+        sizzel_xy = ConditionalStarkTuneUpRabiXY(
+            qubits=self.duts,
+            frequency=self.current_params['frequency'],
+            amp_control=self.current_params['amp_control'],
+            amp_target=self.current_params['amp_target'],
+            rise=self.current_params['rise'],
+            start=t_start,
+            stop=t_stop,
+            step=t_step,
+            phase_diff=self.current_params['phase_diff'],
+            iz_rate_cancel=0,
+            iz_rise_drop=0,
+            echo=True)
+
+        result = sizzel_xy.analyze_results_with_errs()
+
+        iz_rate = result['iz_rate']
+        zz_rate = result['zz_rate']
+
+        new_params = self.current_params.copy()
+        new_params['width'] = np.abs(0.125 / zz_rate.nominal_value) / 2
+
+        print(f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]} us')
+
+        self.params_list.append(new_params)
+        self.current_params = new_params
+
+        return iz_rate, zz_rate
+
+    def run_repeated_gate_hamiltonian_tomography(self, duts, zz_rate, n_start=0, n_stop=32, update_iz=False,
+                                                 update_zz=True,
+                                                 ):
+
+        iz_target = self.current_params['iz_target']
+        width = self.current_params['width']
+        iz_check_pass = False
+        zz_check_pass = False
+
+        measured_iz_list = []
+        measured_zz_list = []
+
+        estimated_iz_list = []
+        estimated_zz_list = []
+
+        kalman_iz = None
+        kalman_zz = None
+
+        for i in range(self.n_max_iteration):
+            repeated_gate = ConditionalStarkTuneUpRepeatedGateXY(
+                duts=self.duts,
+                iz_control=0,
+                iz_target=iz_target,
+                frequency=self.current_params['frequency'],
+                amp_control=self.current_params['amp_control'],
+                amp_target=self.current_params['amp_target'],
+                rise=self.current_params['rise'],
+                width=width,
+                start_gate_number=n_start,
+                gate_count=n_stop,
+                echo=True,
+            )
+
+            iz_target_measured = iz_target + repeated_gate.iz_rate.nominal_value * np.pi * 2
+            zz_measured = repeated_gate.zz_rate.nominal_value
+
+            measured_iz_list.append(iz_target_measured)
+            measured_zz_list.append(zz_measured)
+
+            if kalman_iz is None:
+                kalman_iz = KalmanFilter1D(initial_position=iz_target_measured,
+                                           position_variance=(repeated_gate.iz_rate.std_dev * np.pi * 2) ** 2)
+                kalman_zz = KalmanFilter1D(initial_position=zz_measured,
+                                           position_variance=(repeated_gate.zz_rate.std_dev * np.pi * 2) ** 2)
+            else:
+                kalman_iz.update(measurement=iz_target_measured,
+                                 measurement_variance=(repeated_gate.iz_rate.std_dev * np.pi * 2) ** 2)
+
+                kalman_zz.update(measurement=zz_measured,
+                                 measurement_variance=(repeated_gate.zz_rate.std_dev * np.pi * 2) ** 2)
+
+            print(f'Kalman estimated ZZ pgc after measurement = {kalman_zz.x}+-{np.sqrt(kalman_zz.P)}')
+            print(f'Kalman estimated IZ pgc after measurement = {kalman_iz.x}+-{np.sqrt(kalman_iz.P)}')
+
+            if update_iz:
+                iz_target = kalman_iz.x
+                iz_check_pass = kalman_iz.P < 1e-2
+                if not update_zz:
+                    estimated_iz_list.append(unc.ufloat(kalman_iz.x, np.sqrt(kalman_iz.P)))
+
+            if update_zz:
+                zz_pgc = kalman_zz.x
+
+                target_zz = np.sign(zz_pgc) * 0.125
+                zz_diff = target_zz - zz_pgc
+                width_diff = np.sign(zz_diff / zz_rate.nominal_value) * min(np.abs(zz_diff / zz_rate.nominal_value / 2),
+                                                                            0.05 * self.current_params['width'])
+                zz_diff = zz_rate.nominal_value * width_diff * 2
+                width += width_diff
+                iz_diff = 0
+                # iz_rate_tQ1_cQ2 * width_diff * np.pi * 2
+                print(f'Update width to {width} us')
+                kalman_zz.predict(movement=zz_diff,
+                                  position_variance=(zz_rate.std_dev * width_diff * np.pi * 2) ** 2)
+                kalman_iz.predict(movement=iz_diff,
+                                  position_variance=(zz_rate.std_dev * width_diff * np.pi * 2) ** 2)
+
+                estimated_iz_list.append(unc.ufloat(kalman_iz.x, np.sqrt(kalman_iz.P)))
+                estimated_zz_list.append(unc.ufloat(kalman_zz.x, np.sqrt(kalman_zz.P)))
+
+            zz_accuracy_check = np.abs(target_zz - zz_pgc) < 1e-3
+            zz_uncertainty_check = np.sqrt(kalman_zz.P) < 1e-3
+            zz_check_pass = zz_accuracy_check and zz_uncertainty_check
+
+            print(f'Kalman estimated ZZ pgc after update = {kalman_zz.x}+-{np.sqrt(kalman_zz.P)}')
+            print(f'Kalman estimated IZ pgc after update = {kalman_iz.x}+-{np.sqrt(kalman_iz.P)}')
+
+            print(
+                f'ZZ accuracy check pass: {zz_accuracy_check}, ZZ uncertainty check pass: {zz_uncertainty_check}')
+            print(f'IZ uncertainty check pass: {iz_check_pass} ')
+
+            if (iz_check_pass or not update_iz) and (zz_check_pass or not update_zz):
+                break
+
+        new_params = self.current_params.copy()
+
+        new_params['iz_target'] = iz_target
+        new_params['width'] = width
+
+        print(f'Estimated IZ = {iz_target}, ZZ = {zz_pgc}, width = {width}')
+
+        self.params_list.append(new_params)
+        self.current_params = new_params
+
+        self.estimated_iz_list = estimated_iz_list
+        self.estimated_zz_list = estimated_zz_list
+
 
 class ConditionalStarkTuneUp(experiment):
     @log_and_record
@@ -1958,8 +1943,9 @@ class ConditionalStarkTuneUp(experiment):
                 print("amp_control", amp_control)
 
             if amp_target is None:
-                amp_target = drive_omega * qubits[1].get_c1('f01')['X'].get_pulse_args('amp') * qubits[1].get_c1('f01')[
-                    'X'].get_pulse_args('width') * 2
+                amp_target = drive_omega * qubits[1].get_c1('f01')['X'].get_pulse_args('amp') * \
+                             qubits[1].get_c1('f01')[
+                                 'X'].get_pulse_args('width') * 2
 
                 print("amp_target", amp_target)
 
@@ -2128,11 +2114,13 @@ class ConditionalStarkTuneUp(experiment):
 
             if not self.repeated_gate_calibration_ignore_zz:
                 control_params = self.repeated_gate_calibration_single_qubit(start_point=i, gate_count=gate_count,
-                                                                             flip_control_target=False, tuneup_zz=True)
+                                                                             flip_control_target=False,
+                                                                             tuneup_zz=True)
                 self.guessed_params['iz_control'] = control_params['iz_control']
                 self.guessed_params['width'] = control_params['width']
                 target_params = self.repeated_gate_calibration_single_qubit(start_point=i, gate_count=gate_count,
-                                                                            flip_control_target=True, tuneup_zz=True)
+                                                                            flip_control_target=True,
+                                                                            tuneup_zz=True)
 
             self.guessed_params['width'] = (control_params['width'] + target_params['width']) / 2
             self.guessed_params['iz_control'] = control_params['iz_control']
@@ -2284,6 +2272,7 @@ class ConditionalStarkTuneUp(experiment):
                     if np.abs(correction_zz * total_count) < self.pingpong_tolerance:
                         break
 
+
 class ConditionalStartContinuesProcessTomography(experiment):
     @log_and_record
     def run(self, duts, frequency, dut_amps, width_start=0, width_stop=1, width_step=0.05, rise=0.01, trunc=1.2):
@@ -2300,6 +2289,7 @@ class ConditionalStartContinuesProcessTomography(experiment):
                       params=swpparams)
 
         self.tomo = ProcessTomographyNQubits(duts, prims.ParallelLPB(cs_pulses), swp=swp)
+
 
 class ConditionalStarkHamiltonianTomography(experiment):
     @log_and_record
@@ -2391,6 +2381,7 @@ class ConditionalStarkHamiltonianTomography(experiment):
 
             plt.figure()
             vec = np.asarray([x, y, z])
+            import qutip
             b = qutip.Bloch()
             b.add_vectors(vec.T)
             b.show()

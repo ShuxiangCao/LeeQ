@@ -5,9 +5,15 @@ from plotly import graph_objects as go
 from labchronicle import register_browser_function, log_and_record
 from leeq import Experiment, Sweeper
 from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_exp_decay_with_cov
+from leeq.theory.utils import to_dense_probabilities
+from leeq.utils import setup_logging
 from leeq.utils.compatibility import *
 from leeq.utils.compatibility.prims import SweepLPB
+from leeq.theory.fits.multilevel_decay import fit_decay as fit_multilevel_decay, plot
 
+logger = setup_logging(__name__)
+
+__all__ = ['SimpleT1', 'MultiQubitT1', 'MultiQuditT1Decay']
 
 class SimpleT1(Experiment):
     """
@@ -35,7 +41,8 @@ class SimpleT1(Experiment):
     def run(self,
             qubit: Any,  # Add the expected type for 'qubit' instead of Any
             collection_name: str = 'f01',
-            initial_lpb: Optional[Any] = None,  # Add the expected type for 'initial_lpb' instead of Any
+            # Add the expected type for 'initial_lpb' instead of Any
+            initial_lpb: Optional[Any] = None,
             mprim_index: int = 0,
             time_length: float = 100.0,
             time_resolution: float = 1.0
@@ -122,8 +129,9 @@ class SimpleT1(Experiment):
                 ),
                 name='Decay fit'
             )
-            title = (f"T1 decay {args['qubit'].hrid} transition {args['collection_name']}<br>"
-                     f"T1={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
+            title = (
+                f"T1 decay {args['qubit'].hrid} transition {args['collection_name']}<br>"
+                f"T1={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
 
             data = [trace_scatter, trace_line]
 
@@ -177,9 +185,11 @@ class MultiQubitT1(Experiment):
 
     @log_and_record
     def run(self,
-            duts: List[Any],  # Add the expected type for 'qubit' instead of Any
+            # Add the expected type for 'qubit' instead of Any
+            duts: List[Any],
             collection_names: Union[str, List[str]] = 'f01',
-            initial_lpb: Optional[Any] = None,  # Add the expected type for 'initial_lpb' instead of Any
+            # Add the expected type for 'initial_lpb' instead of Any
+            initial_lpb: Optional[Any] = None,
             mprim_indexes: int = 0,
             time_length: float = 100.0,
             time_resolution: float = 1.0
@@ -201,12 +211,21 @@ class MultiQubitT1(Experiment):
         if isinstance(mprim_indexes, int):
             mprim_indexes = [mprim_indexes] * len(duts)
 
-        c1s = [qubit.get_c1(collection_name) for qubit, collection_name in zip(duts, collection_names)]
-        mps = [qubit.get_measurement_prim_intlist(mprim_index) for qubit, mprim_index in zip(duts, mprim_indexes)]
+        c1s = [
+            qubit.get_c1(collection_name) for qubit,
+            collection_name in zip(
+                duts,
+                collection_names)]
+        mps = [
+            qubit.get_measurement_prim_intlist(mprim_index) for qubit,
+            mprim_index in zip(
+                duts,
+                mprim_indexes)]
         self.mps = mps
         delay = prims.Delay(0)
 
-        lpb = prims.ParallelLPB([c1['X'] for c1 in c1s]) + delay + prims.ParallelLPB(mps)
+        lpb = prims.ParallelLPB([c1['X'] for c1 in c1s]) + \
+              delay + prims.ParallelLPB(mps)
 
         if initial_lpb:
             lpb = initial_lpb + lpb
@@ -271,8 +290,9 @@ class MultiQubitT1(Experiment):
                 ),
                 name='Decay fit'
             )
-            title = (f"T1 decay {args['duts'][i].hrid} transition {self.collection_names[i]}<br>"
-                     f"T1={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
+            title = (
+                f"T1 decay {args['duts'][i].hrid} transition {self.collection_names[i]}<br>"
+                f"T1={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
 
             data = [trace_scatter, trace_line]
 
@@ -289,79 +309,149 @@ class MultiQubitT1(Experiment):
         return fig
 
 
-# class
-#     (Experiment):
-#     color_set = ['orange', 'b', 'g', 'r']
-#
-#     title_dict = {
-#         '00': rf"Qubit prepared to |0$\rangle$",
-#         '01': rf"Qubit prepared to |1$\rangle$",
-#         '12': rf"Qubit prepared to |2$\rangle$",
-#         '23': rf"Qubit prepared to |3$\rangle$",
-#         0: rf"Qubit prepared to |0$\rangle$",
-#         1: rf"Qubit prepared to |1$\rangle$",
-#         2: rf"Qubit prepared to |2$\rangle$",
-#         3: rf"Qubit prepared to |3$\rangle$",
-#     }
-#
-#     @log_and_record
-#     def run(self,
-#             duts: List[Any],
-#             time_length: float = 200,
-#             time_resolution: float = 5,
-#             mprim_indexes: Union[int, List[int]] = 2
-#             ):
-#         """
-#         Run the T1 experiment with the specified parameters.
-#
-#         Parameters:
-#         duts (List[Any]): A list of qubit objects to be used in the experiment.
-#         time_length (float): Total time length of the experiment in microseconds.
-#         time_resolution (float): Time resolution for the experiment in microseconds.
-#         mprim_indexes (Union[int, List[int]]): Index of the measurement primitive.
-#         """
-#
-#         self.time_length = time_length
-#         self.time_resolution = time_resolution
-#
-#         if isinstance(mprim_indexes, int):
-#             mprim_indexes = [mprim_indexes] * len(duts)
-#
-#         c1_01s = [dut.get_c1('f01') for dut in duts]
-#         c1_12s = [dut.get_c1('f12') for dut in duts]
-#         c1_23s = [dut.get_c1('f23') for dut in duts]
-#
-#         c1_01_pulses = prims.ParallelLPB([c1['X'] for c1 in c1_01s])
-#         c1_12_pulses = prims.ParallelLPB([c1['X'] for c1 in c1_12s])
-#         c1_23_pulses = prims.ParallelLPB([c1['X'] for c1 in c1_23s])
-#
-#         delay = prims.Delay(0)
-#
-#         lpb = SweepLPB([
-#             c1_01_pulses,
-#             c1_01_pulses + c1_12_pulses,
-#             c1_01_pulses + c1_12_pulses + c1_23_pulses]
-#         )
-#
-#         swp_lpb = sweeper.from_sweep_lpb(lpb)
-#
-#         delay = prims.Delay(0)
-#
-#         lpb = lpb + delay
-#         swp_time = sweeper(np.arange, n_kwargs={'start': 0.0, 'stop': time_length, 'step': time_resolution},
-#                       params=[sparam.func(delay.set_delay, {}, 'delay')])
-#
-#
-#
-#         mprims = [dut.get_measurement_prim_intlist(mprim_index) for mprim_index,dut in zip(mprim_indexes,duts)]
-#
-#         lpb = lpb + prims.ParallelLPB(mprims)
-#
-#         basic(lpb, swp_time + swp_lpb, '<zs>')
-#
-#         self.results = [
-#             np.squeeze(mprim.result()) for mprim in mprims
-#         ]
-#
-#     def analyze_data(self):
-#         pass
+class MultiQuditT1Decay(Experiment):
+
+    @log_and_record
+    def run(self,
+            duts: List[Any],
+            time_length: float = 200,
+            time_resolution: float = 5,
+            mprim_indexes: Union[int, List[int]] = 2,
+            max_level: int = 3,
+            measurement_mitigation: bool = False
+            ):
+        """
+        Run the T1 experiment with the specified parameters.
+
+        Parameters:
+        duts (List[Any]): A list of qubit objects to be used in the experiment.
+        time_length (float): Total time length of the experiment in microseconds.
+        time_resolution (float): Time resolution for the experiment in microseconds.
+        mprim_indexes (Union[int, List[int]]): Index of the measurement primitive.
+        max_level (int): The highest level we reach to here.
+        measurement_mitigation (bool): Whether to apply measurement mitigation, evaluate the assignment
+        matrix and apply inverse to the population distribution.
+        """
+
+        self.time_length = time_length
+        self.time_resolution = time_resolution
+        self.max_level = max_level
+
+        self.assignment_calibration = None
+
+        if measurement_mitigation:
+            from leeq.experiments.builtin import CalibrateSingleDutAssignmentMatrices
+            self.assignment_calibration = CalibrateSingleDutAssignmentMatrices(duts=duts, mprim_index=mprim_indexes)
+
+        if self.max_level > 3:
+            msg = f"Level {self.max_level} not supported yet."
+            logger.error(msg)
+            raise RuntimeError(msg)
+
+        if isinstance(mprim_indexes, int):
+            mprim_indexes = [mprim_indexes] * len(duts)
+
+        c1_01s = [dut.get_c1('f01') for dut in duts]
+        c1_12s = [dut.get_c1('f12') for dut in duts]
+        c1_23s = [dut.get_c1('f23') for dut in duts]
+
+        c1_01_pulses = prims.ParallelLPB([c1['X'] for c1 in c1_01s])
+        c1_12_pulses = prims.ParallelLPB([c1['X'] for c1 in c1_12s])
+        c1_23_pulses = prims.ParallelLPB([c1['X'] for c1 in c1_23s])
+
+        delay = prims.Delay(0)
+
+        lpb_list = [
+            c1_01_pulses,
+            c1_01_pulses + c1_12_pulses,
+            c1_01_pulses + c1_12_pulses + c1_23_pulses]
+
+        lpb = SweepLPB(
+            lpb_list[:self.max_level],
+        )
+
+        swp_lpb = sweeper.from_sweep_lpb(lpb)
+
+        delay = prims.Delay(0)
+
+        lpb = lpb + delay
+        swp_time = sweeper(
+            np.arange,
+            n_kwargs={
+                'start': 0.0,
+                'stop': time_length,
+                'step': time_resolution},
+            params=[
+                sparam.func(
+                    delay.set_delay,
+                    {},
+                    'delay')])
+
+        mprims = [dut.get_measurement_prim_intlist(mprim_index) for mprim_index, dut in zip(mprim_indexes, duts)]
+
+        lpb = lpb + prims.ParallelLPB(mprims)
+
+        basic(lpb, swp_time + swp_lpb, '<zs>')
+
+        self.results = [
+            np.squeeze(mprim.result()) for mprim in mprims
+        ]
+
+    def analyze_data(self):
+        """
+        Analyze the data and fit the decay.
+        """
+        probs = []
+        for r in self.results:
+            r_reindexed = r[np.newaxis, :, :, :, ].transpose([0, 3, 1, 2])
+            p = to_dense_probabilities(r_reindexed, base=self.max_level + 1)
+            probs.append(p)
+
+        if self.assignment_calibration is not None:
+            self.probs = self.assignment_calibration.apply_inverse(probs)
+        else:
+            self.probs = probs
+        self.fit_params = []
+        self.t1_list = []
+
+        for i, prob in enumerate(self.probs):
+            initial_state, gamma = self.analyze_single_dut(i)
+            self.fit_params.append((initial_state, gamma))
+
+            t1s = []
+            for j in range(1, self.max_level + 1):
+                t1 = -1 / np.sum(gamma[j, :j])
+                t1s.append(t1)
+
+            self.t1_list.append(t1s)
+
+    def analyze_single_dut(self, dut_index):
+        """
+        Analyze the data for a single DUT and fit the decay.
+
+        Parameters:
+            dut_index (int): The index of the DUT to analyze.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: The initial state and gamma values.
+        """
+        probs = self.probs[dut_index].transpose([1, 2, 0])
+        initial_state, gamma = fit_multilevel_decay(probs, time_length=self.time_length,
+                                                    time_resolution=self.time_resolution)
+        return initial_state, gamma
+
+    @register_browser_function(available_after=(run,))
+    def plot_all(self):
+        """
+        Plot the T1 decay graph based on the trace and fit parameters using Plotly.
+        """
+        self.analyze_data()
+        for i in range(len(self.probs)):
+            probs = self.probs[i].transpose([1, 2, 0])
+            fit_param = self.fit_params[i]
+            t1s = self.t1_list[i]
+            fig = plot(probs=probs, time_length=self.time_length, time_resolution=self.time_resolution,
+                       initial_distribution=fit_param[0], gamma=fit_param[1])
+            for i in range(self.max_level):
+                print(f"T1_{i + 1}{i} = {t1s[i]}")
+            fig.show()

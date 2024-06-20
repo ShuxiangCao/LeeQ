@@ -1,22 +1,19 @@
+from sklearn.pipeline import Pipeline
+from typing import Optional, Union, List, Dict
 from plotly import graph_objects as go
 from plotly import subplots
-from sklearn import mixture
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from labchronicle import register_browser_function, log_and_record
 from leeq import *
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel, \
-    LogicalPrimitiveBlockSerial
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.simulation.numpy.dispersive_readout.simulator import DispersiveReadoutSimulatorSyntheticData
 from leeq.utils import setup_logging
+from leeq.utils.ai.vlms import visual_analyze_prompt
 
 logger = setup_logging(__name__)
-
-from typing import Optional, Union, List, Dict, Any
-import numpy as np
-from sklearn.pipeline import Pipeline
 
 
 class CustomRescaler(BaseEstimator, TransformerMixin):
@@ -35,7 +32,8 @@ class CustomRescaler(BaseEstimator, TransformerMixin):
         return X * self.scale_
 
 
-def fit_gmm_model(data: np.ndarray, n_components: int, initial_means: Optional[np.ndarray] = None) -> Pipeline:
+def fit_gmm_model(data: np.ndarray, n_components: int,
+                  initial_means: Optional[np.ndarray] = None) -> Pipeline:
     """
     Fits a Gaussian Mixture Model Pipeline to the provided data.
 
@@ -62,7 +60,8 @@ def fit_gmm_model(data: np.ndarray, n_components: int, initial_means: Optional[n
         raise ValueError(msg)
 
     data = data.flatten()
-    data = np.vstack([data.real, data.imag]).T  # Transform complex data to real
+    # Transform complex data to real
+    data = np.vstack([data.real, data.imag]).T
 
     if data.ndim != 2:
         msg = "Input data should be a 2D array of shape (n_samples, n_features)."
@@ -118,12 +117,14 @@ def measurement_transform_gmm(
     # (1, measurement_id, n_samples)
 
     data_flat = data.flatten()
-    data_complex_to_real = np.vstack([data_flat.real, data_flat.imag]).T  # Transform complex data to real
+    # Transform complex data to real
+    data_complex_to_real = np.vstack([data_flat.real, data_flat.imag]).T
 
     # Predict using the Gaussian Mixture Model classifier
     output = clf.predict(data_complex_to_real)
     # Map the output using output_map, ignore unmapped values
-    output_mapped = np.asarray([output_map[x] for x in output if x in output_map])
+    output_mapped = np.asarray([output_map[x]
+                                for x in output if x in output_map])
 
     output_reshaped = output_mapped.reshape(original_shape)
 
@@ -133,26 +134,29 @@ def measurement_transform_gmm(
         return output_reshaped
 
     # Count the occurrences of each unique value in output_reshaped
-    bins = np.asarray([np.sum((output_reshaped == i).astype(int)) for i in range(max_output + 1)])
+
+    bins = np.asarray([np.sum((output_reshaped == i).astype(int))
+                       for i in range(max_output + 1)])
 
     if basis == 'bin':
-        return bins
+        return bins[np.newaxis, :]
 
     if basis == 'prob':
-        return bins / np.sum(bins)  # Normalize the bin counts to get probabilities
+        # Normalize the bin counts to get probabilities
+        return (bins / np.sum(bins))[np.newaxis, :]
 
-    zero_count = np.sum((output_reshaped < z_threshold).astype(int), axis=-1)
-    one_count = np.sum((output_reshaped >= z_threshold).astype(int), axis=-1)
+    zero_count = np.sum((output_reshaped < z_threshold).astype(int), axis=-2)
+    one_count = np.sum((output_reshaped >= z_threshold).astype(int), axis=-2)
 
     z = (zero_count - one_count) / (zero_count + one_count)
 
     # Calculate probabilities or return z based on basis
     if basis == 'p(0)':
-        return (z + 1) / 2
+        return (z[np.newaxis, :] + 1) / 2
     elif basis == 'p(1)':
-        return (z - 1) / -2
+        return (z[np.newaxis, :] - 1) / -2
     elif basis == '<z>':
-        return z
+        return z[np.newaxis, :]
     else:
         msg = f"Unknown basis {basis}"
         logger.error(msg)
@@ -186,7 +190,8 @@ def find_output_map(data: np.ndarray, clf: Pipeline) -> Dict[int, int]:
     # Iterate over the data to classify states and build the outcome map.
     for i in range(data.shape[1]):
         # Prepare data for prediction by stacking real and imaginary parts.
-        prediction_data = np.vstack([np.real(data[:, i]), np.imag(data[:, i])]).transpose()
+        prediction_data = np.vstack(
+            [np.real(data[:, i]), np.imag(data[:, i])]).transpose()
         prediction_for_this_state = clf.predict(prediction_data)
 
         # Order states by their population count in descending order.
@@ -202,12 +207,14 @@ def find_output_map(data: np.ndarray, clf: Pipeline) -> Dict[int, int]:
     # Check if there are any states left unassigned.
     if len(used_state) < n_components:
         # Handle the missing states.
-        prediction_data_last = np.vstack([np.real(data[:, -1]), np.imag(data[:, -1])]).transpose()
+        prediction_data_last = np.vstack(
+            [np.real(data[:, -1]), np.imag(data[:, -1])]).transpose()
         prediction_for_last_state = clf.predict(prediction_data_last)
         used_state_array = np.array(used_state)
         unused_state = [x for x in range(n_components) if x not in used_state]
 
-        # Raise an error if there's a classification issue leading to unhandled states.
+        # Raise an error if there's a classification issue leading to unhandled
+        # states.
         for i in unused_state:
             if i not in used_state and (i < used_state_array).any():
                 msg = "Wrong classification leads to unhandled states."
@@ -221,12 +228,47 @@ def find_output_map(data: np.ndarray, clf: Pipeline) -> Dict[int, int]:
                 outcome_map[j] = len(outcome_map)
 
     # Sanity check: the outcome map should have entries equal to n_components.
-    assert len(outcome_map) == n_components, "Outcome map size does not match the number of components."
+    assert len(
+        outcome_map) == n_components, "Outcome map size does not match the number of components."
 
     return outcome_map
 
 
-def calculate_signal_to_noise_ratio(clf: Pipeline, outcome_map: List[int]) -> Dict[tuple, float]:
+def find_rotation_phase(clf: Pipeline, output_map: Dict[int, int]) -> Dict[int, float]:
+    """
+    Find the phase of the |0> and |1> states that need to be rotated to align with the I channel.
+
+    Parameters:
+    clf (Pipeline): Classifier pipeline containing the GMM.
+    output_map (Dict[int, int]): Dictionary mapping the predicted state to an outcome index.
+
+    Returns:
+        float : The phase for updating.
+    """
+
+    assert len(output_map) == 2, "The output map should have 2 entries."
+    means = clf.named_steps['gmm'].means_
+
+    means_0 = means[output_map[0], :]
+    means_1 = means[output_map[1], :]
+
+    def wrap(angle):
+        tmp = np.arctan2(np.sin(angle), np.cos(angle))
+        return float(np.where(tmp < 0, 2 * np.pi + tmp, tmp))
+
+    phase_0 = np.angle(means_0[0] + 1j * means_0[1])
+    phase_1 = np.angle(means_1[0] + 1j * means_1[1])
+
+    # Now we need to find the rotation angle applying to the |0> and |1> states
+    # so that the 0 state aligns with the I channel greater than 0 and the 1 state aligns with the I channel less than 0.
+
+    phase_mid = (wrap(phase_0) + wrap(phase_1)) / 2
+    target_angle = np.pi * 2 / 3
+    return target_angle - phase_mid
+
+
+def calculate_signal_to_noise_ratio(
+        clf: Pipeline, outcome_map: List[int]) -> Dict[tuple, float]:
     """
     Calculate the signal-to-noise ratio (SNR) for a Gaussian Mixture Model.
 
@@ -261,7 +303,10 @@ def calculate_signal_to_noise_ratio(clf: Pipeline, outcome_map: List[int]) -> Di
     else:
         # Otherwise, calculate the SNR for each pair of components
         for i in range(n_components):
-            for j in range(i + 1, n_components):  # Start from i+1 to avoid self-comparison
+            for j in range(
+                    i +
+                    1,
+                    n_components):  # Start from i+1 to avoid self-comparison
 
                 # Calculate standard deviations and distances
                 std_i = np.sqrt(cov[i])
@@ -274,7 +319,9 @@ def calculate_signal_to_noise_ratio(clf: Pipeline, outcome_map: List[int]) -> Di
                 snr_value = np.linalg.norm(dist, ord=2) * 2 / (std_i + std_j)
 
                 # Order outcomes
-                a, b = min(outcome_map[i], outcome_map[j]), max(outcome_map[i], outcome_map[j])
+                a, b = min(
+                    outcome_map[i], outcome_map[j]), max(
+                    outcome_map[i], outcome_map[j])
 
                 # Update SNR dictionary
                 snr[(a, b)] = snr_value
@@ -286,13 +333,14 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
     @log_and_record
     def run(self,
             dut: 'TransmonElement',
-            sweep_lpb_list: List['LogicalPrimitiveBlock'],  # Replace with actual class
+            # Replace with actual class
+            sweep_lpb_list: List['LogicalPrimitiveBlock'],
             mprim_index: int,
             freq: Optional[float] = None,
             amp: Optional[float] = None,
             update: bool = False,
             extra_readout_duts: Optional[List['DeviceUnderTest']] = None,
-            z_threshold: Optional[int] = None) -> None:
+            z_threshold: Optional[int] = None, update_phase_for_two_level=False) -> None:
         """
         Run the measurement process on a transmon qubit, potentially
         altering frequency and amplitude, and calculate the signal-to-noise ratio.
@@ -306,9 +354,21 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         update (bool): Flag indicating if the original frequency/amplitude should be restored.
         extra_readout_duts (Optional[List[DeviceUnderTest]]): Additional DUTs for readout.
         z_threshold (Optional[int]): Threshold for measurement, defaults to mprim_index + 1 or mprim_index.
+        update_phase_for_two_level (bool): Flag to update the phase for two-level systems for further
+            processing on FPGA mid-circuit measurement.
 
-        Returns:
-        None: This method updates class attributes with the results.
+        Example;
+            Run the experiment for a qubit system
+            >>> lpb_scan = (dut.get_c1('f01')['I'], dut.get_c1('f01')['X'])
+            >>> calib = MeasurementCalibrationMultilevelGMM(dut, mprim_index=0,sweep_lpb_list=lpb_scan)
+
+            Run the experiment for a qutrit system
+            >>> lpb_scan = (dut.get_c1('f01')['I'], dut.get_c1('f01')['X'],dut.get_c1('f01')['X']+dut.get_c1('f12')['X'])
+            >>> calib = MeasurementCalibrationMultilevelGMM(dut, mprim_index=1,sweep_lpb_list=lpb_scan)
+
+            Run the experiment for a 4-level system
+            >>> lpb_scan = (dut.get_c1('f01')['I'], dut.get_c1('f01')['X'], dut.get_c1('f01')['X']+dut.get_c1('f12')['X'],dut.get_c1('f01')['X']+dut.get_c1('f12')['X']+dut.get_c1('f23')['X'])
+            >>> calib = MeasurementCalibrationMultilevelGMM(dut, mprim_index=2,sweep_lpb_list=lpb_scan)
         """
 
         self.result = None
@@ -338,9 +398,12 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
 
         # If there are additional DUTs for readout, prepare them
         if extra_readout_duts is not None:
-            mprims = [d.get_measurement_prim_intlist(str(mprim_index)).clone() for d in extra_readout_duts]
+            mprims = [
+                d.get_measurement_prim_intlist(
+                    str(mprim_index)).clone() for d in extra_readout_duts]
             for m in mprims:
-                m.set_transform_function(None)  # Reset transform function for extra readouts
+                # Reset transform function for extra readouts
+                m.set_transform_function(None)
             mprims.append(mprim)  # Append the original mprim to the list
         else:
             mprims = [mprim]
@@ -365,6 +428,12 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                                      clf=self.clf,
                                      output_map=self.output_map,
                                      z_threshold=z_threshold)
+
+        if update_phase_for_two_level and len(self.output_map) == 2:
+            # Find the phase of 0 and 1 state
+
+            original_phase = mprim.get_parameters()['phase']
+            mprim.update_parameters(phase=original_phase + find_rotation_phase(self.clf, self.output_map))
 
         # If not updating, restore original frequency and amplitude
         if not update:
@@ -396,7 +465,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         # Retrieve calibration data for the measurement primitive
         mprim_params = dut.get_calibrations()['measurement_primitives']
         mprim_param = mprim_params[str(mprim_index)]
-        n_components = len(mprim_param['distinguishable_states'])  # result.shape[1]
+        n_components = len(
+            mprim_param['distinguishable_states'])  # result.shape[1]
 
         # Attempt to get an initial guess for GMM means if available
         initial_gmm_mean_guess = mprim_param.get('gmm_mean_guess', None)
@@ -422,7 +492,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
     @log_and_record(overwrite_func_name='MeasurementCalibrationMultilevelGMM.run')
     def run_simulated(self,
                       dut: 'DeviceUnderTest',
-                      sweep_lpb_list: List['LogicalPrimitiveBlock'],  # Replace with actual class
+                      # Replace with actual class
+                      sweep_lpb_list: List['LogicalPrimitiveBlock'],
                       mprim_index: int,
                       freq: Optional[float] = None,
                       amp: Optional[float] = None,
@@ -462,6 +533,35 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         f_r = virtual_transmon.readout_frequency
         kappa = virtual_transmon.readout_linewidth
         chis = np.cumsum([virtual_transmon.readout_dipsersive_shift] * 4)
+        quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+
+        def _get_state_based_on_quiescent_state_distribution(target_state):
+            """
+            Get the state based on the quiescent state distribution. If target state == 0,
+            return a sample of the quiescent state distribution. If it equals to 1, swap 0 and 1
+            then return a sample of the quiescent state distribution. If it equals to 2, swap 0 and 2, 1 and 0.
+            Parameters
+            ----------
+            target_state : int
+                The target state.
+
+            Returns
+            -------
+            int
+                The state based on the quiescent state distribution.
+            """
+            if target_state == 0:
+                r = np.random.choice([0, 1, 2, 3], p=quiescent_state_distribution)
+            elif target_state == 1:
+                r = np.random.choice([1, 0, 2, 3], p=quiescent_state_distribution)
+            elif target_state == 2:
+                r = np.random.choice([1, 2, 0, 3], p=quiescent_state_distribution)
+            elif target_state == 3:
+                r = np.random.choice([1, 2, 3, 0], p=quiescent_state_distribution)
+            else:
+                raise ValueError("The target state is not supported.")
+
+            return int(r)
 
         simulator = DispersiveReadoutSimulatorSyntheticData(
             f_r, kappa, chis, amp, baseline, width,
@@ -471,7 +571,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         shot_number = setup().status().get_param('Shot_Number')
 
         data = np.asarray([[simulator._simulate_trace(
-            state=i, noise_std=0.005, f_prob=mp.freq
+            state=_get_state_based_on_quiescent_state_distribution(i), noise_std=0.005, f_prob=mp.freq
         ).sum() for i in range(len(sweep_lpb_list))] for x in range(shot_number)])
 
         self.result = data
@@ -479,6 +579,23 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         self.analyze_gmm_result(dut, mprim_index, self.result)
 
     @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt("""
+    Describe the Image: Provide a brief description of the image, particularly focusing on the distribution of points,
+        difference between two distributions and the overlap of clusters if any.
+    Identify Clusters: Note the color and arrangement of the clusters. Are there distinct groups of different colors 
+        (e.g., red and blue)?
+    Assess Overlap: Look at the central areas of the plot where the clusters might overlap. How much do the clusters 
+        mix in these regions?
+    Assess Distribution: Look at the distribution 0 and distribution 1. Do they have a clear difference?
+    Check Circles/Ellipses: Observe the circles or ellipses drawn around the clusters. Do these shapes encompass
+        predominantly one color, or do they contain a significant mixture of both colors?
+    Legend Information: If there are percentages or ratios in the legend, they might indicate the extent of separation
+        or overlap. Lower values suggest less overlap and better separation.
+    Overall Impression: Based on the above factors, decide 1) if the clusters are well separated (little to no overlap,
+        clear boundaries) or not well separated (significant overlap, indistinct boundaries). 2) if the two distributions
+         have clear difference. If they have difference but not separated means the experiment works but fitting failed.
+          If there is no difference means the experiment failed.
+    """)
     def gmm_iq(self, result_data=None):
         """
         Plot the IQ data with the fitted Gaussian Mixture Model with matplotlib.
@@ -493,9 +610,18 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         if result_data is None:
             result_data = self.result
 
-        fig = plt.figure(figsize=(result_data.shape[1] * 5, 5))
-        colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
-                  '#17becf']
+        fig = plt.figure(figsize=(result_data.shape[1] * 3.5, 3.5))
+        colors = [
+            '#1f77b4',
+            '#d62728',
+            '#2ca02c',
+            '#ff7f0e',
+            '#9467bd',
+            '#8c564b',
+            '#e377c2',
+            '#7f7f7f',
+            '#bcbd22',
+            '#17becf']
 
         for i in range(result_data.shape[1]):
             ax = fig.add_subplot(int(f"1{result_data.shape[1]}{i + 1}"))
@@ -512,12 +638,17 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
             for index in np.unique(state_label):
                 percentage = np.average((state_label == index).astype(int))
                 ax.scatter(data[:, 0][state_label == index], data[:, 1][state_label == index],
-                           alpha=0.8, label=str(self.output_map[index]) + ":" + f"{percentage * 100:.2f}%",
-                           color=colors[index], s=1)
+                           alpha=0.5, label=str(self.output_map[index]) + ":" + f"{percentage * 100:.2f}%",
+                           color=colors[index], s=3)
 
                 mean = self.clf.named_steps['gmm'].means_[index]
                 std = np.sqrt(self.clf.named_steps['gmm'].covariances_[index])
-                ax.plot(mean[0], mean[1], "x", markersize=10, color=colors[index])
+                ax.plot(
+                    mean[0],
+                    mean[1],
+                    "x",
+                    markersize=10,
+                    color=colors[index])
 
                 x = np.linspace(0, 2 * np.pi, 1001)
 
@@ -543,16 +674,31 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         Returns:
         """
 
-        print({"Means": self.clf.named_steps['gmm'].means_, "Cov": self.clf.named_steps['gmm'].covariances_})
+        print({"Means": self.clf.named_steps['gmm'].means_,
+               "Cov": self.clf.named_steps['gmm'].covariances_})
 
-        colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
-                  '#17becf']
+        colors = [
+            '#1f77b4',
+            '#d62728',
+            '#2ca02c',
+            '#ff7f0e',
+            '#9467bd',
+            '#8c564b',
+            '#e377c2',
+            '#7f7f7f',
+            '#bcbd22',
+            '#17becf']
 
         if result_data is None:
             result_data = self.result
 
-        # Create subplots: the layout is 1 x number of features, and it shares x and y axes
-        fig = subplots.make_subplots(rows=1, cols=result_data.shape[1], shared_xaxes=True, shared_yaxes=True)
+        # Create subplots: the layout is 1 x number of features, and it shares
+        # x and y axes
+        fig = subplots.make_subplots(
+            rows=1,
+            cols=result_data.shape[1],
+            shared_xaxes=True,
+            shared_yaxes=True)
 
         for i in range(result_data.shape[1]):
             data = np.vstack([
@@ -573,7 +719,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                         y=data[:, 1][state_label == index],
                         mode='markers',
                         marker=dict(color=colors[index], size=3, opacity=0.3),
-                        name=str(self.output_map[index]) + ":" + f"{percentage * 100:.2f}%",
+                        name=str(
+                            self.output_map[index]) + ":" + f"{percentage * 100:.2f}%",
                         legendgroup=int(index),  # to tie legend items together
                     ),
                     row=1,  # since we are using 1 row
@@ -640,3 +787,38 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         """
         if self.result is None:
             return go.Figure()
+
+
+    def get_analyzed_result_prompt(self) ->Union[str,None]:
+        """
+        Get the prompt for the analyzed result.
+
+        Returns:
+        """
+        result_data = self.result
+
+        if self.clf is None:
+            return None
+
+        distribution_prompt = []
+
+        for i in range(result_data.shape[1]):
+            percentage_strings = []
+            data = np.vstack([
+                np.real(result_data[:, i]),
+                np.imag(result_data[:, i])
+            ]).transpose()
+
+            state_label = self.clf.predict(data)
+            data = self.clf.named_steps['scaler'].transform(data)
+
+            for index in np.unique(state_label):
+                percentage = np.average((state_label == index).astype(int))
+                percentage_strings.append(f"{self.output_map[index]}: {percentage * 100:.2f}%")
+
+            distribution_prompt.append(f"Distribution {i}"+", ".join(percentage_strings))
+
+        distribution_prompt = "\n".join(distribution_prompt)
+
+        return (f"Signal to noise ratio: {self.snr}"
+                f"Distribution in the plot: {distribution_prompt}")

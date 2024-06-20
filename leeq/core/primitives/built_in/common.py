@@ -36,7 +36,7 @@ class DelayPrimitive(LogicalPrimitive):
     def _validate_parameters(parameters: dict):
         assert "delay_time" in parameters, "The delay time is not specified."
         assert (
-                "hardware_stall" in parameters
+            "hardware_stall" in parameters
         ), "Whether to use hardware stall is not specified."
 
     def get_delay_time(self):
@@ -125,7 +125,7 @@ class PhaseShift(LogicalPrimitive):
         assert "channel" in parameters, "The channel is not specified."
         assert "phase_shift" in parameters, "The phase is not specified."
         assert (
-                "transition_multiplier" in parameters
+            "transition_multiplier" in parameters
         ), "The transition multiplier is not specified."
         assert isinstance(
             parameters["transition_multiplier"], dict

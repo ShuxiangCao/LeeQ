@@ -4,7 +4,14 @@ from typing import Dict, Tuple, Any
 from scipy.fft import fft, fftfreq
 from scipy.optimize import minimize, curve_fit
 
-def Fit_1D_Freq(
+import numpy as np
+from scipy.optimize import minimize, curve_fit
+from typing import Dict, Tuple, Any
+from scipy.fft import fft, fftfreq
+from scipy.optimize import minimize, curve_fit
+import uncertainties as unc
+
+def fit_1d_freq(
         z,
         dt,
         use_freq_bound=True,
@@ -12,9 +19,6 @@ def Fit_1D_Freq(
         tstart=0,
         freq_guess=None,
         **kwargs):
-    # print(z)
-    # print(dt)
-    # print(z.shape)
 
     if fix_frequency:
         assert freq_guess is not None
@@ -240,7 +244,8 @@ def fft_based_initial_estimation(z, dt):
 
     return dominant_frequency, np.max(positive_fft_values)
 
-def Fit_2D_Freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None, t=None, **kwargs):
+def fit_2d_freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None, t=None, **kwargs):
+
     # Initial frequency and amplitude estimation
     # estimated_frequency, estimated_amplitude = fft_based_initial_estimation(z, dt)
     # print(f'Initial Frequency Estimate: {estimated_frequency}')
@@ -265,8 +270,10 @@ def Fit_2D_Freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None
         max_omega = abs(fmax) + df
     else:
         omega = abs(freq_guess)
-        min_omega = omega / 2
         max_omega = omega * 2
+        min_omega = -omega * 2
+
+
 
     if t is None:
         t = np.linspace(0, dt * (len(z) - 1), len(z))
@@ -304,14 +311,16 @@ def Fit_2D_Freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None
 
     initial_guess = np.array([omega, amp, phi, offset_real, offset_imag, 0.1])  # Initial decay guess
 
-    result = minimize(leastsq, initial_guess, args=(t, z))
+    args = {}
+    if use_freq_bound:
+        args['bounds'] = ((min_omega, max_omega), (None, None), (None, None), (None, None), (None, None),(None, None))
+
+    result = minimize(leastsq, initial_guess, args=(t, z),**args)
     omega, amp, phi, offset_real, offset_imag, decay = result.x
 
     if amp < 0:
         phi = phi + np.pi
         amp = -amp
-
-    print('-----------------------------------')
 
     return {
         'Frequency': omega,
@@ -322,67 +331,48 @@ def Fit_2D_Freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None
         'Residual': result.fun
     }
 
-
-def Fit_2D_Freq_CurveFit(z, dt, freq_guess=None, t=None):
+import numpy as np
+from scipy.optimize import curve_fit
+def fit_2d_freq_curvefit(z, dt,
+                         freq_guess, amp_guess, phi_guess, offset_real_guess,
+                         offset_imag_guess , t=None):
     z = np.asarray(z)
-
-    if freq_guess is None:
-        fft = np.abs(np.fft.fft(z))
-        f = np.fft.fftfreq(len(z), dt)
-        imax = np.argmax(fft[1:]) + 1
-        fmax = f[imax]
-        omega = fmax.real
-    else:
-        omega = abs(freq_guess)
 
     if t is None:
         t = np.linspace(0, dt * (len(z) - 1), len(z))
 
-    offset = np.mean(z)
-    offset_real = np.real(offset)
-    offset_imag = np.imag(offset)
+    def model(t, omega, amp, phi, offset_real, offset_imag):
+        return amp  * np.exp(1.j * (2. * np.pi * omega * t + phi)) + offset_real + 1.j * offset_imag
 
-    amp = np.max(np.abs(z - offset))
-    phi = np.angle(z[0] - offset)
+    p0 = [freq_guess, amp_guess, phi_guess, offset_real_guess, offset_imag_guess]
 
-    if isinstance(phi, np.ndarray) and phi.size == 1:
-        phi = phi.item()
+    # We need to define a custom least squares function as curve_fit expects real-valued functions
+    def complex_fit_func(t, omega, amp, phi, offset_real, offset_imag):
+        fitted_curve = model(t, omega, amp, phi, offset_real, offset_imag)
+        return np.append(np.real(fitted_curve - z), np.imag(fitted_curve - z))
 
-    def model_real(t, omega, amp, phi, offset_real, decay):
-        return amp * np.exp(-decay * t) * np.cos(2 * np.pi * omega * t + phi) + offset_real
+    popt, pcov = curve_fit(complex_fit_func, t, np.zeros(2 * len(z)), p0=np.real(p0))
 
-    def model_imag(t, omega, amp, phi, offset_imag, decay):
-        return amp * np.exp(-decay * t) * np.sin(2 * np.pi * omega * t + phi) + offset_imag
-
-    p0 = [omega, amp, phi, offset_real, 0.1]
-
-    popt_real, pcov_real = curve_fit(model_real, t, z.real, p0=p0)
-    popt_imag, pcov_imag = curve_fit(model_imag, t, z.imag, p0=p0)
-
-    popt = np.hstack((popt_real[:4], popt_imag[4]))  # Combine real and imag parts
-    perr_real = np.sqrt(np.diag(pcov_real))
-    perr_imag = np.sqrt(np.diag(pcov_imag))
-    perr = np.hstack((perr_real[:4], perr_imag[4]))
+    # Extract parameters and calculate parameter uncertainties
+    perr = np.sqrt(np.diag(pcov))
 
     return {
-        'Frequency': popt[0],
-        'Amplitude': popt[1],
-        'Phase': popt[2],
-        'Offset': complex(popt[3], popt_imag[3]),
-        'Decay': popt[4],
-        'Parameter Uncertainties': perr,
-        'Residual': np.sum((model_real(t, *popt_real) + 1j * model_imag(t, *popt_imag) - z) ** 2)
+        'Frequency': unc.ufloat(popt[0], perr[0]),
+        'Amplitude': unc.ufloat(popt[1], perr[1]),
+        'Phase': unc.ufloat(popt[2], perr[2]),
+        'Offset_real': unc.ufloat(popt[3], perr[3]),
+        'Offset_imag': unc.ufloat(popt[4], perr[4]),
+        'Residual': np.sum(np.abs(model(t, *popt) - z)**2)
     }
 
-def Fit_2D_Freq_Master(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None, t=None, **kwargs):
-    methods = {
-        'Least Squares': Fit_2D_Freq,
-        'Curve Fit': Fit_2D_Freq_CurveFit
-    }
+def fit_2d_freq_with_cov(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None, t=None, **kwargs):
+    direct_estimation = fit_2d_freq(z, dt, use_freq_bound=use_freq_bound, fix_frequency=fix_frequency, freq_guess=freq_guess, t=t, **kwargs)
+    curve_fit_estimation = fit_2d_freq_curvefit(z, dt,
+                                                freq_guess=direct_estimation['Frequency'],
+                                                amp_guess=direct_estimation['Amplitude'],
+                                                phi_guess=direct_estimation['Phase'],
+                                                offset_real_guess=direct_estimation['Offset'].real,
+                                                offset_imag_guess=direct_estimation['Offset'].imag,
+                                                t=t)
 
-    results = {}
-    for method_name, method in methods.items():
-        result = method(z, dt, freq_guess=freq_guess, t=t, **kwargs)
-        results[method_name] = result
-
-    return results
+    return curve_fit_estimation

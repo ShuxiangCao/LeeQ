@@ -106,17 +106,20 @@ def test_compile_primitive_to_sequence_integration(qubit_q1):
         }
     )
 
-    context = ExperimentContext(name='test_compile_primitive_to_sequence_integration')
+    context = ExperimentContext(
+        name='test_compile_primitive_to_sequence_integration')
     result = compiler.compile_lpb(context=context, lpb=hq1)
 
     assert result.instructions['pulse_sequence'][(4, 5144.1)].shape == (25000,)
-    assert result.instructions['pulse_sequence'][(4, 5144.1)].dtype == 'complex64'
+    assert result.instructions['pulse_sequence'][(
+        4, 5144.1)].dtype == 'complex64'
 
 
 def test_compile_lpb_to_full_sequence_integration(qubit_q1, qubit_q2):
     hq1 = qubit_q1.get_gate('qutrit_hadamard')
 
-    hq2 = qubit_q2.get_lpb_collection('f01')['Yp'] + qubit_q2.get_lpb_collection('f12')['Xp']
+    hq2 = qubit_q2.get_lpb_collection(
+        'f01')['Yp'] + qubit_q2.get_lpb_collection('f12')['Xp']
 
     mprim_1 = qubit_q1.get_measurement_primitive('0')
     mprim_2 = qubit_q1.get_measurement_primitive('0')
@@ -132,7 +135,8 @@ def test_compile_lpb_to_full_sequence_integration(qubit_q1, qubit_q2):
         }
     )
 
-    context = ExperimentContext(name='test_compile_primitive_to_sequence_integration')
+    context = ExperimentContext(
+        name='test_compile_primitive_to_sequence_integration')
     result = compiler.compile_lpb(context=context, lpb=lpb)
 
     pulses = result.instructions['pulse_sequence']

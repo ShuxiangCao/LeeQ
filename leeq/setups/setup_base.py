@@ -219,7 +219,10 @@ class SetupStatusParameters(LeeQObject):
         yield
         self.set_parameters(**original_parameters)
 
-    def register_compile_lpb_callback(self, channel: int, callback: Optional[callable] = None):
+    def register_compile_lpb_callback(
+            self,
+            channel: int,
+            callback: Optional[callable] = None):
         """
         Register a callback function that will be called when the compiler
         compiles the logical primitive block. If the callback is None, the callback will be removed.
@@ -255,7 +258,8 @@ class SetupStatusParameters(LeeQObject):
 
         self._channel_callbacks[channel] = callback
 
-    def get_modified_lpb_parameters_from_channel_callback(self, channel: int, parameters: dict):
+    def get_modified_lpb_parameters_from_channel_callback(
+            self, channel: int, parameters: dict):
         """
             Get the modified lpb parameters from the channel callback. If the callback is not registered,
             return the original parameters.
@@ -297,7 +301,8 @@ class ExperimentalSetup(LeeQObject):
         self._active = False
         self._status = SetupStatusParameters(name + ".status")
         # Add parameters that all setups should have
-        # The measurement basis, could be <z> (expectation value z), <zs> (individual state of the qubit), prob(0), etc.
+        # The measurement basis, could be <z> (expectation value z), <zs>
+        # (individual state of the qubit), prob(0), etc.
         self._status.add_param("Measurement_Basis", "<z>")
         # The number of shots to be taken for each point
         self._status.add_param("Shot_Number", 2000)
@@ -338,6 +343,8 @@ class ExperimentalSetup(LeeQObject):
         self._status.add_param("GlobalPostLPB", None)
         # Define if the setup is in high level simulation mode
         self._status.add_param("High_Level_Simulation_Mode", False)
+        # Define if automatically inspect the experiment plots with AI when available
+        self._status.add_param("AIAutoInspectPlots", False)
 
     def get_live_status(self):
         """

@@ -121,16 +121,19 @@ def qubit_2():
 
 def test_initialization():
     mapping = {"LeeQ1": "QubiC1"}
-    compiler = QubiCCircuitListLPBCompiler(leeq_channel_to_qubic_channel=mapping)
+    compiler = QubiCCircuitListLPBCompiler(
+        leeq_channel_to_qubic_channel=mapping)
     assert compiler._leeq_channel_to_qubic_channel == mapping
 
 
 def compile_lpb(lpb):
     # Mocking the necessary classes and methods
     context = ExperimentContext(name='test_context_name')
-    compiler = QubiCCircuitListLPBCompiler(leeq_channel_to_qubic_channel=leeq_channel_to_qubic_channel)
+    compiler = QubiCCircuitListLPBCompiler(
+        leeq_channel_to_qubic_channel=leeq_channel_to_qubic_channel)
 
-    # You might have more specific behavior to test here, like specific method calls or return values
+    # You might have more specific behavior to test here, like specific method
+    # calls or return values
     result_context = compiler.compile_lpb(context, lpb)
 
     return result_context.instructions
@@ -178,17 +181,25 @@ def test_atomic_lpb_compilation(qubit_1):
 def test_block_lpbs(qubit_1, qubit_2):
     serial_lpbs = [
         qubit_1.get_gate('qutrit_hadamard'),
-        qubit_2.get_lpb_collection('f01')['Xp'] + qubit_2.get_lpb_collection('f12')['Xp'],
-        qubit_2.get_lpb_collection('f01')['Xp'] + qubit_2.get_lpb_collection('f12')[
-            'Xp'] + qubit_2.get_measurement_primitive('0'),
+        qubit_2.get_lpb_collection('f01')['Xp'] +
+        qubit_2.get_lpb_collection('f12')['Xp'],
+        qubit_2.get_lpb_collection('f01')['Xp'] +
+        qubit_2.get_lpb_collection('f12')['Xp'] +
+        qubit_2.get_measurement_primitive('0'),
     ]
 
     parallel_lpbs = [
-        qubit_1.get_gate('qutrit_hadamard') * qubit_2.get_gate('qutrit_hadamard'),
-        (qubit_1.get_gate('qutrit_hadamard') * qubit_2.get_gate('qutrit_hadamard')) + qubit_2.get_measurement_primitive(
-            '0'),
-        (qubit_1.get_gate('qutrit_hadamard') * qubit_2.get_gate('qutrit_hadamard')) + qubit_2.get_measurement_primitive(
-            '0') + (qubit_1.get_gate('qutrit_hadamard') * qubit_2.get_gate('qutrit_hadamard')),
+        qubit_1.get_gate('qutrit_hadamard') *
+        qubit_2.get_gate('qutrit_hadamard'),
+        (qubit_1.get_gate('qutrit_hadamard') *
+         qubit_2.get_gate('qutrit_hadamard')) +
+        qubit_2.get_measurement_primitive('0'),
+        (qubit_1.get_gate('qutrit_hadamard') *
+         qubit_2.get_gate('qutrit_hadamard')) +
+        qubit_2.get_measurement_primitive('0') +
+        (
+            qubit_1.get_gate('qutrit_hadamard') *
+            qubit_2.get_gate('qutrit_hadamard')),
     ]
 
     for lpb in serial_lpbs:
@@ -198,7 +209,8 @@ def test_block_lpbs(qubit_1, qubit_2):
         instructions = compile_lpb(lpb)
 
     with pytest.raises(AssertionError):
-        lpb = qubit_1.get_gate('qutrit_hadamard') * qubit_1.get_gate('qutrit_hadamard')
+        lpb = qubit_1.get_gate('qutrit_hadamard') * \
+            qubit_1.get_gate('qutrit_hadamard')
         instructions = compile_lpb(lpb)
 
 
@@ -209,7 +221,8 @@ def test_measurement_like_pulse_experiment_circuit(qubit_1, qubit_2):
     phi_rotate_X_qubit = rotate_X_qubit.clone()
     measurement_primitive_qubit = qubit_1.get_measurement_prim_intlist('0')
 
-    lpb = rotate_X_qubit + mlp + delay + phi_rotate_X_qubit + measurement_primitive_qubit
+    lpb = rotate_X_qubit + mlp + delay + \
+        phi_rotate_X_qubit + measurement_primitive_qubit
 
     instructions = compile_lpb(lpb)
 

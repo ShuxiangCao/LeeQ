@@ -132,8 +132,8 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
         """
 
         assert lpb.children is None, (
-                "The children of the logical primitive block should be None. Got class "
-                + str(lpb.__class__)
+            "The children of the logical primitive block should be None. Got class "
+            + str(lpb.__class__)
         )
 
         # Found the pulse shape etc
@@ -198,7 +198,7 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
         )
 
         if isinstance(result, complex):
-            result = np.asarray([result])
+            result = np.asarray([result]).reshape([1, 1])
 
         if lpb.uuid not in self._measurement_results:
             measurement_result = MeasurementResult(

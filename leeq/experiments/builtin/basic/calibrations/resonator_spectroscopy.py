@@ -3,11 +3,9 @@ import pickle
 import numpy as np
 from typing import Optional, Union
 from scipy import optimize as so
-import plotly.graph_objects as go
 import plotly
 from labchronicle import log_and_record, register_browser_function
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
-from leeq.core.primitives.built_in.common import *
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import SweepParametersSideEffectFactory
 from leeq import Experiment, Sweeper, ExperimentManager, setup
@@ -17,9 +15,16 @@ from typing import List, Tuple, Dict, Any
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
+from leeq.utils.ai.vlms import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 
+__all__ = [
+    'ResonatorSweepTransmissionWithExtraInitialLPB',
+    'ResonatorSweepTransmissionWithExtraInitialLPB',
+    'ResonatorSweepAmpFreqWithExtraInitialLPB',
+    'ResonatorSweepTransmissionXiComparison'
+]
 
 class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
     """
@@ -39,26 +44,28 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             initial_lpb=None,
             amp: float = 0.02) -> None:
         """
-        Run the resonator sweep transmission experiment.
+        Run the resonator sweep transmission experiment. Usually used to find the resonator.
 
         The initial lpb is for exciting the qubit to a different state.
 
         Parameters:
             dut_qubit: The device under test (DUT) qubit.
-            start (float): Start frequency for the sweep. Default is 8000.
-            stop (float): Stop frequency for the sweep. Default is 9000.
-            step (float): Frequency step for the sweep. Default is 5.0.
+            start (float): Start frequency for the sweep. Unit: MHz Default is 8000.
+            stop (float): Stop frequency for the sweep. Unit: MHz Default is 9000.
+            step (float): Frequency step for the sweep. Unit: MHz Default is 5.0.
             num_avs (int): Number of averages. Default is 1000.
-            rep_rate (float): Repetition rate. Default is 10.0.
-            mp_width (float): Measurement pulse width. If None, uses rep_rate. Default is None.
+            rep_rate (float): Repetition rate. Default is 0.0.
+            mp_width (float): Measurement pulse width. Unit us.:w If None, uses rep_rate. Default is None.
             initial_lpb: Initial linear phase behavior (LPB). Default is None.
-            amp (float): Amplitude. Default is 1.0.
+            amp (float): Amplitude. Default is 0.02.
         """
         # Sweep the frequency
         mp = dut_qubit.get_default_measurement_prim_intlist().clone()
 
         # Update pulse width
-        mp.update_pulse_args(width=rep_rate) if mp_width is None else mp.update_pulse_args(width=mp_width)
+        mp.update_pulse_args(
+            width=rep_rate) if mp_width is None else mp.update_pulse_args(
+            width=mp_width)
         if amp is not None:
             mp.update_pulse_args(amp=amp)
 
@@ -73,8 +80,16 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         # Define sweeper
         swp = Sweeper(
             np.arange,
-            n_kwargs={"start": start, "stop": stop, "step": step},
-            params=[SweepParametersSideEffectFactory.func(mp.update_freq, {}, "freq", name='frequency')],
+            n_kwargs={
+                "start": start,
+                "stop": stop,
+                "step": step},
+            params=[
+                SweepParametersSideEffectFactory.func(
+                    mp.update_freq,
+                    {},
+                    "freq",
+                    name='frequency')],
         )
 
         # Perform the experiment
@@ -203,7 +218,8 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         f = np.arange(args["start"], args["stop"], args["step"])
 
         if step_no is not None:
-            # For the sweep defined above, the step_no is a tuple of one element, the current frequency steps
+            # For the sweep defined above, the step_no is a tuple of one
+            # element, the current frequency steps
             valid_data_n = step_no[0]
             result = result[: valid_data_n]
             f = f[:valid_data_n]
@@ -228,7 +244,12 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         return traces
 
     @staticmethod
-    def root_lorentzian(f: float, f0: float, Q: float, amp: float, baseline: float) -> float:
+    def root_lorentzian(
+            f: float,
+            f0: float,
+            Q: float,
+            amp: float,
+            baseline: float) -> float:
         """
         Calculate the root of the Lorentzian function.
 
@@ -290,7 +311,9 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
 
         z_balanced = z - z.mean()
         # Find the direction of lorentzian peak
-        direction = 1 if np.abs(np.max(z_balanced)) > np.abs(np.min(z_balanced)) else -1
+        direction = 1 if np.abs(
+            np.max(z_balanced)) > np.abs(
+            np.min(z_balanced)) else -1
 
         # Find the frequency for the gradient
         f = (f[:-1] + f[1:]) / 2
@@ -298,9 +321,13 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         # Find the initial guess for the parameters
         f0, amp, baseline = (
             f[np.argmax((z) * direction)],  # Peak with max
-            max(z) - min(z),  # Amplitude by finding the difference between max and min
-            min(z * direction),  # Find the baseline by finding the effective min. If the lorentzian is negative,
-            # the baseline is the max. If the lorentzian is positive, the baseline is the min.
+            max(z) - min(z),
+            # Amplitude by finding the difference between max and min
+            # Find the baseline by finding the effective min. If the lorentzian
+            # is negative,
+            min(z * direction),
+            # the baseline is the max. If the lorentzian is positive, the
+            # baseline is the min.
         )
 
         # Find the initial guess for Q
@@ -330,6 +357,13 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         return z, f0, Q, amp, baseline, direction
 
     @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt("""
+     I have a new resonator spectroscopy magnitude plot, and I need to determine if it shows evidence of a resonator.
+     Can you analyze the plot and tell me if there are any sharp dips or peaks at certain frequencies which would
+     typically indicate a resonator? Please focuse on the stability of the signal, the presence of noise, and the
+     specific behavior around suspected resonant frequencies. Provide a detailed analysis of the magnitude and
+     frequency data shown in the plot.
+    """)
     def plot_magnitude(self):
         args = self.retrieve_args(self.run)
         f = np.arange(args["start"], args["stop"], args["step"])
@@ -433,6 +467,23 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
 
         return fig
 
+    def get_analyzed_result_prompt(self) -> str:
+        """
+        Get the analyzed result prompt.
+
+        Returns:
+            str: The analyzed result prompt.
+        """
+
+        try:
+            z, f0, Q, amp, baseline, direction = self._fit_phase_gradient()
+            fit_succeed = True
+        except Exception as e:
+            return f"The experiment has an error fitting phase gradient: {e}"
+
+        return ("The fitting suggest that the resonant frequency is at %f MHz, "
+                "with a quality factor of %f, an amplitude of %f, and a baseline of %f.") % (f0, Q, amp, baseline)
+
 
 class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
     @log_and_record
@@ -449,7 +500,8 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
             amp_stop: float = 1,
             amp_step: float = 0.05) -> None:
         """
-        Run an experiment by sweeping the frequency and amplitude of a qubit.
+        Run an experiment by sweeping the frequency and amplitude of a qubit. Do not use this
+        if you are not sweeping the amplitude.
 
         Parameters:
         - dut_qubit: The qubit under test.
@@ -469,12 +521,14 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         None
         """
         # Get the original measurement primitive.
-        mprim_index = 0
+        mprim_index = '0'
         mp = dut_qubit.get_measurement_prim_intlist(mprim_index).clone()
         original_freq = mp.freq
 
-        # Update the pulse arguments with either the provided mp_width or rep_rate if mp_width is None.
-        mp.update_pulse_args(width=mp_width if mp_width is not None else rep_rate)
+        # Update the pulse arguments with either the provided mp_width or
+        # rep_rate if mp_width is None.
+        mp.update_pulse_args(
+            width=mp_width if mp_width is not None else rep_rate)
 
         # Remove any previous transform functions.
         mp.set_transform_function(None)
@@ -487,19 +541,34 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         if initial_lpb is not None:
             lpb = initial_lpb + lpb
 
-        # Define the frequency sweeper using np.arange and updating mp's frequency.
+        # Define the frequency sweeper using np.arange and updating mp's
+        # frequency.
         swp_freq = Sweeper(
             np.arange,
-            n_kwargs={"start": start, "stop": stop, "step": step},
-            params=[SweepParametersSideEffectFactory.func(mp.update_freq, {}, "freq")],
+            n_kwargs={
+                "start": start,
+                "stop": stop,
+                "step": step},
+            params=[
+                SweepParametersSideEffectFactory.func(
+                    mp.update_freq,
+                    {},
+                    "freq")],
         )
 
-        # Define the amplitude sweeper using np.arange and updating mp's amplitude.
+        # Define the amplitude sweeper using np.arange and updating mp's
+        # amplitude.
         swp_amp = Sweeper(
             np.arange,
-            n_kwargs={'start': amp_start, 'stop': amp_stop, 'step': amp_step},
-            params=[SweepParametersSideEffectFactory.func(mp.update_pulse_args, {}, 'amp')]
-        )
+            n_kwargs={
+                'start': amp_start,
+                'stop': amp_stop,
+                'step': amp_step},
+            params=[
+                SweepParametersSideEffectFactory.func(
+                    mp.update_pulse_args,
+                    {},
+                    'amp')])
 
         # Perform the experiment with specified setup parameters.
         with ExperimentManager().status().with_parameters(
@@ -552,11 +621,16 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         trace = np.squeeze(self.mp.result()).transpose()
 
         return self._plot_data(
-            x=np.arange(start=args['start'], stop=args['stop'], step=args['step']),
-            y=np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step']),
+            x=np.arange(
+                start=args['start'],
+                stop=args['stop'],
+                step=args['step']),
+            y=np.arange(
+                start=args['amp_start'],
+                stop=args['amp_stop'],
+                step=args['amp_step']),
             z=np.abs(trace),
-            title="Resonator response magnitude"
-        )
+            title="Resonator response magnitude")
 
     @register_browser_function(available_after=(run,))
     def plot_phase(self):
@@ -571,11 +645,17 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         trace = np.squeeze(self.mp.result()).transpose()
 
         return self._plot_data(
-            x=np.arange(start=args['start'], stop=args['stop'], step=args['step']),
-            y=np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step']),
-            z=np.unwrap(np.angle(trace)),
-            title="Resonator response phase"
-        )
+            x=np.arange(
+                start=args['start'],
+                stop=args['stop'],
+                step=args['step']),
+            y=np.arange(
+                start=args['amp_start'],
+                stop=args['amp_stop'],
+                step=args['amp_step']),
+            z=np.unwrap(
+                np.angle(trace)),
+            title="Resonator response phase")
 
     @register_browser_function(available_after=(run,))
     def plot_phase_gradient(self):
@@ -589,11 +669,19 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         trace = np.squeeze(self.mp.result()).transpose()
 
         return self._plot_data(
-            x=np.arange(start=args['start'], stop=args['stop'], step=args['step']),
-            y=np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step']),
-            z=np.gradient(np.unwrap(np.angle(trace)), axis=1),
-            title="Resonator response phase gradient"
-        )
+            x=np.arange(
+                start=args['start'],
+                stop=args['stop'],
+                step=args['step']),
+            y=np.arange(
+                start=args['amp_start'],
+                stop=args['amp_stop'],
+                step=args['amp_step']),
+            z=np.gradient(
+                np.unwrap(
+                    np.angle(trace)),
+                axis=1),
+            title="Resonator response phase gradient")
 
     @register_browser_function(available_after=(run,))
     def plot_mag_logscale(self):
@@ -606,11 +694,10 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         args = self.retrieve_args(self.run)
         trace = np.squeeze(self.mp.result()).transpose()
         return self._plot_data(
-            x=np.arange(start=args['start'], stop=args['stop'], step=args['step']),
-            y=np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step']),
-            z=np.log(np.abs(trace)),
-            title="Resonator response magnitude (log scale)"
-        )
+            x=np.arange(
+                start=args['start'], stop=args['stop'], step=args['step']), y=np.arange(
+                start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step']), z=np.log(
+                np.abs(trace)), title="Resonator response magnitude (log scale)")
 
     def live_plots(self, step_no: tuple[int] = None):
         """
@@ -642,7 +729,8 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
             mp_width: Optional[float] = None,
             amp: Optional[float] = None) -> None:
         """
-        Runs the resonator sweep transmission experiment.
+        Runs the resonator sweep transmission experiment and compare the response from the different state of the qubit.
+        Not used for resonator discovery.
 
         Parameters:
             dut_qubit: The device under test (DUT) qubit.
@@ -678,10 +766,18 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
         fig = go.Figure()
 
         for key, sweep in self.result_dict.items():
-            fig.add_trace(go.Scatter(x=f, y=sweep.result['Magnitude'], mode='lines', name=key))
+            fig.add_trace(
+                go.Scatter(
+                    x=f,
+                    y=sweep.result['Magnitude'],
+                    mode='lines',
+                    name=key))
 
-        fig.update_layout(title='Resonator spectroscopy magnitude', xaxis_title='Frequency [MHz]',
-                          yaxis_title='Magnitude', plot_bgcolor='white')
+        fig.update_layout(
+            title='Resonator spectroscopy magnitude',
+            xaxis_title='Frequency [MHz]',
+            yaxis_title='Magnitude',
+            plot_bgcolor='white')
 
         fig.show()
 
@@ -698,10 +794,18 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
         for key, sweep in self.result_dict.items():
             phase_trace = sweep.result['Phase']
             phase_trace_mod = sweep.UnwrapPhase(phase_trace)
-            fig.add_trace(go.Scatter(x=f, y=phase_trace_mod, mode='lines', name=key))
+            fig.add_trace(
+                go.Scatter(
+                    x=f,
+                    y=phase_trace_mod,
+                    mode='lines',
+                    name=key))
 
-        fig.update_layout(title='Resonator spectroscopy phase', xaxis_title='Frequency [MHz]',
-                          yaxis_title='Phase', plot_bgcolor='white')
+        fig.update_layout(
+            title='Resonator spectroscopy phase',
+            xaxis_title='Frequency [MHz]',
+            yaxis_title='Phase',
+            plot_bgcolor='white')
 
         fig.show()
 
@@ -712,29 +816,41 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
         """
         args = self.retrieve_args(self.run)
         f = np.arange(args['start'], args['stop'], args['step'])
-        f_interpolate = np.arange(args['start'], args['stop'], args['step'] / 5)
+        f_interpolate = np.arange(
+            args['start'],
+            args['stop'],
+            args['step'] / 5)
 
         fig = go.Figure()
 
         for key, sweep in self.result_dict.items():
             z, f0, Q, amp, baseline, direction = sweep.fit_phase_diff()
-            lorentzian_fit = sweep.root_lorentzian(f_interpolate, f0, Q, amp, baseline) * direction
+            lorentzian_fit = sweep.root_lorentzian(
+                f_interpolate, f0, Q, amp, baseline) * direction
 
-            fig.add_trace(go.Scatter(x=f_interpolate, y=lorentzian_fit, mode='lines',
-                                     name=f'{key} Lorentzian fit'))
-            fig.add_trace(go.Scatter(x=f, y=z, mode='markers', name=f'{key} Phase derivative'))
+            fig.add_trace(
+                go.Scatter(
+                    x=f_interpolate,
+                    y=lorentzian_fit,
+                    mode='lines',
+                    name=f'{key} Lorentzian fit'))
+            fig.add_trace(
+                go.Scatter(
+                    x=f,
+                    y=z,
+                    mode='markers',
+                    name=f'{key} Phase derivative'))
 
-            print(f'Phase diff fit {key} f0:{f0}, Q:{Q}, amp:{amp}, base:{baseline}, kappa:{f0 / Q}')
+            print(
+                f'Phase diff fit {key} f0:{f0}, Q:{Q}, amp:{amp}, base:{baseline}, kappa:{f0 / Q}')
 
-        fig.update_layout(title='Resonator spectroscopy phase fitting', xaxis_title='Frequency [MHz]',
-                          yaxis_title='Phase', plot_bgcolor='white')
+        fig.update_layout(
+            title='Resonator spectroscopy phase fitting',
+            xaxis_title='Frequency [MHz]',
+            yaxis_title='Phase',
+            plot_bgcolor='white')
 
         fig.show()
-
-
-import numpy as np
-import matplotlib.pyplot as plt
-import pickle
 
 
 # Assuming other necessary modules are imported elsewhere in the project.
@@ -773,8 +889,12 @@ class MeasurementScanParams(Experiment):
         mprim = dut.get_measurement_prim_intlist(mprim_index)
 
         # Set scanned frequencies and amplitudes
-        self.scanned_freqs = [mprim.freq] if freq_scan is None else np.arange(**freq_scan)
-        self.scanned_amps = [mprim.primary_kwargs()['amp']] if amp_scan is None else np.arange(**amp_scan)
+        self.scanned_freqs = [
+            mprim.freq] if freq_scan is None else np.arange(
+            **freq_scan)
+        self.scanned_amps = [
+            mprim.primary_kwargs()['amp']] if amp_scan is None else np.arange(
+            **amp_scan)
 
         # Check for plot settings in Jupyter
         plot_result_in_jupyter = setup().status().get_param("Plot_Result_In_Jupyter")
@@ -785,8 +905,12 @@ class MeasurementScanParams(Experiment):
         # Perform measurement scan
         for freq in self.scanned_freqs:
             for amp in self.scanned_amps:
-                result = MeasurementCalibrationMultilevelGMM(dut=dut, sweep_lpb_list=sweep_lpb_list,
-                                                             mprim_index=mprim_index, freq=freq, amp=amp)
+                result = MeasurementCalibrationMultilevelGMM(
+                    dut=dut,
+                    sweep_lpb_list=sweep_lpb_list,
+                    mprim_index=mprim_index,
+                    freq=freq,
+                    amp=amp)
 
                 snr = 1 / np.sum([1 / (x + 1e-6) for x in result.snr.values()]) \
                     if accumulate_snr_for_all_distinguishable_state else result.SNR[(mprim_index, mprim_index + 1)]
@@ -796,7 +920,8 @@ class MeasurementScanParams(Experiment):
 
         # Restore plot settings
         setup().status().set_param("Plot_Result_In_Jupyter", plot_result_in_jupyter)
-        self.snrs = np.asarray(self.snrs).reshape([len(self.scanned_freqs), len(self.scanned_amps)])
+        self.snrs = np.asarray(self.snrs).reshape(
+            [len(self.scanned_freqs), len(self.scanned_amps)])
 
     # Additional methods follow the same pattern of revision.
     # ...
@@ -849,7 +974,11 @@ class MeasurementScanParams(Experiment):
 
         fig, ax = plt.subplots(figsize=fig_size)
         ax.set_title("SNR vs Amplitude / Frequency")
-        cax = ax.imshow(np.asarray(self.snrs), aspect='auto', interpolation='nearest')
+        cax = ax.imshow(
+            np.asarray(
+                self.snrs),
+            aspect='auto',
+            interpolation='nearest')
 
         # Adding text annotation inside the cells
         for i in range(len(self.scanned_freqs)):
@@ -858,8 +987,10 @@ class MeasurementScanParams(Experiment):
                                ha="center", va="center", color="w")
 
         # set ticks
-        ax.set_xticks(ticks=np.arange(len(self.scanned_amps)), labels=[f"{x:.2f}" for x in self.scanned_amps])
-        ax.set_yticks(ticks=np.arange(len(self.scanned_freqs)), labels=[f"{x:.2f}" for x in self.scanned_freqs])
+        ax.set_xticks(ticks=np.arange(len(self.scanned_amps)),
+                      labels=[f"{x:.2f}" for x in self.scanned_amps])
+        ax.set_yticks(ticks=np.arange(len(self.scanned_freqs)),
+                      labels=[f"{x:.2f}" for x in self.scanned_freqs])
 
         plt.xlabel('Amplitude [a.u.]')
         plt.ylabel('Frequency [MHz]')

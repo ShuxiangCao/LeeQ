@@ -52,7 +52,9 @@ def compare_dicts(dict1, dict2, rtol=1e-05, atol=1e-08):
         value2 = dict2[key]
 
         # If values are both numbers, use np.allclose for comparison
-        if isinstance(value1, (int, float)) and isinstance(value2, (int, float)):
+        if isinstance(
+                value1, (int, float)) and isinstance(
+            value2, (int, float)):
             if not np.allclose(value1, value2, rtol=rtol, atol=atol):
                 return False
 
@@ -90,7 +92,7 @@ def segment_array(data: np.ndarray, threshold=1e-5, min_flat_length=10):
     switching_points_change_to_flat = np.where(np.diff(flat_mask) == 1)[0]
 
     switching_points = np.concatenate([switching_points_flat_to_change, switching_points_change_to_flat])
-    switching_points = np.sort(switching_points)
+    switching_points = np.sort(switching_points).astype(int)
 
     current_location_flat = flat_mask[0] == 1
 
@@ -215,7 +217,7 @@ def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
         if i == len(segments) - 1:
             modified_end = end
 
-        modified_segments.append((modified_start, modified_end, segment_type))
+        modified_segments.append((int(modified_start), int(modified_end), segment_type))
 
     segments = modified_segments
     modified_segments = []
@@ -286,7 +288,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         # lpb has changed, the waveform is dirty. Otherwise, it kept clean.
         self._envelope_dirty = False
         # Indicates if the waveform shape has been changed. If not we can skip uploading
-        # the frequency to board to save time. It is done by checking the parameters for each lpbs.
+        # the frequency to board to save time. It is done by checking the
+        # parameters for each lpbs.
         self._frequency_dirty = False
         # Indicates if the command (lpb or phase etc) has been changed.
         # If not we can omit uploading the waveform to board to save time.
@@ -366,7 +369,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         self._circuit_list = []
         self._phase_shift = {}
 
-        # Keep track of the compiled UUID, and remove untouched UUID from the dirty tracking data structures
+        # Keep track of the compiled UUID, and remove untouched UUID from the
+        # dirty tracking data structures
         self._compiled_lpb_uuid = []
         self._command_dirty = False
         self._frequency_dirty = False
@@ -383,7 +387,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             }
         }
 
-        # Now look at the compiled UUID, and remove unseen UUID from the dirty tracking data structures
+        # Now look at the compiled UUID, and remove unseen UUID from the dirty
+        # tracking data structures
         for lpb_id in list(self._sweep_lpb_uuid_to_last_selection.keys()):
             if lpb_id not in self._compiled_lpb_uuid:
                 del self._sweep_lpb_uuid_to_last_selection[lpb_id]
@@ -413,11 +418,13 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             lpb (LogicalPrimitive): a lpb to be checked.
         """
 
-        # Track the UUID of the lpbs, if they are not seen we remove them from the tracking data structure
+        # Track the UUID of the lpbs, if they are not seen we remove them from
+        # the tracking data structure
         self._compiled_lpb_uuid.append(lpb.uuid)
 
-        _parameter_diff = lambda x: x in parameters and \
-                                    parameters[x] != self._lpb_uuid_to_parameter_last_compiled[lpb.uuid][x]
+        def _parameter_diff(x):
+            return x in parameters and \
+                parameters[x] != self._lpb_uuid_to_parameter_last_compiled[lpb.uuid][x]
 
         parameters = lpb.get_parameters()
         lpb_id = lpb.uuid
@@ -432,7 +439,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                 # Passed check
                 return
 
-            last_compiled_value = self._lpb_uuid_to_parameter_last_compiled[lpb_id].copy()
+            last_compiled_value = self._lpb_uuid_to_parameter_last_compiled[lpb_id].copy(
+            )
 
             if _parameter_diff('freq'):
                 self._frequency_dirty = True
@@ -455,11 +463,13 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                 del last_compiled_value['phase']
 
             if parameters != last_compiled_value:
-                # Something else has changed as well, not sure if its shape or command, then mark them both dirty
+                # Something else has changed as well, not sure if its shape or
+                # command, then mark them both dirty
                 self._command_dirty = True
                 self._envelope_dirty = True
 
-        self._lpb_uuid_to_parameter_last_compiled[lpb_id] = lpb.get_parameters()
+        self._lpb_uuid_to_parameter_last_compiled[lpb_id] = lpb.get_parameters(
+        )
 
     @_compile_lpb.register
     def _(self, lpb: LogicalPrimitive):
@@ -496,8 +506,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             parameters = lpb.get_parameters()
         else:
             parameters = exp_manager.status().get_modified_lpb_parameters_from_channel_callback(
-                channel=lpb.channel, parameters=lpb.get_parameters()
-            )
+                channel=lpb.channel, parameters=lpb.get_parameters())
 
         phase_shift = 0
 
@@ -510,13 +519,16 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             phase_shift += self._phase_shift[lpb.channel][lpb.transition_name]
 
         # Here we can't put all the parameters through, as they will be used as hashes to determine if the
-        # waveform has changed. We only put the parameters that are used in the waveform generation.
+        # waveform has changed. We only put the parameters that are used in the
+        # waveform generation.
         env_func = self._get_envelope_function(parameters['shape'])
         required_parameters = inspect.signature(env_func).parameters
-        parameters_keeping = {key: parameters[key] for key in required_parameters if (key in parameters) and \
-                              key not in ['amp', 'freq', 'phase']}
+        parameters_keeping = {
+            key: parameters[key] for key in required_parameters if (
+                                                                           key in parameters) and key not in [
+                                                                       'amp', 'freq', 'phase']}
 
-        if parameters['width'] <= 0.4:  # The pulse width is too long, we need to split it
+        if parameters['width'] <= 0.3:  # The pulse width is too long, we need to split it
             env = {"env_func": get_qubic_envelope_name_from_leeq_name(parameters['shape']),
                    "paradict": parameters_keeping}
 
@@ -547,15 +559,16 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
                 # Hard code 8 Gsps as sampling rate for now
                 pulse_width = (i_end - i_start) / _sampling_rate  # In seconds
-                new_sequence = []
 
+                new_sequence = []
                 if segment_type == 'flat':
-                    single_pulse_width = 128e-9  # In seconds, 150 ns
+                    single_pulse_width = 64e-9  # In seconds, 64 ns
 
                     # The flat region is too long, we need to split it into multiple pulses
                     num_pulses = int(np.ceil(pulse_width / single_pulse_width))
                     for i in range(num_pulses):
                         small_pulse_width = min(single_pulse_width, pulse_width - i * single_pulse_width)
+
                         qubic_pulse_dict = {
                             "name": "pulse",
                             "freq": int(parameters['freq'] * 1e6),  # In Hz
@@ -657,17 +670,18 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             modified_parameters = lpb.get_parameters()
         else:
             modified_parameters = exp_manager.status().get_modified_lpb_parameters_from_channel_callback(
-                channel=lpb.channel, parameters=lpb.get_parameters()
-            )
+                channel=lpb.channel, parameters=lpb.get_parameters())
 
         # Here we can't put all the parameters through, as they will be used as hashes to determine if the
-        # waveform has changed. We only put the parameters that are used in the waveform generation.
+        # waveform has changed. We only put the parameters that are used in the
+        # waveform generation.
         env_func = self._get_envelope_function(modified_parameters['shape'])
 
         required_parameters = inspect.signature(env_func).parameters
-        parameters_keeping = {key: modified_parameters[key] for key in required_parameters
-                              if (key in modified_parameters) and \
-                              key not in ['amp', 'freq', 'phase']}
+        parameters_keeping = {
+            key: modified_parameters[key] for key in required_parameters if (
+                                                                                    key in modified_parameters) and key not in [
+                                                                                'amp', 'freq', 'phase']}
 
         env = {"env_func": get_qubic_envelope_name_from_leeq_name(modified_parameters['shape']),
                "paradict": parameters_keeping}
@@ -684,10 +698,11 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
         # A delay is introduced between the start of the drive and start of the measurement.
         # First it takes roughly 100ns for the signal to arrive the resonator in the fridge and
-        # comback. Also the delay prevents the on-board crosstalk of the qubit drive signal being picked up
+        # comback. Also the delay prevents the on-board crosstalk of the qubit
+        # drive signal being picked up
         delay_between_drive_and_measure = {
             'name': 'delay',
-            't': 100e-9,
+            't': 200e-9,
             'scope': [primitive_scope]
         }
 
@@ -707,7 +722,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                     "env_func": "square",
                     # Here we use square pulse for demodulation, which means no
                     # window function is applied
-                    "paradict": {"phase": 0.0, "amplitude": 1.0, "twidth": modified_parameters['width'] / 1e6},
+                    "paradict": {"phase": modified_parameters['phase'], "amplitude": 1.0,
+                                 "twidth": modified_parameters['width'] / 1e6},
                 }
             ],
         }
@@ -720,7 +736,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
         self._qubic_channel_to_lpb_uuid[primitive_scope] = lpb.uuid
 
-        return [drive_pulse, delay_between_drive_and_measure, demodulate_pulse], {primitive_scope + ".rdrv"}
+        return [drive_pulse, delay_between_drive_and_measure,
+                demodulate_pulse], {primitive_scope + ".rdrv"}
 
     @_compile_lpb.register
     def _(self, lpb: LogicalPrimitiveBlockSerial):
@@ -758,7 +775,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         # the delay primitive to have the entire scope of the block.
         if len(
                 child_circuits[0]) == 1 and child_circuits[0][0]["name"] == "delay":
-            child_circuits[0][0]["scope"] = list(set(x.split('.')[0] for x in block_scope))
+            child_circuits[0][0]["scope"] = list(
+                set(x.split('.')[0] for x in block_scope))
             child_scopes[0] = block_scope
 
         compiled_circuit.extend(child_circuits[0])
@@ -770,20 +788,21 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             # For this operation we do not need a barrier.
             if len(
                     child_circuits[i]) == 1 and child_circuits[i][0]["name"] == "delay":
-                child_circuits[i][0]["scope"] = list(set(x.split('.')[0] for x in block_scope))
+                child_circuits[i][0]["scope"] = list(
+                    set(x.split('.')[0] for x in block_scope))
                 if len(block_scope) > 1:
-                    # If the block contains more than 1 channel, we need a barrier
-                    compiled_circuit.append(
-                        {"name": "barrier", "scope": list(set(x.split('.')[0] for x in block_scope))}
-                    )
+                    # If the block contains more than 1 channel, we need a
+                    # barrier
+                    compiled_circuit.append({"name": "barrier", "scope": list(
+                        set(x.split('.')[0] for x in block_scope))})
             else:
                 # If we are only dealing with one channel, and the previous and current child are on the same channel,
-                # we do not need a barrier. Otherwise add a barrier at block scope.
+                # we do not need a barrier. Otherwise add a barrier at block
+                # scope.
                 union_scope = child_scopes[i - 1].union(child_scopes[i])
                 if len(block_scope) > 1 and len(union_scope) > 1:
-                    compiled_circuit.append(
-                        {"name": "barrier", "scope": list(set(x.split('.')[0] for x in block_scope))}
-                    )
+                    compiled_circuit.append({"name": "barrier", "scope": list(
+                        set(x.split('.')[0] for x in block_scope))})
 
             compiled_circuit.extend(child_circuits[i])
 
@@ -836,8 +855,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         compiled_circuit = sum(child_circuits, [])
         block_scope = set(block_scope)
         if len(block_scope) > 1:
-            compiled_circuit.append(
-                {"name": "barrier", "scope": list(set(x.split('.')[0] for x in block_scope))})
+            compiled_circuit.append({"name": "barrier", "scope": list(
+                set(x.split('.')[0] for x in block_scope))})
 
         return compiled_circuit, block_scope
 
@@ -882,8 +901,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             parameters = lpb.get_parameters()
         else:
             parameters = exp_manager.status().get_modified_lpb_parameters_from_channel_callback(
-                channel=lpb.channel, parameters=lpb.get_parameters()
-            )
+                channel=lpb.channel, parameters=lpb.get_parameters())
 
         if lpb.channel not in self._phase_shift:
             self._phase_shift[lpb.channel] = {}

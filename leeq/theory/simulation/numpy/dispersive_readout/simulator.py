@@ -59,7 +59,11 @@ class DispersiveReadoutSimulator:
         else:
             return data
 
-    def plot_iq(self, states: List[int], f_prob: float, noise_std: float = 0) -> None:
+    def plot_iq(
+            self,
+            states: List[int],
+            f_prob: float,
+            noise_std: float = 0) -> None:
         """
         Plots the I-Q trajectory for different quantum states.
 
@@ -147,15 +151,22 @@ class DispersiveReadoutSimulatorSyntheticData(DispersiveReadoutSimulator):
         )
 
         # Get the time list based on the sampling rate and the envelope width
-        t_list = get_t_list(self.sampling_rate, len(envelope) / self.sampling_rate)
+        t_list = get_t_list(
+            self.sampling_rate,
+            len(envelope) /
+            self.sampling_rate)
 
         assert len(t_list) == len(envelope)
 
         if isinstance(state, int):
             state = [(0, state)]
 
-        chis_ = {i: root_lorentzian(f=f_prob, f0=self.f_r + self.chis[i], kappa=self.kappa, amp=self.amp,
-                                    baseline=self.baseline, ) for i in range(len(self.chis))}
+        chis_ = {i: root_lorentzian(f=f_prob,
+                                    f0=self.f_r + self.chis[i],
+                                    kappa=self.kappa,
+                                    amp=self.amp,
+                                    baseline=self.baseline,
+                                    ) for i in range(len(self.chis))}
         lorentzian_values = chis_
 
         # Find the state at different time points

@@ -1,3 +1,4 @@
+import scipy.linalg as sl
 import numpy as np
 from leeq.utils import setup_logging
 
@@ -58,8 +59,6 @@ pZ = np.array([[1, 0], [0, -1]], dtype=complex)
 # Define a tolerance for identifying the inverse gate
 TOLERANCE = 1e-9
 
-import numpy as np
-import scipy.linalg as sl
 
 # Define type alias for a complex floating number array
 CFloatArray = np.ndarray
@@ -71,7 +70,9 @@ pY = np.array([[0, -1j], [1j, 0]], dtype=complex)
 pZ = np.array([[1, 0], [0, -1]], dtype=complex)
 
 
-def create_clifford_gates(pauli_gate: CFloatArray, phase: float) -> CFloatArray:
+def create_clifford_gates(
+        pauli_gate: CFloatArray,
+        phase: float) -> CFloatArray:
     """
     Create a Clifford gate using the exponential of a Pauli matrix.
 
@@ -143,7 +144,9 @@ def get_c1(i: int) -> CFloatArray:
     return C1[i]
 
 
-def create_clifford_gates(pauli_gate: CFloatArray, phase: float) -> CFloatArray:
+def create_clifford_gates(
+        pauli_gate: CFloatArray,
+        phase: float) -> CFloatArray:
     """
     Create a Clifford gate using the exponential of a Pauli matrix.
 
@@ -196,13 +199,17 @@ def find_inverse_C1(a: CFloatArray, cliff_set: str) -> int:
             if min_diff < TOLERANCE:
                 return i
 
-    # If no inverse is found within the tolerance, print the minimum deviation found
+    # If no inverse is found within the tolerance, print the minimum deviation
+    # found
     msg = "Inverse search failed. Minimum deviation: {}".format(min_diff)
     logger.error(msg)
     raise ValueError(msg)
 
 
-def append_inverse_C1(c1_index_list: list, clifford_set: str = 'XY', test_inverse: bool = False) -> list:
+def append_inverse_C1(
+        c1_index_list: list,
+        clifford_set: str = 'XY',
+        test_inverse: bool = False) -> list:
     """
     Append the index of the inverse Clifford gate to the given sequence of gates.
 

@@ -1,4 +1,5 @@
 import copy
+from http.client import CannotSendRequest
 from typing import List, Union, Dict, Any
 from uuid import UUID
 
@@ -77,13 +78,17 @@ class QubiCCircuitSetup(ExperimentalSetup):
         self._measurement_results: List[MeasurementResult] = []
 
         self._result = None
-        self._core_to_channel_map = self._build_core_id_to_qubic_channel(self._channel_configs)
+        self._core_to_channel_map = self._build_core_id_to_qubic_channel(
+            self._channel_configs)
 
         super().__init__(name)
 
         self._status.add_param("QubiC_Debug_Print_Circuits", False)
-        self._status.add_param("QubiC_Debug_Print_Compiled_Instructions", False)
+        self._status.add_param(
+            "QubiC_Debug_Print_Compiled_Instructions", False)
         self._status.add_param("Engine_Batch_Size", 1)
+        self._status.add_param("QubiC_Trace_Acquisition_Decimator", 0)
+        self._status.add_param("QubiC_Trace_Acquisition_Extra_Measure_Length", 0)
 
         # Add channels
         for i in range(qubic_core_number):
@@ -170,12 +175,14 @@ class QubiCCircuitSetup(ExperimentalSetup):
         }
 
         channel_config_dict = {}
-        channel_config_dict["fpga_clk_freq"] = 500e6  # 2ns per clock cycle for ZCU216 by default
+        # 2ns per clock cycle for ZCU216 by default
+        channel_config_dict["fpga_clk_freq"] = 500e6
 
         leeq_channel_to_qubic_map = {}
 
         for i in range(core_number):
-            # For the old convention we always set the odd number to resonators and even number for qubits
+            # For the old convention we always set the odd number to resonators
+            # and even number for qubits
             leeq_channel_qubit = 2 * i
             leeq_channel_readout = 2 * i + 1
             leeq_channel_to_qubic_map[leeq_channel_qubit] = f'Q{i}'
@@ -252,8 +259,82 @@ class QubiCCircuitSetup(ExperimentalSetup):
         """
         pass
 
-    def _run_qubic_circuits(self, circuits: list, batch_size: int, zero: bool, load_commands: bool, load_freqs: bool,
-                            load_envs: bool):
+    @staticmethod
+    def _get_measurement_info_from_compiled_instructions_for_trace_acquisition(compiled_instructions: dict):
+        """
+        Get the starting time of the measurement from the compiled instructions.
+
+        Parameters:
+            compiled_instructions (dict): The compiled instructions.
+
+        Returns:
+            float: The starting time of the measurement.
+        """
+
+        measure_start_time = -1
+        measurement_length = -1
+        channel_demodulation_config = {}
+        for proc_group, instructions in compiled_instructions.program.items():
+            for instruction in instructions:
+                if instruction['op'] == 'pulse' and 'rdlo' in instruction["dest"]:
+
+                    if measure_start_time != -1:
+                        assert measure_start_time == instruction["start_time"], ("All the measurement should start "
+                                                                                 "at the same time for trace acquisition.")
+                    measurement_length = max(instruction["env"]["paradict"]['twidth'], measurement_length)
+                    measure_start_time = instruction["start_time"]
+
+                    channel = instruction["dest"].split('.')[0]
+                    config = {
+                        'freq': instruction["freq"],
+                        'start_time': instruction["start_time"],
+                        'env': instruction["env"]
+                    }
+                    channel_demodulation_config[channel] = config
+
+        measure_start_time = measure_start_time / 500e6  # Convert to seconds
+        return measure_start_time, measurement_length, channel_demodulation_config
+
+    def _software_demodulation(self, data: np.ndarray, channel_demodulation_config: dict):
+        """
+        Demodulate the data using the software demodulation.
+
+        Parameters:
+            data (np.ndarray): The data to demodulate.
+            channel_demodulation_config (dict): The demodulation configuration.
+
+        Returns:
+            np.ndarray: The demodulated data.
+        """
+
+        demodulated_data = {}
+        for channel, config in channel_demodulation_config.items():
+            freq = config['freq']
+            start_time = config['start_time'] / 500e6  # Convert to seconds
+
+            # Generate the time axis
+            decimator = self._status.get_parameters("QubiC_Trace_Acquisition_Decimator")
+            samples_per_second = 2e9 / (decimator + 1)
+            time_axis = np.arange(data.shape[1]) / samples_per_second + start_time
+            demodulation_lo = np.exp(-2j * np.pi * freq * time_axis)
+
+            # There is a bug in the QubiC system that the first 4 samples may not be valid and always 32767 (max value).
+            # We need to ignore 4 samples.
+            demodulation_lo[:4] = 0
+
+            # Demodulate the data
+            demodulated_data[channel] = data * demodulation_lo
+
+        return demodulated_data
+
+    def _run_qubic_circuits(
+            self,
+            circuits: list,
+            batch_size: int,
+            zero: bool,
+            load_commands: bool,
+            load_freqs: bool,
+            load_envs: bool):
         """
         Run the qubic circuits.
 
@@ -281,7 +362,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
             circuits, fpga_config=self._fpga_config, qchip=None, compiler_flags={'resolve_gates': False}
         )
 
-        if self._status.get_parameters("QubiC_Debug_Print_Compiled_Instructions"):
+        if self._status.get_parameters(
+                "QubiC_Debug_Print_Compiled_Instructions"):
             pprint(compiled_instructions.program)
 
         asm_prog = tc.run_assemble_stage(
@@ -299,17 +381,26 @@ class QubiCCircuitSetup(ExperimentalSetup):
         )
 
         if acquisition_type == "IQ" or acquisition_type == "IQ_average":
-            self._runner.load_circuit(
-                rawasm=asm_prog,
-                # if True, (default), zero out all cmd buffers before loading circuit
-                zero=zero,
-                # load command buffers when the circuit or parameters (amp or phase) has changed.
-                load_commands=load_commands,
-                # load frequency buffers when frequency changed.
-                load_freqs=load_freqs,
-                # load envelope buffers when envelope changed.
-                load_envs=load_envs
-            )
+            while True:
+                try:
+                    self._runner.load_circuit(
+                        rawasm=asm_prog,
+                        # if True, (default), zero out all cmd buffers before loading
+                        # circuit
+                        zero=zero,
+                        # load command buffers when the circuit or parameters (amp or
+                        # phase) has changed.
+                        load_commands=load_commands,
+                        # load frequency buffers when frequency changed.
+                        load_freqs=load_freqs,
+                        # load envelope buffers when envelope changed.
+                        load_envs=load_envs
+                    )
+                    break
+                except CannotSendRequest as e:
+                    logger.warning(f"Http request cannot be sent. Retrying...{e}")
+                    continue
+
             self._result = self._runner.run_circuit(
                 n_total_shots=n_total_shots,
                 reads_per_shot=1 * batch_size,
@@ -319,28 +410,53 @@ class QubiCCircuitSetup(ExperimentalSetup):
                 # delay_per_shot=0,  # Not used and not functioning
             )
         elif acquisition_type == "traces":
+
+            measure_start_time, measurement_length, channel_demodulation_config = (
+                self._get_measurement_info_from_compiled_instructions_for_trace_acquisition(
+                    compiled_instructions))
+
+            decimator = self._status.get_parameters("QubiC_Trace_Acquisition_Decimator")
+            samples_per_second = 2e9 / (decimator + 1)
+            trig_delay = measure_start_time
+
+            # Add extra measurement length
+            extra_measure_length = self._status.get_parameters("QubiC_Trace_Acquisition_Extra_Measure_Length") * 1e-6
+
+            measurement_samples = int(np.ceil((measurement_length + extra_measure_length) * samples_per_second))
+
+            if trig_delay > 131.072e-6:
+                msg = f"Trig delay {trig_delay} is too large. It should be less than 131.072e-6."
+                logger.error(msg)
+                raise ValueError(msg)
+
             # load_and_run_acq is to load the program given by raw_asm_prog and acquire raw
-            # (or downconverted) adc traces.
-            self._result = self._runner.load_and_run_acq(
+            # adc traces.
+            assert batch_size == 1, "Batch size should be 1 for traces acquisition."
+            data = self._runner.load_and_run_acq(
                 raw_asm_prog=asm_prog,  # The compiled program
-                n_total_shots=1 * batch_size,  # number of shots to run. Program is restarted from
+                n_total_shots=n_total_shots,  # number of shots to run. Program is restarted from
                 # the beginning for each new shot
-                nsamples=8192,  # number of samples to read from the acq buffer
-                acq_chans=["0"],  # list of channels to acquire
+                nsamples=measurement_samples,  # number of samples to read from the acq buffer
+                acq_chans={'0': '0'},
                 # current channel mapping is:
                 # '0': ADC_237_2 (main readout ADC)
                 # '1': ADC_237_0 (other ADC connected in gateware)
-                trig_delay=0,  # delay between trigger and start of acquisition
+                trig_delay=trig_delay,  # delay between trigger and start of acquisition
                 # time to delay acquisition, relative to circuit start.
                 # NOTE: this value, in units of clock cycles, is a 16-bit value. So, it
                 # maxes out at CLK_PERIOD*(2**16) = 131.072e-6
-                decimator=0,
+                decimator=int(self._status.get_parameters("QubiC_Trace_Acquisition_Decimator"))
                 # decimation interval when sampling. e.g. 0 means full sample rate, 1
                 # means capture every other sample, 2 means capture every third sample, etc
-                from_server=False,
-                # set to true if calling over RPC. If True, pack returned acq arrays into
-                # byte objects.
             )
+
+            # Demodulate the data
+            demodulated_result = self._software_demodulation(data['0'], channel_demodulation_config)
+
+            qubic_channel_channel_to_core = dict([(val, key) for key, val in self._core_to_channel_map.items()])
+
+            self._result = {qubic_channel_channel_to_core[channel]: demodulated_result[channel] for channel in
+                            demodulated_result.keys()}
 
     def fire_experiment(self, context=None):
         """
@@ -356,8 +472,16 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
         dirtiness = context.instructions["dirtiness"]
 
+        acquisition_type = self._status.get_parameters("Acquisition_Type")
+        circuit = context.instructions["circuits"]
+
+        # For traces acquisition, we need to add the delay between shots, becuase the QubiC system will stall
+        # until the previous acquisition is returned to python, which is much longer than the shot interval.
+        if acquisition_type != "traces":
+            circuit = delay_between_shots + circuit
+
         return self._run_qubic_circuits(
-            circuits=delay_between_shots + context.instructions["circuits"],
+            circuits=circuit,
             batch_size=1,
             zero=bool(np.sum(context.step_no) == 0),
             load_commands=dirtiness['command'],
@@ -380,7 +504,9 @@ class QubiCCircuitSetup(ExperimentalSetup):
         if acquisition_type == 'IQ_average':
             data_collect = np.asarray([data.mean(axis=0)])
         elif acquisition_type == 'IQ':
-            data_collect = data.transpose()
+            data_collect = data
+        elif acquisition_type == 'traces':
+            data_collect = data
         else:
             msg = f'Unsupported acquisition type {acquisition_type}.'
             logger.error(msg)
@@ -400,7 +526,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
             qubic_channel = self._core_to_channel_map[int(core_ind)]
 
             if qubic_channel not in qubic_channel_to_lpb_uuid:
-                # Sometimes qubic returns default data from the board, which we are not measuring
+                # Sometimes qubic returns default data from the board, which we
+                # are not measuring
                 continue
 
             mprim_uuid = qubic_channel_to_lpb_uuid[qubic_channel]
@@ -436,8 +563,17 @@ class QubiCCircuitSetup(ExperimentalSetup):
         # Work out the combined circuits
         combined_circuits = []
 
-        for context in contexts:
-            combined_circuits += delay_between_shots + context.instructions["circuits"]
+        # For traces acquisition, we need to add the delay between shots, becuase the QubiC system will stall
+        # until the previous acquisition is returned to python, which is much longer than the shot interval.
+        acquisition_type = self._status.get_parameters("Acquisition_Type")
+        if acquisition_type == 'traces':
+            assert len(contexts) == 1, """Traces acquisition only supports batch size 1. Use 
+                setup().status().set_param('Engine_Batch_Size',1) to set the batch size to 1."""
+            combined_circuits = contexts[0].instructions["circuits"]
+        else:
+            for context in contexts:
+                combined_circuits += delay_between_shots + \
+                                     context.instructions["circuits"]
 
         # The dirtiness is true when at least one of the circuits is dirty
         merged_dirtiness = {
@@ -479,11 +615,13 @@ class QubiCCircuitSetup(ExperimentalSetup):
         for context in contexts:
             context.results = []
 
+        acquisition_type = self._status.get_parameters("Acquisition_Type")
         for core_ind, data in self._result.items():
             qubic_channel = self._core_to_channel_map[int(core_ind)]
 
             if qubic_channel not in qubic_channel_to_lpb_uuid:
-                # Sometimes qubic returns default data from the board, which we are not measuring
+                # Sometimes qubic returns default data from the board, which we
+                # are not measuring
                 continue
 
             mprim_uuid = qubic_channel_to_lpb_uuid[qubic_channel]
@@ -493,13 +631,21 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
                 # data shape = (n_samples, n_measurement_number)
 
-                data_step = data[:, i].reshape((-1, 1))  # Reshape the data to be 2D array, assume 1 measurement
+                # Reshape the data to be 2D array, assume 1 measurement
                 # each circuit
+
+                if acquisition_type == 'traces':
+                    # For traces acquisition, there is always only one measurement
+                    data_step = data
+                else:
+                    data_step = data[:, i].reshape((-1, 1))
 
                 measurement = MeasurementResult(
                     step_no=context.step_no,
-                    # First index is different measurement, second index for data
-                    data=self._qubic_result_format_to_leeq_result_format(data_step),
+                    # First index is different measurement, second index for
+                    # data
+                    data=self._qubic_result_format_to_leeq_result_format(
+                        data_step),
                     mprim_uuid=mprim_uuid
                 )
 

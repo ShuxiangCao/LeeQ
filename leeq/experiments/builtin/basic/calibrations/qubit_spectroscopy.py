@@ -1,15 +1,15 @@
-import numpy as np
-import plotly.graph_objects as go
 from labchronicle import log_and_record, register_browser_function
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, ExperimentManager
 from leeq.utils.compatibility import *
 
-from typing import Dict, Any, Union, List, Tuple, Optional
+from typing import Dict, Any, Union, Optional
 import numpy as np
 import plotly.graph_objects as go
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+from leeq.utils.ai.vlms import visual_analyze_prompt
 
+__all__ = ['QubitSpectroscopyFrequency', 'QubitSpectroscopyAmplitudeFrequency']
 
 class QubitSpectroscopyFrequency(Experiment):
     """
@@ -38,11 +38,20 @@ class QubitSpectroscopyFrequency(Experiment):
     """
 
     @log_and_record
-    def run(self, dut_qubit: Any, res_freq: Optional[float] = None, start: float = 3.e3, stop: float = 8.e3,
-            step: float = 5., num_avs: int = 1000,
-            rep_rate: float = 0., mp_width: float = 0.5, amp: float = 0.01) -> None:
+    def run(
+            self,
+            dut_qubit: Any,
+            res_freq: Optional[float] = None,
+            start: float = 3.e3,
+            stop: float = 8.e3,
+            step: float = 5.,
+            num_avs: int = 1000,
+            rep_rate: float = 0.,
+            mp_width: float = 0.5,
+            amp: float = 0.01) -> None:
         """
-        Conducts a frequency sweep on the designated qubit and records the response.
+        Conducts a qubit spectroscopy experiment which fixes the resonator frequency and probes the qubit at different
+         frequencies. Records the response.
 
         Parameters
         ----------
@@ -93,8 +102,18 @@ class QubitSpectroscopyFrequency(Experiment):
         lpb = pulse * mp
 
         # Set up the frequency sweeper
-        swp = Sweeper(np.arange, n_kwargs={'start': start, 'stop': stop, 'step': step}, params=[
-            SweepParametersSideEffectFactory.func(pulse.update_freq, {}, 'freq', name='freq')])
+        swp = Sweeper(
+            np.arange,
+            n_kwargs={
+                'start': start,
+                'stop': stop,
+                'step': step},
+            params=[
+                SweepParametersSideEffectFactory.func(
+                    pulse.update_freq,
+                    {},
+                    'freq',
+                    name='freq')])
 
         # Conduct the experiment with the specified parameters
         with ExperimentManager().status().with_parameters(
@@ -117,9 +136,17 @@ class QubitSpectroscopyFrequency(Experiment):
             np.argmax(abs(self.result['Magnitude'] - mean_level))]
 
     @log_and_record(overwrite_func_name='QubitSpectroscopyFrequency.run')
-    def run_simulated(self, dut_qubit: Any, res_freq: Optional[float] = None, start: float = 3.e3, stop: float = 8.e3,
-                      step: float = 5., num_avs: int = 1000,
-                      rep_rate: float = 0., mp_width: float = 0.5, amp: float = 0.01) -> None:
+    def run_simulated(
+            self,
+            dut_qubit: Any,
+            res_freq: Optional[float] = None,
+            start: float = 3.e3,
+            stop: float = 8.e3,
+            step: float = 5.,
+            num_avs: int = 1000,
+            rep_rate: float = 0.,
+            mp_width: float = 0.5,
+            amp: float = 0.01) -> None:
         """
         Conducts a frequency sweep on the designated qubit and records the response.
         Generate simulated result.
@@ -161,16 +188,21 @@ class QubitSpectroscopyFrequency(Experiment):
 
         f_readout = mprim.freq if res_freq is None else res_freq
 
-        omega_per_amp_readout = simulator_setup.get_omega_per_amp(mprim.channel)  # MHz
+        omega_per_amp_readout = simulator_setup.get_omega_per_amp(
+            mprim.channel)  # MHz
         effective_amp_readout = mprim.amp * omega_per_amp_readout
 
-        omega_per_amp_drive = simulator_setup.get_omega_per_amp(dut_qubit.get_default_c1().channel)  # MHz
+        omega_per_amp_drive = simulator_setup.get_omega_per_amp(
+            dut_qubit.get_default_c1().channel)  # MHz
         effective_amp_drive = amp * omega_per_amp_drive
 
         freq_qdrive = np.arange(start, stop, step)
 
         response = virtual_transmon.get_qubit_spectroscopy_response(
-            f_qdrive=freq_qdrive, f_readout=f_readout, amp_qdrive=effective_amp_drive, amp_rdrive=effective_amp_readout,
+            f_qdrive=freq_qdrive,
+            f_readout=f_readout,
+            amp_qdrive=effective_amp_drive,
+            amp_rdrive=effective_amp_readout,
             readout_baseline=2 * effective_amp_readout)
 
         noise_scale = 100 / num_avs / width
@@ -192,6 +224,16 @@ class QubitSpectroscopyFrequency(Experiment):
             np.argmax(abs(self.result['Magnitude'] - mean_level))]
 
     @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt(
+        """
+        Given a plot of the phase response of a resonator as a function of frequency, analyze the stability and 
+        features of the phase curve. Identify any distinct and sharp deviations from the baseline phase level, 
+        such as steep dips or peaks. If such features are present at specific frequencies, indicating a significant
+        change in the phase response, conclude that a qubit has been detected at these frequencies. If the plot 
+        shows a noisy or relatively stable phase without any pronounced features across the frequency range, conclude
+        that no qubit has been observed
+        """
+    )
     def plot_magnitude(self, step_no: tuple[int] = None) -> go.Figure:
         """
         Generates a plot for the magnitude response from the frequency sweep data.
@@ -228,9 +270,11 @@ class QubitSpectroscopyFrequency(Experiment):
                                  name='Magnitude'))
 
         # Update the layout of the plot
-        fig.update_layout(title='Qubit spectroscopy resonator response magnitude',
-                          xaxis_title='Frequency [MHz]',
-                          yaxis_title='Magnitude', plot_bgcolor='white')
+        fig.update_layout(
+            title='Qubit spectroscopy resonator response magnitude',
+            xaxis_title='Frequency [MHz]',
+            yaxis_title='Magnitude',
+            plot_bgcolor='white')
 
         return fig
 
@@ -323,9 +367,18 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
     """
 
     @log_and_record
-    def run(self, dut_qubit: Any, start: float = 3.e3, stop: float = 8.e3, step: float = 5.,
-            num_avs: int = 1000, rep_rate: float = 0., mp_width: Union[int, None] = 0.5,
-            qubit_amp_start: float = 0.01, qubit_amp_stop: float = 0.03, qubit_amp_step: float = 0.001) -> None:
+    def run(self,
+            dut_qubit: Any,
+            start: float = 3.e3,
+            stop: float = 8.e3,
+            step: float = 5.,
+            num_avs: int = 1000,
+            rep_rate: float = 0.,
+            mp_width: Union[int,
+                            None] = 0.5,
+            qubit_amp_start: float = 0.01,
+            qubit_amp_stop: float = 0.03,
+            qubit_amp_step: float = 0.001) -> None:
         """
         Executes the qubit spectroscopy experiment by sweeping both the frequency and amplitude.
 
@@ -355,7 +408,9 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
 
         # Clone and update measurement primitive based on given parameters
         mp = dut_qubit.get_default_measurement_prim_int().clone()
-        mp.update_pulse_args(width=rep_rate) if mp_width is None else mp.update_pulse_args(width=mp_width)
+        mp.update_pulse_args(
+            width=rep_rate) if mp_width is None else mp.update_pulse_args(
+            width=mp_width)
         mp.set_transform_function(None)
 
         self.mp = mp
@@ -367,13 +422,30 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         lpb = pulse * mp
 
         # Configure the frequency sweeper
-        swp_freq = Sweeper(np.arange, n_kwargs={'start': start, 'stop': stop, 'step': step}, params=[
-            SweepParametersSideEffectFactory.func(mp.update_freq, {}, 'freq')])
+        swp_freq = Sweeper(
+            np.arange,
+            n_kwargs={
+                'start': start,
+                'stop': stop,
+                'step': step},
+            params=[
+                SweepParametersSideEffectFactory.func(
+                    mp.update_freq,
+                    {},
+                    'freq')])
 
         # Configure the amplitude sweeper
-        swp_amp = Sweeper(np.arange,
-                          n_kwargs={'start': qubit_amp_start, 'stop': qubit_amp_stop, 'step': qubit_amp_step}, params=[
-                SweepParametersSideEffectFactory.func(pulse.update_pulse_args, {}, 'amp')])
+        swp_amp = Sweeper(
+            np.arange,
+            n_kwargs={
+                'start': qubit_amp_start,
+                'stop': qubit_amp_stop,
+                'step': qubit_amp_step},
+            params=[
+                SweepParametersSideEffectFactory.func(
+                    pulse.update_pulse_args,
+                    {},
+                    'amp')])
 
         # Execute the experiment with configured parameters
         with ExperimentManager().status().with_parameters(
@@ -385,7 +457,10 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
 
         # Process the results
         self.trace = np.squeeze(mp.result())
-        self.result = {'Magnitude': np.absolute(self.trace), 'Phase': np.angle(self.trace)}
+        self.result = {
+            'Magnitude': np.absolute(
+                self.trace), 'Phase': np.angle(
+                self.trace)}
 
     @register_browser_function(available_after=(run,))
     def plot_magnitude(self) -> go.Figure:
@@ -432,7 +507,8 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         data = np.unwrap(np.angle(trace))
         return self._plot(data=data, name='phase')
 
-    def _plot(self, data: np.ndarray, name: str, log_scale: bool = False) -> go.Figure:
+    def _plot(self, data: np.ndarray, name: str,
+              log_scale: bool = False) -> go.Figure:
         """
         Helper function to create a plotly plot.
 
@@ -454,7 +530,10 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         # Retrieve arguments used during the 'run' function to use for plotting
         args = self.retrieve_args(self.run)
         f = np.arange(args['start'], args['stop'], args['step'])
-        amps = np.arange(args['qubit_amp_start'], args['qubit_amp_stop'], args['qubit_amp_step'])
+        amps = np.arange(
+            args['qubit_amp_start'],
+            args['qubit_amp_stop'],
+            args['qubit_amp_step'])
 
         # Create a heatmap figure
         fig = go.Figure(data=go.Heatmap(

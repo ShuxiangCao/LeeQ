@@ -3,6 +3,7 @@ import uuid
 from typing import Dict, Any, Union
 
 import numpy
+import numpy as np
 from labchronicle import log_event
 
 from leeq.core import LeeQObject
@@ -125,7 +126,10 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
         if name_postfix is None:
             name_postfix = f"_modified_{uuid.uuid4()}"
 
-        return LogicalPrimitiveClone(name=self._name + name_postfix, parameters=parameters, original=self)
+        return LogicalPrimitiveClone(
+            name=self._name + name_postfix,
+            parameters=parameters,
+            original=self)
 
     @staticmethod
     def _validate_parameters(parameters: dict):
@@ -198,7 +202,11 @@ class LogicalPrimitiveClone(LogicalPrimitive):
     is not specified, the parameter of the original logical primitive will be used.
     """
 
-    def __init__(self, name: str, parameters: dict, original: LogicalPrimitive):
+    def __init__(
+            self,
+            name: str,
+            parameters: dict,
+            original: LogicalPrimitive):
         """
         Initialize the logical primitive clone.
 
@@ -214,13 +222,16 @@ class LogicalPrimitiveClone(LogicalPrimitive):
         """
         Validate the parameters of the logical primitive clone.
         """
-        # Check that the parameters are a subset or equal to the parameters of the original logical primitive
-        if not set(parameters.keys()).issubset(set(self._original.get_parameters().keys())):
-            if not set(parameters.keys()) == set(self._original.get_parameters().keys()):
+        # Check that the parameters are a subset or equal to the parameters of
+        # the original logical primitive
+        if not set(parameters.keys()).issubset(
+                set(self._original.get_parameters().keys())):
+            if not set(
+                    parameters.keys()) == set(
+                self._original.get_parameters().keys()):
                 msg = (
                     f"The parameters of the logical primitive clone {self._name} "
-                    f"is not a subset of the parameters of the original logical primitive {self._original._name}."
-                )
+                    f"is not a subset of the parameters of the original logical primitive {self._original._name}.")
                 logger.error(msg)
                 raise ValueError(msg)
 
@@ -247,7 +258,8 @@ class LogicalPrimitiveClone(LogicalPrimitive):
                 if item in get_attribute("_parameters"):
                     return get_attribute("_parameters")[item]
                 else:
-                    original_parameters = get_attribute("_original").get_parameters()
+                    original_parameters = get_attribute(
+                        "_original").get_parameters()
                     if item in original_parameters:
                         return original_parameters[item]
 
@@ -526,12 +538,14 @@ class MeasurementPrimitive(LogicalPrimitive):
         self._result_id_offset = 0
 
         self._sweep_shape = None  # The shape of the sweep in this experiment
-        self._number_of_measurements = None  # The max number of repeated use of mprims in this experiment
+        # The max number of repeated use of mprims in this experiment
+        self._number_of_measurements = None
 
         # The measurement buffer for storing the measurement results
         self._raw_measurement_buffer = None
 
-        # The measurement buffer after applying the transformation function (For example, GMM for state discrimination)
+        # The measurement buffer after applying the transformation function
+        # (For example, GMM for state discrimination)
         self._transformed_measurement_buffer = None
 
     @staticmethod
@@ -550,8 +564,12 @@ class MeasurementPrimitive(LogicalPrimitive):
         """
         return self._raw_measurement_buffer is not None
 
-    def allocate_measurement_buffer(self, sweep_shape: list, number_of_measurements: int, data_shape: list,
-                                    dtype: type = numpy.complex128):
+    def allocate_measurement_buffer(
+            self,
+            sweep_shape: list,
+            number_of_measurements: int,
+            data_shape: list,
+            dtype: type = numpy.complex128):
         """
         Allocate the measurement buffer for the measurement primitive.
 
@@ -562,9 +580,15 @@ class MeasurementPrimitive(LogicalPrimitive):
             dtype (type, Optional): The data type of the measurement buffer.
         """
 
+        # TODO: Allow other data shapes in the future. To achieve this, we need to update the commit_measurement method
+        # and find the right way to locate the correct index instead of hard code it to -3.
+        assert len(data_shape) == 2, ("The data shape should be 2D. The first dimension should be the shot "
+                                      "number and the second is the data vector width.")
+
         if self.is_buffer_allocated():
-            msg = (f"Measurement buffer already allocated for {self._name}. It seems you are running the same "
-                   f"experiment multiple times. Please create another experiment instance for this purpose.")
+            msg = (
+                f"Measurement buffer already allocated for {self._name}. It seems you are running the same "
+                f"experiment multiple times. Please create another experiment instance for this purpose.")
             logger.error(msg)
             raise RuntimeError(msg)
 
@@ -574,7 +598,8 @@ class MeasurementPrimitive(LogicalPrimitive):
 
         self._raw_measurement_buffer = numpy.zeros(shape, dtype=dtype)
 
-    def _allocate_transformed_measurement_buffer(self, data_shape, dtype=numpy.complex128):
+    def _allocate_transformed_measurement_buffer(
+            self, data_shape, dtype=numpy.complex128):
         """
         Allocate the transformed measurement buffer for the measurement primitive.
 
@@ -587,7 +612,8 @@ class MeasurementPrimitive(LogicalPrimitive):
             logger.error(msg)
             raise RuntimeError(msg)
 
-        shape = list(self._sweep_shape) + [self._number_of_measurements] + list(data_shape)
+        shape = list(self._sweep_shape) + \
+                [self._number_of_measurements] + list(data_shape)
 
         self._transformed_measurement_buffer = numpy.zeros(shape, dtype=dtype)
 
@@ -617,8 +643,9 @@ class MeasurementPrimitive(LogicalPrimitive):
             callable: The transform function.
             dict: The keyword arguments of the transform function.
         """
-        return self._parameters.get('_transform_function', None), self._parameters.get('_transform_function_kwargs',
-                                                                                       None)
+        return self._parameters.get(
+            '_transform_function', None), self._parameters.get(
+            '_transform_function_kwargs', None)
 
     def result(self, result_id: int = None, raw_data: bool = False):
         """
@@ -637,7 +664,8 @@ class MeasurementPrimitive(LogicalPrimitive):
         """
 
         if self._transformed_measurement_buffer is None:
-            # If there is no transform defined, we always return the raw data as transformed data
+            # If there is no transform defined, we always return the raw data
+            # as transformed data
             raw_data = True
 
         if result_id is None:
@@ -647,7 +675,7 @@ class MeasurementPrimitive(LogicalPrimitive):
 
         total_dim = len(result_data.shape)
 
-        max_result_id = self._raw_measurement_buffer.shape[-2]
+        max_result_id = self._raw_measurement_buffer.shape[-3]
 
         if not self.is_buffer_allocated():
             msg = f"No measurement result is available for {self._name}."
@@ -663,7 +691,7 @@ class MeasurementPrimitive(LogicalPrimitive):
             raise ValueError(msg)
 
         slice_idx = tuple(
-            slice(None) if dim != total_dim - 2 else result_id + self._result_id_offset
+            slice(None) if dim != total_dim - 3 else result_id + self._result_id_offset
             for dim in range(total_dim)
         )
 
@@ -725,7 +753,8 @@ class MeasurementPrimitive(LogicalPrimitive):
             list: The ids of the measurement results.
         """
 
-        return [key - self._result_id_offset for key in range(self._raw_measurement_buffer.shape[-2])]
+        return [
+            key - self._result_id_offset for key in range(self._raw_measurement_buffer.shape[-3])]
 
     def result_raw(self, result_id: int = None):
         """
@@ -772,7 +801,8 @@ class MeasurementPrimitive(LogicalPrimitive):
 
         setup = ExperimentManager().get_default_setup()
         if setup is None:
-            # If there is no setup, we do not know the measurement basis and assume its raw
+            # If there is no setup, we do not know the measurement basis and
+            # assume its raw
             basis = None
         else:
             basis = ExperimentManager().status().get_parameters('Measurement_Basis')
@@ -782,25 +812,32 @@ class MeasurementPrimitive(LogicalPrimitive):
             transform_function = self._parameters['_transform_function']
             transform_function_kwargs = self._parameters['_transform_function_kwargs']
 
-            data_transformed = transform_function(
-                data, basis=basis, **transform_function_kwargs
-            )
+            transformed_result = []
+            for i in range(data.shape[0]): # iterate over the result id
+                transformed_result.append(transform_function(
+                    data[i], basis=basis, **transform_function_kwargs
+                ))
+
+            data_transformed = np.asarray(transformed_result)
 
             if len(data_transformed.shape) < 2:
-                msg = (f"The transformed data should be at least 2D (result id, data shape),"
-                       f"got {data_transformed.shape}.")
+                msg = (
+                    f"The transformed data should be at least 2D (result id, data shape),"
+                    f"got {data_transformed.shape}.")
                 logger.error(msg)
                 raise RuntimeError(msg)
 
             if self._transformed_measurement_buffer is None:
-                self._allocate_transformed_measurement_buffer(data_transformed.shape[1:], dtype=data_transformed.dtype)
+                self._allocate_transformed_measurement_buffer(
+                    data_transformed.shape[1:], dtype=data_transformed.dtype)
 
             self._transformed_measurement_buffer[indices] = data_transformed
         else:
             if basis is not None:
-                msg = (f"The measurement basis is specified, but the measurement primitive does not have a transform "
-                       f"function. LeeQ does not know how to transform the raw experiment datapoints to the quantum "
-                       f"states. Please set the transform function by running a measurement calibration.")
+                msg = (
+                    f"The measurement basis is specified, but the measurement primitive does not have a transform "
+                    f"function. LeeQ does not know how to transform the raw experiment datapoints to the quantum "
+                    f"states. Please set the transform function by running a measurement calibration.")
                 logger.error(msg)
                 raise RuntimeError(msg)
 
@@ -815,8 +852,11 @@ class MeasurementPrimitiveClone(LogicalPrimitiveClone, MeasurementPrimitive):
     def _validate_parameters(self, parameters: dict):
         pass
 
-    def __init__(self, name: str, parameters: dict,
-                 original: Union[MeasurementPrimitive, 'MeasurementPrimitiveClone']):
+    def __init__(self,
+                 name: str,
+                 parameters: dict,
+                 original: Union[MeasurementPrimitive,
+                 'MeasurementPrimitiveClone']):
         """
         Initialize the measurement primitive clone.
         """
@@ -826,7 +866,12 @@ class MeasurementPrimitiveClone(LogicalPrimitiveClone, MeasurementPrimitive):
         # )
         self._original = original
         MeasurementPrimitive.__init__(self, name=name, parameters=parameters)
-        super(MeasurementPrimitiveClone, self).__init__(name=name, parameters=parameters, original=original)
+        super(
+            MeasurementPrimitiveClone,
+            self).__init__(
+            name=name,
+            parameters=parameters,
+            original=original)
         pass
 
 

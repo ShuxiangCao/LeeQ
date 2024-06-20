@@ -226,7 +226,7 @@ def is_running_in_jupyter():
     return sys.argv[-1].endswith("json")
 
 
-def display_json_dict(data: dict, root: str = None, expanded=True):
+def display_json_dict(data: dict, root: str = None, expanded=False):
     """
     Display a dictionary in JSON format. If the program is running in jupyter, we use IPython.display to
     display the dictionary. Otherwise, we use pprint.pprint to print the dictionary.

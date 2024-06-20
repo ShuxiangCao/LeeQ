@@ -13,7 +13,12 @@ class SweepLPB:
     """
 
     def __new__(cls, *args, **kwargs):
-        if len(args) == 1 and (isinstance(args[0], list) or isinstance(args[0], tuple)):
+        if len(args) == 1 and (
+            isinstance(
+                args[0],
+                list) or isinstance(
+                args[0],
+                tuple)):
             return LogicalPrimitiveBlockSweep(children=args[0])
         else:
             return LogicalPrimitiveBlockSweep(children=args)
@@ -27,6 +32,7 @@ def build_CZ_stark_from_parameters(
         amp_target,
         frequency,
         rise,
+        zz_interaction_positive,
         iz_control=0,
         iz_target=0,
         phase_diff=0,
@@ -44,6 +50,7 @@ def build_CZ_stark_from_parameters(
         amp_target (float): The amplitude of the target qubit.
         frequency (float): The frequency of the gate.
         rise (float): The rise time of the gate.
+        zz_interaction_positive (bool): Whether the interaction is positive. Determines the direction of the gate.
         iz_control (float): The z component of the control qubit.
         iz_target (float): The z component of the target qubit.
         phase_diff (float): The phase difference between the control and target qubits.
@@ -64,6 +71,8 @@ def build_CZ_stark_from_parameters(
             'iz_target': iz_target,
             'phase_diff': phase_diff,
             'echo': echo,
-            'trunc': trunc, }
+            'trunc': trunc,
+            'zz_interaction_positive': zz_interaction_positive
+        }
     )
     return lpb

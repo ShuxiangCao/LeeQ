@@ -18,6 +18,13 @@ from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
 
+__all__ = [
+    'PingPongSingleQubitMultilevel',
+    'PingPongMultiQubitMultilevel',
+    'AmpTuneUpSingleQubitMultilevel',
+    'AmpTuneUpMultiQubitMultilevel'
+]
+
 
 class PingPongSingleQubitMultilevel(Experiment):
     """
@@ -53,7 +60,8 @@ class PingPongSingleQubitMultilevel(Experiment):
         """
 
         c1 = dut.get_c1(collection_name)
-        cur_amp = repeated_block.get_pulse_args('amp')  # Getting amplitude argument from the repeated block
+        # Getting amplitude argument from the repeated block
+        cur_amp = repeated_block.get_pulse_args('amp')
 
         # Getting the logical primitive for the initial and final gates
         initial_gate_lpb = c1[initial_gate]
@@ -71,7 +79,8 @@ class PingPongSingleQubitMultilevel(Experiment):
         c1 = dut.get_c1(collection_name)
 
         # hard code a virtual dut here
-        rabi_rate_per_amp = simulator_setup.get_omega_per_amp(c1.channel)  # MHz
+        rabi_rate_per_amp = simulator_setup.get_omega_per_amp(
+            c1.channel)  # MHz
         omega = rabi_rate_per_amp * cur_amp
 
         # Detuning
@@ -82,7 +91,7 @@ class PingPongSingleQubitMultilevel(Experiment):
         t_effective = area_per_pulse * (np.arange(0, pulse_count, 1) + 0.5)
 
         # Rabi oscillation formula
-        self.result = ((omega ** 2) / (delta ** 2 + omega ** 2) * \
+        self.result = ((omega ** 2) / (delta ** 2 + omega ** 2) *
                        np.sin(0.5 * np.sqrt(delta ** 2 + omega ** 2) * t_effective) ** 2)
 
         # If sampling noise is enabled, simulate the noise
@@ -90,8 +99,10 @@ class PingPongSingleQubitMultilevel(Experiment):
             # Get the number of shot used in the simulation
             shot_number = setup().status().get_param('Shot_Number')
 
-            # generate binomial distribution of the result to simulate the sampling noise
-            self.result = np.random.binomial(shot_number, self.data) / shot_number
+            # generate binomial distribution of the result to simulate the
+            # sampling noise
+            self.result = np.random.binomial(
+                shot_number, self.data) / shot_number
 
         self.pulse_count = pulse_count
         self.amplitude = cur_amp
@@ -124,7 +135,8 @@ class PingPongSingleQubitMultilevel(Experiment):
         """
 
         c1 = dut.get_c1(collection_name)
-        cur_amp = repeated_block.get_pulse_args('amp')  # Getting amplitude argument from the repeated block
+        # Getting amplitude argument from the repeated block
+        cur_amp = repeated_block.get_pulse_args('amp')
 
         # Getting the logical primitive for the initial and final gates
         initial_gate_lpb = c1[initial_gate]
@@ -135,7 +147,8 @@ class PingPongSingleQubitMultilevel(Experiment):
 
         sequence_lpb = []
 
-        # Pulse count is a list of integers, each one denotes a number of repetitions
+        # Pulse count is a list of integers, each one denotes a number of
+        # repetitions
         for n in pulse_count:
             sequence = initial_gate_lpb + LogicalPrimitiveBlockSerial(
                 [repeated_block] * n) + final_gate_lpb
@@ -153,7 +166,7 @@ class PingPongSingleQubitMultilevel(Experiment):
 
         basic_run(lpb, swp, '<z>')
 
-        self.result = mprim.result()
+        self.result = np.squeeze(mprim.result(),axis=-1)
         self.pulse_count = pulse_count
         self.amplitude = cur_amp
 
@@ -197,8 +210,7 @@ class PingPongSingleQubitMultilevel(Experiment):
         axes.set_xlabel(u"Repetition")
         axes.set_ylabel(u"<z>")
 
-        plt.show()
-
+        return fig
 
 class PingPongMultiQubitMultilevel(Experiment):
     """
@@ -240,18 +252,24 @@ class PingPongMultiQubitMultilevel(Experiment):
         if not isinstance(collection_names, list):
             collection_names = [collection_names] * len(duts)
 
-        c1s = [dut.get_c1(collection_name) for dut, collection_name in zip(duts, collection_names)]
+        c1s = [dut.get_c1(collection_name)
+               for dut, collection_name in zip(duts, collection_names)]
 
         # Getting the logical primitive for the initial and final gates
         initial_gate_lpb = prims.ParallelLPB([c1[initial_gate] for c1 in c1s])
         final_gate_lpb = prims.ParallelLPB([c1[final_gate] for c1 in c1s])
 
         # Getting the measurement primitive
-        mprims = [dut.get_measurement_prim_intlist(mprim_index) for dut, mprim_index in zip(duts, mprim_indexes)]
+        mprims = [
+            dut.get_measurement_prim_intlist(mprim_index) for dut,
+            mprim_index in zip(
+                duts,
+                mprim_indexes)]
 
         sequence_lpb = []
 
-        # Pulse count is a list of integers, each one denotes a number of repetitions
+        # Pulse count is a list of integers, each one denotes a number of
+        # repetitions
         for n in pulse_count:
             sequence = initial_gate_lpb + LogicalPrimitiveBlockSerial(
                 [repeated_block] * n) + final_gate_lpb
@@ -293,7 +311,8 @@ class PingPongMultiQubitMultilevel(Experiment):
         Fits the results using a linear function.
         """
         x = self.pulse_count + 0.5
-        self.fit_results = [np.polyfit(x, result, 1) for result in self.results]
+        self.fit_results = [np.polyfit(x, result, 1)
+                            for result in self.results]
 
     @register_browser_function(
         available_after=(run,))
@@ -302,7 +321,8 @@ class PingPongMultiQubitMultilevel(Experiment):
         Plots the results of the ping pong experiment.
         """
         for i in range(len(self.results)):
-            self.plot(i)
+            fig = self.plot(i)
+            plt.show()
 
     def plot(self, i) -> None:
         """
@@ -322,7 +342,7 @@ class PingPongMultiQubitMultilevel(Experiment):
         axes.set_xlabel(u"Repetition")
         axes.set_ylabel(u"<z>")
         fig.suptitle(f"Qubit {duts[i].hrid}")
-        plt.show()
+        return fig
 
 
 class AmpTuneUpSingleQubitMultilevel(Experiment):
@@ -353,7 +373,8 @@ class AmpTuneUpSingleQubitMultilevel(Experiment):
             points (int): The number of points to run for each pingpong fit.
             flip_other (bool): Whether to flip the other side.
         """
-        factor = 1 if repeated_gate in ('X', 'Y') else 2  # Make sure each time we have a full pi rotation
+        factor = 1 if repeated_gate in (
+            'X', 'Y') else 2  # Make sure each time we have a full pi rotation
 
         final_gate = ''
         if repeated_gate in ('X', 'Xp'):
@@ -383,7 +404,8 @@ class AmpTuneUpSingleQubitMultilevel(Experiment):
             for i in range(iteration):
                 self.amps.append(cur_amp)
                 interval = math.ceil(reps / points)
-                interval += (interval % 2)  # round up interval to an even number
+                interval += (interval %
+                             2)  # round up interval to an even number
 
                 interval = max(interval, 2 * factor)
 
@@ -392,11 +414,14 @@ class AmpTuneUpSingleQubitMultilevel(Experiment):
                 print('pulse_count:', pulse_count)
 
                 trial = PingPongSingleQubitMultilevel(
-                    dut=dut, collection_name=collection_name, mprim_index=mprim_index,
-                    initial_lpb=initial_lpb, initial_gate='I',
+                    dut=dut,
+                    collection_name=collection_name,
+                    mprim_index=mprim_index,
+                    initial_lpb=initial_lpb,
+                    initial_gate='I',
                     repeated_block=repeated_block,
-                    final_gate=final_gate, pulse_count=pulse_count
-                )
+                    final_gate=final_gate,
+                    pulse_count=pulse_count)
 
                 k, b = trial.fit_result
                 self.error = k[0]
@@ -407,10 +432,12 @@ class AmpTuneUpSingleQubitMultilevel(Experiment):
                 correction = np.arcsin(self.error) / np.pi * factor
                 correction_factor = 1 + correction
 
-                transition_photon_number = int(collection_name[2]) - int(collection_name[1])
+                transition_photon_number = int(
+                    collection_name[2]) - int(collection_name[1])
 
                 if transition_photon_number > 1:
-                    raise NotImplementedError("Not implemented for transition photon number > 1")
+                    raise NotImplementedError(
+                        "Not implemented for transition photon number > 1")
                 else:
                     cur_amp *= correction_factor
 
@@ -475,7 +502,8 @@ class AmpTuneUpMultiQubitMultilevel(Experiment):
         if not isinstance(collection_names, list):
             collection_names = [collection_names] * len(duts)
 
-        factor = 1 if repeated_gate in ('X', 'Y') else 2  # Make sure each time we have a full pi rotation
+        # Make sure each time we have a full pi rotation
+        factor = 1 if repeated_gate in ('X', 'Y') else 2
 
         final_gate = ''
         if repeated_gate in ('X', 'Xp'):
@@ -487,7 +515,8 @@ class AmpTuneUpMultiQubitMultilevel(Experiment):
         elif repeated_gate in ('-Y', 'Ym'):
             final_gate = 'Ym'
 
-        c1s = [dut.get_c1(collection_name) for dut, collection_name in zip(duts, collection_names)]
+        c1s = [dut.get_c1(collection_name)
+               for dut, collection_name in zip(duts, collection_names)]
 
         cur_amps = [c1[repeated_gate].primary_kwargs()['amp'] for c1 in c1s]
 
@@ -505,7 +534,8 @@ class AmpTuneUpMultiQubitMultilevel(Experiment):
             for i in range(iteration):
                 self.amps.append(cur_amps)
                 interval = math.ceil(reps / points)
-                interval += (interval % 2)  # round up interval to an even number
+                interval += (interval %
+                             2)  # round up interval to an even number
 
                 interval = max(interval, 2 * factor)
 
@@ -514,11 +544,14 @@ class AmpTuneUpMultiQubitMultilevel(Experiment):
                 print('pulse_count:', pulse_count)
 
                 trial = PingPongMultiQubitMultilevel(
-                    duts=duts, collection_names=collection_names, mprim_indexes=mprim_indexes,
-                    initial_lpb=initial_lpb, initial_gate='I',
+                    duts=duts,
+                    collection_names=collection_names,
+                    mprim_indexes=mprim_indexes,
+                    initial_lpb=initial_lpb,
+                    initial_gate='I',
                     repeated_block=repeated_block,
-                    final_gate=final_gate, pulse_count=pulse_count
-                )
+                    final_gate=final_gate,
+                    pulse_count=pulse_count)
 
                 self.tune_up_results.append(trial.results)
                 self.fit_params.append(trial.fit_results)
@@ -534,16 +567,19 @@ class AmpTuneUpMultiQubitMultilevel(Experiment):
                     correction = np.arcsin(error) / np.pi * factor
                     correction_factor = 1 + correction
 
-                    transition_photon_number = int(collection_name[2]) - int(collection_name[1])
+                    transition_photon_number = int(
+                        collection_name[2]) - int(collection_name[1])
 
                     if transition_photon_number > 1:
-                        raise NotImplementedError("Not implemented for transition photon number > 1")
+                        raise NotImplementedError(
+                            "Not implemented for transition photon number > 1")
                     else:
                         cur_amp *= correction_factor
 
                     cur_amps[i] = cur_amp
 
-                    print(f"Update {duts[i]} {collection_name} amplitude to {cur_amp}")
+                    print(
+                        f"Update {duts[i]} {collection_name} amplitude to {cur_amp}")
                     c1[repeated_gate].update_parameters(amp=cur_amp)
                 reps *= 2
 
