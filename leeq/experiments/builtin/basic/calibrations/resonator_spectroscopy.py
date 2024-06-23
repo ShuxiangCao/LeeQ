@@ -38,9 +38,9 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             start: float = 8000,
             stop: float = 9000,
             step: float = 5.0,
-            num_avs: int = 1000,
+            num_avs: int = 5000,
             rep_rate: float = 0.0,
-            mp_width: float = None,
+            mp_width: float = 8,
             initial_lpb=None,
             amp: float = 0.02) -> None:
         """
@@ -272,10 +272,9 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         """
 
         # Compute the Lorentzian function
-        lorentzian = amp / (1 + (2j * Q * (f - f0) / f0)) + baseline
+        lorentzian = np.abs(amp / (1 + (2j * Q * (f - f0) / f0))) + baseline
 
-        # Return the absolute value of the Lorentzian
-        return abs(lorentzian)
+        return lorentzian
 
     def _fit_phase_gradient(self):
         """
@@ -348,11 +347,12 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         # Finally, we can fit the data
         result = so.minimize(
             leastsq,
-            np.array([f0, Q_guess, amp, baseline], dtype=object),
+            np.array([f0, Q_guess, amp, baseline * direction], dtype=object),
             args=(f, z * direction),
             tol=1.0e-20,
         )  # method='Nelder-Mead',
         f0, Q, amp, baseline = result.x
+        baseline = baseline * direction
 
         return z, f0, Q, amp, baseline, direction
 
@@ -482,7 +482,7 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             return f"The experiment has an error fitting phase gradient: {e}"
 
         return ("The fitting suggest that the resonant frequency is at %f MHz, "
-                "with a quality factor of %f, an amplitude of %f, and a baseline of %f.") % (f0, Q, amp, baseline)
+                "with a quality factor of %f (resonator linewidth kappa of %f MHz), an amplitude of %f, and a baseline of %f.") % (f0, Q,f0/Q, amp, baseline)
 
 
 class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
@@ -493,7 +493,7 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
             stop: float = 9000,
             step: float = 5.,
             num_avs: int = 200,
-            rep_rate: float = 10.,
+            rep_rate: float = 0.,
             mp_width: Optional[float] = 8,
             initial_lpb: LogicalPrimitiveBlock = None,
             amp_start: float = 0,
@@ -724,9 +724,9 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
             start: float = 8000,
             stop: float = 9000,
             step: float = 5.,
-            num_avs: int = 1000,
-            rep_rate: float = 500.,
-            mp_width: Optional[float] = None,
+            num_avs: int = 5000,
+            rep_rate: float = 0.,
+            mp_width: Optional[float] = 8,
             amp: Optional[float] = None) -> None:
         """
         Runs the resonator sweep transmission experiment and compare the response from the different state of the qubit.
