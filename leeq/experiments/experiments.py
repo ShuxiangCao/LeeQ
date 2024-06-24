@@ -20,6 +20,7 @@ from leeq.utils.notebook import show_spinner,hide_spinner
 from leeq.utils.ai.display_chat.notebooks import display_chat, dict_to_html
 import leeq.experiments.plots.live_dash_app as live_monitor
 from leeq.utils.ai.vlms import has_visual_analyze_prompt
+from leeq.utils.ai.experiment_summarize import get_experiment_summary
 
 logger = setup_logging(__name__)
 
@@ -48,6 +49,8 @@ class Experiment(LeeQObject):
          that the function will be executed when the experiment is finished execution in Jupyter notebook. It also
          allows the function to be executed later when data loaded from the log file.
     """
+
+    _experiment_result_analysis_instructions = None
 
     def _run_ai_inspection_on_single_function(self, func):
         """
@@ -273,6 +276,16 @@ class Experiment(LeeQObject):
 
         if fitting_results is not None:
             ai_inspection_results['fitting'] = fitting_results
+
+        if self._experiment_result_analysis_instructions is not None:
+
+            spinner_id = show_spinner(f"AI is analyzing the experiment results...")
+
+            summary = get_experiment_summary(self._experiment_result_analysis_instructions, ai_inspection_results)
+            ai_inspection_results['Final analysis'] = summary['analysis']
+            ai_inspection_results['Suggested parameter updates'] = summary['parameter_updates']
+            ai_inspection_results['Experiment success'] = summary['success']
+            hide_spinner(spinner_id)
 
         return ai_inspection_results
 

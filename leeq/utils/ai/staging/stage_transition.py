@@ -32,7 +32,8 @@ the additional information is as follows:
 {additional_information}
 </additional_information>
 Please write a new description of the stage as the additional information requires by changing the value of arguments
-of the original description only. If there is no modification to the argument, return the original description.
+of the original description only. If there is no modification to the argument, return the original description. Include
+the number of tries in the description if mentioned in the additional information.
 
 Return in JSON format, example:
 
@@ -83,15 +84,19 @@ Here are the results from the experiments. Note that results from fitting and th
 the validity. Otherwise they are both invalid.
 {result_prompt}
 
-Based on the rules and the result provided, determine the next stage of the state machine. Return your decision in
- JSON format, including what the next state is and any additional information that modifies the arguments of the next
-  stage in natural language that will be necessary for operating in the next state.
+Based on the rules and the result provided, determine the next stage of the state machine. If the current stage has 
+been tried 3 times and still failed, the next stage should be "Fail". Do not retry the current stage if the experiment
+has been successful.
+ 
+Return your decision in JSON format, including what the next state is and any additional information that modifies the
+  arguments of the next stage in natural language that will be necessary for operating in the next state.
+   If the next stage is the same as the current stage, include the number of tries in the additional info.
 """ + """
 Example JSON Output:
 {
     "analysis": "<Your analysis of the results and the rules>",
     "next": "<Name of the next stage>",
-    "additional_info": "<Natural language description of any information about changing the argument value of the next stage>"
+    "additional_info": "<Additional information to be passed to the next stage>"
 }
 """
 

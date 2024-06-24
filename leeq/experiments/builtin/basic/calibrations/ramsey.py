@@ -24,6 +24,14 @@ class SimpleRamseyMultilevel(Experiment):
     This version has changed the step size from 0.001 to 0.005.
     """
 
+    _experiment_result_analysis_instructions = """
+    The Ramsey experiment is a quantum mechanics experiment that involves the measurement of oscillations in the
+    quantum state of a qubit. Typically a successful Ramsey experiment will show a clear, regular oscillatory pattern
+    with amplitude greater than 0.2. If less than 3 oscillations are observed, the experiment requires to increase
+    the time of the experiment. If more than 10 oscillations are observed, the experiment requires to decrease the time
+    of the experiment. The frequency of the oscillations should be less to the expected offset value.
+    """
+
     @log_and_record
     def run(self,
             qubit: Any,  # Replace 'Any' with the actual type of qubit
@@ -283,7 +291,9 @@ class SimpleRamseyMultilevel(Experiment):
         1. Clarity of Oscillation: Describe if the data points show a clear, regular oscillatory pattern.
         2. Fit Quality: Evaluate whether the fit line closely follows the data points throughout the plot.
         3. Data Spread: Assess if the data points are tightly clustered around the fit line or if they are widely dispersed.
-        4. Amplitude and Frequency: Note any inconsistencies in the amplitude and frequency of the oscillations.
+        4. Amplitude and Frequency: Note any inconsistencies in the amplitude and frequency of the oscillations. For
+            a perfect experiment the amplitude should be around 1 and the frequency should be close to the expected value.
+            If amplitude is smaller than 0.2, the experiment is likely considered failed.
         5. Count the Number of Oscillations: Determine the number of oscillations present in the plot.
         6. Overall Pattern: Provide a general assessment of the plot based on the typical characteristics of successful
             Ramsey oscillation experiments.
@@ -333,7 +343,7 @@ class SimpleRamseyMultilevel(Experiment):
                     x=time_points_interpolate,
                     y=fitted_curve,
                     mode='lines',
-                    name='Fit'),
+                    name='Fit', visible='legendonly'),
                 row=1,
                 col=1)
 
@@ -410,8 +420,9 @@ class SimpleRamseyMultilevel(Experiment):
             return "The Ramsey experiment failed to fit the data."
 
         return (f"The Ramsey experiment for qubit {self.retrieve_args(self.run)['qubit'].hrid} has been analyzed. " \
-               f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured offset is "
-               f"{self.fitted_freq_offset:.3f}+- {self.error_bar:.3f} MHz.")
+               f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured oscillation is "
+               f"{self.set_offset + self.fitted_freq_offset*self.level_diff:.3f}+- {self.error_bar:.3f} MHz. Oscillation"
+                f" amplitude is {self.fit_params['Amplitude'][0]:.3f}+-{self.fit_params['Amplitude'][1]:.3f}.")
 
 #class MultiQubitRamseyMultilevel(Experiment):
 #    """
