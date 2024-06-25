@@ -330,6 +330,11 @@ def calculate_signal_to_noise_ratio(
 
 
 class MeasurementCalibrationMultilevelGMM(Experiment):
+    _experiment_result_analysis_instructions = """
+    Analyze the result data using a Gaussian Mixture Model (GMM) and update the measurement primitive.
+    The experiment is considered successful if the SNR ratio is above 2.
+    """
+
     @log_and_record
     def run(self,
             dut: 'TransmonElement',
@@ -342,7 +347,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
             extra_readout_duts: Optional[List['DeviceUnderTest']] = None,
             z_threshold: Optional[int] = None, update_phase_for_two_level=False) -> None:
         """
-        Run the measurement process on a transmon qubit, potentially
+        Run the measurement calibration using a GMM model on a transmon qubit, potentially
         altering frequency and amplitude, and calculate the signal-to-noise ratio.
 
         Parameters:
@@ -579,23 +584,23 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         self.analyze_gmm_result(dut, mprim_index, self.result)
 
     @register_browser_function(available_after=(run,))
-    @visual_analyze_prompt("""
-    Describe the Image: Provide a brief description of the image, particularly focusing on the distribution of points,
-        difference between two distributions and the overlap of clusters if any.
-    Identify Clusters: Note the color and arrangement of the clusters. Are there distinct groups of different colors 
-        (e.g., red and blue)?
-    Assess Overlap: Look at the central areas of the plot where the clusters might overlap. How much do the clusters 
-        mix in these regions?
-    Assess Distribution: Look at the distribution 0 and distribution 1. Do they have a clear difference?
-    Check Circles/Ellipses: Observe the circles or ellipses drawn around the clusters. Do these shapes encompass
-        predominantly one color, or do they contain a significant mixture of both colors?
-    Legend Information: If there are percentages or ratios in the legend, they might indicate the extent of separation
-        or overlap. Lower values suggest less overlap and better separation.
-    Overall Impression: Based on the above factors, decide 1) if the clusters are well separated (little to no overlap,
-        clear boundaries) or not well separated (significant overlap, indistinct boundaries). 2) if the two distributions
-         have clear difference. If they have difference but not separated means the experiment works but fitting failed.
-          If there is no difference means the experiment failed.
-    """)
+    # @visual_analyze_prompt("""
+    # Describe the Image: Provide a brief description of the image, particularly focusing on the distribution of points,
+    #    difference between two distributions and the overlap of clusters if any.
+    # Identify Clusters: Note the color and arrangement of the clusters. Are there distinct groups of different colors
+    #    (e.g., red and blue)?
+    # Assess Overlap: Look at the central areas of the plot where the clusters might overlap. How much do the clusters
+    #    mix in these regions?
+    # Assess Distribution: Look at the distribution 0 and distribution 1. Do they have a clear difference?
+    # Check Circles/Ellipses: Observe the circles or ellipses drawn around the clusters. Do these shapes encompass
+    #    predominantly one color, or do they contain a significant mixture of both colors?
+    # Legend Information: If there are percentages or ratios in the legend, they might indicate the extent of separation
+    #    or overlap. Lower values suggest less overlap and better separation.
+    # Overall Impression: Based on the above factors, decide 1) if the clusters are well separated (little to no overlap,
+    #    clear boundaries) or not well separated (significant overlap, indistinct boundaries). 2) if the two distributions
+    #     have clear difference. If they have difference but not separated means the experiment works but fitting failed.
+    #      If there is no difference means the experiment failed.
+    # """)
     def gmm_iq(self, result_data=None):
         """
         Plot the IQ data with the fitted Gaussian Mixture Model with matplotlib.
@@ -788,8 +793,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         if self.result is None:
             return go.Figure()
 
-
-    def get_analyzed_result_prompt(self) ->Union[str,None]:
+    def get_analyzed_result_prompt(self) -> Union[str, None]:
         """
         Get the prompt for the analyzed result.
 
@@ -816,7 +820,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                 percentage = np.average((state_label == index).astype(int))
                 percentage_strings.append(f"{self.output_map[index]}: {percentage * 100:.2f}%")
 
-            distribution_prompt.append(f"Distribution {i}"+", ".join(percentage_strings))
+            distribution_prompt.append(f"Distribution {i}" + ", ".join(percentage_strings))
 
         distribution_prompt = "\n".join(distribution_prompt)
 
