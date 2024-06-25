@@ -31,8 +31,7 @@ the additional information is as follows:
 <additional_information>
 {additional_information}
 </additional_information>
-Please write a new description of the stage as the additional information requires by changing the value of arguments
-of the original description only. If there is no modification to the argument, return the original description. Include
+Please write a new description of the stage including the additional information provided if there is any. Include
 the number of tries in the description if mentioned in the additional information.
 
 Return in JSON format, example:
@@ -88,8 +87,10 @@ Based on the rules and the result provided, determine the next stage of the stat
 been tried 3 times and still failed, the next stage should be "Fail". Do not retry the current stage if the experiment
 has been successful.
  
-Return your decision in JSON format, including what the next state is and any additional information that modifies the
-  arguments of the next stage in natural language that will be necessary for operating in the next state.
+Return your decision in JSON format, including what the next state is and any additional information such as the results
+from the current experiment that indicates the arguments of the next stage in natural language that will be necessary
+for operating in the next state. The next stage does not posses the information of the current stage.
+
    If the next stage is the same as the current stage, include the number of tries in the additional info.
 """ + """
 Example JSON Output:

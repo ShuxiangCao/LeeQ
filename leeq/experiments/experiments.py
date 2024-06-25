@@ -16,7 +16,7 @@ from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import SetupStatusParameters
 from leeq.utils import Singleton, setup_logging, display_json_dict
-from leeq.utils.notebook import show_spinner,hide_spinner
+from leeq.utils.notebook import show_spinner, hide_spinner
 from leeq.utils.ai.display_chat.notebooks import display_chat, dict_to_html
 import leeq.experiments.plots.live_dash_app as live_monitor
 from leeq.utils.ai.vlms import has_visual_analyze_prompt
@@ -51,6 +51,13 @@ class Experiment(LeeQObject):
     """
 
     _experiment_result_analysis_instructions = None
+
+    @classmethod
+    def is_ai_compatible(cls):
+        """
+        A method to indicate that the experiment is AI compatible.
+        """
+        return cls._experiment_result_analysis_instructions is not None
 
     def _run_ai_inspection_on_single_function(self, func):
         """
@@ -201,7 +208,6 @@ class Experiment(LeeQObject):
                     self.logger.warning(f"{e}")
                     continue
 
-
                 if show_plots:
                     try:
                         if isinstance(
@@ -223,7 +229,7 @@ class Experiment(LeeQObject):
                     if inspect_answer is not None:
                         html = dict_to_html(inspect_answer)
                         display_chat(agent_name=f"Inspection AI",
-                                     content='<br>'+html,
+                                     content='<br>' + html,
                                      background_color='#f0f8ff')
 
     def run_simulated(self, *args, **kwargs):
@@ -238,7 +244,7 @@ class Experiment(LeeQObject):
         """
         raise NotImplementedError()
 
-    def get_analyzed_result_prompt(self)->Union[str,None]:
+    def get_analyzed_result_prompt(self) -> Union[str, None]:
         """
         Get the natual language description of the analyzed result for AI.
 
@@ -278,10 +284,18 @@ class Experiment(LeeQObject):
             ai_inspection_results['fitting'] = fitting_results
 
         if self._experiment_result_analysis_instructions is not None:
-
             spinner_id = show_spinner(f"AI is analyzing the experiment results...")
 
-            summary = get_experiment_summary(self._experiment_result_analysis_instructions, ai_inspection_results)
+            run_args_prompt = f"""
+            Document of this experiment:
+            {self.run.__doc__}
+            
+            Running arguments:
+            {self.retrieve_args(self.run)}
+            """
+
+            summary = get_experiment_summary(self._experiment_result_analysis_instructions, run_args_prompt,
+                                             ai_inspection_results)
             ai_inspection_results['Final analysis'] = summary['analysis']
             ai_inspection_results['Suggested parameter updates'] = summary['parameter_updates']
             ai_inspection_results['Experiment success'] = summary['success']

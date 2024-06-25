@@ -51,6 +51,8 @@ def get_stages_from_description(description: str) -> List[Stage]:
     - **Advance**: Define conditions for progressing to the next stage.
     - **Retry**: Specify when to repeat a stage with adjustments.
     - **Revert**: Return to the previous stage.
+    - Note: You can excute one experiment at each stage. If the stage should consider multiple runs with different argument of the same experiment,
+            implement it by suggesting the transitions rules that direct it itself.
 - **Output Format**: Present these instructions and conditions in a JSON format, with each stage as a key detailing the experiment and transition rules. 
 The NEXT key must be a string detailing the transition conditions. Do not use "retry", "advance", or "revert", instead describe the stage label directly.
 
@@ -71,7 +73,7 @@ The NEXT key must be a string detailing the transition conditions. Do not use "r
   },
   "Stage3": {
     "Title": "Experiment3",
-    "ExperimentDescription": "Analyze data to validate outcomes and prepare reports.",
+    "ExperimentDescription": "Implement the third experiment.",
     "Next": "Move to Complete if successful, return to Stage2 if inconclusive. After 3 failures, proceed to Fail."
   },
   "Complete": {

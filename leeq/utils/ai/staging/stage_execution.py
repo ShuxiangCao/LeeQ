@@ -1,6 +1,6 @@
 from typing import List, Tuple, Optional
 from ideanet.codegen.code_wmemory import CodeWMemoryItem
-from ideanet.core.idea import WorkingMemory, WMemoryNoStimuliItem
+from ideanet.core.idea import WorkingMemory, WMemoryNoStimuliItem, WMemoryHiddenItem
 from leeq import Experiment
 from leeq.utils.ai.variable_table import VariableTable
 
@@ -66,7 +66,7 @@ def get_code_from_wm(wm: WorkingMemory) -> str:
     return code
 
 
-def get_codegen_wm(description: str, var_table: VariableTable, hint: str= None) -> WorkingMemory:
+def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None) -> WorkingMemory:
     """
     Prepares working memory for code generation based on a description and variable table.
 
@@ -86,9 +86,15 @@ def get_codegen_wm(description: str, var_table: VariableTable, hint: str= None) 
         prompt = f'''
 {var_table_in_prompt}
 '''
-        wm.add_item(WMemoryNoStimuliItem(prompt, "available_variables"))
+    wm.add_item(WMemoryNoStimuliItem(prompt, "available_variables"))
+    wm.add_item(WMemoryNoStimuliItem('Call exactly one time to the experiment function / class in this edit.'))
+    wm.add_item(WMemoryNoStimuliItem('Every class or function call will include the data analysis inside'
+                                     'the call automatically so there is no need to do data analysis separately',
+                                     "data_analyze"))
+    wm.add_item(WMemoryNoStimuliItem('Always use named arguments to call functions or classes.', "argument_name"))
+    wm.add_content(hint, "Background")
     prompt = f'''
-do("""Background:{hint}, Implement the code for:{description}.""")
+do("""{description}""")
 '''
     wm.add_item(CodeWMemoryItem(prompt))
     return wm

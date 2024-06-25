@@ -154,6 +154,8 @@ def build_leeq_code_ltm() -> Tuple[LongTermMemory, VariableTable]:
             class_obj = get_obj(node)
             if not issubclass(class_obj, Experiment):
                 continue
+            elif not class_obj.is_ai_compatible():
+                continue
             classes.append(class_obj)
 
     def _add_leeq_exp_to_ltm(exp_cls: Type[Any]):

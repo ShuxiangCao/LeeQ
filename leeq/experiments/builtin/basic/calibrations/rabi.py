@@ -16,14 +16,23 @@ logger = setup_logging(__name__)
 
 __all__ = ["NormalisedRabi", "MultiQubitRabi"]
 
+
 class NormalisedRabi(Experiment):
+    _experiment_result_analysis_instructions = """
+    The Normalised Rabi experiment is a quantum mechanics experiment that involves the measurement of oscillations.
+    A successful Rabi experiment will show a clear, regular oscillatory pattern with amplitude greater than 0.2.
+    If less than 3 oscillations are observed, the experiment is considered failed. If more than 10 oscillations are 
+    observed, the experiment is considered failed. The new suggested driving amplitude should allow the observation
+    of 5 oscillations, and can refer to the suggested amplitude in the analysis. 
+    """
+
     @log_and_record
     def run(self,
             dut_qubit: Any,
             amp: float = 0.05,
             start: float = 0.01,
-            stop: float = 0.15,
-            step: float = 0.001,
+            stop: float = 0.3,
+            step: float = 0.002,
             fit: bool = True,
             collection_name: str = 'f01',
             mprim_index: int = 0,
@@ -208,8 +217,7 @@ class NormalisedRabi(Experiment):
     2. Fit Quality: Evaluate whether the fit line closely follows the data points throughout the plot.
     3. Data Spread: Assess if the data points are tightly clustered around the fit line or if they are widely dispersed.
     4. Amplitude and Frequency: Note any inconsistencies in the amplitude and frequency of the oscillations.
-    5. Count the Number of Oscillations: Determine the number of oscillations present in the plot.
-    6. Overall Pattern: Provide a general assessment of the plot based on the typical characteristics of successful
+    5. Overall Pattern: Provide a general assessment of the plot based on the typical characteristics of successful
         Rabi oscillation experiments.
     """)
     def plot(self) -> go.Figure:
@@ -241,7 +249,7 @@ class NormalisedRabi(Experiment):
                     color='Blue',
                     size=7,
                     opacity=0.5,
-                    line=dict(color='Black', width=2)
+                    line=dict(color='Black', width=2),
                 ),
                 name=f'data'
             )
@@ -261,7 +269,8 @@ class NormalisedRabi(Experiment):
                 y=fit,
                 mode='lines',
                 line=dict(color='Red'),
-                name=f'fit'
+                name=f'fit',
+                visible='legendonly'
             )
         )
 
@@ -338,9 +347,15 @@ class NormalisedRabi(Experiment):
         Returns:
         str: The prompt to analyze the result.
         """
+
+        oscillation_freq = self.fit_params['Frequency']
+        experiment_time_duration = self.retrieve_args(self.run)['stop'] - self.retrieve_args(self.run)['start']
+        oscillation_count = (experiment_time_duration * oscillation_freq)
+
         return (f"The fitting result of the Rabi oscillation suggest the amplitude of {self.fit_params['Amplitude']}, "
                 f"the frequency of {self.fit_params['Frequency']}, the phase of {self.fit_params['Phase']}. The offset of"
-                f" {self.fit_params['Offset']}. The suggested new driving amplitude is {self.guess_amp}.")
+                f" {self.fit_params['Offset']}. The suggested new driving amplitude is {self.guess_amp}."
+                f"From the fitting results, the plot should exhibit {oscillation_count} oscillations.")
 
 
 class MultiQubitRabi(Experiment):

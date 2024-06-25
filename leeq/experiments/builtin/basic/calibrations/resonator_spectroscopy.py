@@ -32,6 +32,16 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
     Inherits from a generic "experiment" class.
     """
 
+    _experiment_result_analysis_instructions = """
+The plot inspection is to determine if the resonator is present in the data, and the fitting is to find the resonance
+using a predefined model to provide a more accurate result. The resonator linewidth is usually sub MHz to a few MHz.   
+The fitting can be inaccurate if the step size is much larger than the linewidth.
+If we are using a large step size, and the inspection suggests that the resonator is present, we can try to focus on the
+region where the resonator is expected to be and reduce the step size to get a more accurate result. However if the linewidth  
+is too narrow, sub 0.1 MHz, then it is usually not an resonator and the experiment should move on. When the fitted result is
+trusted, then do not include the value from figure inspection.
+    """
+
     @log_and_record
     def run(self,
             dut_qubit: TransmonElement,
