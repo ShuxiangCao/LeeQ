@@ -1,6 +1,7 @@
 from typing import Optional, Any, Dict, List, Union
 import numpy as np
 from plotly import graph_objects as go
+import uncertainties as unc
 
 from labchronicle import register_browser_function, log_and_record
 from leeq import Experiment, Sweeper
@@ -10,10 +11,12 @@ from leeq.utils import setup_logging
 from leeq.utils.compatibility import *
 from leeq.utils.compatibility.prims import SweepLPB
 from leeq.theory.fits.multilevel_decay import fit_decay as fit_multilevel_decay, plot
+from leeq.utils.ai.vlms import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 
 __all__ = ['SimpleT1', 'MultiQubitT1', 'MultiQuditT1Decay']
+
 
 class SimpleT1(Experiment):
     """
@@ -35,6 +38,14 @@ class SimpleT1(Experiment):
         Runs the T1 experiment.
     plot_t1()
         Plots the T1 decay.
+    """
+
+    _experiment_result_analysis_instructions = """The T1 experiment measures the relaxation time of a qubit. 
+    Please analyze the fitted plots and the fitting model to verify the data's validity. Subsequently, determine
+    if the experiment needs to be rerun and adjust the experimental parameters as necessary. The suggested time
+    length should be approximately five times the T1 value. If there is a significant discrepancy, adjust the time
+    length accordingly. Consider the experiment a failure if no decay is observed in the data or if adjustments to the
+    parameters are necessary. Additionally, modify the time resolution to capture approximately 100 data points.
     """
 
     @log_and_record
@@ -75,7 +86,36 @@ class SimpleT1(Experiment):
         basic(lpb, swp, 'p(1)')
         self.trace = np.squeeze(mp.result())
 
+    def get_analyzed_result_prompt(self) -> Union[str, None]:
+        """
+        Get the prompt to analyze the data.
+
+        Returns:
+        str: The prompt to analyze the data.
+        """
+        args = self.retrieve_args(self.run)
+
+        t = np.arange(0, args['time_length'], args['time_resolution'])
+        trace = np.squeeze(self.mp.result())
+
+        fit_params = fit_exp_decay_with_cov(trace, args['time_resolution'])
+
+        self.fit_params = fit_params
+
+        t1 = unc.ufloat(fit_params['Decay'][0], fit_params['Decay'][1])
+
+        return f"The sweep time length is {args['time_length']} us and " + "the fitted curve reports a T1 value of " + f"{t1} us."
+
     @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt(
+        "Please analyze the experimental data in the plot to determine if there's a clear exponential"
+        "decay pattern followed by stabilization. It is important that the decay is observable, as the "
+        "absence of decay is considered a failure of the experiment. Check if the tail of the decay "
+        "stabilizes within the observed time frame and inform me what portion of the time frame is "
+        "occupied by this stable section. The total sweep time frame value should be approximately five times"
+        "the estimated T1 time to ensure a accurate estimation. If the values are too far apart, adjust the "
+        "time frame accordingly."
+        )
     def plot_t1(self, fit=True, step_no=None) -> go.Figure:
         """
         Plot the T1 decay graph based on the trace and fit parameters using Plotly.
@@ -104,9 +144,9 @@ class SimpleT1(Experiment):
             x=t, y=trace,
             mode='markers',
             marker=dict(
-                symbol='x',
-                size=10,
-                color='blue'
+                # symbol='x',
+                size=5,
+                # color='blue'
             ),
             name='Experiment data'
         )
@@ -127,6 +167,7 @@ class SimpleT1(Experiment):
                 line=dict(
                     color='blue'
                 ),
+                visible='legendonly',
                 name='Decay fit'
             )
             title = (

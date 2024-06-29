@@ -46,9 +46,10 @@ def get_stages_from_description(description: str) -> List[Stage]:
 **Instructions**:
 
 - **Stages**: Divide the experiment into distinct stages, each representing a specific operation. 
-Note: It is okay to have only one stage if the experiment is simple.
+Note: Generate as less stages as possible, ideally just one stage, but make sure each stage is distinct and has a clear purpose.
 Note: The same experiment with different parameter choice (very common when you need to refine the parameters) needs to be classified into the same stage.
-Note: The data and result analysis and interpretation are already included in each experiment, therefore do not list them into separate stages.
+Note: The data and result analysis and interpretation should not be considered as a stage.
+Note: Refinement of the parameters should be included in the same stage, not in a separate stage.
 
 - **Experiment Description**: Detail the procedures for each stage. *MUST* Include what to do (The name of the experiment), with what parameters. 
 - **Stage Transitions**:

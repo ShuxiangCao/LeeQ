@@ -141,12 +141,12 @@ def build_leeq_code_ltm() -> Tuple[LongTermMemory, VariableTable]:
     Returns:
         Tuple[LongTermMemory, VariableTable]: The long term memory for leeq and the loaded variable table.
     """
-    from leeq.experiments.builtin.basic import calibrations
+    from leeq.experiments import builtin
 
     lt_memory = LongTermMemory()
     var_table = VariableTable()
     # Load the module root and scan for experiment classes
-    module_root = get_tree_for_module(calibrations)
+    module_root = get_tree_for_module(builtin)
     classes = []
     from leeq import Experiment
     for node in module_root.iter_subtree_with_dfs():
