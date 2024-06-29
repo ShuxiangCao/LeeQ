@@ -2,6 +2,7 @@ from functools import partial
 
 from plotly import graph_objects as go
 from matplotlib import pyplot as plt
+from IPython.display import display
 
 
 def visual_analyze_prompt(prompt: str):
@@ -88,9 +89,11 @@ def visual_inspection(image: "Image", prompt: str, rescale=0.5, **kwargs) -> dic
                                                            go.Figure), "The image must be a PIL image or a Matplotlib or Plotly figure."
         image = matplotlib_plotly_to_pil(image)
 
-    original_width, original_height = image.size
-    new_size = (int(original_width * rescale), int(original_height * rescale))
-    image = image.resize(new_size)
+    #original_width, original_height = image.size
+    #new_size = (int(original_width * rescale), int(original_height * rescale))
+    #image = image.resize(new_size)
+    print("The image is shown below:")
+    display(image)
     from mllm import Chat
     chat = Chat(
         system_message="You are a helpful visual assistant that able to provide analysis on images or plots. "
@@ -101,6 +104,21 @@ def visual_inspection(image: "Image", prompt: str, rescale=0.5, **kwargs) -> dic
 
     return res
 
+def clear_visual_inspection_results(func):
+    """
+    Clear the visual inspection results.
+
+    Parameters:
+        func (function): The function to clear the results.
+    """
+    if hasattr(func, '_ai_inspect_result'):
+        del func.__dict__['_ai_inspect_result']
+
+    if hasattr(func, '_image'):
+        del func.__dict__['_image']
+
+    if hasattr(func, '_result'):
+        del func.__dict__['_result']
 
 def _fast_visual_inspection(func, image=None, prompt=None, func_kwargs=None, llm_kwargs=None):
     """

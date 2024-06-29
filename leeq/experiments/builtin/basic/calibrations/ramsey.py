@@ -294,8 +294,7 @@ class SimpleRamseyMultilevel(Experiment):
         4. Amplitude and Frequency: Note any inconsistencies in the amplitude and frequency of the oscillations. For
             a perfect experiment the amplitude should be around 1 and the frequency should be close to the expected value.
             If amplitude is smaller than 0.2, the experiment is likely considered failed.
-        5. Count the Number of Oscillations: Determine the number of oscillations present in the plot.
-        6. Overall Pattern: Provide a general assessment of the plot based on the typical characteristics of successful
+        5. Overall Pattern: Provide a general assessment of the plot based on the typical characteristics of successful
             Ramsey oscillation experiments.
         """)
     def plot(self) -> go.Figure:
@@ -416,13 +415,18 @@ class SimpleRamseyMultilevel(Experiment):
 
         self.analyze_data()
 
+        args = self.retrieve_args(self.run)
+
+        oscillation_count = (self.fit_params['Frequency'][0]) * (args['stop'] - args['start'])
+
         if self.error_bar == np.inf:
             return "The Ramsey experiment failed to fit the data."
 
         return (f"The Ramsey experiment for qubit {self.retrieve_args(self.run)['qubit'].hrid} has been analyzed. " \
                f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured oscillation is "
                f"{self.set_offset + self.fitted_freq_offset*self.level_diff:.3f}+- {self.error_bar:.3f} MHz. Oscillation"
-                f" amplitude is {self.fit_params['Amplitude'][0]:.3f}+-{self.fit_params['Amplitude'][1]:.3f}.")
+                f" amplitude is {self.fit_params['Amplitude'][0]:.3f}+-{self.fit_params['Amplitude'][1]:.3f}."
+                f" The number of oscillations is {oscillation_count:.3f}.")
 
 #class MultiQubitRamseyMultilevel(Experiment):
 #    """

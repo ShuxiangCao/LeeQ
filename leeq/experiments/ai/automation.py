@@ -98,10 +98,19 @@ class AIStagedExperiment(Experiment):
 
         curr_stage = self.stages[0]
         for step in range(len(self.stages) * self.n_step_multiplier):
-            new_var_table = run_stage_description(curr_stage)
 
-            exp_object = get_exp_from_var_table(new_var_table)
-            experiment_result = exp_object.get_ai_inspection_results()
+            numbers_of_retry = 0
+
+            while numbers_of_retry < 3:
+                try:
+                    new_var_table = run_stage_description(curr_stage)
+                    exp_object = get_exp_from_var_table(new_var_table)
+                    experiment_result = exp_object.get_ai_inspection_results()
+                    break
+                except Exception as e:
+                    numbers_of_retry += 1
+                    if numbers_of_retry == 3:
+                        raise e
 
             experiment_analysis_html = dict_to_html(experiment_result)
 

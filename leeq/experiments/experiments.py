@@ -19,7 +19,7 @@ from leeq.utils import Singleton, setup_logging, display_json_dict
 from leeq.utils.notebook import show_spinner, hide_spinner
 from leeq.utils.ai.display_chat.notebooks import display_chat, dict_to_html
 import leeq.experiments.plots.live_dash_app as live_monitor
-from leeq.utils.ai.vlms import has_visual_analyze_prompt
+from leeq.utils.ai.vlms import has_visual_analyze_prompt, clear_visual_inspection_results
 from leeq.utils.ai.experiment_summarize import get_experiment_summary
 
 logger = setup_logging(__name__)
@@ -165,6 +165,11 @@ class Experiment(LeeQObject):
 
         # Register the active experiment instance
         ExperimentManager().register_active_experiment_instance(self)
+
+        # Clear the AI inspection results for the experiment if it is AI compatible
+        if self.is_ai_compatible():
+            for name, func in self.get_browser_functions():
+                clear_visual_inspection_results(func)
 
         try:
             # Run the experiment
