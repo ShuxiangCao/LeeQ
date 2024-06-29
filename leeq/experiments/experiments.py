@@ -1,5 +1,6 @@
 import datetime
 from typing import Union
+from functools import wraps
 
 from IPython.display import display
 import inspect
@@ -19,13 +20,13 @@ from leeq.utils import Singleton, setup_logging, display_json_dict
 from leeq.utils.notebook import show_spinner, hide_spinner
 from leeq.utils.ai.display_chat.notebooks import display_chat, dict_to_html
 import leeq.experiments.plots.live_dash_app as live_monitor
-from leeq.utils.ai.vlms import has_visual_analyze_prompt, clear_visual_inspection_results
+from leeq.utils.ai.vlms import (has_visual_analyze_prompt, visual_inspection, get_visual_analyze_prompt)
 from leeq.utils.ai.experiment_summarize import get_experiment_summary
 
 logger = setup_logging(__name__)
 
 
-class Experiment(LeeQObject):
+class LeeQExperiment(LeeQObject):
     """
     Base class for all experiments.
 
@@ -49,43 +50,6 @@ class Experiment(LeeQObject):
          that the function will be executed when the experiment is finished execution in Jupyter notebook. It also
          allows the function to be executed later when data loaded from the log file.
     """
-
-    _experiment_result_analysis_instructions = None
-
-    @classmethod
-    def is_ai_compatible(cls):
-        """
-        A method to indicate that the experiment is AI compatible.
-        """
-        return cls._experiment_result_analysis_instructions is not None
-
-    def _run_ai_inspection_on_single_function(self, func):
-        """
-        Run the AI inspection on a single function.
-
-        Parameters:
-            func (callable): The function to analyze.
-        Returns:
-            dict: The result of the analysis.
-        """
-        try:
-            if has_visual_analyze_prompt(func):
-                if not hasattr(func, '_image'):
-                    self._execute_single_browsable_plot_function(func, build_static_image=True)
-
-                spinner_id = show_spinner(f"Vision AI is inspecting plots...")
-                inspect_answer = func.ai_inspect()
-                hide_spinner(spinner_id)
-                return inspect_answer
-
-        except Exception as e:
-            self.logger.warning(
-                f"Error when running single AI inspection on {func.__qualname__}: {e}"
-            )
-            self.logger.warning(f"Ignore the error and continue.")
-            self.logger.warning(f"{e}")
-
-        return None
 
     def _execute_browsable_plot_function(self, build_static_image=False):
         """
@@ -134,7 +98,7 @@ class Experiment(LeeQObject):
             if build_static_image:
                 from leeq.utils.ai.utils import matplotlib_plotly_to_pil
                 image = matplotlib_plotly_to_pil(result)
-                func.__dict__['_image'] = image
+                self._browser_function_images[func.__qualname__] = image
 
         except Exception as e:
             self.logger.warning(
@@ -142,41 +106,61 @@ class Experiment(LeeQObject):
             )
             self.logger.warning(f"Ignore the error and continue.")
             self.logger.warning(f"{e}")
+            raise e
 
-        func.__dict__['_result'] = result
+        self._browser_function_results[func.__qualname__] = result
 
-    def _get_all_ai_inspectable_functions(self) -> dict:
+    def _check_arguments(self, func, *args, **kwargs):
         """
-        Get all the AI inspectable functions.
+        Check the arguments of the function.
+
+        Parameters:
+            func (callable): The function to check.
+            args (list): The arguments of the function.
+            kwargs (dict): The keyword arguments of the function.
 
         Returns:
-            dict: The AI inspectable functions.
+            dict: The arguments of the function.
         """
-        return dict(
-            [(name, func) for name, func in self.get_browser_functions() if has_visual_analyze_prompt(func)])
+        sig = inspect.signature(func)
+        try:
+            bound = sig.bind(*args, **kwargs)
+            bound.apply_defaults()
+            msg = None
+        except TypeError as e:
+            msg = f"{e}\n\n"
+            msg += f"Function signature: {sig}\n\n"
+            msg += f"Documents:\n\n {self.run.__doc__}\n\n"
+
+        if msg is not None:
+            raise TypeError(msg)
+
+        return bound
 
     def __init__(self, *args, **kwargs):
         """
         Initialize the experiment.
         """
+
+        # Check the input arguments
+        bound = self._check_arguments(self.run, *args, **kwargs)
+
         super(
-            Experiment, self).__init__(
+            LeeQExperiment, self).__init__(
             name=f"Experiment: {self.__class__.__name__}")
 
         # Register the active experiment instance
         ExperimentManager().register_active_experiment_instance(self)
 
-        # Clear the AI inspection results for the experiment if it is AI compatible
-        if self.is_ai_compatible():
-            for name, func in self.get_browser_functions():
-                clear_visual_inspection_results(func)
+        self._browser_function_results = {}
+        self._browser_function_images = {}
 
         try:
             # Run the experiment
             if setup().status().get_parameters("High_Level_Simulation_Mode"):
-                self.run_simulated(*args, **kwargs)
+                self.run_simulated(*bound.args, **bound.kwargs)
             else:
-                self.run(*args, **kwargs)
+                self.run(*bound.args, **bound.kwargs)
         finally:
             # Make sure we print the record details before throwing the
             # exception
@@ -196,15 +180,21 @@ class Experiment(LeeQObject):
                     msg = f"Failed to retrieve and save the record details for {self.run.__qualname__}"
                     logger.warning(msg)
 
+        self._post_run()
+
+    def _post_run(self):
+        """
+        The post run method to execute after the experiment is finished.
+        """
+
         # Check if we need to plot
         show_plots = setup().status().get_parameters("Plot_Result_In_Jupyter")
-        run_ai_inspection = setup().status().get_parameters("AIAutoInspectPlots")
 
-        if show_plots or run_ai_inspection:
+        if show_plots:
             for name, func in self.get_browser_functions():
                 try:
                     self._execute_single_browsable_plot_function(func)
-                    result = func._result
+                    result = self._browser_function_results[func.__qualname__]
                 except Exception as e:
                     self.logger.warning(
                         f"Error when executing the browsable plot function {name}:{e}."
@@ -213,29 +203,20 @@ class Experiment(LeeQObject):
                     self.logger.warning(f"{e}")
                     continue
 
-                if show_plots:
-                    try:
-                        if isinstance(
-                                result, plotly.graph_objs.Figure):
-                            result.show()
-                        if isinstance(result, matplotlib.figure.Figure):
-                            from matplotlib import pyplot as plt
-                            display(result)
-                            plt.close(result)
-                    except Exception as e:
-                        self.logger.warning(
-                            f"Error when displaying experiment result of {func.__qualname__}: {e}"
-                        )
-                        self.logger.warning(f"Ignore the error and continue.")
-                        self.logger.warning(f"{e}")
-
-                if run_ai_inspection:
-                    inspect_answer = self._run_ai_inspection_on_single_function(func)
-                    if inspect_answer is not None:
-                        html = dict_to_html(inspect_answer)
-                        display_chat(agent_name=f"Inspection AI",
-                                     content='<br>' + html,
-                                     background_color='#f0f8ff')
+                try:
+                    if isinstance(
+                            result, plotly.graph_objs.Figure):
+                        result.show()
+                    if isinstance(result, matplotlib.figure.Figure):
+                        from matplotlib import pyplot as plt
+                        display(result)
+                        plt.close(result)
+                except Exception as e:
+                    self.logger.warning(
+                        f"Error when displaying experiment result of {func.__qualname__}: {e}"
+                    )
+                    self.logger.warning(f"Ignore the error and continue.")
+                    self.logger.warning(f"{e}")
 
     def run_simulated(self, *args, **kwargs):
         """
@@ -248,6 +229,93 @@ class Experiment(LeeQObject):
         The main experiment script. Should be decorated by `labchronicle.log_and_record` to log the experiment.
         """
         raise NotImplementedError()
+
+    def get_experiment_details(self):
+        """
+        Get the experiment details. It includes the labchronicle record details, experiment arguments, and the
+        experiment specific details.
+
+        Returns:
+            dict: The experiment details.
+        """
+
+        if self.run.__qualname__ not in self._register_log_and_record_args_map:
+            return {}
+
+        kwargs = self.retrieve_args(self.run)
+        kwargs = {k: repr(v) for k, v in kwargs.items()}
+        kwargs['name'] = self._name
+
+        return {"record_details": self.retrieve_latest_record_entry_details(
+            self.run), "experiment_arguments": kwargs, }
+
+
+class LeeQAIExperiment(LeeQExperiment):
+    """
+    A extension class for AI compatible experiments definitions.
+    """
+
+    _experiment_result_analysis_instructions = None
+
+    def __init__(self, *args, **kwargs):
+        """
+        Initialize the experiment.
+        """
+        self._ai_inspection_results = {}
+        super(LeeQAIExperiment, self).__init__(*args, **kwargs)
+
+    @classmethod
+    def is_ai_compatible(cls):
+        """
+        A method to indicate that the experiment is AI compatible.
+        """
+        return cls._experiment_result_analysis_instructions is not None
+
+    def _run_ai_inspection_on_single_function(self, func):
+        """
+        Run the AI inspection on a single function.
+
+        Parameters:
+            func (callable): The function to analyze.
+        Returns:
+            dict: The result of the analysis.
+        """
+
+        if self._ai_inspection_results.get(func.__qualname__) is not None:
+            return self._ai_inspection_results.get(func.__qualname__)
+
+        try:
+            if has_visual_analyze_prompt(func):
+                if self._browser_function_images.get(func.__qualname__) is None:
+                    self._execute_single_browsable_plot_function(func, build_static_image=True)
+
+                image = self._browser_function_images.get(func.__qualname__)
+
+                spinner_id = show_spinner(f"Vision AI is inspecting plots...")
+                prompt = get_visual_analyze_prompt(func)
+                inspect_answer = visual_inspection(image, prompt)
+                self._ai_inspection_results[func.__qualname__] = inspect_answer
+                hide_spinner(spinner_id)
+                return inspect_answer
+
+        except Exception as e:
+            self.logger.warning(
+                f"Error when running single AI inspection on {func.__qualname__}: {e}"
+            )
+            self.logger.warning(f"Ignore the error and continue.")
+            self.logger.warning(f"{e}")
+
+        return None
+
+    def _get_all_ai_inspectable_functions(self) -> dict:
+        """
+        Get all the AI inspectable functions.
+
+        Returns:
+            dict: The AI inspectable functions.
+        """
+        return dict(
+            [(name, func) for name, func in self.get_browser_functions() if has_visual_analyze_prompt(func)])
 
     def get_analyzed_result_prompt(self) -> Union[str, None]:
         """
@@ -269,20 +337,17 @@ class Experiment(LeeQObject):
         ai_inspection_results = {}
         for name, func in self._get_all_ai_inspectable_functions().items():
 
-            if hasattr(func, '_ai_inspect_result'):
-                ai_inspection_results[name] = func._ai_inspect_result['analysis']
-                continue
-            try:
-                ai_inspection_results[name] = self._run_ai_inspection_on_single_function(
-                    func)
-                ai_inspection_results[name] = func._ai_inspect_result['analysis']
-            except Exception as e:
-                self.logger.warning(
-                    f"Error when doing get AI inspection on {func.__qualname__}: {e}"
-                )
-                self.logger.warning(f"Ignore the error and continue.")
-                self.logger.warning(f"{e}")
+            if self._ai_inspection_results.get(func.__qualname__) is None:
+                try:
+                    self._run_ai_inspection_on_single_function(func)
+                except Exception as e:
+                    self.logger.warning(
+                        f"Error when doing get AI inspection on {func.__qualname__}: {e}"
+                    )
+                    self.logger.warning(f"Ignore the error and continue.")
+                    self.logger.warning(f"{e}")
 
+        ai_inspection_results = self._ai_inspection_results.copy()
         fitting_results = self.get_analyzed_result_prompt()
 
         if fitting_results is not None:
@@ -294,7 +359,7 @@ class Experiment(LeeQObject):
             run_args_prompt = f"""
             Document of this experiment:
             {self.run.__doc__}
-            
+
             Running arguments:
             {self.retrieve_args(self.run)}
             """
@@ -308,24 +373,26 @@ class Experiment(LeeQObject):
 
         return ai_inspection_results
 
-    def get_experiment_details(self):
+    def _post_run(self):
         """
-        Get the experiment details. It includes the labchronicle record details, experiment arguments, and the
-        experiment specific details.
-
-        Returns:
-            dict: The experiment details.
+        The post run method to execute after the experiment is finished.
         """
 
-        if self.run.__qualname__ not in self._register_log_and_record_args_map:
-            return {}
+        super(LeeQAIExperiment, self)._post_run()
 
-        kwargs = self.retrieve_args(self.run)
-        kwargs = {k: repr(v) for k, v in kwargs.items()}
-        kwargs['name'] = self._name
+        run_ai_inspection = setup().status().get_parameters("AIAutoInspectPlots")
 
-        return {"record_details": self.retrieve_latest_record_entry_details(
-            self.run), "experiment_arguments": kwargs, }
+        if run_ai_inspection:
+            for name, func in self.get_browser_functions():
+                inspect_answer = self._run_ai_inspection_on_single_function(func)
+                if inspect_answer is not None:
+                    html = dict_to_html(inspect_answer)
+                    display_chat(agent_name=f"Inspection AI",
+                                 content='<br>' + html,
+                                 background_color='#f0f8ff')
+
+
+Experiment = LeeQAIExperiment
 
 
 class ExperimentManager(Singleton):

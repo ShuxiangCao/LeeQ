@@ -338,7 +338,6 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
     @log_and_record
     def run(self,
             dut: 'TransmonElement',
-            # Replace with actual class
             sweep_lpb_list: List['LogicalPrimitiveBlock'],
             mprim_index: int,
             freq: Optional[float] = None,
@@ -496,15 +495,14 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
 
     @log_and_record(overwrite_func_name='MeasurementCalibrationMultilevelGMM.run')
     def run_simulated(self,
-                      dut: 'DeviceUnderTest',
-                      # Replace with actual class
+                      dut: 'TransmonElement',
                       sweep_lpb_list: List['LogicalPrimitiveBlock'],
                       mprim_index: int,
                       freq: Optional[float] = None,
                       amp: Optional[float] = None,
                       update: bool = False,
                       extra_readout_duts: Optional[List['DeviceUnderTest']] = None,
-                      z_threshold: Optional[int] = None) -> None:
+                      z_threshold: Optional[int] = None, update_phase_for_two_level=False) -> None:
         """
         Run the measurement process on a transmon qubit, potentially altering frequency and amplitude,
          and calculate the signal-to-noise ratio. Note that the sweep_lpb_list only used to indicate the number of

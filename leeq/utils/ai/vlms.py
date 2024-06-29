@@ -104,22 +104,6 @@ def visual_inspection(image: "Image", prompt: str, rescale=0.5, **kwargs) -> dic
 
     return res
 
-def clear_visual_inspection_results(func):
-    """
-    Clear the visual inspection results.
-
-    Parameters:
-        func (function): The function to clear the results.
-    """
-    if hasattr(func, '_ai_inspect_result'):
-        del func.__dict__['_ai_inspect_result']
-
-    if hasattr(func, '_image'):
-        del func.__dict__['_image']
-
-    if hasattr(func, '_result'):
-        del func.__dict__['_result']
-
 def _fast_visual_inspection(func, image=None, prompt=None, func_kwargs=None, llm_kwargs=None):
     """
     Fast version of visual inspection. It will not ask the user for the prompt.
