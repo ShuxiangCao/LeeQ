@@ -3,18 +3,21 @@ from matplotlib import pyplot as plt
 from typing import Optional, Any, Dict, List, Union
 from typing import Optional, Any, Dict, List
 import numpy as np
+import uncertainties as unc
 from plotly import graph_objects as go
 
 from labchronicle import register_browser_function, log_and_record
 from leeq import Experiment, Sweeper
 from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_exp_decay_with_cov
 from leeq.theory.utils import to_dense_probabilities
+from leeq.utils.ai import visual_analyze_prompt
 from leeq.utils.compatibility import *
 
 __all__ = [
     'SpinEchoMultiLevel',
     'MultiQubitSpinEchoMultiLevel'
 ]
+
 
 class SpinEchoMultiLevel(
     Experiment):  # Class names should follow the CapWords convention
@@ -30,6 +33,13 @@ class SpinEchoMultiLevel(
         Plots the results of the echo experiment.
     """
 
+    _experiment_result_analysis_instructions = """The Spin echo experiment measures the T2 echo relaxation time of a qubit. 
+    Please analyze the fitted plots and the fitting model to verify the data's validity. Subsequently, determine
+    if the experiment needs to be rerun and adjust the experimental parameters as necessary. The suggested time
+    length should be approximately five times the T2 value. If there is a significant discrepancy, adjust the time
+    length accordingly and report experiment failure. Additionally, modify the time resolution to capture approximately 50 data points.
+    """
+
     @log_and_record
     def run(
             self,
@@ -37,13 +47,12 @@ class SpinEchoMultiLevel(
             collection_name: str = 'f01',
             mprim_index: int = 0,
             free_evolution_time: float = 100.0,
-            time_resolution: float = 4.0,
+            time_resolution: float = 2.0,
             start: float = 0.0,
-            # Replace 'Any' with the actual type
             initial_lpb: Optional[Any] = None,
     ) -> None:
         """
-        Run the SimpleSpinEchoMultiLevel experiment.
+        Run the SimpleSpinEchoMultiLevel experiment for measuring the T2 echo coherence metric.
 
         Parameters
         ----------
@@ -85,11 +94,20 @@ class SpinEchoMultiLevel(
         if initial_lpb is not None:
             lpb = initial_lpb + lpb
 
-        basic(lpb, swp, 'p(0)')
+        basic(lpb, swp, 'p(1)')
 
         self.trace = np.squeeze(mp.result())
 
     @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt(
+        "Please analyze the experimental data in the plot to determine if there's a clear exponential"
+        "decay pattern followed by stabilization. It is important that the decay is observable, as the "
+        "absence of decay is considered a failure of the experiment. Check if the tail of the decay "
+        "stabilizes within the observed time frame and inform me what portion of the time frame is "
+        "occupied by this stable section. The total sweep time frame value should be approximately five times"
+        "the estimated T2 time to ensure a accurate estimation. If the values are too far apart, adjust the "
+        "time frame accordingly."
+    )
     def plot_echo(self, fit=True, step_no=None) -> go.Figure:
         """
         Plot the results of the echo experiment using Plotly.
@@ -109,8 +127,7 @@ class SpinEchoMultiLevel(
             x=t, y=trace,
             mode='markers',
             marker=dict(
-                symbol='x',
-                size=10,
+                size=5,
                 color='blue'
             ),
             name='Experiment data'
@@ -130,7 +147,8 @@ class SpinEchoMultiLevel(
                 line=dict(
                     color='blue'
                 ),
-                name='Decay fit'
+                name='Decay fit',
+                visible='legendonly'
             )
             title = (
                 f"T2 echo {args['qubit'].hrid} transition {args['collection_name']}<br>"
@@ -157,6 +175,18 @@ class SpinEchoMultiLevel(
         """
 
         return self.plot_echo(fit=step_no[0] > 10, step_no=step_no)
+
+    def get_analyzed_result_prompt(self) -> Union[str, None]:
+
+        trace = np.squeeze(self.mp.result())
+        args = self.retrieve_args(self.run)
+
+        fit_params = fit_exp_decay_with_cov(trace, args['time_resolution'])
+        self.fit_params = fit_params
+
+        t2 = unc.ufloat(fit_params['Decay'][0], fit_params['Decay'][1])
+
+        return f"The sweep time length is {args['free_evolution_time']} us and " + "the fitted curve reports a T2 echo value of " + f"{t2} us."
 
 
 class MultiQubitSpinEchoMultiLevel(
