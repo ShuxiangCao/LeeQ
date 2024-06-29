@@ -41,11 +41,15 @@ def get_stages_from_description(description: str) -> List[Stage]:
     prompt = """
 **Objective**: Develop a systematic workflow for a series of scientific experiments involving sequential function calls to operate experimental equipment. The outcomes of each stage guide the next, ensuring logical progression. 
 
-**Overview**: Summarize the requirement of the experiment.
+**Overview**: Summarize the requirement of the experiment. Only include the information from the input, do not add any additional information of your own.
 
 **Instructions**:
 
-- **Stages**: Divide the experiment into distinct stages, each representing a specific operation. The same experiment run needs to be classified into the same stage, even if the parameters may be different.
+- **Stages**: Divide the experiment into distinct stages, each representing a specific operation. 
+Note: It is okay to have only one stage if the experiment is simple.
+Note: The same experiment with different parameter choice (very common when you need to refine the parameters) needs to be classified into the same stage.
+Note: The data and result analysis and interpretation are already included in each experiment, therefore do not list them into separate stages.
+
 - **Experiment Description**: Detail the procedures for each stage. *MUST* Include what to do (The name of the experiment), with what parameters. 
 - **Stage Transitions**:
     - **Advance**: Define conditions for progressing to the next stage.

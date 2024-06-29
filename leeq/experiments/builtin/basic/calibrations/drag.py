@@ -2,8 +2,9 @@ from labchronicle import log_and_record, register_browser_function
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, basic_run
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.utils.compatibility import prims
+from leeq.utils.ai.vlms import visual_analyze_prompt
 
-from typing import Optional
+from typing import Optional, Union
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -12,9 +13,21 @@ __all__ = [
     'CrossAllXYDragMultiRunSingleQubitMultilevel',
     'DragPhaseCalibrationMultiQubitsMultilevel'
 ]
+
+
 class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
     """
     Class for running a single AllXY drag experiment on a single qubit with a multilevel system.
+    """
+    _experiment_result_analysis_instructions = """This experiment aims to calibrate the alpha parameter (DRAG coefficient) by conducting an AllXY DRAG experiment.
+    The experiment will be deemed unsuccessful and will require a retry with the same parameter under the following
+    conditions: if the two differently colored lines do not show distinct trends, or if the line fitting is deemed
+    inappropriate. Additionally, if the predicted optimal DRAG coefficient does not fall within the central half of the
+    sweep, the experiment should conclude *failed* and  be repeated with adjustments to center it around the predicted
+    optimal DRAG coefficient. Conversely, the experiment is considered successful if the two differently colored lines 
+    demonstrate distinct trends, the line fitting is appropriate, and the predicted optimal DRAG coefficient is within
+    the central half of the sweep. For recommending the new sweep range, the experiment should be centered around the
+    predicted optimal DRAG coefficient, and the span should be kept the same.
     """
 
     @log_and_record
@@ -56,11 +69,14 @@ class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
         if inv_alpha_stop is None:
             inv_alpha_stop = 1 / alpha + 0.006
 
+        self.inv_alpha_start = inv_alpha_start
+        self.inv_alpha_stop = inv_alpha_stop
+
         # Define the pulse sequence for the experiment.
         vz_pi = c1.z(np.pi)
 
         pulse_train_block = c1['X'] + vz_pi + \
-            c1['Y'] + vz_pi + c1['X'] + c1['Y']
+                            c1['Y'] + vz_pi + c1['X'] + c1['Y']
 
         # Add additional pulses based on the value of N.
         pulse_train = prims.SerialLPB([pulse_train_block] * N)
@@ -68,7 +84,8 @@ class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
         lpb_tail = prims.SweepLPB([c1['Xp'], c1['Xm']])
 
         # Define a function to update alpha in the pulse sequence.
-        def update_alpha(n): return c1.update_parameters(alpha=1 / n)
+        def update_alpha(n):
+            return c1.update_parameters(alpha=1 / n)
 
         # Create a sweeper for the alpha parameter.
         self.sweep_values = np.linspace(inv_alpha_start, inv_alpha_stop, num)
@@ -101,12 +118,24 @@ class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
         self.fit_xp = np.polyfit(self.sweep_values, self.result[:, 0], deg=1)
         self.fit_xm = np.polyfit(self.sweep_values, self.result[:, 1], deg=1)
         self.optimum = (self.fit_xp[0] - self.fit_xm[0]) / \
-            (self.fit_xm[1] - self.fit_xp[1])
+                       (self.fit_xm[1] - self.fit_xp[1])
 
     @register_browser_function()
+    @visual_analyze_prompt("Please carefully review the attached scatter plot, which features two sets of data points,"
+                           " one in blue and the other in red, each with a corresponding trend line. First, analyze the"
+                           " direction of the slopes for each trend line to understand the relationship between the DRAG"
+                           " coefficient (horizontal axis) and the Z expectation value (vertical axis). Examine how well"
+                           " the data points conform to their respective lines, noting any significant deviations, outliers,"
+                           "or consistent patterns in their distribution around the lines. Furthermore, evaluate the"
+                           " consistency in the distribution of data points along the DRAG coefficient range for both"
+                           " datasets. Based on your observations, determine whether each trend line accurately"
+                           " represents its dataset and if there are notable differences in the trends between the two"
+                           " sets of data. The analysis is deemed successful if the two differently colored lines exhibit"
+                           " distinct trends and the line fitting appears appropriate.")
     def plot(self):
         self.linear_fit()
-        plt.figure()
+        fig = plt.figure()
+
         plt.plot(self.sweep_values, self.result[:, 0], 'ro', alpha=0.5)
         plt.plot(
             self.sweep_values,
@@ -124,7 +153,30 @@ class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
         plt.xlabel(u"DRAG coefficient")
         plt.ylabel(u"<z>")
         # plt.legend()
-        plt.show()
+        return fig
+
+    def get_analyzed_result_prompt(self) -> Union[str, None]:
+
+        args = self.retrieve_args(self.run)
+
+        fitting_parameters = f"Sweep start: {self.inv_alpha_start}\n" \
+                             f"Sweep stop: {self.inv_alpha_stop}\n"
+
+        estimated_coefficient = 1 / self.optimum
+
+        fitting_results = ("The fitting results are as follows: \n"
+                           f"The estimated optimal DRAG coefficient is {estimated_coefficient}\n")
+
+        # Check if the estimated optimal DRAG coefficient falls within the central half of the sweep.
+        center = (self.inv_alpha_start + self.inv_alpha_stop) / 2
+        width = self.inv_alpha_stop - self.inv_alpha_start
+
+        if center - width / 4 < estimated_coefficient < center + width / 4:
+            fitting_results += "The estimated optimal DRAG coefficient falls within the central half of the sweep.\n"
+        else:
+            fitting_results += "The estimated optimal DRAG coefficient does not fall within the central half of the sweep.\n"
+
+        return fitting_parameters + fitting_results
 
 
 class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):

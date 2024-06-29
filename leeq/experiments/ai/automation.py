@@ -108,6 +108,8 @@ class AIStagedExperiment(Experiment):
                     experiment_result = exp_object.get_ai_inspection_results()
                     break
                 except Exception as e:
+                    raise e
+                    print(e)
                     numbers_of_retry += 1
                     if numbers_of_retry == 3:
                         raise e

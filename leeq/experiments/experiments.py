@@ -347,7 +347,8 @@ class LeeQAIExperiment(LeeQExperiment):
                     self.logger.warning(f"Ignore the error and continue.")
                     self.logger.warning(f"{e}")
 
-        ai_inspection_results = self._ai_inspection_results.copy()
+        ai_inspection_results = {key.split('.')[-1]: val['analysis'] for key, val in
+                                 self._ai_inspection_results.items()}
         fitting_results = self.get_analyzed_result_prompt()
 
         if fitting_results is not None:

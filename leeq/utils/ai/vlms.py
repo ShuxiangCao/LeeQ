@@ -92,12 +92,13 @@ def visual_inspection(image: "Image", prompt: str, rescale=0.5, **kwargs) -> dic
     #original_width, original_height = image.size
     #new_size = (int(original_width * rescale), int(original_height * rescale))
     #image = image.resize(new_size)
-    print("The image is shown below:")
-    display(image)
+    #print("The image is shown below:")
+    #display(image)
     from mllm import Chat
     chat = Chat(
         system_message="You are a helpful visual assistant that able to provide analysis on images or plots. "
-                       "Please return your message in a json format with keys analysis(str) and 'success'(boolean)")
+                       "Please return your message in a json format with keys analysis(str, single paragraph) "
+                       "and 'success'(boolean)")
     chat.add_user_message(prompt)
     chat.add_image_message(image)
     res = chat.complete(parse="dict", **kwargs)
