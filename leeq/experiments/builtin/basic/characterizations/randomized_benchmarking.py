@@ -14,7 +14,7 @@ from leeq.utils.ai.vlms import visual_analyze_prompt
 import scipy.optimize as so
 import uncertainties as unc
 
-__all__ = ['RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem']
+__all__ = ['RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem', 'SingleQubitRandomizedBenchmarking']
 
 
 class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
