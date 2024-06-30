@@ -223,6 +223,10 @@ class AmpTuneUpSingleQubitMultilevel(Experiment):
     This class represents an amplitude tuning experiment for a single qubit multilevel system.
     """
 
+    _experiment_result_analysis_instructions = """
+    The experiment is considered successful if the amplitude converges through the iterations.
+    """
+
     @log_and_record
     def run(self,
             dut: TransmonElement,
@@ -234,7 +238,7 @@ class AmpTuneUpSingleQubitMultilevel(Experiment):
             initial_lpb: Optional[LogicalPrimitiveBlock] = None,
             flip_other: bool = False) -> None:
         """
-        Run the amplitude tuning experiment.
+        Run the experiment  for amplitude finetuning of single qubit pulses repeatedly using pingpong scheme.
 
         Parameters:
             dut (object): The device under test.

@@ -42,7 +42,8 @@ class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
             num: int = 21
             ) -> None:
         """
-        Runs the AllXY drag experiment.
+        This experiment aims to calibrate the alpha parameter (DRAG coefficient) by conducting an AllXY DRAG experiment.
+        Do not specify the inv_alpha_start and inv_alpha_stop parameters unless you are sure about the range.
 
         Parameters:
             dut (Any): The device under test.
