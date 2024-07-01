@@ -103,8 +103,8 @@ class ConditionalStarkTuneUpRabiXY(Experiment):
         per period. If it is smaller than 8 then the experiment needs to increase the sweep point and the experiment is considered failed. Estimate how much 
         you need to increase the sweep points to get approximately 12 points per period.
         
-        For the fitting results, if the number of periods is less than 4, the experiment is considered failed. Estimate how much you need to increase the stop time
-        to obtain about 5 periods.
+        For the fitting results, if the number of periods is less than 2, the experiment is considered failed. Estimate how much you need to increase the stop time
+        to obtain about 3 periods.
         
         If the above check passes, the experiment is considered successful.
     """
@@ -660,7 +660,7 @@ class ConditionalStarkTuneUpRabiXY(Experiment):
         The fitting reports when the control qubit is at the ground state, the target is oscillating at a frequency of {self.fitting_2D[0]['Frequency']} MHz,
         and when the control qubit is at the excited state, the target is oscillating at a frequency of {self.fitting_2D[1]['Frequency']} MHz.
         Therefore the IZ rate is {self.iz_rate} MHz and the ZZ rate is {self.zz_rate} MHz. The sampling number per ZZ period is {1 / self.zz_rate / self.step}.
-        We have observed {self.stop / self.zz_rate} periods of the ZZ interaction. 
+        We have observed {self.stop * self.zz_rate} periods of the ZZ interaction. 
         """
 
         return prompt
@@ -1803,7 +1803,7 @@ class ConditionalStarkEchoTuneUp(Experiment):
             t_start=t_start, t_stop=t_stop, sweep_points=sweep_points
         )
 
-        if not self._xy_hamiltonian_tomography_inspection_results['success']:
+        if not self._xy_hamiltonian_tomography_inspection_results['Experiment success']:
             self._repeated_gate_inspection_results = {'success': False,
                                                       'analysis': ('Not executed due to the failure of '
                                                                    'Hamiltonian tomography experiment.')
@@ -1819,6 +1819,7 @@ class ConditionalStarkEchoTuneUp(Experiment):
     def get_analyzed_result_prompt(self) -> Union[str, None]:
         prompt = f"""
         Inspection results of Hamiltonian tomography:{self._xy_hamiltonian_tomography_inspection_results} 
+        
         Inspection results of repeated gate Hamiltonian tomography:{self._repeated_gate_inspection_results}
         
         The fitted parameters are as follows:
@@ -2016,7 +2017,7 @@ class ConditionalStarkEchoTuneUp(Experiment):
                     break
                 else:
                     try_count += 1
-                    print(f"AI inspection suggest a failed experiment. Retrying...")
+                    print(f"AI inspection suggests a failed experiment. Retrying...")
 
             if try_count == 3:
                 return inspection_results

@@ -371,13 +371,13 @@ class LeeQAIExperiment(LeeQExperiment):
                 summary = get_experiment_summary(self._experiment_result_analysis_instructions, run_args_prompt,
                                                  ai_inspection_results)
                 self._ai_final_analysis = summary
+                hide_spinner(spinner_id)
             else:
                 summary = self._ai_final_analysis
 
             ai_inspection_results['Final analysis'] = summary['analysis']
             ai_inspection_results['Suggested parameter updates'] = summary['parameter_updates']
             ai_inspection_results['Experiment success'] = summary['success']
-            hide_spinner(spinner_id)
 
         return ai_inspection_results
 
