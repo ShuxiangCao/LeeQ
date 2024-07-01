@@ -92,6 +92,12 @@ def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None)
                                      'the call automatically so there is no need to do data analysis separately',
                                      "data_analyze"))
     wm.add_item(WMemoryNoStimuliItem('Always use named arguments to call functions or classes.', "argument_name"))
+    wm.add_item(WMemoryNoStimuliItem(
+        ('Some of the calls accept `ai_inspection` parameter. Note that since you are an AI and if the '
+         'document suggest to set it to true when an AI is writing the code, set it to True explicitly.'),
+        "ai_inspection"))
+    # wm.add_item(WMemoryNoStimuliItem('The result of the experiment run should be saved in the exp_run variable.',
+    #                                 "return_values"))
     wm.add_content(hint, "Background")
     prompt = f'''
 do("""{description}""")

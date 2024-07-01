@@ -4,12 +4,13 @@ import numpy as np
 from scipy import optimize as so
 from labchronicle import register_browser_function, log_and_record
 from matplotlib import pyplot as plt
-from typing import List, Optional
+from typing import List, Optional, Any, Union
 from joblib import Parallel, delayed
 from tqdm.notebook import tqdm
 import multiprocessing
 import uncertainties as unc
 from uncertainties.umath import exp as uexp
+from leeq.utils.ai.vlms import visual_analyze_prompt
 
 from leeq import Sweeper, basic_run, Experiment
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel, \
@@ -128,9 +129,41 @@ class RandomizedBenchmarking2Qubits(Experiment):
 
 
 class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
+    """
+    A class to compare standard and interleaved randomized benchmarking for two qubits.
+
+    Attributes:
+        seq_length_std (List[int]): Sequence lengths for standard RB.
+        seq_length_interleaved (List[int]): Adjusted sequence lengths for interleaved RB.
+        fit_params (Dict[str, Any]): Fitting parameters and statistics for both RB methods.
+        success_probability (Dict[str, List[float]]): Success probabilities for standard and interleaved RB.
+        infidelity (float): Calculated relative infidelity between standard and interleaved RB.
+    """
+
+    _experiment_result_analysis_instructions = """
+    This is the analysis of the randomized benchmarking experiment. The experiment is considered successful if no
+    parameter needs to be updated based on the visual plot inspection, and the infidelity values are physical. Otherwise
+    the experiment is failed.
+    """
 
     @log_and_record
-    def run(self, duts, c2, seq_length: int, kinds: int, interleaved: int):
+    def run(self, duts: List[Any], c2: Any, seq_length: List[int], kinds: int = 10, interleaved: int = 10299) -> None:
+        """
+        Executes the experiment comparing standard and interleaved randomized benchmarking for two qubit gates.
+
+        Args:
+            duts (List[Any]): Devices under test.
+            c2 (Any): Control parameter for the qubits.
+            seq_length (List[int]): List of sequence lengths for the RB.
+            kinds (int): Parameter indicating different kinds of sequences.
+            interleaved (int): Specifies the index of the gate interleaving. By default, it is set to 10299 for CZ gate.
+
+        Example:
+            >>> cz_index = 10299
+            >>> c2 = prims.build_CZ_stark_from_parameters(control_q=dut1, target_q=dut2, trunc=1.0,**calibrated_params)
+            >>> rb_interleaved = RandomizedBenchmarking2QubitsInterleavedComparison(duts=[dut1,dut2], kinds=10,
+            >>>     seq_length=[0,2,4,6,8,10,12,16,20,24], c2=c2,interleaved=cz_index)
+        """
         self.seq_length_std = seq_length
         standard_rb = RandomizedBenchmarking2Qubits(
             duts=duts,
@@ -140,19 +173,22 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
             interleaved=None
         )
 
+        # Compute interleaved sequence lengths
         self.seq_length_interleaved = [i // 2 + 1 if i % 2 else i // 2 for i in seq_length]
 
         interleaved_rb = RandomizedBenchmarking2Qubits(
             duts=duts,
             c2=c2,
-            seq_length=[i // 2 + 1 if i % 2 else i // 2 for i in seq_length],
+            seq_length=self.seq_length_interleaved,
             kinds=kinds,
             interleaved=interleaved
         )
 
+        # Analyze results from both standard and interleaved RB
         standard_rb.analyze_result()
         interleaved_rb.analyze_result()
 
+        # Store fit parameters and related statistics
         self.fit_params = {
             'standard': {
                 'popt': standard_rb.popt,
@@ -170,38 +206,59 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
             }
         }
 
+        # Calculate success probabilities for both types
         self.success_probability = {
             'standard': standard_rb.success_probability,
             'interleaved': interleaved_rb.success_probability
         }
 
+        # Compute the ratio of probabilities to find relative infidelity
         p_s = uexp(unc.ufloat(standard_rb.popt[1], standard_rb.perr[1]))
         p_i = uexp(unc.ufloat(interleaved_rb.popt[1], interleaved_rb.perr[1]))
-
         self.infidelity = (4 - 1) / 4 * (1 - (p_i / p_s))
 
+    def get_analyzed_result_prompt(self) -> Union[str, None]:
+        return f"""
+        The standard randomized benchmarking reports infidelity pgc to be {self.fit_params['standard']['infidelity']}.
+        The interleaved randomized benchmarking reports infidelity pgc to be {self.fit_params['interleaved']['infidelity']}.
+        The infidelity of the interleaved gate is {self.infidelity}.
+        """
+
     @register_browser_function()
-    def plot(self):
+    @visual_analyze_prompt("""
+    This is the analysis of the randomized benchmarking experiment. The experiment is considered successful two clear 
+    exponential decays are observed. if the decay is too fast, the experiment is failed reduce the sequence length.
+    If the decay is too slow, the experiment is failed and increase the sequence length. If the decay rate is proper,
+    the experiment is successful.  
+    """)
+    def plot(self) -> None:
+        """
+        Generates a plot comparing the fitting curves and success probabilities for
+        standard and interleaved randomized benchmarking.
+        """
         args = self.retrieve_args(self.run)
         seq_length = args['seq_length']
 
         lseq = np.linspace(0, np.amax(seq_length) + 1, 1001)
-        colors = ['k', 'r', 'g', 'b', 'c', 'm', 'o', 'y']
+        colors = ['black', 'red', 'green', 'blue', 'cyan', 'magenta', 'orange', 'yellow']
+
+        fig = plt.figure()
 
         plt.scatter(self.seq_length_std, self.success_probability['standard'], marker='o', label='Standard')
         plt.scatter(self.seq_length_interleaved, self.success_probability['interleaved'], marker='o',
                     label='Interleaved')
 
+        # Fit curves for standard and interleaved RB
         fit_curve_standard = self.fit_params['standard']['popt'][0] * np.exp(
             self.fit_params['standard']['popt'][1]) ** lseq + self.fit_params['standard']['popt'][2]
         fit_curve_interleaved = self.fit_params['interleaved']['popt'][0] * np.exp(
             self.fit_params['interleaved']['popt'][1]) ** lseq + self.fit_params['interleaved']['popt'][2]
 
-        plt.plot(lseq, fit_curve_standard, label='Fitting standard RB', color='k')
-        plt.plot(lseq, fit_curve_interleaved, label='Fitting interleaved RB', color='r')
+        plt.plot(lseq, fit_curve_standard, label='Fitting standard RB', color='black')
+        plt.plot(lseq, fit_curve_interleaved, label='Fitting interleaved RB', color='red')
 
         plt.title(f'Randomized benchmarking 2Q \n F={1 - self.infidelity}')
-        plt.xlabel(u"Number of of 2Q Cliffords")
-        plt.ylabel(u"P(00)")
+        plt.xlabel("Number of 2Q Cliffords")
+        plt.ylabel("P(00)")
         plt.legend()
-        plt.show()
+        return fig

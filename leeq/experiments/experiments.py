@@ -262,6 +262,7 @@ class LeeQAIExperiment(LeeQExperiment):
         Initialize the experiment.
         """
         self._ai_inspection_results = {}
+        self._ai_final_analysis = None
         super(LeeQAIExperiment, self).__init__(*args, **kwargs)
 
     @classmethod
@@ -355,18 +356,24 @@ class LeeQAIExperiment(LeeQExperiment):
             ai_inspection_results['fitting'] = fitting_results
 
         if self._experiment_result_analysis_instructions is not None:
-            spinner_id = show_spinner(f"AI is analyzing the experiment results...")
 
-            run_args_prompt = f"""
-            Document of this experiment:
-            {self.run.__doc__}
+            if self._ai_final_analysis is None:
+                spinner_id = show_spinner(f"AI is analyzing the experiment results...")
 
-            Running arguments:
-            {self.retrieve_args(self.run)}
-            """
+                run_args_prompt = f"""
+                Document of this experiment:
+                {self.run.__doc__}
 
-            summary = get_experiment_summary(self._experiment_result_analysis_instructions, run_args_prompt,
-                                             ai_inspection_results)
+                Running arguments:
+                {self.retrieve_args(self.run)}
+                """
+
+                summary = get_experiment_summary(self._experiment_result_analysis_instructions, run_args_prompt,
+                                                 ai_inspection_results)
+                self._ai_final_analysis = summary
+            else:
+                summary = self._ai_final_analysis
+
             ai_inspection_results['Final analysis'] = summary['analysis']
             ai_inspection_results['Suggested parameter updates'] = summary['parameter_updates']
             ai_inspection_results['Experiment success'] = summary['success']

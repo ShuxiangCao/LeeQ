@@ -47,9 +47,6 @@ class AIStagedExperiment(Experiment):
         from leeq.utils.ai.staging.stage_generation import stages_to_html
         from leeq.utils.ai.display_chat.notebooks import display_chat, code_to_html, dict_to_html
 
-        stages_html = stages_to_html(stages)
-        display_chat("Stage planning AI", '#f6ffe6', "The planned experiments are:<br>" + stages_html)
-
         input_var_table = VariableTable()
         for key, value in kwargs.items():
             input_var_table.add_variable(key, value)
@@ -63,6 +60,10 @@ class AIStagedExperiment(Experiment):
         var_table.add_parent_table(exps_var_table)
         var_table.add_parent_table(input_var_table)
         self.n_step_multiplier = 6  # Multiplier to control the number of execution steps
+
+        coding_ltm_cache = {}
+
+        self.experiment_history = []
 
         def run_stage_description(stage: 'Stage'):
             """
@@ -84,11 +85,16 @@ class AIStagedExperiment(Experiment):
             display(HTML(html))
 
             codegen_wm = get_codegen_wm(stage.description, input_var_table, hint=prompt)
-            recall_res = code_cog_model.recall(codegen_wm)
+
+            if stage.title not in coding_ltm_cache:
+                recall_res = code_cog_model.recall(codegen_wm)
+                coding_ltm_cache[stage.title] = recall_res
+            else:
+                recall_res = coding_ltm_cache[stage.title]
+
             new_codegen_wm = code_cog_model.act(codegen_wm, recall_res)
             new_var_table = var_table.new_child_table()
-            with IdeaBaseLogger():
-                codes = get_code_from_wm(new_codegen_wm)
+            codes = get_code_from_wm(new_codegen_wm)
 
             hide_spinner(spinner_id)
             code_html = code_to_html(codes)
@@ -105,6 +111,9 @@ class AIStagedExperiment(Experiment):
                 try:
                     new_var_table = run_stage_description(curr_stage)
                     exp_object = get_exp_from_var_table(new_var_table)
+                    if exp_object is None:
+                        continue
+                    self.experiment_history.append(exp_object)
                     experiment_result = exp_object.get_ai_inspection_results()
                     break
                 except Exception as e:
@@ -152,6 +161,26 @@ class AIStagedExperiment(Experiment):
             next_stage.description = new_description
             curr_stage = next_stage
 
+    def get_experiment_history(self) -> List[Experiment]:
+        """
+        Get the history of experiments run in the staged experiment.
+
+        Returns
+        -------
+        List[Experiment]: The history of experiments run in the staged experiment.
+        """
+        return self.experiment_history
+
+    def get_last_experiment(self) -> Experiment:
+        """
+        Get the last experiment run in the staged experiment.
+
+        Returns
+        -------
+        Experiment: The last experiment run in the staged experiment.
+        """
+        return self.experiment_history[-1]
+
 
 class AIInstructionExperiment(AIStagedExperiment):
     """
@@ -174,9 +203,17 @@ class AIInstructionExperiment(AIStagedExperiment):
         -------
         """
         from leeq.utils.ai.staging.stage_execution import Stage
-        stage = Stage("Stage1", "Experiment", prompt, "Go to Complete if success, otherwise go to Fail.")
-        stage_complete = Stage("Complete", "Complete", "The experiment is complete.", "End of experiment.")
-        stage_fail = Stage("Fail", "Fail", "The experiment has failed.", "End of experiment.")
+        # label: str, title: str, overview: str, description: str, next_stage_guide: str
+        stage = Stage(label="Stage1", title="Implement experiment",
+                      overview='You are requested to implement one experiment and modify the parameter to make it success.',
+                      description=prompt, next_stage_guide="Go to Complete if success. "
+                                                           "Go back to the same stage if the experiment failed and the parameters should be adjusted."
+                                                           "Go to Fail if the experiment failed and the parameters cannot be adjusted."
+                                                           "Go to Fail if the experiment has failed after 3 attempts."
+                      )
+        stage_complete = Stage("Complete", "Complete", "The experiment is complete.", "End of experiment.",
+                               next_stage_guide='None')
+        stage_fail = Stage("Fail", "Fail", "The experiment has failed.", "End of experiment.", next_stage_guide='None')
         stages = [stage, stage_complete, stage_fail]
 
         super().run(stages, **kwargs)
@@ -205,9 +242,15 @@ class FullyAutomatedExperiment(AIStagedExperiment):
         """
 
         from leeq.utils.ai.staging.stage_generation import get_stages_from_description
+        from leeq.utils.ai.staging.stage_generation import stages_to_html
+        from leeq.utils.ai.display_chat.notebooks import display_chat, code_to_html, dict_to_html
         spinner_id = show_spinner("AI is designing the experiment...")
         stages = get_stages_from_description(prompt)
         hide_spinner(spinner_id)
+
+        stages_html = stages_to_html(stages)
+        display_chat("Stage planning AI", '#f6ffe6', "The planned experiments are:<br>" + stages_html)
+
         super().run(stages, **kwargs)
 
 
