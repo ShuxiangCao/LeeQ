@@ -69,6 +69,8 @@ Title: {title_prompt[0]}
 {title_prompt[1]}    
 """
 
+    print(AutomatedExperiment.run.__doc__)
+
     AutomatedExperiment.__name__ = name
 
     return AutomatedExperiment
@@ -94,12 +96,12 @@ def extract_procedures_to_lt_memory(markdown_path, var_table, lt_memory):
 
 if __name__ == '__main__':
     #lt_memory, var_table = build_leeq_code_ltm()
-    from leeq.experiments.builtin.basic import calibrations
+    from leeq import experiments as exp
     from ideanet.core.idea import LongTermMemory
     from leeq.utils.ai.variable_table import VariableTable
     lt_memory = LongTermMemory()
     var_table = VariableTable()
-    root = os.path.dirname(calibrations.__file__)
+    root = os.path.dirname(exp.__file__)
     extract_procedures_to_lt_memory(root + "/procedures/calibration.md", var_table,
                                     lt_memory)
 

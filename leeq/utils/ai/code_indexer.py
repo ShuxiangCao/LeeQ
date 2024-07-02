@@ -1,4 +1,5 @@
 import inspect
+import os
 from typing import Any, Tuple, Type, List
 
 from fibers.data_loader.module_to_tree import get_tree_for_module
@@ -163,5 +164,11 @@ def build_leeq_code_ltm() -> Tuple[LongTermMemory, VariableTable]:
 
     for i, idea in parallel_map(_add_leeq_exp_to_ltm, [cls for cls in classes], title = "Adding experiment to memory"):
         ...
+
+    from leeq import experiments as exp
+    from .procedure_indexer import extract_procedures_to_lt_memory
+    root = os.path.dirname(exp.__file__)
+    #extract_procedures_to_lt_memory(root + "/procedures/calibration.md", var_table,
+    #                                lt_memory)
 
     return lt_memory, var_table

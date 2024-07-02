@@ -45,7 +45,7 @@ class SimpleRamseyMultilevel(Experiment):
             set_offset: float = 10.0,
             update: bool = True) -> None:
         """
-        Run the Ramsey experiment.
+        Run the Ramsey experiment for estimating the qubit frequency or T2 ramsey.
 
         Parameters:
             qubit: The qubit on which the experiment is performed.
