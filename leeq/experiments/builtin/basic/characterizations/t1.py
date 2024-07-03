@@ -102,7 +102,7 @@ class SimpleT1(Experiment):
 
         self.fit_params = fit_params
 
-        t1 = unc.ufloat(fit_params['Decay'][0], fit_params['Decay'][1])
+        t1 = fit_params['Decay']
 
         return f"The sweep time length is {args['time_length']} us and " + "the fitted curve reports a T1 value of " + f"{t1} us."
 
@@ -115,7 +115,7 @@ class SimpleT1(Experiment):
         "occupied by this stable section. The total sweep time frame value should be approximately 5 times"
         "the estimated T1 time to ensure a accurate estimation. If the values are too far apart, adjust the "
         "time frame accordingly."
-        )
+    )
     def plot_t1(self, fit=True, step_no=None) -> go.Figure:
         """
         Plot the T1 decay graph based on the trace and fit parameters using Plotly.
@@ -162,7 +162,7 @@ class SimpleT1(Experiment):
 
             trace_line = go.Scatter(
                 x=t,
-                y=fit_params['Amplitude'][0] * np.exp(-t / fit_params['Decay'][0]) + fit_params['Offset'][0],
+                y=fit_params['Amplitude'].n * np.exp(-t / fit_params['Decay'].n) + fit_params['Offset'].n,
                 mode='lines',
                 line=dict(
                     color='blue'
@@ -172,7 +172,7 @@ class SimpleT1(Experiment):
             )
             title = (
                 f"T1 decay {args['qubit'].hrid} transition {args['collection_name']}<br>"
-                f"T1={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
+                f"T1={fit_params['Decay']} us")
 
             data = [trace_scatter, trace_line]
 
@@ -324,7 +324,7 @@ class MultiQubitT1(Experiment):
 
             trace_line = go.Scatter(
                 x=t,
-                y=fit_params['Amplitude'][0] * np.exp(-t / fit_params['Decay'][0]) + fit_params['Offset'][0],
+                y=fit_params['Amplitude'].n * np.exp(-t / fit_params['Decay'].n) + fit_params['Offset'].n,
                 mode='lines',
                 line=dict(
                     color='blue'
@@ -333,7 +333,7 @@ class MultiQubitT1(Experiment):
             )
             title = (
                 f"T1 decay {args['duts'][i].hrid} transition {self.collection_names[i]}<br>"
-                f"T1={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
+                f"T1={fit_params['Decay']} us")
 
             data = [trace_scatter, trace_line]
 

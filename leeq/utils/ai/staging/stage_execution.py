@@ -123,13 +123,14 @@ def check_if_needed_to_break_down(description: str):
 
     # Check if we need to split the stage described by the description into multiple steps
     prompt = f"""
-    You are tasked with evaluating a stage description to determine if it should be executed as a single step or needs to be divided into multiple steps. Use the following criteria for your evaluation:
+    Evaluate whether a stage description in an experimental process should be executed as a single step or needs to be divided into multiple steps. Consider the following criteria for your evaluation:
 
-    - If the stage involves multiple distinct experiments, each requiring its own set of parameters, divide it into multiple steps.
-    - If the stage involves one experiment that needs to be run multiple times with different parameters, divide it into multiple steps.
-    - If there are variations in parameters within a single experiment, consider these variations part of the experiment's internal management. In this case, do not divide the stage into multiple steps.
-    - If there are only one experiment and no parameters are explicitly specified, the stage should be executed as a single step.
-
+    - Multiple Experiments: If the stage includes multiple distinct experiments, each requiring unique parameters, divide it into multiple steps.
+    - Repeated Experiments with Specified Parameters: If the stage involves repeating one experiment multiple times with different parameters that are explicitly specified, divide it into multiple steps.
+    - Repeated Experiments without Specified Parameters: If the stage involves repeating one experiment multiple times without explicitly specified parameters, treat it as a single step.
+    - Parameter Variations Within an Experiment: If a single experiment includes variations in parameters, consider these as part of the internal management of the experiment and do not divide the stage.
+    - Single Experiment, No Specified Parameters: If the stage comprises only one experiment with no parameters specified, execute it as a single step.
+    
     If division into multiple steps is necessary, provide a detailed description of each step, including the parameters for each.
 
     Stage Description:

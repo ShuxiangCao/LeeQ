@@ -102,11 +102,14 @@ class RandomizedBenchmarking2Qubits(Experiment):
         self.popt = popt
         self.pcov = pcov
 
+        u_params = unc.correlated_values(popt, pcov)
+        from uncertainties.umath import exp as uexp
+
         d = 4  # for two level system
 
         self.perr = np.sqrt(np.diag(pcov))
-        self.infidelity = (d - 1) / d * (1 - np.exp(popt[1]))
-        self.error_bar = (d - 1) / d * (self.perr[1] / np.exp(popt[1]))
+        self.infidelity = (d - 1) / d * (1 - uexp(u_params[1]))
+        self.error_bar = self.infidelity.s
 
     @register_browser_function()
     def plot(self):
@@ -121,7 +124,7 @@ class RandomizedBenchmarking2Qubits(Experiment):
         fit_curve = self.popt[0] * np.exp(self.popt[1]) ** lseq + self.popt[2]
         plt.plot(lseq, fit_curve, label='Fitting', color='k')
 
-        plt.title(f'Randomized benchmarking 2Q \n F={1 - self.infidelity}+-{self.error_bar}')
+        plt.title(f'Randomized benchmarking 2Q \n F={1 - self.infidelity}')
         plt.xlabel(u"Number of of 2Q Cliffords")
         plt.ylabel(u"P(00)")
         plt.legend()

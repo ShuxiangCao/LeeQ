@@ -11,6 +11,7 @@ from scipy.fft import fft, fftfreq
 from scipy.optimize import minimize, curve_fit
 import uncertainties as unc
 
+
 def fit_1d_freq(
         z,
         dt,
@@ -19,7 +20,6 @@ def fit_1d_freq(
         tstart=0,
         freq_guess=None,
         **kwargs):
-
     if fix_frequency:
         assert freq_guess is not None
 
@@ -221,15 +221,17 @@ def fit_1d_freq_exp_with_cov(z: np.ndarray, dt: float, use_freq_bound: bool = Tr
 
     popt, pcov = curve_fit(curve, t, z, p0=[omega, amp, phi, offset, T])
 
-    omega, amp, phi, offset, T = popt
-    omega_std, amp_std, phi_std, offset_std, T_std = np.sqrt(np.diag(pcov)).tolist()
+    u_parameters = unc.correlated_values(popt, pcov)
 
-    return {'Frequency': (omega, omega_std),
-            'Amplitude': (amp, amp_std),
-            'Phase': (phi, phi_std),
-            'Offset': (offset, offset_std),
-            'Decay': (T, T_std),
-            'Cov': pcov}
+    return {
+        'Frequency': u_parameters[0],
+        'Amplitude': u_parameters[1],
+        'Phase': u_parameters[2],
+        'Offset': u_parameters[3],
+        'Decay': u_parameters[4],
+        'Cov': pcov
+    }
+
 
 def fft_based_initial_estimation(z, dt):
     n = len(z)
@@ -240,12 +242,12 @@ def fft_based_initial_estimation(z, dt):
 
     dominant_index = np.argmax(positive_fft_values)
     dominant_frequency = positive_frequencies[dominant_index] if positive_frequencies[dominant_index] >= 0 else - \
-    positive_frequencies[dominant_index]
+        positive_frequencies[dominant_index]
 
     return dominant_frequency, np.max(positive_fft_values)
 
-def fit_2d_freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None, t=None, **kwargs):
 
+def fit_2d_freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None, t=None, **kwargs):
     # Initial frequency and amplitude estimation
     # estimated_frequency, estimated_amplitude = fft_based_initial_estimation(z, dt)
     # print(f'Initial Frequency Estimate: {estimated_frequency}')
@@ -272,8 +274,6 @@ def fit_2d_freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None
         omega = abs(freq_guess)
         max_omega = omega * 2
         min_omega = -omega * 2
-
-
 
     if t is None:
         t = np.linspace(0, dt * (len(z) - 1), len(z))
@@ -313,9 +313,9 @@ def fit_2d_freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None
 
     args = {}
     if use_freq_bound:
-        args['bounds'] = ((min_omega, max_omega), (None, None), (None, None), (None, None), (None, None),(None, None))
+        args['bounds'] = ((min_omega, max_omega), (None, None), (None, None), (None, None), (None, None), (None, None))
 
-    result = minimize(leastsq, initial_guess, args=(t, z),**args)
+    result = minimize(leastsq, initial_guess, args=(t, z), **args)
     omega, amp, phi, offset_real, offset_imag, decay = result.x
 
     if amp < 0:
@@ -331,18 +331,21 @@ def fit_2d_freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None
         'Residual': result.fun
     }
 
+
 import numpy as np
 from scipy.optimize import curve_fit
+
+
 def fit_2d_freq_curvefit(z, dt,
                          freq_guess, amp_guess, phi_guess, offset_real_guess,
-                         offset_imag_guess , t=None):
+                         offset_imag_guess, t=None):
     z = np.asarray(z)
 
     if t is None:
         t = np.linspace(0, dt * (len(z) - 1), len(z))
 
     def model(t, omega, amp, phi, offset_real, offset_imag):
-        return amp  * np.exp(1.j * (2. * np.pi * omega * t + phi)) + offset_real + 1.j * offset_imag
+        return amp * np.exp(1.j * (2. * np.pi * omega * t + phi)) + offset_real + 1.j * offset_imag
 
     p0 = [freq_guess, amp_guess, phi_guess, offset_real_guess, offset_imag_guess]
 
@@ -362,11 +365,13 @@ def fit_2d_freq_curvefit(z, dt,
         'Phase': unc.ufloat(popt[2], perr[2]),
         'Offset_real': unc.ufloat(popt[3], perr[3]),
         'Offset_imag': unc.ufloat(popt[4], perr[4]),
-        'Residual': np.sum(np.abs(model(t, *popt) - z)**2)
+        'Residual': np.sum(np.abs(model(t, *popt) - z) ** 2)
     }
 
+
 def fit_2d_freq_with_cov(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None, t=None, **kwargs):
-    direct_estimation = fit_2d_freq(z, dt, use_freq_bound=use_freq_bound, fix_frequency=fix_frequency, freq_guess=freq_guess, t=t, **kwargs)
+    direct_estimation = fit_2d_freq(z, dt, use_freq_bound=use_freq_bound, fix_frequency=fix_frequency,
+                                    freq_guess=freq_guess, t=t, **kwargs)
     curve_fit_estimation = fit_2d_freq_curvefit(z, dt,
                                                 freq_guess=direct_estimation['Frequency'],
                                                 amp_guess=direct_estimation['Amplitude'],

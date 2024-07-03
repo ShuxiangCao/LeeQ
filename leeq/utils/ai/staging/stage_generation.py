@@ -1,6 +1,7 @@
 from typing import List
 
 from .stage_execution import Stage
+import json
 
 
 def stages_to_html(stages_list):
@@ -27,8 +28,114 @@ def stages_to_html(stages_list):
     html_content += '</div>'
     return html_content
 
-#- Note: You can execute one experiment at each stage. If the stage should consider multiple runs with different argument of the same experiment,
-#            implement it by suggesting the transitions rules that direct it itself.
+
+def remove_unused_stages_and_update_next(stage_info_list: List[dict]) -> List[dict]:
+    """
+    Remove unused stages and update the next stage information.
+    """
+
+    prompt = f"""
+    You have created a list of stages for an experiment. Your task is to modify this list based on specific criteria:
+
+    - Identify and remove any stages that are marked with 'contains_experiment=False'. Assume these stages are successful by default.
+    - For the remaining stages, update the rule for transitioning to the next stage based on the results of the experiment.
+    - Keep the rest information of each stage unchanged, return in the same format as the input.
+    - Keep the 'Complete' and 'Fail' stages as the final stages of the experiment.
+    
+    This process ensures that the list reflects only the stages actively involved in the experiment and adjusts the workflow according to experimental outcomes.
+    
+    <stages>
+    {json.JSONEncoder().encode(stage_info_list)}
+    </stages>
+    
+    Return format:
+    
+    {{
+    "stages": List[dict]
+    }}
+    """
+
+    import mllm
+    chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
+    updated_stage_info = chat.complete(parse="dict", expensive=True, cache=True)
+    return updated_stage_info["stages"]
+
+
+def refine_stage_description(res: dict) -> dict:
+    """
+    Refine the stage description based on the response from the AI.
+
+    Parameters:
+        res (dict): The response from the AI.
+    """
+
+    prompt = f"""
+    Please refine the description generated from the input with the following condition. Note that the description
+    may only reflect part of the input.
+
+    <input prompt>
+    {res["Reference"]}
+    </input prompt>
+
+    <generated title>
+    {res['Title']}
+    </generated title>
+
+    <generated description>
+    {res['ExperimentDescription']}
+    </generated description>
+
+    - If the generated description contains information not related to the input, remove it. 
+    - If the generated description contains objectives or goals, remove them.
+    - Quote the the parameters and the values in the format of `"<parameter name>=<parameter value>"`.
+    - Only modify the parts described above, keep the rest of the description as is.
+    - If this stage only contains data and result analysis and interpretation without carrying out any experiment,
+        please set the <contains_experiment> to False. Otherwise set it to True.
+
+    Example output:
+    {{
+        "analysis":"<Describe your thought process for updating the stage description.>",
+        "description":"Conduct the <experiment name> with parameters <parameter list for experiment>.",
+        "contains_experiment": <true/false>
+    }}
+    """
+
+    import mllm
+    chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
+    updated_res = chat.complete(parse="dict", expensive=True, cache=True)
+
+    new_res = {
+        "Title": res["Title"],
+        "ExperimentDescription": updated_res["description"],
+        "Next": res["Next"],
+        'contains_experiment': updated_res["contains_experiment"]
+    }
+
+    return new_res
+
+
+def _get_stage_from_agent_response(stage_info: tuple) -> dict:
+    """
+    Get a stage object from the response of the AI agent.
+
+    Parameters:
+        stage_info (tuple): The tuple containing the stage name and content.
+
+    Returns:
+        dict: The stage object.
+    """
+
+    stage_name, stage_content = stage_info
+
+    if stage_name in ["Complete", "Fail"]:
+        refined_content = stage_content
+    else:
+        refined_content = refine_stage_description(stage_content)
+
+    stage_content.update(refined_content)
+
+    return stage_content
+
 
 def get_stages_from_description(description: str) -> List[Stage]:
     """
@@ -66,6 +173,8 @@ Note: Refinement of the parameters should be included in the same stage, not in 
     - **Retry**: Specify when to repeat a stage with adjustments.
     - **Revert**: Return to the previous stage.
     
+- **Reference**: Include the original input prompt related to each stage for reference and context.
+    
 - **Output Format**: Present these instructions and conditions in a JSON format, with each stage as a key detailing the experiment and transition rules. 
 The NEXT key must be a string detailing the transition conditions. Do not use "retry", "advance", or "revert", instead describe the stage label directly.
 
@@ -78,16 +187,19 @@ The NEXT key must be a string detailing the transition conditions. Do not use "r
     "Title": "Experiment1",
     "ExperimentDescription": "Conduct the <experiment name 1> with parameters <parameter list for experiment 1>.",
     "Next": "Proceed to Stage2 if successful, adjust the parameter based on the results suggestion and retry Stage1 if not. After 3 failures, proceed to Fail."
+    "Reference":'<The original input prompt related to this stage>'
   },
   "Stage2": {
     "Title": "Experiment2",
     "ExperimentDescription": "Conduct the <experiment name 2> with parameters <parameter list for experiment 2>.",
     "Next": "Advance to Stage3 if standards are met, retry Stage2 with adjustments from results suggestions otherwise.After 3 failures, proceed to Fail."
+    "Reference":'<The original input prompt related to this stage>'
   },
   "Stage3": {
     "Title": "Experiment3",
     "ExperimentDescription": "Conduct the <experiment name 3> with parameters <parameter list for experiment 3>.",
     "Next": "Move to Complete if successful, return to Stage3 if inconclusive. After 3 failures, proceed to Fail."
+    "Reference":'<The original input prompt related to this stage>'
   },
   "Complete": {
     "Title": "Completion",
@@ -106,18 +218,48 @@ The NEXT key must be a string detailing the transition conditions. Do not use "r
 
     completed_prompt = prompt + description
     import mllm
+    from mllm.utils import parallel_map
+
     chat = mllm.Chat(completed_prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
     res = chat.complete(parse="dict", expensive=True, cache=True)
     stages = []
 
     overview = res.pop("Overview")
 
+    # Add overview to each dict in res
     for stage_name, stage_content in res.items():
-        stage = Stage(label=stage_name, title=stage_content['Title'],
-                      overview=overview,
-                      description=stage_content['ExperimentDescription'],
-                      next_stage_guide=stage_content['Next'])
+        stage_content['Overview'] = overview
+        stage_content['label'] = stage_name
+
+    stages_info = [k[1] for k in sorted(parallel_map(_get_stage_from_agent_response, res.items()), key=lambda x: x[0])]
+
+    # Check if there is any stage marked as contains_experiment=False
+    has_stage_need_to_remove = len([stage for stage in stages_info if
+                                    stage['label'] not in ['Complete', 'Fail'] and not stage[
+                                        'contains_experiment']]) > 0
+
+    if has_stage_need_to_remove:
+        stages_info = remove_unused_stages_and_update_next(stages_info)
+
+    for stage_info in stages_info:
+        stage = Stage(label=stage_info['label'], title=stage_info['Title'],
+                      overview=stage_info['Overview'],
+                      description=stage_info['ExperimentDescription'],
+                      next_stage_guide=stage_info['Next'])
         stages.append(stage)
+
+    # for stage_name, stage_content in res.items():
+
+    #    if stage_name in ["Complete", "Fail"]:
+    #        refined_content = stage_content
+    #    else:
+    #        refined_content = refine_stage_description(stage_content)
+
+    #    stage = Stage(label=stage_name, title=refined_content['Title'],
+    #                  overview=overview,
+    #                  description=refined_content['ExperimentDescription'],
+    #                  next_stage_guide=refined_content['Next'])
+    #    stages.append(stage)
 
     return stages
 

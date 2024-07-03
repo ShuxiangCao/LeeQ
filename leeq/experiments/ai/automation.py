@@ -23,7 +23,7 @@ class AIStagedExperiment(Experiment):
     An experiment that contains multiple stages to be run.
     """
 
-    def run(self, stages: List['Stage'], **kwargs):
+    def run(self, stages: List['Stage'], sub_experiment=False, **kwargs):
         """
         Run the staged experiment powered by language model.
 
@@ -31,6 +31,8 @@ class AIStagedExperiment(Experiment):
         ----------
         stages: List[Stage]
             The stages of the experiment.
+        sub_experiment: bool
+            Whether the experiment is a sub-experiment. If it is we do not allow it to be further splitted.
         kwargs
             Additional keyword arguments.
 
@@ -84,15 +86,17 @@ class AIStagedExperiment(Experiment):
             html = stages_to_html([stage])
             display(HTML(html))
 
-            breakdown_requirement = check_if_needed_to_break_down(stage.description)
-
-            single_step = breakdown_requirement['single_step'] or len(breakdown_requirement['steps']) == 1
+            if sub_experiment:
+                single_step = True
+            else:
+                breakdown_requirement = check_if_needed_to_break_down(stage.description)
+                single_step = breakdown_requirement['single_step'] or len(breakdown_requirement['steps']) == 1
 
             if not single_step:
                 hide_spinner(spinner_id)
                 display_chat("Stage Planning AI", 'light_blue',
-                             f"Stage {stage.label} is too complex to be processed in one step. Planning to break down the stage into smaller steps. {breakdown_requirement['reason']}")
-                exp = FullyAutomatedExperiment(stage.description, **input_var_table.variable_objs)
+                             f"Stage {stage.label} is too complex to be processed in one step. Planning to break down the stage into smaller steps. {breakdown_requirement['reason']}.")
+                exp = FullyAutomatedExperiment(stage.description, sub_experiment=True, **input_var_table.variable_objs)
                 new_var_table = var_table.new_child_table()
                 new_var_table.add_variable("exp", exp)
 
@@ -204,11 +208,11 @@ class AIStagedExperiment(Experiment):
     def get_ai_inspection_results(self) -> Dict[str, Any]:
         return self.get_last_experiment().get_ai_inspection_results()
 
-        #return {
+        # return {
         #    "Analysis": self.final_result["analysis"],
         #    "Suggested parameter updates": None,
         #    'Experiment success': self.final_result["success"],
-        #}
+        # }
 
 
 class AIInstructionExperiment(AIStagedExperiment):
@@ -255,7 +259,7 @@ class FullyAutomatedExperiment(AIStagedExperiment):
     """
 
     @log_and_record
-    def run(self, prompt: str, **kwargs):
+    def run(self, prompt: str, sub_experiment=False, **kwargs):
         """
         Run the automated experiment powered by language model.
 
@@ -263,6 +267,8 @@ class FullyAutomatedExperiment(AIStagedExperiment):
         ----------
         prompt: str
             The prompt to run the experiment. Contains the experiment design and instructions.
+        sub_experiment: bool
+            Whether the experiment is a sub-experiment. If it is we do not allow it to be further splitted.
         kwargs
             Additional keyword arguments.
 
@@ -280,7 +286,7 @@ class FullyAutomatedExperiment(AIStagedExperiment):
         stages_html = stages_to_html(stages)
         display_chat("Stage planning AI", 'light_blue', "The planned experiments are:<br>" + stages_html)
 
-        super().run(stages, **kwargs)
+        super().run(stages, sub_experiment=sub_experiment, **kwargs)
 
 
 AIRun = AIInstructionExperiment

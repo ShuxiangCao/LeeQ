@@ -52,7 +52,7 @@ class NormalisedRabi(Experiment):
         collection_name (str): Collection name for retrieving c1. Default is 'f01'.
         mprim_index (int): Index for retrieving measurement primitive. Default is 0.
         pulse_discretization (bool): Whether to discretize the pulse. Default is False.
-        update (bool): Whether to update the qubit parameters. Default is False.
+        update (bool): Whether to update the qubit parameters If you are tuning up the qubit set it to True. Default is False.
         initial_lpb (Any): Initial lpb to add to the created lpb. Default is None.
 
         Returns:

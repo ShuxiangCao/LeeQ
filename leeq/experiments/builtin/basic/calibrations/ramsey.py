@@ -16,7 +16,8 @@ from plotly import graph_objects as go
 
 logger = setup_logging(__name__)
 
-__all__ = ['SimpleRamseyMultilevel'] # , 'MultiQubitRamseyMultilevel'
+__all__ = ['SimpleRamseyMultilevel']  # , 'MultiQubitRamseyMultilevel'
+
 
 class SimpleRamseyMultilevel(Experiment):
     """
@@ -113,7 +114,7 @@ class SimpleRamseyMultilevel(Experiment):
         # Analyze data if update is true
         if update:
             self.analyze_data()
-            c1q.update_parameters(freq=self.frequency_guess)
+            c1q.update_parameters(freq=self.frequency_guess.n)
             print(f"Frequency updated: {self.frequency_guess} MHz")
         else:
             c1q.update_parameters(freq=original_freq)
@@ -259,10 +260,10 @@ class SimpleRamseyMultilevel(Experiment):
             self.fit_params = fit_1d_freq_exp_with_cov(
                 self.data, dt=args['step'])
             fitted_freq_offset = (
-                                         self.fit_params['Frequency'][0] - self.set_offset) / self.level_diff
+                                         self.fit_params['Frequency'] - self.set_offset) / self.level_diff
             self.fitted_freq_offset = fitted_freq_offset
             self.frequency_guess = self.original_freq - fitted_freq_offset
-            self.error_bar = self.fit_params['Frequency'][1]
+            self.error_bar = self.fit_params['Frequency'].s
 
         except Exception as e:
             # In case of fit failure, default the frequency guess and error
@@ -326,12 +327,12 @@ class SimpleRamseyMultilevel(Experiment):
         if hasattr(self, 'fit_params'):
 
             # Extract fitting parameters
-            frequency = self.fit_params['Frequency'][0]
-            amplitude = self.fit_params['Amplitude'][0]
-            phase = self.fit_params['Phase'][0] - \
+            frequency = self.fit_params['Frequency'].n
+            amplitude = self.fit_params['Amplitude'].n
+            phase = self.fit_params['Phase'].n - \
                     2.0 * np.pi * frequency * args['start']
-            offset = self.fit_params['Offset'][0]
-            decay = self.fit_params['Decay'][0]
+            offset = self.fit_params['Offset'].n
+            decay = self.fit_params['Decay'].n
 
             # Generate the fitted curve
             fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * \
@@ -351,7 +352,7 @@ class SimpleRamseyMultilevel(Experiment):
                          f"{decay} ± {self.fit_params['Decay'][1]} us"
             fig.update_layout(
                 title_text=title_text,
-                xaxis_title=f"Time (us) <br> Frequency: {frequency} ± {self.fit_params['Frequency'][1]}",
+                xaxis_title=f"Time (us) <br> Frequency: {self.fit_params['Frequency']}",
                 yaxis_title="<z>",
                 plot_bgcolor="white")
 
@@ -417,18 +418,18 @@ class SimpleRamseyMultilevel(Experiment):
 
         args = self.retrieve_args(self.run)
 
-        oscillation_count = (self.fit_params['Frequency'][0]) * (args['stop'] - args['start'])
+        oscillation_count = (self.fit_params['Frequency']) * (args['stop'] - args['start'])
 
         if self.error_bar == np.inf:
             return "The Ramsey experiment failed to fit the data."
 
         return (f"The Ramsey experiment for qubit {self.retrieve_args(self.run)['qubit'].hrid} has been analyzed. " \
-               f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured oscillation is "
-               f"{self.set_offset + self.fitted_freq_offset*self.level_diff:.3f}+- {self.error_bar:.3f} MHz. Oscillation"
-                f" amplitude is {self.fit_params['Amplitude'][0]:.3f}+-{self.fit_params['Amplitude'][1]:.3f}."
+                f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured oscillation is "
+                f"{self.set_offset + self.fitted_freq_offset * self.level_diff:.3f} MHz. Oscillation"
+                f" amplitude is {self.fit_params['Amplitude']}."
                 f" The number of oscillations is {oscillation_count:.3f}.")
 
-#class MultiQubitRamseyMultilevel(Experiment):
+# class MultiQubitRamseyMultilevel(Experiment):
 #    """
 #    Implement a multi-qubit Ramsey experiment with multilevel frequency sweeps.
 #    This version has changed the step size from 0.001 to 0.005.

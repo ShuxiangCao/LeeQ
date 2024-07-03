@@ -119,9 +119,9 @@ def fit_sinusoidal(
 def fit_exp_decay(z: np.ndarray,
                   dt: Optional[float] = None,
                   t: Optional[np.ndarray] = None) -> Dict[str,
-                                                          Union[float,
-                                                                Tuple[float,
-                                                                      float]]]:
+Union[float,
+Tuple[float,
+float]]]:
     """
     Fits an exponential decay to the data points in z.
 
@@ -154,10 +154,7 @@ def fit_exp_decay(z: np.ndarray,
 
 def fit_exp_decay_with_cov(z: np.ndarray,
                            dt: Optional[float] = None,
-                           t: Optional[np.ndarray] = None) -> Dict[str,
-                                                                   Union[float,
-                                                                         Tuple[float,
-                                                                               float]]]:
+                           t: Optional[np.ndarray] = None) -> Dict[str, Union[float, Tuple[float, float]]]:
     """
     Fits an exponential decay to the data points in z and calculates covariance.
 
@@ -189,11 +186,7 @@ def fit_exp_decay_with_cov(z: np.ndarray,
 
     popt, pcov = curve_fit(curve, t, z, p0=[amp, T, offset])
 
-    amp, T, offset = popt
-    amp_std, T_std, offset_std = np.sqrt(np.diag(pcov)).tolist()
+    u_params = unc.correlated_values(popt, pcov)
 
     return {
-        'Amplitude': (
-            amp, amp_std), 'Offset': (
-            offset, offset_std), 'Decay': (
-                T, T_std), 'Cov': pcov}
+        'Amplitude': u_params[0], 'Offset': u_params[2], 'Decay': u_params[1], 'Cov': pcov}

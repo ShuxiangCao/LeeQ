@@ -142,7 +142,7 @@ class SpinEchoMultiLevel(
             self.fit_params = fit_params
             trace_line = go.Scatter(
                 x=t,
-                y=fit_params['Amplitude'][0] * np.exp(-t / fit_params['Decay'][0]) + fit_params['Offset'][0],
+                y=fit_params['Amplitude'].n * np.exp(-t / fit_params['Decay'].n) + fit_params['Offset'].n,
                 mode='lines',
                 line=dict(
                     color='blue'
@@ -152,7 +152,7 @@ class SpinEchoMultiLevel(
             )
             title = (
                 f"T2 echo {args['qubit'].hrid} transition {args['collection_name']}<br>"
-                f"T2={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
+                f"T2={fit_params['Decay']} us")
 
             data = [trace_scatter, trace_line]
 
@@ -184,7 +184,7 @@ class SpinEchoMultiLevel(
         fit_params = fit_exp_decay_with_cov(trace, args['time_resolution'])
         self.fit_params = fit_params
 
-        t2 = unc.ufloat(fit_params['Decay'][0], fit_params['Decay'][1])
+        t2 = fit_params['Decay']
 
         return f"The sweep time length is {args['free_evolution_time']} us and " + "the fitted curve reports a T2 echo value of " + f"{t2} us."
 
@@ -370,7 +370,7 @@ class MultiQubitSpinEchoMultiLevel(
             fit_params = fit_exp_decay_with_cov(normalized_population, args['time_resolution'])
             trace_line = go.Scatter(
                 x=t,
-                y=fit_params['Amplitude'][0] * np.exp(-t / fit_params['Decay'][0]) + fit_params['Offset'][0],
+                y=fit_params['Amplitude'].n * np.exp(-t / fit_params['Decay'].n) + fit_params['Offset'].n,
                 mode='lines',
                 line=dict(
                     color='black'
@@ -379,7 +379,7 @@ class MultiQubitSpinEchoMultiLevel(
             )
             title = (
                 f"T2 echo {args['duts'][index].hrid} transition {self.collection_names[index]}<br>"
-                f"T2={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
+                f"T2={fit_params['Decay'][0]} us")
 
             data.append(trace_line)
 
