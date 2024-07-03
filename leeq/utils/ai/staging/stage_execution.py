@@ -107,7 +107,8 @@ def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None)
     #               ```
     #               """,'Multiple steps')
     prompt = f'''
-do("""{description}""")
+# {description}
+# [slot]
 '''
     wm.add_item(CodeWMemoryItem(prompt))
     return wm

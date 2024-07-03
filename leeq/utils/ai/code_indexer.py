@@ -8,7 +8,8 @@ from mllm import Chat
 from mllm.utils import parallel_map
 
 from ideanet.codegen.code_wmemory import CodeEditingItem
-from ideanet.core.idea import IdeaResult, WorkingMemory, LongTermMemory, EmbedIdea
+from ideanet.core.lt_memory import IdeaResult, LongTermMemory, EmbedIdea
+from ideanet.core.w_memory import WorkingMemory
 from .variable_table import VariableTable
 
 
@@ -113,9 +114,12 @@ You should output a JSON dict. The keys should be
         res = chat.complete(parse="dict", expensive=True)
 
         if not res["applicable"]:
-            return IdeaResult(self, False)
+            idea_res = IdeaResult(self, False)
+            idea_res.add_suppressing_wm_item()
+            return idea_res
 
-        idea_res = IdeaResult(self, True, suppress_ticks=0)
+        idea_res = IdeaResult(self, True)
+        idea_res.add_suppressing_wm_item(1)
         idea_res.add_new_wm_item(CodeEditingItem(res["code_fragment"], res["new_code_fragment"], note=res["note"]))
 
         return idea_res
