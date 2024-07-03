@@ -1,6 +1,6 @@
 from typing import List, Tuple, Optional
 from ideanet.codegen.code_wmemory import CodeWMemoryItem
-from ideanet.core.idea import WorkingMemory, WMemoryNoStimuliItem, WMemoryHiddenItem
+from ideanet.core.w_memory import WorkingMemory, WMemoryNoStimuliItem, WMemoryHiddenItem
 from leeq import Experiment
 from leeq.utils.ai.variable_table import VariableTable
 
@@ -86,7 +86,7 @@ def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None)
         prompt = f'''
 {var_table_in_prompt}
 '''
-    wm.add_item(WMemoryNoStimuliItem(prompt, "available_variables"))
+        wm.add_item(WMemoryNoStimuliItem(prompt, "available_variables"))
     wm.add_item(WMemoryNoStimuliItem('Call exactly one time to the experiment function / class in this edit.'))
     wm.add_item(WMemoryNoStimuliItem('Every class or function call will include the data analysis inside'
                                      'the call automatically so there is no need to do data analysis separately',
@@ -98,7 +98,8 @@ def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None)
         "ai_inspection"))
     # wm.add_item(WMemoryNoStimuliItem('The result of the experiment run should be saved in the exp_run variable.',
     #                                 "return_values"))
-    wm.add_content(hint, "Background")
+    if hint:
+        wm.add_content(hint, "background")
     # wm.add_content(""""
     #               If you need to execute more than one experiment at this stage, please use the following to break it into multiple steps:
     #               ```
@@ -107,10 +108,12 @@ def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None)
     #               ```
     #               """,'Multiple steps')
     prompt = f'''
-# {description}
+"""
+{description}
+"""
 # [slot]
 '''
-    wm.add_item(CodeWMemoryItem(prompt))
+    wm.add_item(CodeWMemoryItem(prompt, tag="code_to_complete"))
     return wm
 
 

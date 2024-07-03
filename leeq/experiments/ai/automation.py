@@ -6,14 +6,14 @@ from mllm import Chat
 
 from ideanet.codegen.code_wmemory import CodeWMemoryItem
 from ideanet.core.lt_memory import LongTermMemory, RecallResult, IdeaResult, Idea
-from ideanet.core.w_memory import WorkingMemory, WMemoryItem
-from ..experiments import Experiment
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
+from ideanet.core.w_memory import WorkingMemory
+from ideanet.utils.logger import RecallLogger
 
 from leeq.utils import setup_logging
 from leeq.utils.notebook import show_spinner, hide_spinner
 
 from IPython.core.display import display, HTML
+from leeq.experiments import Experiment
 
 logger = setup_logging(__name__)
 
@@ -30,6 +30,8 @@ class CodegenIdea(Idea):
         super().__init__("CodegenIdea")
 
     def get_score(self, w_memory: WorkingMemory):
+        if not w_memory.has_tag("code_suggestion"):
+            return -1.0
         return 1.0
 
     def run_idea(self, w_memory: WorkingMemory) -> IdeaResult:
@@ -102,11 +104,11 @@ class CodegenModel:
     lt_memory: LongTermMemory
     n_recall_items: int
 
-    def __init__(self, min_rounds=2, max_rounds=5):
+    def __init__(self, rounds=2):
         self.lt_memory = LongTermMemory()
         self.lt_memory.add_idea(CodegenIdea())
-        self.lt_memory.add_idea(CheckCodegenFinished(min_rounds=min_rounds, max_rounds=max_rounds))
         self.n_recall_items = 10
+        self.rounds = rounds
 
     def recall(self, wm: WorkingMemory) -> RecallResult:
         """
@@ -128,12 +130,12 @@ class CodegenModel:
         Preconditions:
             - there exists an item in wm tagged with 'completed_code' after at most 100 recalls.
         """
-        for i in range(100):
+        for i in range(self.rounds):
             recall_res = self.recall(wm)
             wm.update_by_recall_res(recall_res, to_tick=True)
-            code = wm.extract_tag_contents("completed_code")
-            if len(code) > 0:
-                return code[0]
+        code = wm.extract_tag_contents("attempted_code")
+        if len(code) > 0:
+            return code[0]
 
 
 class AIStagedExperiment(Experiment):
@@ -173,7 +175,7 @@ class AIStagedExperiment(Experiment):
         self.stages: List[Stage] = stages
 
         leeq_code_ltm, exps_var_table = build_leeq_code_ltm()
-        code_cog_model = CodegenModel(min_rounds=2, max_rounds=5)
+        code_cog_model = CodegenModel(rounds=2)
         for idea in leeq_code_ltm.ideas:
             code_cog_model.lt_memory.add_idea(idea)
         code_cog_model.n_recall_items = 5  # Number of items to recall in cognitive model
@@ -409,3 +411,20 @@ class FullyAutomatedExperiment(AIStagedExperiment):
 
 AIRun = AIInstructionExperiment
 AutoRun = FullyAutomatedExperiment
+
+
+if __name__ == '__main__':
+    from leeq.utils.ai.variable_table import VariableTable
+    from leeq.utils.ai.staging.stage_execution import get_codegen_wm
+    from leeq.utils.ai.code_indexer import build_leeq_code_ltm
+    prompt = "Do qubit measurement calibration to update the GMM model."
+    wm = get_codegen_wm(prompt, VariableTable())
+    leeq_code_ltm, exps_var_table = build_leeq_code_ltm()
+    code_cog_model = CodegenModel(rounds=2)
+    code_cog_model.n_recall_items = 5
+    for idea in leeq_code_ltm.ideas:
+        code_cog_model.lt_memory.add_idea(idea)
+    with RecallLogger():
+        code = code_cog_model.codegen(wm)
+
+

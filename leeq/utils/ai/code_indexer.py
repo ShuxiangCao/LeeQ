@@ -84,7 +84,7 @@ class LeeQExpIdea(EmbedIdea):
         """
         # Create a detailed prompt for the Chat model
         prompt = f"""
-You are trying to use some knowledge to rewrite some Python code.
+You are trying to use some knowledge to fill the slots in some Python code.
 <knowledge>
 Whenever you need to run experiment `{self.exp_name}`, you should create a new instance of the experiment. The experiment
 will be carried out when the experiment object is created.
@@ -96,17 +96,14 @@ Documentation:
 {inspect.getdoc(self.exp_cls.run)} 
 </documentation>
 </knowledge>
-The knowledge might be useful to implement some `do` functions in the code.
+The knowledge might be useful to complete some code.
 {w_memory.get_in_prompt_format(tag="code_to_edit")}
 <instruction>
 You should notice that:
-- The provided knowledge might be totally irrelevant to the `do` function.
 You should output a JSON dict. The keys should be
 - "relation": a string of the relation between the code to edit and the experiment, including the similarity and difference.
-- "applicable": a boolean that indicates whether the experiment is useful in implementing the `do` functions in the code fragment. If not useful, output empty string in "code_fragment".
-- "code_fragment": a string of the code fragment that contains a `do` function that can be converted to python code based on the knowledge.
-- "new_code_fragment": a string of code that accurately implement the code_fragment by generalizing from the knowledge. The new code should ignore the irrelevant parts of the knowledge. If part of the code_fragment cannot be implemented, use `do` functions to represent the remaining parts.
-- "note": a string that describes why the replacement might not be proper.
+- "suggestion": A very brief statement on how to improve the code completion base on the function you are holding. You can leave this empty if the task is not related to your knowledge. You should not provide the full code completion. You can provide small snippets (max 4 lines)  of code that might inspire the user to complete the code.
+- "applicable": a boolean that indicates whether the task and your suggestion is related to the experiment you hold. If not, output false.
 </instruction>
 """
         # Generate and handle the response
@@ -115,12 +112,11 @@ You should output a JSON dict. The keys should be
 
         if not res["applicable"]:
             idea_res = IdeaResult(self, False)
-            idea_res.add_suppressing_wm_item()
+            idea_res.add_suppressing_wm_item(1)
             return idea_res
 
         idea_res = IdeaResult(self, True)
-        idea_res.add_suppressing_wm_item(1)
-        idea_res.add_new_wm_item(CodeEditingItem(res["code_fragment"], res["new_code_fragment"], note=res["note"]))
+        idea_res.add_new_wm_content(res["suggestion"], tag="code_suggestion")
 
         return idea_res
 
