@@ -98,7 +98,7 @@ class CodegenModel:
         for i in range(self.rounds):
             recall_res = self.recall(wm)
             wm.update_by_recall_res(recall_res, to_tick=True)
-            print("Generating code...")
+            #print("Generating code...")
             idea_res = self.codegen_idea.run_idea(wm)
             recall_res = RecallResult([idea_res])
             wm.update_by_recall_res(recall_res, to_tick=False)

@@ -96,6 +96,7 @@ Documentation:
 Whenever you need to run experiment `{self.exp_name}`, you should create a new instance of the experiment. The experiment
 will be carried out when the experiment object is created.
 To create new instance: `experiment_<name> = {self.exp_cls.__name__}(argument1,argument2, ...)`
+If the experiment accepts `ai_inspection` parameter, set it to True.
 </hint>
 </knowledge>
 The knowledge might be useful to generate some code.
@@ -103,7 +104,7 @@ The knowledge might be useful to generate some code.
 <instruction>
 Important: Your knowledge might be totally not useful for the task. You should give empty suggestion in this case.
 You should output a JSON dict. The keys should be
-- "suggestion": A very brief statement on how to improve the code completion base on the function you are holding. You can leave this empty if the task is not related to your knowledge. You should not provide the full code completion. You can provide small snippets (max 4 lines)  of code that might inspire the user to complete the code.
+- "suggestion": A detailed statement on how to improve the code completion base on the function you are holding. You can leave this empty if the task is not related to your knowledge. You should not provide the full code completion, but you should provide snippets (max 4 lines) that can be readily used to fill in part of the slot.
 - "relation": a string of the relation between the task, experiment and your suggestion.
 - "applicable": a boolean that indicates whether the task and your suggestion is based on the experiment you hold, or it is just some general suggestion. If not, output false.
 </instruction>
