@@ -21,7 +21,8 @@ def dict_to_html(data_dict) -> str:
         html_parts.append(f"<strong>{key}</strong>: {formatted_value}<br>")
     return ''.join(html_parts)
 
-def code_to_html(code:str):
+
+def code_to_html(code: str):
     """
     Convert Python code to HTML using Pygments.
 
@@ -40,7 +41,7 @@ def code_to_html(code:str):
 """
 
 
-def display_chat(agent_name:str, background_color:str, content:str):
+def display_chat(agent_name: str, background_color: str, content: str):
     """
     Display a chat message formatted with the given parameters.
 
@@ -52,6 +53,30 @@ def display_chat(agent_name:str, background_color:str, content:str):
     Returns:
     str: HTML formatted string representing the chat message.
     """
+
+    background_color_set = {
+        'light_orange': '#FFF7EB',
+        'light_blue': '#F0F8FF',
+        'light_green': '#F0FFF0',
+        'light_red': '#FFF0F5',
+        'light_yellow': '#FFFFE0',
+        'light_purple': '#F8F8FF',
+        'light_pink': '#FFF0F5',
+        'light_cyan': '#E0FFFF',
+        'light_lime': '#F0FFF0',
+        'light_teal': '#E0FFFF',
+        'light_mint': '#F0FFF0',
+        'light_lavender': '#F8F8FF',
+        'light_peach': '#FFEFD5',
+        'light_rose': '#FFF0F5',
+        'light_amber': '#FFFFE0',
+        'light_emerald': '#F0FFF0',
+        'light_platinum': '#F1EEE9',
+    }
+
+    if background_color in background_color_set:
+        background_color = background_color_set[background_color]
+
     html = f'''
     <p style="background-color: {background_color}; padding: 20px; border-radius: 8px; color: #333;">
         <strong>{agent_name}:</strong> {content}

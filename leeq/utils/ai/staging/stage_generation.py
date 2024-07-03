@@ -27,6 +27,8 @@ def stages_to_html(stages_list):
     html_content += '</div>'
     return html_content
 
+#- Note: You can execute one experiment at each stage. If the stage should consider multiple runs with different argument of the same experiment,
+#            implement it by suggesting the transitions rules that direct it itself.
 
 def get_stages_from_description(description: str) -> List[Stage]:
     """
@@ -53,13 +55,17 @@ Note: If multiple sets of parameters are used for the same experiment, they shou
 Note: The data and result analysis and interpretation should not be considered as a stage.
 Note: Refinement of the parameters should be included in the same stage, not in a separate stage.
 
-- **Experiment Description**: Detail the procedures for each stage. *MUST* Include what to do (The name of the experiment), with what parameters. 
+- **Experiment Description**: rovide a detailed procedural outline for each stage of the experiment. The description
+ should explicitly state the name of the experiment, list all parameters involved, and clearly outline the steps to be
+ taken. This information will be distributed among various team members, who will carry out the tasks. Ensure that each
+ instruction is clear and self-sufficient, enabling team members to execute their respective parts without needing
+ additional context or clarification. Do not include objectives or goals in the description.
+
 - **Stage Transitions**:
     - **Advance**: Define conditions for progressing to the next stage.
     - **Retry**: Specify when to repeat a stage with adjustments.
     - **Revert**: Return to the previous stage.
-    - Note: You can excute one experiment at each stage. If the stage should consider multiple runs with different argument of the same experiment,
-            implement it by suggesting the transitions rules that direct it itself.
+    
 - **Output Format**: Present these instructions and conditions in a JSON format, with each stage as a key detailing the experiment and transition rules. 
 The NEXT key must be a string detailing the transition conditions. Do not use "retry", "advance", or "revert", instead describe the stage label directly.
 
@@ -70,18 +76,18 @@ The NEXT key must be a string detailing the transition conditions. Do not use "r
     "Overview": <Summary of the experiment>
   "Stage1": {
     "Title": "Experiment1",
-    "ExperimentDescription": "Implement the first experiment.",
+    "ExperimentDescription": "Conduct the <experiment name 1> with parameters <parameter list for experiment 1>.",
     "Next": "Proceed to Stage2 if successful, adjust the parameter based on the results suggestion and retry Stage1 if not. After 3 failures, proceed to Fail."
   },
   "Stage2": {
     "Title": "Experiment2",
-    "ExperimentDescription": "Implement the second experiment.",
+    "ExperimentDescription": "Conduct the <experiment name 2> with parameters <parameter list for experiment 2>.",
     "Next": "Advance to Stage3 if standards are met, retry Stage2 with adjustments from results suggestions otherwise.After 3 failures, proceed to Fail."
   },
   "Stage3": {
     "Title": "Experiment3",
-    "ExperimentDescription": "Implement the third experiment.",
-    "Next": "Move to Complete if successful, return to Stage2 if inconclusive. After 3 failures, proceed to Fail."
+    "ExperimentDescription": "Conduct the <experiment name 3> with parameters <parameter list for experiment 3>.",
+    "Next": "Move to Complete if successful, return to Stage3 if inconclusive. After 3 failures, proceed to Fail."
   },
   "Complete": {
     "Title": "Completion",

@@ -122,25 +122,27 @@ def check_if_needed_to_break_down(description: str):
     """
 
     # Check if we need to split the stage described by the description into multiple steps
-
     prompt = f"""
-   You are requested to assess the description of the stage and determine if it can be executed in a single step or if it needs to be broken down into multiple steps based on the following criteria.
+    You are tasked with evaluating a stage description to determine if it should be executed as a single step or needs to be divided into multiple steps. Use the following criteria for your evaluation:
 
-    - If the stage involves multiple different experiments, each with its own set of parameters, it should be broken down into multiple steps.
-    - If the stage involves a single experiment but asks to be executed multiple times with different parameters, it should be broken down into multiple steps.
-    - Consider parameter variations within a single experiment as part of the internal handling of the experiment routine, and do not break down the stage into multiple steps in such cases.
+    - If the stage involves multiple distinct experiments, each requiring its own set of parameters, divide it into multiple steps.
+    - If the stage involves one experiment that needs to be run multiple times with different parameters, divide it into multiple steps.
+    - If there are variations in parameters within a single experiment, consider these variations part of the experiment's internal management. In this case, do not divide the stage into multiple steps.
+    - If there are only one experiment and no parameters are explicitly specified, the stage should be executed as a single step.
 
-    If needed to be broken down into multiple steps, please provide the description of each step, including the parameters of each step.
-    <description>
+    If division into multiple steps is necessary, provide a detailed description of each step, including the parameters for each.
+
+    Stage Description:
     {description}
-    </description>
-    
-    Return format:
+
+    Expected return format:
     {{
         "reason": str,
-        "single_step": bool
+        "single_step": bool,
+        "steps": List[dict]
     }}
     """
+
     import mllm
     chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
     res = chat.complete(parse="dict", expensive=True, cache=True)

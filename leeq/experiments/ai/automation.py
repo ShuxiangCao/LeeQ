@@ -74,7 +74,7 @@ class AIStagedExperiment(Experiment):
             stage: Stage
                 The stage to run.
             """
-            spinner_id = show_spinner(f"Generating code for {stage.label}")
+            spinner_id = show_spinner(f"Executing {stage.label}: {stage.title}...")
 
             prompt = f"""
             Overview of the funcationality: {stage.overview}
@@ -86,13 +86,15 @@ class AIStagedExperiment(Experiment):
 
             breakdown_requirement = check_if_needed_to_break_down(stage.description)
 
-            if not breakdown_requirement['single_step']:
-                display_chat("Stage Planning AI", '#f6ffe6',
+            single_step = breakdown_requirement['single_step'] or len(breakdown_requirement['steps']) == 1
+
+            if not single_step:
+                hide_spinner(spinner_id)
+                display_chat("Stage Planning AI", 'light_blue',
                              f"Stage {stage.label} is too complex to be processed in one step. Planning to break down the stage into smaller steps. {breakdown_requirement['reason']}")
                 exp = FullyAutomatedExperiment(stage.description, **input_var_table.variable_objs)
                 new_var_table = var_table.new_child_table()
                 new_var_table.add_variable("exp", exp)
-                hide_spinner(spinner_id)
 
                 return new_var_table
 
@@ -110,7 +112,7 @@ class AIStagedExperiment(Experiment):
 
             hide_spinner(spinner_id)
             code_html = code_to_html(codes)
-            display_chat("Code generation AI", '#f6ffe6', f"Generated code are as follows:<br>{code_html}")
+            display_chat("Code generation AI", 'light_purple', f"Here is the generated code:<br>{code_html}")
             new_var_table.interpret(codes)
             return new_var_table
 
@@ -137,8 +139,9 @@ class AIStagedExperiment(Experiment):
 
             experiment_analysis_html = dict_to_html(experiment_result)
 
+            color = 'light_green' if experiment_result['Experiment success'] else 'light_red'
             display_chat("Inspection AI",
-                         '#f0f8ff', f"Experiment analysis results are as follows:<br>{experiment_analysis_html}")
+                         color, f"Experiment analysis results are as follows:<br>{experiment_analysis_html}")
 
             spinner_id = show_spinner(f"Considering the next stage...")
             next_stage_info = get_next_stage_label(curr_stage, experiment_result)
@@ -146,17 +149,17 @@ class AIStagedExperiment(Experiment):
             additional_info = next_stage_info["additional_info"]
             if next_stage_label == "Complete":
 
-                display_chat("Stage Planning AI", '#f6ffe6',
+                display_chat("Stage Planning AI", 'light_green',
                              f"Experiment complete.<br>"
                              f"{next_stage_info['analysis']}")
                 hide_spinner(spinner_id)
-                return
+                break
             elif next_stage_label == "Fail":
-                display_chat("Stage Planning AI", '#fff0f5',
+                display_chat("Stage Planning AI", 'light_red',
                              f"Experiment failed.<br>"
                              f"{next_stage_info['analysis']}")
                 hide_spinner(spinner_id)
-                return
+                break
             next_stage: Stage
             for stage in self.stages:
                 if stage.label == next_stage_label:
@@ -167,15 +170,15 @@ class AIStagedExperiment(Experiment):
 
             new_description = generate_new_stage_description(next_stage, additional_info)
             hide_spinner(spinner_id)
-            display_chat("Stage Planning AI", '#f6ffe6', f"Transitioning to the next"
-                                                         f" stage {next_stage.label} with the following description:<br>{new_description}<br>"
-                                                         f"{next_stage_info['analysis']}")
+            display_chat("Stage Planning AI", 'light_blue', f"Transitioning to the next"
+                                                            f" stage {next_stage.label} with the following description:<br>{new_description}<br>"
+                                                            f"{next_stage_info['analysis']}")
             next_stage.description = new_description
             curr_stage = next_stage
 
         self.final_result = {
             "success": next_stage_label == "Complete",
-            "analysis": next_stage_info["analysis"],
+            "analysis": self.experiment_history[-1].get_ai_inspection_results()
         }
 
     def get_experiment_history(self) -> List[Experiment]:
@@ -199,12 +202,13 @@ class AIStagedExperiment(Experiment):
         return self.experiment_history[-1]
 
     def get_ai_inspection_results(self) -> Dict[str, Any]:
+        return self.get_last_experiment().get_ai_inspection_results()
 
-        return {
-            "analysis": self.final_result["analysis"],
-            "parameter_updates": None,
-            "success": self.final_result["success"],
-        }
+        #return {
+        #    "Analysis": self.final_result["analysis"],
+        #    "Suggested parameter updates": None,
+        #    'Experiment success': self.final_result["success"],
+        #}
 
 
 class AIInstructionExperiment(AIStagedExperiment):
@@ -274,7 +278,7 @@ class FullyAutomatedExperiment(AIStagedExperiment):
         hide_spinner(spinner_id)
 
         stages_html = stages_to_html(stages)
-        display_chat("Stage planning AI", '#f6ffe6', "The planned experiments are:<br>" + stages_html)
+        display_chat("Stage planning AI", 'light_blue', "The planned experiments are:<br>" + stages_html)
 
         super().run(stages, **kwargs)
 

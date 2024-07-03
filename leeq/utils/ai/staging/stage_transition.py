@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from .stage_execution import Stage
 
 
-def generate_new_stage_description(stage_jumped_to: Stage, additional_information: str)->str:
+def generate_new_stage_description(stage_jumped_to: Stage, additional_information: str) -> str:
     """
     Generate a new stage of the stage jumped to and additional information provided.
 
@@ -21,25 +21,30 @@ def generate_new_stage_description(stage_jumped_to: Stage, additional_informatio
     """
 
     prompt = f"""
-You have jumped to a new stage based on the provided information. The new stage is {stage_jumped_to.label}.
+Based on the information provided, you have transitioned to a new stage, identified as {stage_jumped_to.label}.
 
- The original description of the stage is:
-<description> 
+The current description of this stage is:
 {stage_jumped_to.description}
- </description>
-the additional information is as follows:
-<additional_information>
-{additional_information}
-</additional_information>
-Please write a new description of the stage including the additional information provided if there is any. Include
-the number of tries in the description if mentioned in the additional information.
 
-Return in JSON format, example:
+If there is any additional information, it is detailed below:
+{additional_information}
+
+Using the details provided, write an updated description for this stage. Specifically, if the number of attempts is
+mentioned in the additional information, include this in your description. Furthermore, if there are instructions in the
+additional information to adjust certain parameters, select specific values for each parameter as requested and justify
+these choices based on the analysis provided.  Include your analysis only in the analysis field and aim for conciseness
+and clarity in your revised description. Do not include the objective into the description.
+
+Example of the description:
+"Conduct the <experiment name> with parameters <parameter list for experiment>."
+
+Return the response in the following JSON format:
 
 {{
-"analysis": "The thinking process of writing the new description of the stage",
-"new_description": "The new description of the stage"
+    "analysis": "Describe your thought process for updating the stage description.",
+    "new_description": "Provide the updated description of the stage here."
 }}
+
 """
 
     chat = mllm.Chat(prompt)
@@ -50,7 +55,7 @@ Return in JSON format, example:
     return new_description
 
 
-def get_next_stage_label(current_stage: Stage, experiment_result: dict[str,str])->dict[str, str]:
+def get_next_stage_label(current_stage: Stage, experiment_result: dict[str, str]) -> dict[str, str]:
     """
     Get the next stage label based on the current stage and the experiment object.
 
@@ -68,6 +73,11 @@ def get_next_stage_label(current_stage: Stage, experiment_result: dict[str,str])
     result_prompt = ""
 
     for key, value in experiment_result.items():
+        if key == 'Suggested parameter updates':
+            if experiment_result['Experiment success']:
+                result_prompt += f"Result from {key}: {None}\n\n"
+                continue
+
         result_prompt += f"Result from {key}: {value}\n\n"
 
     prompt = f"""
@@ -90,6 +100,8 @@ has been successful.
 Return your decision in JSON format, including what the next state is and any additional information such as the results
 from the current experiment that indicates the arguments of the next stage in natural language that will be necessary
 for operating in the next state. The next stage does not posses the information of the current stage.
+
+Do not pass any additional information if the next stage is different from the current stage. 
 
    If the next stage is the same as the current stage, include the number of tries in the additional info.
 """ + """

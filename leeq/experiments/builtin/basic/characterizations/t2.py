@@ -36,7 +36,7 @@ class SpinEchoMultiLevel(
     _experiment_result_analysis_instructions = """The Spin echo experiment measures the T2 echo relaxation time of a qubit. 
     Please analyze the fitted plots and the fitting model to verify the data's validity. Subsequently, determine
     if the experiment needs to be rerun and adjust the experimental parameters as necessary. The suggested time
-    length should be approximately five times the T2 value. If there is a significant discrepancy, adjust the time
+    length should be approximately 5 times the T2 value. If there is a significant discrepancy, adjust the time
     length accordingly and report experiment failure. Additionally, modify the time resolution to capture approximately 50 data points.
     """
 
@@ -104,7 +104,7 @@ class SpinEchoMultiLevel(
         "decay pattern followed by stabilization. It is important that the decay is observable, as the "
         "absence of decay is considered a failure of the experiment. Check if the tail of the decay "
         "stabilizes within the observed time frame and inform me what portion of the time frame is "
-        "occupied by this stable section. The total sweep time frame value should be approximately five times"
+        "occupied by this stable section. The total sweep time frame value should be approximately 5 times"
         "the estimated T2 time to ensure a accurate estimation. If the values are too far apart, adjust the "
         "time frame accordingly."
     )

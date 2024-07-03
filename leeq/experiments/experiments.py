@@ -123,6 +123,10 @@ class LeeQExperiment(LeeQObject):
             dict: The arguments of the function.
         """
         sig = inspect.signature(func)
+
+        if 'ai_inspection' in kwargs and 'ai_inspection' not in sig.parameters:
+            del kwargs['ai_inspection']
+
         try:
             bound = sig.bind(*args, **kwargs)
             bound.apply_defaults()
@@ -394,10 +398,12 @@ class LeeQAIExperiment(LeeQExperiment):
             for name, func in self.get_browser_functions():
                 inspect_answer = self._run_ai_inspection_on_single_function(func)
                 if inspect_answer is not None:
+                    color = 'light_green' if inspect_answer['success'] is not None else 'light_red'
                     html = dict_to_html(inspect_answer)
+
                     display_chat(agent_name=f"Inspection AI",
                                  content='<br>' + html,
-                                 background_color='#f0f8ff')
+                                 background_color=color)
 
 
 Experiment = LeeQAIExperiment

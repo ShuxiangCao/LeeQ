@@ -52,8 +52,8 @@ class SimpleRamseyMultilevel(Experiment):
             collection_name: The name of the frequency collection (e.g., 'f01').
             mprim_index: The index of the measurement primitive.
             initial_lpb: Initial set of commands, if any.
-            start: The start frequency for the sweep.
-            stop: The stop frequency for the sweep.
+            start: The start time for the sweep.
+            stop: The stop time for the sweep.
             step: The step size for the frequency sweep.
             set_offset: The frequency offset.
             update: Whether to update parameters after the experiment.
