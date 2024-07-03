@@ -86,24 +86,26 @@ class LeeQExpIdea(EmbedIdea):
         prompt = f"""
 You are trying to use some knowledge to fill the slots in some Python code.
 <knowledge>
-Whenever you need to run experiment `{self.exp_name}`, you should create a new instance of the experiment. The experiment
-will be carried out when the experiment object is created.
-To create new instance: `experiment_<name> = {self.exp_cls.__name__}(argument1,argument2, ...)`
-Signature:
+Experiment description:
 <singature> {inspect.signature(self.exp_cls.run)} </signature>
 Documentation:
 <documentation> 
 {inspect.getdoc(self.exp_cls.run)} 
 </documentation>
+<hint>
+Whenever you need to run experiment `{self.exp_name}`, you should create a new instance of the experiment. The experiment
+will be carried out when the experiment object is created.
+To create new instance: `experiment_<name> = {self.exp_cls.__name__}(argument1,argument2, ...)`
+</hint>
 </knowledge>
-The knowledge might be useful to complete some code.
-{w_memory.get_in_prompt_format(tag="code_to_edit")}
+The knowledge might be useful to generate some code.
+{w_memory.get_in_prompt_format(tag="task_context")}
 <instruction>
-You should notice that:
+Important: Your knowledge might be totally not useful for the task. You should give empty suggestion in this case.
 You should output a JSON dict. The keys should be
-- "relation": a string of the relation between the code to edit and the experiment, including the similarity and difference.
 - "suggestion": A very brief statement on how to improve the code completion base on the function you are holding. You can leave this empty if the task is not related to your knowledge. You should not provide the full code completion. You can provide small snippets (max 4 lines)  of code that might inspire the user to complete the code.
-- "applicable": a boolean that indicates whether the task and your suggestion is related to the experiment you hold. If not, output false.
+- "relation": a string of the relation between the task, experiment and your suggestion.
+- "applicable": a boolean that indicates whether the task and your suggestion is based on the experiment you hold, or it is just some general suggestion. If not, output false.
 </instruction>
 """
         # Generate and handle the response

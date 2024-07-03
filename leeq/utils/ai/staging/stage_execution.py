@@ -87,15 +87,13 @@ def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None)
 {var_table_in_prompt}
 '''
         wm.add_item(WMemoryNoStimuliItem(prompt, "available_variables"))
-    wm.add_item(WMemoryNoStimuliItem('Call exactly one time to the experiment function / class in this edit.'))
-    wm.add_item(WMemoryNoStimuliItem('Every class or function call will include the data analysis inside'
-                                     'the call automatically so there is no need to do data analysis separately',
-                                     "data_analyze"))
-    wm.add_item(WMemoryNoStimuliItem('Always use named arguments to call functions or classes.', "argument_name"))
-    wm.add_item(WMemoryNoStimuliItem(
-        ('Some of the calls accept `ai_inspection` parameter. Note that since you are an AI and if the '
-         'document suggest to set it to true when an AI is writing the code, set it to True explicitly.'),
-        "ai_inspection"))
+    notices = """
+- Call exactly one time to the experiment function / class in this edit.
+- Every class or function call will include the data analysis inside the call automatically so there is no need to do data analysis separately.
+- Always use named arguments to call functions or classes.
+- Some of the calls accept `ai_inspection` parameter. Note that since you are an AI and if the document suggest to set it to true when an AI is writing the code, set it to True explicitly.    
+"""
+    wm.add_item(WMemoryNoStimuliItem(notices, tag="notices"))
     # wm.add_item(WMemoryNoStimuliItem('The result of the experiment run should be saved in the exp_run variable.',
     #                                 "return_values"))
     if hint:

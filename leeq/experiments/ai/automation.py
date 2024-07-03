@@ -65,48 +65,13 @@ class CodegenIdea(Idea):
         return idea_res
 
 
-class CheckCodegenFinished(Idea):
-    def __init__(self, min_rounds=2, max_rounds=5):
-        super().__init__("CheckCodegenFinished")
-        self.min_rounds = min_rounds
-        self.max_rounds = max_rounds
-
-    def get_score(self, w_memory: WorkingMemory):
-        if w_memory.ticks >= self.min_rounds and w_memory.has_tag("attempted_code") and w_memory.has_tag("code_suggestion"):
-            return 1.0
-        return -1.0
-
-    def run_idea(self, w_memory: WorkingMemory) -> IdeaResult:
-        if w_memory.ticks < self.max_rounds:
-            chat = Chat()
-            chat += """
-                    You are required to generate comments on whether the code completion task is finished based on the context below.
-                    """
-            chat += w_memory.get_in_prompt_format(tag="context")
-            chat += """
-                    <instruction>
-                    You are required to generate comments/summary for the current situation.
-                    You are required to output a JSON dict with the following keys:
-                    - "analysis" (string): analysis the current situation based on what you should notice, focusing on the unfinished tasks.
-                    - "finished" (bool): A boolean value indicating whether the code completion task is finished.
-                    </instruction>
-                    """
-            finished = chat.complete(parse="dict")["finished"]
-        else:
-            finished = True
-        idea_res = IdeaResult(self, True)
-        if finished:
-            idea_res.add_new_wm_content(
-                w_memory.extract_tag_contents("attempted_code")[0], tag="completed_code")
-        return idea_res
-
 class CodegenModel:
     lt_memory: LongTermMemory
     n_recall_items: int
 
     def __init__(self, rounds=2):
         self.lt_memory = LongTermMemory()
-        self.lt_memory.add_idea(CodegenIdea())
+        self.codegen_idea = CodegenIdea()
         self.n_recall_items = 10
         self.rounds = rounds
 
@@ -133,6 +98,10 @@ class CodegenModel:
         for i in range(self.rounds):
             recall_res = self.recall(wm)
             wm.update_by_recall_res(recall_res, to_tick=True)
+            print("Generating code...")
+            idea_res = self.codegen_idea.run_idea(wm)
+            recall_res = RecallResult([idea_res])
+            wm.update_by_recall_res(recall_res, to_tick=False)
         code = wm.extract_tag_contents("attempted_code")
         if len(code) > 0:
             return code[0]
@@ -225,11 +194,11 @@ class AIStagedExperiment(Experiment):
 
             codegen_wm = get_codegen_wm(stage.description, input_var_table, hint=prompt)
 
-            if stage.title not in coding_ltm_cache:
-                recall_res = code_cog_model.recall(codegen_wm)
-                coding_ltm_cache[stage.title] = recall_res
-            else:
-                recall_res = coding_ltm_cache[stage.title]
+            #if stage.title not in coding_ltm_cache:
+            #    recall_res = code_cog_model.recall(codegen_wm)
+            #    coding_ltm_cache[stage.title] = recall_res
+            #else:
+            #    recall_res = coding_ltm_cache[stage.title]
 
             codes = code_cog_model.codegen(codegen_wm)
             new_var_table = var_table.new_child_table()
