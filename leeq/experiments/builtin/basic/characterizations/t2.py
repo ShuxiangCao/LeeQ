@@ -379,7 +379,7 @@ class MultiQubitSpinEchoMultiLevel(
             )
             title = (
                 f"T2 echo {args['duts'][index].hrid} transition {self.collection_names[index]}<br>"
-                f"T2={fit_params['Decay'][0]} us")
+                f"T2={fit_params['Decay']} us")
 
             data.append(trace_line)
 
