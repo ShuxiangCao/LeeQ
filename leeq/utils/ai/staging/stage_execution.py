@@ -99,8 +99,50 @@ def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None)
     # wm.add_item(WMemoryNoStimuliItem('The result of the experiment run should be saved in the exp_run variable.',
     #                                 "return_values"))
     wm.add_content(hint, "Background")
+    # wm.add_content(""""
+    #               If you need to execute more than one experiment at this stage, please use the following to break it into multiple steps:
+    #               ```
+    #               exp_run = FullyAutomatedExperiment("<The description of all the steps, including the arguments described>",
+    #                    all the available variables passed in with keyword arguments that not described previously )
+    #               ```
+    #               """,'Multiple steps')
     prompt = f'''
 do("""{description}""")
 '''
     wm.add_item(CodeWMemoryItem(prompt))
     return wm
+
+
+def check_if_needed_to_break_down(description: str):
+    """
+    Check if the stage described by the description needs to be broken down into multiple steps.
+
+    Parameters:
+        description (str): The description of the code to generate.
+    """
+
+    # Check if we need to split the stage described by the description into multiple steps
+
+    prompt = f"""
+   You are requested to assess the description of the stage and determine if it can be executed in a single step or if it needs to be broken down into multiple steps based on the following criteria.
+
+    - If the stage involves multiple different experiments, each with its own set of parameters, it should be broken down into multiple steps.
+    - If the stage involves a single experiment but asks to be executed multiple times with different parameters, it should be broken down into multiple steps.
+    - Consider parameter variations within a single experiment as part of the internal handling of the experiment routine, and do not break down the stage into multiple steps in such cases.
+
+    If needed to be broken down into multiple steps, please provide the description of each step, including the parameters of each step.
+    <description>
+    {description}
+    </description>
+    
+    Return format:
+    {{
+        "reason": str,
+        "single_step": bool
+    }}
+    """
+    import mllm
+    chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
+    res = chat.complete(parse="dict", expensive=True, cache=True)
+
+    return res

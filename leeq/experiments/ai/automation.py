@@ -43,7 +43,7 @@ class AIStagedExperiment(Experiment):
         from leeq.utils.ai.staging.stage_transition import get_next_stage_label
         from leeq.utils.ai.staging.stage_transition import generate_new_stage_description
         from leeq.utils.ai.staging.stage_execution import Stage, get_exp_from_var_table, get_codegen_wm, \
-            get_code_from_wm
+            get_code_from_wm, check_if_needed_to_break_down
         from leeq.utils.ai.staging.stage_generation import stages_to_html
         from leeq.utils.ai.display_chat.notebooks import display_chat, code_to_html, dict_to_html
 
@@ -83,6 +83,18 @@ class AIStagedExperiment(Experiment):
 
             html = stages_to_html([stage])
             display(HTML(html))
+
+            breakdown_requirement = check_if_needed_to_break_down(stage.description)
+
+            if not breakdown_requirement['single_step']:
+                display_chat("Stage Planning AI", '#f6ffe6',
+                             f"Stage {stage.label} is too complex to be processed in one step. Planning to break down the stage into smaller steps. {breakdown_requirement['reason']}")
+                exp = FullyAutomatedExperiment(stage.description, **input_var_table.variable_objs)
+                new_var_table = var_table.new_child_table()
+                new_var_table.add_variable("exp", exp)
+                hide_spinner(spinner_id)
+
+                return new_var_table
 
             codegen_wm = get_codegen_wm(stage.description, input_var_table, hint=prompt)
 
@@ -161,6 +173,11 @@ class AIStagedExperiment(Experiment):
             next_stage.description = new_description
             curr_stage = next_stage
 
+        self.final_result = {
+            "success": next_stage_label == "Complete",
+            "analysis": next_stage_info["analysis"],
+        }
+
     def get_experiment_history(self) -> List[Experiment]:
         """
         Get the history of experiments run in the staged experiment.
@@ -180,6 +197,14 @@ class AIStagedExperiment(Experiment):
         Experiment: The last experiment run in the staged experiment.
         """
         return self.experiment_history[-1]
+
+    def get_ai_inspection_results(self) -> Dict[str, Any]:
+
+        return {
+            "analysis": self.final_result["analysis"],
+            "parameter_updates": None,
+            "success": self.final_result["success"],
+        }
 
 
 class AIInstructionExperiment(AIStagedExperiment):

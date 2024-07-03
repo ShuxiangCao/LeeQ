@@ -38,6 +38,8 @@ def get_stages_from_description(description: str) -> List[Stage]:
     Returns:
         List[Stage]: The list of stages of the experiment.
     """
+    # Note: The same experiment with different parameter choice (very common when you need to refine the parameters) needs to be classified into the same stage. #
+
     prompt = """
 **Objective**: Develop a systematic workflow for a series of scientific experiments involving sequential function calls to operate experimental equipment. The outcomes of each stage guide the next, ensuring logical progression. 
 
@@ -47,7 +49,7 @@ def get_stages_from_description(description: str) -> List[Stage]:
 
 - **Stages**: Divide the experiment into distinct stages, each representing a specific operation. 
 Note: Generate as less stages as possible, ideally just one stage, but make sure each stage is distinct and has a clear purpose.
-Note: The same experiment with different parameter choice (very common when you need to refine the parameters) needs to be classified into the same stage.
+Note: If multiple sets of parameters are used for the same experiment, they should be considered into different stages.
 Note: The data and result analysis and interpretation should not be considered as a stage.
 Note: Refinement of the parameters should be included in the same stage, not in a separate stage.
 

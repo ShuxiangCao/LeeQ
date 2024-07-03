@@ -146,6 +146,7 @@ def build_leeq_code_ltm() -> Tuple[LongTermMemory, VariableTable]:
 
     lt_memory = LongTermMemory()
     var_table = VariableTable()
+
     # Load the module root and scan for experiment classes
     module_root = get_tree_for_module(builtin)
     classes = []
@@ -158,6 +159,10 @@ def build_leeq_code_ltm() -> Tuple[LongTermMemory, VariableTable]:
             elif not class_obj.is_ai_compatible():
                 continue
             classes.append(class_obj)
+
+    # Load the AI automated experiment class for nested execution.
+    from leeq.experiments import FullyAutomatedExperiment
+    classes.append(FullyAutomatedExperiment)
 
     def _add_leeq_exp_to_ltm(exp_cls: Type[Any]):
         add_leeq_exp_to_ltm(lt_memory, var_table, exp_cls)
