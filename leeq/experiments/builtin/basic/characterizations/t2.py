@@ -242,7 +242,7 @@ class SpinEchoMultiLevel(
 
     def get_analyzed_result_prompt(self) -> Union[str, None]:
 
-        trace = np.squeeze(self.mp.result())
+        trace = self.trace
         args = self.retrieve_args(self.run)
 
         fit_params = fit_exp_decay_with_cov(trace, args['time_resolution'])

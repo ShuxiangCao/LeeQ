@@ -91,12 +91,15 @@ def refine_stage_description(res: dict) -> dict:
     - If this stage only contains data and result analysis and interpretation without carrying out any experiment,
         please set the <contains_experiment> to False. Otherwise set it to True.
 
+    Follow the following  example format exactly and do not include any additional information in the description.
+    
     Example output:
     {{
         "analysis":"<Describe your thought process for updating the stage description.>",
         "description":"Conduct the <experiment name> with parameters <parameter list for experiment>.",
         "contains_experiment": <true/false>
     }}
+    
     """
 
     import mllm

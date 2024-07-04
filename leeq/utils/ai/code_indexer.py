@@ -84,7 +84,7 @@ class LeeQExpIdea(EmbedIdea):
         """
         # Create a detailed prompt for the Chat model
         prompt = f"""
-You are trying to use some knowledge to fill the slots in some Python code.
+You are trying to use some knowledge to fill the slots in some Python code. The description of the task is written in the slot.
 <knowledge>
 Experiment description:
 <singature> {inspect.signature(self.exp_cls.run)} </signature>
@@ -97,12 +97,14 @@ Whenever you need to run experiment `{self.exp_name}`, you should create a new i
 will be carried out when the experiment object is created.
 To create new instance: `experiment_<name> = {self.exp_cls.__name__}(argument1,argument2, ...)`
 If the experiment accepts `ai_inspection` parameter, set it to True.
+If there are certain arguments needs to be passed but you do not know the value, do not pass them and use the default value.
 </hint>
 </knowledge>
 The knowledge might be useful to generate some code.
 {w_memory.get_in_prompt_format(tag="task_context")}
 <instruction>
-Important: Your knowledge might be totally not useful for the task. You should give empty suggestion in this case.
+Important: The description of the task is mentioned in the slot. Your knowledge might be totally not useful for the task. You should give empty suggestion and set applicable to false in this case.
+
 You should output a JSON dict. The keys should be
 - "suggestion": A detailed statement on how to improve the code completion base on the function you are holding. You can leave this empty if the task is not related to your knowledge. You should not provide the full code completion, but you should provide snippets (max 4 lines) that can be readily used to fill in part of the slot.
 - "relation": a string of the relation between the task, experiment and your suggestion.

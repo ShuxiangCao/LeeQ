@@ -38,6 +38,8 @@ and clarity in your revised description. Do not include the objective into the d
 Example of the description:
 "Conduct the <experiment name> with parameters <parameter list for experiment>."
 
+Follow the example exactly and do not include any additional information in the description.
+
 Return the response in the following JSON format:
 
 {{
@@ -94,8 +96,8 @@ the validity. Otherwise they are both invalid.
 {result_prompt}
 
 Based on the rules and the result provided, determine the next stage of the state machine. If the current stage has 
-been tried 3 times and still failed, the next stage should be "Fail". Do not retry the current stage if the experiment
-has been successful.
+been tried 3 times and still failed, the next stage should be "Fail". If you don't know how many times the current stage 
+has been tried, assume this is the first time. Do not retry the current stage if the experiment has been successful.
  
 Return your decision in JSON format, including what the next state is and any additional information such as the results
 from the current experiment that indicates the arguments of the next stage in natural language that will be necessary

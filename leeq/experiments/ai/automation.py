@@ -2,7 +2,7 @@ from typing import Optional, Dict, Any, Union, List
 import numpy as np
 
 from labchronicle import register_browser_function, log_and_record
-from mllm import Chat
+from mllm import Chat, display_chats
 
 from ideanet.codegen.code_wmemory import CodeWMemoryItem
 from ideanet.core.lt_memory import LongTermMemory, RecallResult, IdeaResult, Idea
@@ -42,15 +42,11 @@ class CodegenIdea(Idea):
         chat += w_memory.get_in_prompt_format(tag="context", tags_to_ignore=["comment"])
         chat += """
         <instruction>
-        You are required to generate new code that can be used to replace the <code_to_complete> based on <code_suggestion>.
-        The new code should absolutely just be what should appear in the place of # [slot]. You should not output the full code. Just the slot.
-        Your code should start with no indentation.
-        Some of the <code_suggestion> might be misleading. But you should pick the most relevant one.
-        The new code should not import any external modules.
-        Notice that
-        - The existing attempted code might be totally wrong. For example, it might have some additional parts other than the given slot of <code_to_complete>.
-        - You should never use function/object/module that is not mentioned in the context
-        - If you think current context is not enough to generate the code, you can write the comment of what to do and put ... as a placeholder
+        You are required to adopt code that can be used to replace the <code_to_complete> from <code_suggestion>.
+        The adopted code should absolutely just be what should appear in the place of # [slot]. 
+        You should just choose the code and fill it into the slot.
+        Some of the <code_suggestion> might be misleading. But you should pick the most relevant one. You have to pick one of the suggestions unless there is no suggestion.
+        If no suggestion exist, you can write the comment of what to do and put ... as a placeholder
         Output a JSON dict with the following keys:
         "analysis" (string): an analysis of the current situation. Especially, focusing on how to generate the code.
         "code" (string): the new code that can fill the slot in <code_to_complete>.
@@ -94,12 +90,14 @@ class CodegenModel:
         Preconditions:
             - there exists an item in wm tagged with 'completed_code' after at most 100 recalls.
         """
-        for i in range(self.rounds):
-            recall_res = self.recall(wm)
-            wm.update_by_recall_res(recall_res, to_tick=True)
-            idea_res = self.codegen_idea.run_idea(wm)
-            recall_res = RecallResult([idea_res])
-            wm.update_by_recall_res(recall_res, to_tick=False)
+
+        with display_chats():
+            for i in range(self.rounds):
+                recall_res = self.recall(wm)
+                wm.update_by_recall_res(recall_res, to_tick=True)
+                idea_res = self.codegen_idea.run_idea(wm)
+                recall_res = RecallResult([idea_res])
+                wm.update_by_recall_res(recall_res, to_tick=False)
         code = wm.extract_tag_contents("attempted_code")
         if len(code) > 0:
             return code[0]

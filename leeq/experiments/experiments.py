@@ -399,7 +399,7 @@ class LeeQAIExperiment(LeeQExperiment):
             for name, func in self.get_browser_functions():
                 inspect_answer = self._run_ai_inspection_on_single_function(func)
                 if inspect_answer is not None:
-                    color = 'light_green' if inspect_answer['success'] is not None else 'light_red'
+                    color = 'light_green' if inspect_answer['success'] else 'light_red'
                     html = dict_to_html(inspect_answer)
 
                     display_chat(agent_name=f"Inspection AI",

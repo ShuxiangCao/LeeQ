@@ -211,18 +211,50 @@ class VariableTable:
         self._parent_tables.append(parent_table)
 
 
-def get_repr_in_prompt(value: object) -> str:
-    """Generate a concise string representation for a variable value suitable for prompting.
-
-    Args:
-        value (object): The value to represent.
-
-    Returns:
-        str: A formatted string representing the value.
-    """
+def get_repr_in_prompt(value):
     long_limit = 3
-    # The function processes different types of values and formats them accordingly.
-    # It handles primitive types, sequences, dictionaries, numpy arrays, and generic objects.
+    if isinstance(value, int) or isinstance(value, float):
+        return f"Value: {value}"
+    elif isinstance(value, str):
+        return f"Value: '{value}'"
+    elif isinstance(value, tuple) or isinstance(value, list):
+        res = "[" if isinstance(value, list) else "("
+        if len(value) > long_limit:
+            res += get_repr_in_prompt(value[0]) + ", " + get_repr_in_prompt(
+                value[1]) + ", ..."
+            res += ", " + get_repr_in_prompt(value[-1])
+        else:
+            res += ", ".join([get_repr_in_prompt(v) for v in value])
+        res += "]" if isinstance(value, list) else ")"
+        return f"Value: {res}"
+    elif isinstance(value, dict):
+        res = "{"
+        dict_kv_list = [f"{k}: {get_repr_in_prompt(v)}" for k, v in value.items()]
+        if len(dict_kv_list) > long_limit:
+            res += ", ".join(dict_kv_list[:long_limit])
+            res += ", ..."
+            res += ", ".join(dict_kv_list[-1])
+        else:
+            res += ", ".join(dict_kv_list)
+        res += "}"
+        return f"Value: {res}"
+    elif isinstance(value, numpy.ndarray):
+        shape = value.shape
+        return f"Type: numpy array, Shape: {shape}"
+    elif isinstance(value, ModuleType):
+        name = value.__name__.split(".")[-1]
+        return f"Module: {name}"
+    else:
+        repr_str, classname = get_truncated_repr(value)
+        return f"Value: {repr_str} Type: {classname}"
+
+
+def get_truncated_repr(obj, limit=30):
+    classname = obj.__class__.__name__
+    repr_str = repr(obj)
+    if len(repr_str) > limit:
+        repr_str = repr_str[:limit] + "..." + repr_str[-1:]
+    return repr_str, classname
 
 
 def get_truncated_repr(obj: object, limit: int = 30) -> Tuple[str, str]:

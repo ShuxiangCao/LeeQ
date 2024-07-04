@@ -145,7 +145,7 @@ class SimpleT1(Experiment):
         args = self.retrieve_args(self.run)
 
         t = np.arange(0, args['time_length'], args['time_resolution'])
-        trace = np.squeeze(self.mp.result())
+        trace = self.trace
 
         fit_params = fit_exp_decay_with_cov(trace, args['time_resolution'])
 
