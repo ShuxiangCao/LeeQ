@@ -2,12 +2,14 @@ import copy
 from typing import List, Union
 
 import numpy as np
+import scipy.linalg
 import uncertainties.umath as umath
 from matplotlib import pyplot as plt
 
 from labchronicle import log_and_record, register_browser_function
-from leeq import Experiment, Sweeper, basic_run
+from leeq import Experiment, Sweeper, basic_run, setup
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.cliffords import get_clifford_from_id
 from leeq.utils.compatibility import prims
 from leeq.utils.ai.vlms import visual_analyze_prompt
@@ -391,6 +393,64 @@ class SingleQubitRandomizedBenchmarking(RandomizedBenchmarkingTwoLevelSubspaceMu
     parameter needs to be updated based on the visual plot inspection, and the infidelity values are physical. Otherwise
     the experiment is failed.
     """
+
+    @log_and_record
+    def run(self,
+            dut: TransmonElement,
+            collection_name: str = 'f01',
+            seq_length: Union[int, np.ndarray] = 1024,
+            kinds: int = 10,
+            cliff_set: str = 'XY',
+            pi_half_only: bool = False,
+            mprim_index: int = 0,
+            seed: int = 42
+            ):
+        """
+        Executes a randomized benchmarking run with a sequence of operations on a qubit.
+
+        Parameters:
+            dut: A list of device under test (DUT) instances.
+            collection_name: Name of the collection to use, with default 'f01'.
+            seq_length: Either an integer specifying the max length of the sequence, or an array of sequence lengths.
+            kinds: The number of kinds/types of sequences to generate.
+            cliff_set: The set of Clifford gates to use, either 'XY' or 'VZX'.
+            pi_half_only: If True, only pi/2 rotations are used in gate generation.
+            mprim_index: Index to select the measurement primitive.
+            seed: Seed for random number generation to ensure reproducibility.
+        """
+        Z = np.array([[1, 0], [0, -1]])
+        X = np.array([[0, 1], [1, 0]])
+
+        ideal_gate = scipy.linalg.expm(1j * np.pi / 2 * X)
+
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        virtual_transmon = simulator_setup.get_virtual_qubit(dut)
+
+        c1 = dut.get_c1(collection_name)
+
+        # Rabi rate
+        rabi_rate_per_amp = simulator_setup.get_omega_per_amp(
+            c1.channel)  # MHz
+        omega = rabi_rate_per_amp * c1['Xp'].amp
+
+        # Detuning
+        delta = virtual_transmon.qubit_frequency - c1['X'].freq
+
+        duration = c1['X'].width
+
+        current_gate = scipy.linalg.expm(1j * (omega * X + delta * Z) * duration)
+
+        # Calculate the fidelity
+        fidelity = np.abs(np.trace(np.conj(ideal_gate).T @ current_gate)) / 2
+
+        def calculate_rb_parameter(d, infidelity_per_gate, N_g=1.825):
+            infidelity_per_clifford = 1 - (1 - infidelity_per_gate) ** N_g
+            rb_parameter = np.log(1 - (d / (d - 1)) * (1 - infidelity_per_clifford))
+            return rb_parameter
+
+        rb_parameter = calculate_rb_parameter(2, 1 - fidelity)
+
+        raise NotImplementedError("This method is not yet implemented.")
 
     @log_and_record
     def run(self,
