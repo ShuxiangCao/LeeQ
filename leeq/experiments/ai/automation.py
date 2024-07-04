@@ -42,11 +42,10 @@ class CodegenIdea(Idea):
         chat += w_memory.get_in_prompt_format(tag="context", tags_to_ignore=["comment"])
         chat += """
         <instruction>
-        You are required to generate new code that can be used to replace the <code_to_complete>.
+        You are required to generate new code that can be used to replace the <code_to_complete> based on <code_suggestion>.
         The new code should absolutely just be what should appear in the place of # [slot]. You should not output the full code. Just the slot.
         Your code should start with no indentation.
-        The new code should consider the information in the context. But some of the content might be misleading.
-        The new code should be well documented by # comments at each stage.
+        Some of the <code_suggestion> might be misleading. But you should pick the most relevant one.
         The new code should not import any external modules.
         Notice that
         - The existing attempted code might be totally wrong. For example, it might have some additional parts other than the given slot of <code_to_complete>.

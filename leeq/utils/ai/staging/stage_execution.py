@@ -86,17 +86,17 @@ def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None)
         prompt = f'''
 {var_table_in_prompt}
 '''
-        wm.add_item(WMemoryNoStimuliItem(prompt, "available_variables"))
+        wm.add_item(CodeWMemoryItem(prompt, "available_variables").set_no_stimuli())
     notices = """
 - Call exactly one time to the experiment function / class in this edit.
 - Every class or function call will include the data analysis inside the call automatically so there is no need to do data analysis separately.
 - Always use named arguments to call functions or classes.
 """
-    wm.add_item(WMemoryNoStimuliItem(notices, tag="notices"))
+    wm.add_item(CodeWMemoryItem(notices, tag="notices").set_no_stimuli())
     # wm.add_item(WMemoryNoStimuliItem('The result of the experiment run should be saved in the exp_run variable.',
     #                                 "return_values"))
     if hint:
-        wm.add_content(hint, "background")
+        wm.add_content(CodeWMemoryItem(hint, "background"))
     # wm.add_content(""""
     #               If you need to execute more than one experiment at this stage, please use the following to break it into multiple steps:
     #               ```
@@ -110,7 +110,8 @@ def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None)
 """
 # [slot]
 '''
-    wm.add_item(CodeWMemoryItem(prompt, tag="code_to_complete"))
+    wm.add_item(CodeWMemoryItem(prompt, tag="code_to_complete").set_no_stimuli())
+    wm.add_item(WMemoryHiddenItem(["description"]))
     return wm
 
 
