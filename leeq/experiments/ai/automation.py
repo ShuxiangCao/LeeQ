@@ -60,7 +60,7 @@ class CodegenIdea(Idea):
         idea_res = IdeaResult(self, True)
         code_item = CodeWMemoryItem(res, tag="attempted_code")
         idea_res.add_new_wm_item(code_item)
-        idea_res.tags_to_remove = ["attempted_code", "code_suggestion"] # remove the old attempted code
+        idea_res.tags_to_remove = ["attempted_code", "code_suggestion"]  # remove the old attempted code
         return idea_res
 
 
@@ -68,7 +68,7 @@ class CodegenModel:
     lt_memory: LongTermMemory
     n_recall_items: int
 
-    def __init__(self, rounds=2):
+    def __init__(self, rounds=1):
         self.lt_memory = LongTermMemory()
         self.codegen_idea = CodegenIdea()
         self.n_recall_items = 10
@@ -97,7 +97,6 @@ class CodegenModel:
         for i in range(self.rounds):
             recall_res = self.recall(wm)
             wm.update_by_recall_res(recall_res, to_tick=True)
-            #print("Generating code...")
             idea_res = self.codegen_idea.run_idea(wm)
             recall_res = RecallResult([idea_res])
             wm.update_by_recall_res(recall_res, to_tick=False)
@@ -143,7 +142,7 @@ class AIStagedExperiment(Experiment):
         self.stages: List[Stage] = stages
 
         leeq_code_ltm, exps_var_table = build_leeq_code_ltm()
-        code_cog_model = CodegenModel(rounds=2)
+        code_cog_model = CodegenModel(rounds=1)
         for idea in leeq_code_ltm.ideas:
             code_cog_model.lt_memory.add_idea(idea)
         code_cog_model.n_recall_items = 5  # Number of items to recall in cognitive model
@@ -191,15 +190,16 @@ class AIStagedExperiment(Experiment):
 
                 return new_var_table
 
-            codegen_wm = get_codegen_wm(stage.description, input_var_table, hint=prompt)
+            codegen_wm = get_codegen_wm(stage.description, input_var_table)
 
-            #if stage.title not in coding_ltm_cache:
+            # if stage.title not in coding_ltm_cache:
             #    recall_res = code_cog_model.recall(codegen_wm)
             #    coding_ltm_cache[stage.title] = recall_res
-            #else:
+            # else:
             #    recall_res = coding_ltm_cache[stage.title]
-
+            # with RecallLogger():
             codes = code_cog_model.codegen(codegen_wm)
+
             new_var_table = var_table.new_child_table()
 
             hide_spinner(spinner_id)
@@ -254,18 +254,20 @@ class AIStagedExperiment(Experiment):
                 break
             next_stage: Stage
             for stage in self.stages:
-                if stage.label == next_stage_label:
+                if stage.label in next_stage_label:
                     next_stage = stage
                     break
             else:
                 assert False, f"Next stage label {next_stage_label} not found in stages"
 
-            new_description = generate_new_stage_description(next_stage, additional_info)
+            if curr_stage.label in next_stage.label:
+                new_description = generate_new_stage_description(next_stage, additional_info)
+                next_stage.description = new_description
+
             hide_spinner(spinner_id)
             display_chat("Stage Planning AI", 'light_blue', f"Transitioning to the next"
-                                                            f" stage {next_stage.label} with the following description:<br>{new_description}<br>"
+                                                            f" stage {next_stage.label} with the following description:<br>{next_stage.description}<br>"
                                                             f"{next_stage_info['analysis']}")
-            next_stage.description = new_description
             curr_stage = next_stage
 
         self.final_result = {
@@ -380,19 +382,17 @@ class FullyAutomatedExperiment(AIStagedExperiment):
 AIRun = AIInstructionExperiment
 AutoRun = FullyAutomatedExperiment
 
-
 if __name__ == '__main__':
     from leeq.utils.ai.variable_table import VariableTable
     from leeq.utils.ai.staging.stage_execution import get_codegen_wm
     from leeq.utils.ai.code_indexer import build_leeq_code_ltm
+
     prompt = "Do qubit measurement calibration to update the GMM model."
     wm = get_codegen_wm(prompt, VariableTable())
     leeq_code_ltm, exps_var_table = build_leeq_code_ltm()
-    code_cog_model = CodegenModel(rounds=2)
+    code_cog_model = CodegenModel(rounds=1)
     code_cog_model.n_recall_items = 5
     for idea in leeq_code_ltm.ideas:
         code_cog_model.lt_memory.add_idea(idea)
     with RecallLogger():
         code = code_cog_model.codegen(wm)
-
-

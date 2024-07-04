@@ -296,7 +296,7 @@ class LeeQAIExperiment(LeeQExperiment):
 
                 image = self._browser_function_images.get(func.__qualname__)
 
-                spinner_id = show_spinner(f"Vision AI is inspecting plots...")
+                spinner_id = show_spinner(f"Vision AI is inspecting the plots...")
                 prompt = get_visual_analyze_prompt(func)
                 inspect_answer = visual_inspection(image, prompt)
                 self._ai_inspection_results[func.__qualname__] = inspect_answer

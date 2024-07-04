@@ -19,7 +19,6 @@ def stages_to_html(stages_list):
         html_content += f'''
             <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 8px;">
                 <h3>{stage_info['Title']}</h3>
-                <p><strong>Overview:</strong> {stage_info['Overview']}</p>
                 <p><strong>Description:</strong> {stage_info['ExperimentDescription']}</p>
                 <p><strong>Next Steps:</strong> {stage_info['Next']}</p>
             </div>

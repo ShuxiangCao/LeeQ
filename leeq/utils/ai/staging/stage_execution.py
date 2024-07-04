@@ -105,10 +105,7 @@ def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None)
     #               ```
     #               """,'Multiple steps')
     prompt = f'''
-"""
-{description}
-"""
-# [slot]
+# [slot: {description}]
 '''
     wm.add_item(CodeWMemoryItem(prompt, tag="code_to_complete").set_no_stimuli())
     wm.add_item(WMemoryHiddenItem([description]))

@@ -338,8 +338,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
     @log_and_record
     def run(self,
             dut: 'TransmonElement',
-            sweep_lpb_list: List['LogicalPrimitiveBlock'],
-            mprim_index: int,
+            sweep_lpb_list: Optional[List['LogicalPrimitiveBlock']] = None,
+            mprim_index: int = 0,
             freq: Optional[float] = None,
             amp: Optional[float] = None,
             update: bool = False,
@@ -351,8 +351,9 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
 
         Parameters:
         dut (TransmonElement): The qubit instance.
-        sweep_lpb_list (List[LogicalPrimitiveBlock]): List of LPBs to be included in the sweep.
-        mprim_index (int): Index of the measurement primitive in use.
+        sweep_lpb_list (Optional[List[LogicalPrimitiveBlock]]): List of LPBs to be included in the sweep. If not
+            provided, we consider it is for qubit.
+        mprim_index (int): Index of the measurement primitive in use. Defaults to 0.
         freq (Optional[float]): New frequency to set, if any.
         amp (Optional[float]): New amplitude to set, if any.
         update (bool): Flag indicating if the original frequency/amplitude should be restored.
@@ -363,8 +364,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
 
         Example;
             Run the experiment for a qubit system
-            >>> lpb_scan = (dut.get_c1('f01')['I'], dut.get_c1('f01')['X'])
-            >>> calib = MeasurementCalibrationMultilevelGMM(dut, mprim_index=0,sweep_lpb_list=lpb_scan)
+            >>> calib = MeasurementCalibrationMultilevelGMM(dut, mprim_index=0)
 
             Run the experiment for a qutrit system
             >>> lpb_scan = (dut.get_c1('f01')['I'], dut.get_c1('f01')['X'],dut.get_c1('f01')['X']+dut.get_c1('f12')['X'])
@@ -376,6 +376,9 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         """
 
         self.result = None
+
+        if sweep_lpb_list is None:
+            sweep_lpb_list = [dut.get_c1('f01')['I'], dut.get_c1('f01')['X']]
 
         # Retrieve the measurement primitive by index
         mprim = dut.get_measurement_prim_intlist(str(mprim_index))

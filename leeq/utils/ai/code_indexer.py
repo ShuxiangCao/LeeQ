@@ -109,6 +109,7 @@ You should output a JSON dict. The keys should be
 - "applicable": a boolean that indicates whether the task and your suggestion is based on the experiment you hold, or it is just some general suggestion. If not, output false.
 </instruction>
 """
+
         # Generate and handle the response
         chat = Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
         res = chat.complete(parse="dict", expensive=True)
@@ -170,13 +171,13 @@ def build_leeq_code_ltm() -> Tuple[LongTermMemory, VariableTable]:
     def _add_leeq_exp_to_ltm(exp_cls: Type[Any]):
         add_leeq_exp_to_ltm(lt_memory, var_table, exp_cls)
 
-    for i, idea in parallel_map(_add_leeq_exp_to_ltm, [cls for cls in classes], title = "Adding experiment to memory"):
+    for i, idea in parallel_map(_add_leeq_exp_to_ltm, [cls for cls in classes], title="Adding experiment to memory"):
         ...
 
     from leeq import experiments as exp
     from .procedure_indexer import extract_procedures_to_lt_memory
     root = os.path.dirname(exp.__file__)
-    #extract_procedures_to_lt_memory(root + "/procedures/calibration.md", var_table,
+    # extract_procedures_to_lt_memory(root + "/procedures/calibration.md", var_table,
     #                                lt_memory)
 
     return lt_memory, var_table
