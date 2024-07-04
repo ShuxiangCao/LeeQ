@@ -1,6 +1,8 @@
 from labchronicle import log_and_record, register_browser_function
-from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, basic_run
+import leeq
+from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, basic_run, setup
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils.compatibility import prims
 from leeq.utils.ai.vlms import visual_analyze_prompt
 
@@ -14,6 +16,7 @@ __all__ = [
     'DragPhaseCalibrationMultiQubitsMultilevel'
 ]
 
+logger = leeq.utils.setup_logging(__name__)
 
 class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
     """
@@ -114,6 +117,101 @@ class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
         basic_run(lpb, swp, '<z>')
 
         self.result = np.squeeze(mp.result())
+
+    @log_and_record(overwrite_func_name='CrossAllXYDragMultiSingleQubitMultilevel.run')
+    def run_simulated(self,
+            dut,
+            collection_name: str = 'f01',
+            mprim_index: int = 0,
+            initial_lpb=None,
+            N: int = 1,
+            inv_alpha_start: float = None,
+            inv_alpha_stop: float = None,
+            num: int = 21
+            ) -> None:
+        """
+        This experiment aims to calibrate the alpha parameter (DRAG coefficient) by conducting an AllXY DRAG experiment.
+        Do not specify the inv_alpha_start and inv_alpha_stop parameters unless you are sure about the range.
+
+        Parameters:
+            dut (Any): The device under test.
+            collection_name (str): The name of the collection.
+            mprim_index (int): The index of the measurement primitive.
+            initial_lpb (LogicalPrimitiveBlock): The initial pulse sequence.
+            N (int): The number of repetitions for the All XY value.
+            inv_alpha_start (float): The start value of the 1/alpha parameter.
+            inv_alpha_stop (float): The stop value of the 1/alpha parameter.
+            num (int): The number of points in the sweep.
+        """
+        if initial_lpb is not None:
+            logger.warning("initial_lpb is ignored in the simulated mode.")
+        c1 = dut.get_c1(collection_name)
+        parameters = c1['X'].get_parameters()
+
+        if 'alpha' not in parameters:
+            raise RuntimeError(
+                f'The pulse shape {parameters["shape"]} does not support DRAG')
+
+        alpha = parameters['alpha']
+
+        if inv_alpha_start is None:
+            inv_alpha_start = 1 / alpha - 0.006
+        if inv_alpha_stop is None:
+            inv_alpha_stop = 1 / alpha + 0.006
+
+        self.inv_alpha_start = inv_alpha_start
+        self.inv_alpha_stop = inv_alpha_stop
+
+        self.sweep_values = np.linspace(inv_alpha_start, inv_alpha_stop, num)
+
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        virtual_transmon = simulator_setup.get_virtual_qubit(dut)
+
+        anharmonicity = virtual_transmon.anharmonicity
+
+        inv_alpha = 1/anharmonicity
+
+        assert collection_name == 'f01',\
+            "Only f01 collection (driving single qubit) is supported in the simulated mode."
+
+        c1 = dut.get_c1(collection_name)
+
+        def tanh_modified(x):
+            # We approximate the behavior of the DRAG experiment with a tanh function (observed from real experiment),
+            # the slope width is about 0.1.
+            return np.tanh(50 * (x - inv_alpha))
+
+        data_xp = tanh_modified(self.sweep_values)
+        data_xm = -tanh_modified(self.sweep_values)
+
+        data_xp = (data_xp + 1) / 2
+        data_xm = (data_xm + 1) / 2
+
+        # If sampling noise is enabled, simulate the noise
+        if setup().status().get_param('Sampling_Noise'):
+            # Get the number of shot used in the simulation
+            shot_number = setup().status().get_param('Shot_Number')
+
+            # generate binomial distribution of the result to simulate the
+            # sampling noise
+            data_xp = np.random.binomial(
+                shot_number, data_xp) / shot_number
+            data_xm = np.random.binomial(
+                shot_number, data_xm) / shot_number
+
+        data_xp = data_xp * 2 - 1
+        data_xm = data_xm * 2 - 1
+
+        self.result = np.array([data_xp, data_xm]).T
+
+        quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+        standard_deviation = np.sum(quiescent_state_distribution[1:])
+
+        random_noise_factor = 1 + np.random.normal(
+            0, standard_deviation, self.result.shape)
+
+        self.result = np.clip(self.result * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
+
 
     def linear_fit(self):
         self.fit_xp = np.polyfit(self.sweep_values, self.result[:, 0], deg=1)
@@ -285,6 +383,10 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
         if update:
             dut.get_c1(collection_name).update_parameters(alpha=alpha_0)
 
+    def run_simulated(self, *args, **kwargs):
+        # This method does not directly deal with the experiment, so we can just forward
+        # the arguments to the run method.
+        return self.run(*args, **kwargs)
 
 class DragPhaseCalibrationMultiQubitsMultilevel(Experiment):
     @log_and_record

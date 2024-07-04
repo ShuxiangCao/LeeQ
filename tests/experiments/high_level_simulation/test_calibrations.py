@@ -16,11 +16,11 @@ def simulation_setup():
 
     virtual_transmon = VirtualTransmon(
         name="VQubit",
-        qubit_frequency=4144.1,
+        qubit_frequency=5040.4,
         anharmonicity=-198,
-        t1=30,
-        t2=30,
-        readout_frequency=9141.21,
+        t1=70,
+        t2=35,
+        readout_frequency=9645.5,
         quiescent_state_distribution=np.asarray(
             [
                 0.8,
@@ -153,4 +153,12 @@ def test_qubit_spectroscopy(simulation_setup, qubit):
         res_freq=9141.21, start=3.e3, stop=5.e3,
         step=1., num_avs=1000,
         rep_rate=0., mp_width=0.5, amp=0.01
+    )
+
+def test_drag_clibration(simulation_setup, qubit):
+    from leeq.experiments.builtin import CrossAllXYDragMultiSingleQubitMultilevel
+    manager = ExperimentManager().get_default_setup(
+    ).status.set_parameter("Plot_Result_In_Jupyter", True)
+    sweep = CrossAllXYDragMultiSingleQubitMultilevel(
+        dut=qubit,
     )
