@@ -8,6 +8,7 @@ from plotly import graph_objects as go
 
 from labchronicle import register_browser_function, log_and_record
 from leeq import Experiment, Sweeper
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_exp_decay_with_cov
 from leeq.theory.utils import to_dense_probabilities
 from leeq.utils.ai import visual_analyze_prompt
@@ -39,6 +40,64 @@ class SpinEchoMultiLevel(
     length should be approximately 5 times the T2 value. If there is a significant discrepancy, adjust the time
     length accordingly and report experiment failure. Additionally, modify the time resolution to capture approximately 50 data points.
     """
+
+    @log_and_record(overwrite_func_name='SpinEchoMultiLevel.run')
+    def run_simulated(
+            self,
+            qubit: Any,  # Replace 'Any' with the actual type of qubit
+            collection_name: str = 'f01',
+            mprim_index: int = 0,
+            free_evolution_time: float = 100.0,
+            time_resolution: float = 2.0,
+            start: float = 0.0,
+            initial_lpb: Optional[Any] = None,
+    ) -> None:
+        """
+        Run the SimpleSpinEchoMultiLevel experiment for measuring the T2 echo coherence metric.
+
+        Parameters
+        ----------
+        qubit : Any
+            The qubit to be used in the experiment.
+        collection_name : str
+            The name of the pulse collection.
+        mprim_index : int
+            Index of the measurement primitive.
+        free_evolution_time : float, optional
+            The free evolution time, by default 0.0.
+        time_resolution : float, optional
+            The time resolution for the experiment, by default 1.0.
+        start : float, optional
+            Start time of the sweep, by default 0.0.
+        initial_lpb : Any, optional
+            The initial local pulse builder, by default None.
+        """
+
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        virtual_transmon = simulator_setup.get_virtual_qubit(qubit)
+        t2 = virtual_transmon.t2
+
+        sweep_range = np.arange(0.0, free_evolution_time, time_resolution)
+
+        data = 0.5 + np.exp(-sweep_range / t2) / 2
+
+        # If sampling noise is enabled, simulate the noise
+        if setup().status().get_param('Sampling_Noise'):
+            # Get the number of shot used in the simulation
+            shot_number = setup().status().get_param('Shot_Number')
+
+            # generate binomial distribution of the result to simulate the
+            # sampling noise
+            data = np.random.binomial(
+                shot_number, data) / shot_number
+
+        quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+        standard_deviation = np.sum(quiescent_state_distribution[1:])/5
+
+        random_noise_factor = 1 + np.random.normal(
+            0, standard_deviation, data.shape)
+
+        self.trace = np.clip(data * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
 
     @log_and_record
     def run(
@@ -75,6 +134,7 @@ class SpinEchoMultiLevel(
         c1 = qubit.get_c1(collection_name)
         mp = qubit.get_measurement_prim_intlist(mprim_index)
         delay = prims.Delay(0)
+        self.trace = None
 
         self.mp = mp
 
@@ -113,7 +173,11 @@ class SpinEchoMultiLevel(
         Plot the results of the echo experiment using Plotly.
         """
 
-        trace = np.squeeze(self.mp.result())
+        if self.trace is None:
+            trace = np.squeeze(self.mp.result())
+        else:
+            trace = self.trace
+
         args = self.retrieve_args(self.run)
 
         t = np.arange(0, args['free_evolution_time'], args['time_resolution'])

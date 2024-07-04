@@ -158,7 +158,16 @@ def test_qubit_spectroscopy(simulation_setup, qubit):
 def test_drag_clibration(simulation_setup, qubit):
     from leeq.experiments.builtin import CrossAllXYDragMultiSingleQubitMultilevel
     manager = ExperimentManager().get_default_setup(
-    ).status.set_parameter("Plot_Result_In_Jupyter", True)
+    ).status.set_parameter("Plot_Result_In_Jupyter", False)
     sweep = CrossAllXYDragMultiSingleQubitMultilevel(
+        dut=qubit,
+    )
+
+
+def test_pingpong_clibration(simulation_setup, qubit):
+    from leeq.experiments.builtin import AmpTuneUpSingleQubitMultilevel
+    manager = ExperimentManager().get_default_setup(
+    ).status.set_parameter("Plot_Result_In_Jupyter", False)
+    sweep = AmpTuneUpSingleQubitMultilevel(
         dut=qubit,
     )

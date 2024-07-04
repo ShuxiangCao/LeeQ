@@ -5,6 +5,7 @@ import uncertainties as unc
 
 from labchronicle import register_browser_function, log_and_record
 from leeq import Experiment, Sweeper
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_exp_decay_with_cov
 from leeq.theory.utils import to_dense_probabilities
 from leeq.utils import setup_logging
@@ -48,6 +49,53 @@ class SimpleT1(Experiment):
     parameters are necessary. Additionally, modify the time resolution to capture approximately 100 data points.
     """
 
+    @log_and_record(overwrite_func_name='SimpleT1.run')
+    def run_simulated(self,
+            qubit: Any,  # Add the expected type for 'qubit' instead of Any
+            collection_name: str = 'f01',
+            # Add the expected type for 'initial_lpb' instead of Any
+            initial_lpb: Optional[Any] = None,
+            mprim_index: int = 0,
+            time_length: float = 100.0,
+            time_resolution: float = 1.0
+            ) -> None:
+        """Run the T1 experiment with the specified parameters.
+
+        Parameters:
+        qubit (Any): The qubit object to be used in the experiment.
+        collection_name (str): The collection name for the qubit transition.
+        initial_lpb (Optional[Any]): Initial list of pulse blocks (LPB).
+        mprim_index (int): Index of the measurement primitive.
+        time_length (float): Total time length of the experiment in microseconds.
+        time_resolution (float): Time resolution for the experiment in microseconds.
+        """
+
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        virtual_transmon = simulator_setup.get_virtual_qubit(qubit)
+        t1 = virtual_transmon.t1
+
+        sweep_range = np.arange(0.0, time_length, time_resolution)
+
+        data = np.exp(-sweep_range / t1)
+
+        # If sampling noise is enabled, simulate the noise
+        if setup().status().get_param('Sampling_Noise'):
+            # Get the number of shot used in the simulation
+            shot_number = setup().status().get_param('Shot_Number')
+
+            # generate binomial distribution of the result to simulate the
+            # sampling noise
+            data = np.random.binomial(
+                shot_number, data) / shot_number
+
+        quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+        standard_deviation = np.sum(quiescent_state_distribution[1:])
+
+        random_noise_factor = 1 + np.random.normal(
+            0, standard_deviation, data.shape)
+
+        self.trace = np.clip(data * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
+
     @log_and_record
     def run(self,
             qubit: Any,  # Add the expected type for 'qubit' instead of Any
@@ -68,6 +116,7 @@ class SimpleT1(Experiment):
         time_length (float): Total time length of the experiment in microseconds.
         time_resolution (float): Time resolution for the experiment in microseconds.
         """
+        self.trace = None
 
         c1 = qubit.get_c1(collection_name)
         mp = qubit.get_measurement_prim_intlist(mprim_index)
@@ -127,13 +176,16 @@ class SimpleT1(Experiment):
         Returns:
         go.Figure: The Plotly figure object.
         """
-        self.trace = None
         self.fit_params = {}  # Initialize as an empty dictionary or suitable default value
 
         args = self.retrieve_args(self.run)
 
         t = np.arange(0, args['time_length'], args['time_resolution'])
-        trace = np.squeeze(self.mp.result())
+
+        if self.trace is None:
+            trace = np.squeeze(self.mp.result())
+        else:
+            trace = self.trace
 
         if step_no is not None:
             t = t[:step_no[0]]

@@ -90,9 +90,13 @@ class PingPongSingleQubitMultilevel(Experiment):
         # Detuning
         delta = virtual_transmon.qubit_frequency - c1['X'].freq
 
-        area_per_pulse = c1['X'].calculate_envelope_area()
+        delta = 0
 
-        t_effective = area_per_pulse * (np.arange(0, pulse_count, 1) + 0.5)
+        area_per_pulse = repeated_block.calculate_envelope_area() / cur_amp
+
+        print("area_per_pulse", area_per_pulse)
+
+        t_effective = area_per_pulse * pulse_count
 
         # Rabi oscillation formula
         self.result = ((omega ** 2) / (delta ** 2 + omega ** 2) *
@@ -106,7 +110,17 @@ class PingPongSingleQubitMultilevel(Experiment):
             # generate binomial distribution of the result to simulate the
             # sampling noise
             self.result = np.random.binomial(
-                shot_number, self.data) / shot_number
+                shot_number, self.result) / shot_number
+
+
+        quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+        standard_deviation = np.sum(quiescent_state_distribution[1:])
+
+        random_noise_factor = 1 + np.random.normal(
+            0, standard_deviation, self.result.shape)
+
+        self.result = np.clip(self.result * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
+
 
         self.pulse_count = pulse_count
         self.amplitude = cur_amp
@@ -324,6 +338,10 @@ class AmpTuneUpSingleQubitMultilevel(Experiment):
         self.iteration = iteration * len(flip)
         self.best_amp = self.amps[-1]
         c1.update_parameters(amp=self.best_amp.nominal_value)
+
+    def run_simulated(self, *args, **kwargs):
+        # This class does not directly deal with the hardware, so we forward the call to the run method.
+        return self.run(*args, **kwargs)
 
     @register_browser_function(available_after=(run,))
     @visual_analyze_prompt("""
