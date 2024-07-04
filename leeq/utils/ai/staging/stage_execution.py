@@ -111,7 +111,7 @@ def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None)
 # [slot]
 '''
     wm.add_item(CodeWMemoryItem(prompt, tag="code_to_complete").set_no_stimuli())
-    wm.add_item(WMemoryHiddenItem(["description"]))
+    wm.add_item(WMemoryHiddenItem([description]))
     return wm
 
 
