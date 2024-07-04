@@ -18,7 +18,7 @@ class HighLevelSimulationSetup(ExperimentalSetup):
     running the theoretical simulation of each experiment, instead of pulse level physical simulations.
     """
 
-    def __init__(self, name: str, virtual_qubit: VirtualTransmon,
+    def __init__(self, name: str, virtual_qubits: dict[int,VirtualTransmon],
                  omega_to_amp_map: dict[int, float] = None, *args, **kwargs):
         """
         Initialize the HighLevelSimulationSetup class.
@@ -27,17 +27,16 @@ class HighLevelSimulationSetup(ExperimentalSetup):
         ----------
         name: str
             The name of the setup.
-        virtual_qubit: VirtualTransmon
-            The virtual qubit.
+        virtual_qubits: dict[int,VirtualTransmon]
+            The virtual qubits. The key is the channel index id for the driving port.
+            Here we assume all the readout channels are the same / multiplexed.
         omega_to_amp_map: dict[int,float]
             The mapping from the omega to the amp.
         """
 
-        # TODO: Implement multiple qubit support.
-
         self._compiler = "dummy compiler"
         self._engine = "dummy engine"
-        self._virtual_qubit = virtual_qubit
+        self._virtual_qubits = virtual_qubits
         if omega_to_amp_map is None:
             omega_to_amp_map = {}
         self._omega_per_amp_dict = omega_to_amp_map
@@ -60,8 +59,12 @@ class HighLevelSimulationSetup(ExperimentalSetup):
             The virtual qubit.
         """
 
-        # TODO: Implement the mapping from the dut qubit to the virtual qubit.
-        return self._virtual_qubit
+        channel = dut_qubit.get_default_c1().channel
+
+        if channel not in self._virtual_qubits:
+            raise ValueError(f"Channel {channel} not found in the virtual qubits.")
+
+        return self._virtual_qubits[channel]
 
     def get_omega_per_amp(self, channel: int) -> float:
         """

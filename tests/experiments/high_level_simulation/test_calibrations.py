@@ -30,7 +30,7 @@ def simulation_setup():
 
     setup = HighLevelSimulationSetup(
         name='HighLevelSimulationSetup',
-        virtual_qubit=virtual_transmon
+        virtual_qubits={2:virtual_transmon}
     )
     manager.register_setup(setup)
     return manager
