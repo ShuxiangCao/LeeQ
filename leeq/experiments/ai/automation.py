@@ -310,6 +310,10 @@ class AIInstructionExperiment(AIStagedExperiment):
     An experiment that contains one instruction (step) to be run. The instructions are powered by language model.
     """
 
+    @log_and_record(overwrite_func_name='AIInstructionExperimen.run')
+    def run_simulated(self, *args, **kwargs):
+        return self.run(*args, **kwargs)
+
     @log_and_record
     def run(self, prompt: str, **kwargs):
         """
@@ -347,6 +351,10 @@ class FullyAutomatedExperiment(AIStagedExperiment):
     A fully automated experiment that contains multiple steps. Automatically runs the experiment based on the instructions
     provided.
     """
+
+    @log_and_record(overwrite_func_name='FullyAutomatedExperiment.run')
+    def run_simulated(self, *args, **kwargs):
+        return self.run(*args, **kwargs)
 
     @log_and_record
     def run(self, prompt: str, sub_experiment=False, **kwargs):

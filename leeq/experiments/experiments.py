@@ -161,10 +161,11 @@ class LeeQExperiment(LeeQObject):
 
         try:
             # Run the experiment
-            if setup().status().get_parameters("High_Level_Simulation_Mode"):
+            if setup().status().get_parameters("High_Level_Simulation_Mode") :
                 self.run_simulated(*bound.args, **bound.kwargs)
             else:
                 self.run(*bound.args, **bound.kwargs)
+
         finally:
             # Make sure we print the record details before throwing the
             # exception

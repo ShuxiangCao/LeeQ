@@ -499,8 +499,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
     @log_and_record(overwrite_func_name='MeasurementCalibrationMultilevelGMM.run')
     def run_simulated(self,
                       dut: 'TransmonElement',
-                      sweep_lpb_list: List['LogicalPrimitiveBlock'],
-                      mprim_index: int,
+                      sweep_lpb_list: List['LogicalPrimitiveBlock']=None,
+                      mprim_index: int=0,
                       freq: Optional[float] = None,
                       amp: Optional[float] = None,
                       update: bool = False,
@@ -516,6 +516,9 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         Returns
         -------
         """
+
+        if sweep_lpb_list is None:
+            sweep_lpb_list = [dut.get_c1('f01')['I'], dut.get_c1('f01')['X']]
 
         assert len(sweep_lpb_list) <= 4, ("Only less than 4 LPBs are allowed for simulated data, which represent"
                                           "to prepare to the |0>, |1>, |2>, |3> state.")
