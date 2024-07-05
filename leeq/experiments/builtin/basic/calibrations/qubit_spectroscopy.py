@@ -205,7 +205,15 @@ class QubitSpectroscopyFrequency(Experiment):
             amp_rdrive=effective_amp_readout,
             readout_baseline=2 * effective_amp_readout)
 
-        noise_scale = 100 / num_avs / width
+        num_elements_to_baseline = int(len(response) * 0.2)
+
+        # Randomly select indices to set to 0
+        indices_to_baseline = np.random.choice(response.size, num_elements_to_baseline, replace=False)
+
+        # Set the selected elements to 0
+        response[indices_to_baseline] = response.mean()
+
+        noise_scale = 100 / np.log(num_avs) / np.sqrt(width)
 
         noise = (np.random.normal(0, noise_scale, response.shape) +
                  1j * np.random.normal(0, noise_scale, response.shape))

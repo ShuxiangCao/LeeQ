@@ -91,13 +91,12 @@ class CodegenModel:
             - there exists an item in wm tagged with 'completed_code' after at most 100 recalls.
         """
 
-        with display_chats():
-            for i in range(self.rounds):
-                recall_res = self.recall(wm)
-                wm.update_by_recall_res(recall_res, to_tick=True)
-                idea_res = self.codegen_idea.run_idea(wm)
-                recall_res = RecallResult([idea_res])
-                wm.update_by_recall_res(recall_res, to_tick=False)
+        for i in range(self.rounds):
+            recall_res = self.recall(wm)
+            wm.update_by_recall_res(recall_res, to_tick=True)
+            idea_res = self.codegen_idea.run_idea(wm)
+            recall_res = RecallResult([idea_res])
+            wm.update_by_recall_res(recall_res, to_tick=False)
         code = wm.extract_tag_contents("attempted_code")
         if len(code) > 0:
             return code[0]
