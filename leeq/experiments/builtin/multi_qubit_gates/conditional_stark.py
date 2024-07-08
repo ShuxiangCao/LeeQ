@@ -1440,6 +1440,8 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
     the expectation value ⟨Y⟩. The data points are connected by lines, and there are separate fit lines for the ground
     (blue) and excited (pink) states. My objective is to determine whether the oscillations in the data are sinusoidal.
     The success of the experiment depends on observing sinusoidal oscillations in both the ground and excited state data. 
+    The amplitude of the oscillations should be significant (more than 0.5), otherwise the experiment is invalid.
+    You should observe multiple oscillation periods in the data, otherwise the experiment is invalid.  
     Can you inspect the figure, analyze the oscillations, and conclude whether the experiment is valid based on the
     presence of sinusoidal oscillations?
     """
@@ -1935,7 +1937,7 @@ class ConditionalStarkEchoTuneUp(Experiment):
 
             inspection_results = {
                 'analysis': 'AI inspection is not enabled. Always assumes the data is valid.',
-                'success': True,
+                'Experiment success': True,
             }
 
         result = sizzel_xy.analyze_results_with_errs()
