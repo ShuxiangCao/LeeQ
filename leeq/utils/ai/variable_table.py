@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import warnings
 from types import ModuleType
 from typing import Tuple, Optional
 
@@ -133,6 +135,11 @@ class VariableTable:
         interpreter(code)
         if assign_back:
             self.assign_back(interpreter)
+        # check errors
+        if len(interpreter.error) > 0:
+            error_details = [f"{err.get_error()} \n" for err in interpreter.error]
+            error_str = "\n".join(error_details)
+            warnings.warn(f"Error raised when interpreting: {code} \n Error detail: {error_str}")
 
     def assign_back(self, interpreter: Interpreter):
         """Update the variable table with new or modified variables from the interpreter.
