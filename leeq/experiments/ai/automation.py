@@ -11,6 +11,8 @@ from ideanet.utils.logger import RecallLogger
 
 from leeq.utils import setup_logging
 from leeq.utils.notebook import show_spinner, hide_spinner
+from leeq.utils.ai.staging.stage_execution import CodegenModel
+
 
 from IPython.core.display import display, HTML
 from leeq.experiments import Experiment
@@ -18,88 +20,6 @@ from leeq.experiments import Experiment
 logger = setup_logging(__name__)
 
 __all__ = ["AIInstructionExperiment", "FullyAutomatedExperiment", "AIRun", "AutoRun"]
-
-
-class CodegenIdea(Idea):
-    """
-    Generate the code based on the working memory
-    Will put the generated code in the working memory
-    """
-
-    def __init__(self):
-        super().__init__("CodegenIdea")
-
-    def get_score(self, w_memory: WorkingMemory):
-        if not w_memory.has_tag("code_suggestion"):
-            return -1.0
-        return 1.0
-
-    def run_idea(self, w_memory: WorkingMemory) -> IdeaResult:
-        chat = Chat()
-        chat += """
-        Your task is to generate new code for the context described below.
-        """
-        chat += w_memory.get_in_prompt_format(tag="context", tags_to_ignore=["comment"])
-        chat += """
-        <instruction>
-        You are required to adopt code that can be used to replace the <code_to_complete> from <code_suggestion>.
-        The adopted code should absolutely just be what should appear in the place of # [slot]. 
-        You should just choose the code and fill it into the slot.
-        Some of the <code_suggestion> might be misleading. But you should pick the most relevant one. You have to pick one of the suggestions unless there is no suggestion.
-        If no suggestion exist, you can write the comment of what to do and put ... as a placeholder
-        Output a JSON dict with the following keys:
-        "analysis" (string): an analysis of the current situation. Especially, focusing on how to generate the code.
-        "code" (string): the new code that can fill the slot in <code_to_complete>.
-        </instruction>
-        """
-        res = chat.complete(parse="dict", expensive=True)["code"]
-        idea_res = IdeaResult(self, True)
-        code_item = CodeWMemoryItem(res, tag="attempted_code")
-        idea_res.add_new_wm_item(code_item)
-        idea_res.tags_to_remove = ["attempted_code", "code_suggestion"]  # remove the old attempted code
-        return idea_res
-
-
-class CodegenModel:
-    lt_memory: LongTermMemory
-    n_recall_items: int
-
-    def __init__(self, rounds=1):
-        self.lt_memory = LongTermMemory()
-        self.codegen_idea = CodegenIdea()
-        self.n_recall_items = 10
-        self.rounds = rounds
-
-    def recall(self, wm: WorkingMemory) -> RecallResult:
-        """
-        Recall ideas from long term memory, using what is currently in the working memory.
-
-        :param wm: the working memory to stimuli ideas
-        :return: the result of triggered ideas
-        """
-        res = self.lt_memory.recall_by_wm(wm, top_k=self.n_recall_items)
-        return res
-
-    def codegen(self, wm: WorkingMemory) -> str:
-        """
-        Generate code from working memory, updates working memory with recalled ideas in the process.
-
-        :param wm: the working memory to generate code from
-        :return: source code
-
-        Preconditions:
-            - there exists an item in wm tagged with 'completed_code' after at most 100 recalls.
-        """
-
-        for i in range(self.rounds):
-            recall_res = self.recall(wm)
-            wm.update_by_recall_res(recall_res, to_tick=True)
-            idea_res = self.codegen_idea.run_idea(wm)
-            recall_res = RecallResult([idea_res])
-            wm.update_by_recall_res(recall_res, to_tick=False)
-        code = wm.extract_tag_contents("attempted_code")
-        if len(code) > 0:
-            return code[0]
 
 
 class AIStagedExperiment(Experiment):
@@ -139,7 +59,7 @@ class AIStagedExperiment(Experiment):
         self.stages: List[Stage] = stages
 
         leeq_code_ltm, exps_var_table = build_leeq_code_ltm()
-        code_cog_model = CodegenModel(rounds=1)
+        code_cog_model = CodegenModel()
         for idea in leeq_code_ltm.ideas:
             code_cog_model.lt_memory.add_idea(idea)
         code_cog_model.n_recall_items = 5  # Number of items to recall in cognitive model
@@ -189,13 +109,13 @@ class AIStagedExperiment(Experiment):
 
             codegen_wm = get_codegen_wm(stage.description, input_var_table)
 
-            # if stage.title not in coding_ltm_cache:
-            #    recall_res = code_cog_model.recall(codegen_wm)
-            #    coding_ltm_cache[stage.title] = recall_res
-            # else:
-            #    recall_res = coding_ltm_cache[stage.title]
-            # with RecallLogger():
-            codes = code_cog_model.codegen(codegen_wm)
+            if stage.title not in coding_ltm_cache:
+               recall_res = code_cog_model.recall(codegen_wm)
+               coding_ltm_cache[stage.title] = recall_res
+            else:
+               recall_res = coding_ltm_cache[stage.title]
+
+            codes = code_cog_model.codegen(codegen_wm,recall_res)
 
             new_var_table = var_table.new_child_table()
 
@@ -389,7 +309,7 @@ AutoRun = FullyAutomatedExperiment
 
 if __name__ == '__main__':
     from leeq.utils.ai.variable_table import VariableTable
-    from leeq.utils.ai.staging.stage_execution import get_codegen_wm
+    from leeq.utils.ai.staging.stage_execution import get_codegen_wm, CodegenModel
     from leeq.utils.ai.code_indexer import build_leeq_code_ltm
 
     prompt = "Do qubit measurement calibration to update the GMM model."

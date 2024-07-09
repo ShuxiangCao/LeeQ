@@ -1,7 +1,7 @@
 from typing import List, Tuple, Optional
 from ideanet.codegen.code_wmemory import CodeWMemoryItem
+from ideanet.core.lt_memory import RecallResult, LongTermMemory, IdeaResult, Idea
 from ideanet.core.w_memory import WorkingMemory, WMemoryNoStimuliItem, WMemoryHiddenItem
-from leeq import Experiment
 from leeq.utils.ai.variable_table import VariableTable
 
 
@@ -41,8 +41,9 @@ class Stage:
         display(Markdown(stage_markdown))
 
 
-def get_exp_from_var_table(var_table: VariableTable) -> Optional[Experiment]:
+def get_exp_from_var_table(var_table: VariableTable) -> Optional['Experiment']:
     """Searches the variable table for an Experiment object."""
+    from leeq import Experiment
     for name, obj in var_table.variable_objs.items():
         if isinstance(obj, Experiment):
             return obj
@@ -148,3 +149,94 @@ def check_if_needed_to_break_down(description: str):
     res = chat.complete(parse="dict", expensive=True, cache=True)
 
     return res
+
+
+
+class CodegenIdea(Idea):
+    """
+    Generate the code based on the working memory
+    Will put the generated code in the working memory
+    """
+
+    def __init__(self):
+        super().__init__("CodegenIdea")
+
+    def get_score(self, w_memory: WorkingMemory):
+        if not w_memory.has_tag("code_suggestion"):
+            return -1.0
+        return 1.0
+
+    def run_idea(self, w_memory: WorkingMemory) -> IdeaResult:
+        from mllm import Chat
+        chat = Chat()
+        chat += """
+        Your task is to generate new code for the context described below.
+        """
+        chat += w_memory.get_in_prompt_format(tag="context", tags_to_ignore=["comment"])
+        chat += """
+        <instruction>
+        You are required to adopt code that can be used to replace the <code_to_complete> from <code_suggestion>.
+        The adopted code should absolutely just be what should appear in the place of # [slot]. 
+        You should just choose the code and fill it into the slot.
+        Some of the <code_suggestion> might be misleading. But you should pick the most relevant one. You have to pick one of the suggestions unless there is no suggestion.
+        If no suggestion exist, you can write the comment of what to do and put ... as a placeholder
+        Output a JSON dict with the following keys:
+        "analysis" (string): an analysis of the current situation. Especially, focusing on how to generate the code.
+        "code" (string): the new code that can fill the slot in <code_to_complete>.
+        </instruction>
+        """
+        res = chat.complete(parse="dict", expensive=True)["code"]
+        idea_res = IdeaResult(self, True)
+        code_item = CodeWMemoryItem(res, tag="attempted_code")
+        idea_res.add_new_wm_item(code_item)
+        idea_res.tags_to_remove = ["attempted_code", "code_suggestion"]  # remove the old attempted code
+        return idea_res
+
+
+class CodegenModel:
+    lt_memory: LongTermMemory
+    n_recall_items: int
+
+    def __init__(self):
+        self.lt_memory = LongTermMemory()
+        self.codegen_idea = CodegenIdea()
+        self.n_recall_items = 10
+        self._cached_recall_res = None
+
+    def recall(self, wm: WorkingMemory) -> RecallResult:
+        """
+        Recall ideas from long term memory, using what is currently in the working memory.
+
+        :param wm: the working memory to stimuli ideas
+        :return: the result of triggered ideas
+        """
+        res = self.lt_memory.recall_by_wm(wm, top_k=self.n_recall_items)
+        self._cached_recall_res = res
+        return res
+
+    def codegen(self, wm: WorkingMemory, recall_res:dict = None) -> str:
+        """
+        Generate code from working memory, updates working memory with recalled ideas in the process.
+
+        Parameters:
+        - wm: the working memory to generate code from
+        - recall_res: the recall result from the long term memory
+
+        Preconditions:
+            - there exists an item in wm tagged with 'completed_code' after at most 100 recalls.
+        """
+
+        if recall_res is None:
+            if self._cached_recall_res is None:
+                recall_res = self.recall(wm)
+            else:
+                recall_res = self._cached_recall_res
+
+        wm.update_by_recall_res(recall_res, to_tick=True)
+        idea_res = self.codegen_idea.run_idea(wm)
+        recall_res = RecallResult([idea_res])
+        wm.update_by_recall_res(recall_res, to_tick=False)
+        code = wm.extract_tag_contents("attempted_code")
+        if len(code) > 0:
+            return code[0]
+
