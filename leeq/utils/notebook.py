@@ -50,3 +50,29 @@ def hide_spinner(spinner_id):
     }}
     """)
     display(hide_spinner_js)
+
+
+def change_spinner_text(spinner_id, new_text):
+    """
+    Changes the text of the spinner identified by spinner_id.
+
+    Args:
+    spinner_id (str): The unique identifier of the spinner.
+    new_text (str): The new text to display in the spinner.
+    """
+    # Create and execute JavaScript to change the text of the spinner element
+    change_text_js = Javascript(f"""
+    var spinnerElement = document.getElementById('{spinner_id}');
+    if (spinnerElement) {{
+        spinnerElement.textContent = '{new_text}';  // Change the text content of the spinner element
+    }} else {{
+        // Retry changing text after a short delay if the spinner is not immediately found
+        window.setTimeout(() => {{
+            var spinnerElement = document.getElementById('{spinner_id}');
+            if (spinnerElement) {{
+                spinnerElement.textContent = '{new_text}';
+            }}
+        }}, 50);
+    }}
+    """)
+    display(change_text_js)

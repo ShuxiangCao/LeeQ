@@ -1,6 +1,6 @@
-from pprint import pprint
 from typing import List
 
+from tqdm.notebook import tqdm
 from leeq.utils.ai.display_chat.notebooks import display_chat, code_to_html
 from leeq.utils.ai.experiment_generation.data_analysis import generate_data_analysis
 from leeq.utils.ai.experiment_generation.data_visualization import generate_data_visualization
@@ -135,22 +135,45 @@ def break_down_description(description: str):
     return res
 
 
-def generate_experiment(description: str):
+def generate_experiment(description: str, display_progress=True):
     """
     Generate an experiment based on the given description.
 
     Args:
         description (str): The description of the experiment.
+        display_progress (bool): Whether to display a progress bar while generating the experiment.
 
     return cls: The generated experiment class
     """
+    steps = [
+        "Analyzing the experiment description",
+        "Generating pulse sequences",
+        "Generating data analysis",
+        "Generating data visualization",
+        "Summarizing the experiment"
+    ]
+
+    if display_progress:
+        progress_bar = tqdm(total=len(steps), desc="Experiment Generation Progress")
 
     descriptions = break_down_description(description)
+
+    if display_progress:
+        progress_bar.set_description(steps[0])
+        progress_bar.update(1)
 
     pulse_sequences = generate_pulse_sequences(overview=descriptions['summary'],
                                                description=descriptions["pulse_sequences"])
 
+    if display_progress:
+        progress_bar.set_description(steps[1])
+        progress_bar.update(1)
+
     data_analysis = generate_data_analysis(descriptions["data_analysis"], context=pulse_sequences)
+
+    if display_progress:
+        progress_bar.set_description(steps[2])
+        progress_bar.update(1)
 
     data_visualization = generate_data_visualization(descriptions["data_visualization"], context=data_analysis)
 
@@ -160,8 +183,17 @@ def generate_experiment(description: str):
         "data_visualization": data_visualization
     }
 
+    if display_progress:
+        progress_bar.set_description(steps[3])
+        progress_bar.update(1)
+
     experiment_code = summarize_experiment(experiment_summary=descriptions["summary"], code_fragments=code_fragments)
     experiment_code = add_comments_annotations_and_gagets(summary=descriptions["summary"], code=experiment_code)
+
+    if display_progress:
+        progress_bar.set_description(steps[4])
+        progress_bar.update(1)
+        progress_bar.close()
 
     html = code_to_html(experiment_code)
     display_chat(agent_name="Experiment generation agent", background_color='light_purple', content=html)
