@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import io
 import plotly.graph_objects as go
+import os
 
 
 def matplotlib_plotly_to_pil(fig: Union[go.Figure, plt.Figure]):
@@ -20,7 +21,11 @@ def matplotlib_plotly_to_pil(fig: Union[go.Figure, plt.Figure]):
 
     buf = io.BytesIO()
     if isinstance(fig, go.Figure):
-        fig.write_image(buf,format='png',engine='orca')
+        if os.name == 'nt':
+            engine = "orca"
+        else:
+            engine = "kaleido"
+        fig.write_image(buf,format='png',engine=engine)
     elif isinstance(fig, plt.Figure):
         fig.savefig(buf, format='png')
     else:
