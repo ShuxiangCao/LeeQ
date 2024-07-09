@@ -97,7 +97,7 @@ Whenever you need to run experiment `{self.exp_name}`, you should create a new i
 will be carried out when the experiment object is created.
 To create new instance: `experiment_<name> = {self.exp_cls.__name__}(argument1,argument2, ...)`
 If the experiment accepts `ai_inspection` parameter, set it to True.
-If there are certain arguments needs to be passed but you do not know the value, do not pass them and use the default value.
+If there are certain arguments needs to be passed but you do not know the value, ignore them.
 </hint>
 </knowledge>
 The knowledge might be useful to generate some code.

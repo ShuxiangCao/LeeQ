@@ -171,8 +171,9 @@ Note: Refinement of the parameters should be included in the same stage, not in 
  additional context or clarification. Do not include objectives or goals in the description.
 
 - **Stage Transitions**:
-    - **Advance**: Define conditions for progressing to the next stage.
-    - **Retry**: Specify when to repeat a stage with adjustments.
+    - **Advance**: Always proceed to the next stage when the experiment succeeded.
+    - **Retry**: Specify when to repeat a stage with adjustments. Always retry at least 3 times when error occured 
+        before revert to the previous stage.
     - **Revert**: Return to the previous stage.
     
 - **Reference**: Include the original input prompt related to each stage for reference and context.
@@ -264,6 +265,47 @@ The NEXT key must be a string detailing the transition conditions. Do not use "r
     #    stages.append(stage)
 
     return stages
+
+
+def find_the_stage_label_based_on_description(stages: List[Stage], description: str):
+    """
+    Find the stage label based on the description.
+
+    Parameters:
+        stages (List[Stage]): The list of stages.
+        description (str): The description to search for.
+
+    return (Stage): The stage.
+    """
+
+    stages_info = '\n'.join([stage.to_xml() for stage in stages])
+
+    prompt = f"""
+    You have a list of stages for an experiment. Your task is to find the stage label based on the description provided.
+    
+    <stages>
+    {stages_info}
+    </stages>
+    
+    <description>
+    {description}
+    </description>
+    
+    Return format:
+        {{
+            "stage_label": str
+        }}
+    """
+
+    import mllm
+    from mllm.utils import parallel_map
+
+    chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
+    res = chat.complete(parse="dict", expensive=True, cache=True)
+
+    for stage in stages:
+        if res['stage_label'] in stage.label:
+            return stage
 
 
 if __name__ == '__main__':

@@ -11,14 +11,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 __all__ = [
-    'CrossAllXYDragMultiSingleQubitMultilevel',
+    'DragCalibrationSingleQubitMultilevel',
     'CrossAllXYDragMultiRunSingleQubitMultilevel',
     'DragPhaseCalibrationMultiQubitsMultilevel'
 ]
 
 logger = leeq.utils.setup_logging(__name__)
 
-class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
+
+class DragCalibrationSingleQubitMultilevel(Experiment):
     """
     Class for running a single AllXY drag experiment on a single qubit with a multilevel system.
     """
@@ -118,17 +119,17 @@ class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
 
         self.result = np.squeeze(mp.result())
 
-    @log_and_record(overwrite_func_name='CrossAllXYDragMultiSingleQubitMultilevel.run')
+    @log_and_record(overwrite_func_name='DragCalibrationSingleQubitMultilevel.run')
     def run_simulated(self,
-            dut,
-            collection_name: str = 'f01',
-            mprim_index: int = 0,
-            initial_lpb=None,
-            N: int = 1,
-            inv_alpha_start: float = None,
-            inv_alpha_stop: float = None,
-            num: int = 21
-            ) -> None:
+                      dut,
+                      collection_name: str = 'f01',
+                      mprim_index: int = 0,
+                      initial_lpb=None,
+                      N: int = 1,
+                      inv_alpha_start: float = None,
+                      inv_alpha_stop: float = None,
+                      num: int = 21
+                      ) -> None:
         """
         This experiment aims to calibrate the alpha parameter (DRAG coefficient) by conducting an AllXY DRAG experiment.
         Do not specify the inv_alpha_start and inv_alpha_stop parameters unless you are sure about the range.
@@ -169,9 +170,9 @@ class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
 
         anharmonicity = virtual_transmon.anharmonicity
 
-        inv_alpha = 1/anharmonicity
+        inv_alpha = 1 / anharmonicity
 
-        assert collection_name == 'f01',\
+        assert collection_name == 'f01', \
             "Only f01 collection (driving single qubit) is supported in the simulated mode."
 
         c1 = dut.get_c1(collection_name)
@@ -211,7 +212,6 @@ class CrossAllXYDragMultiSingleQubitMultilevel(Experiment):
             0, standard_deviation, self.result.shape)
 
         self.result = np.clip(self.result * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
-
 
     def linear_fit(self):
         self.fit_xp = np.polyfit(self.sweep_values, self.result[:, 0], deg=1)
@@ -387,6 +387,7 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
         # This method does not directly deal with the experiment, so we can just forward
         # the arguments to the run method.
         return self.run(*args, **kwargs)
+
 
 class DragPhaseCalibrationMultiQubitsMultilevel(Experiment):
     @log_and_record

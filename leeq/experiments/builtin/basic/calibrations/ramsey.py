@@ -28,9 +28,9 @@ class SimpleRamseyMultilevel(Experiment):
     _experiment_result_analysis_instructions = """
     The Ramsey experiment is a quantum mechanics experiment that involves the measurement of oscillations in the
     quantum state of a qubit. Typically a successful Ramsey experiment will show a clear, regular oscillatory pattern
-    with amplitude greater than 0.2. If less than 3 oscillations are observed, the experiment requires to increase
-    the time of the experiment. If more than 10 oscillations are observed, the experiment requires to decrease the time
-    of the experiment. The frequency of the oscillations should be less to the expected offset value.
+    with amplitude greater than 0.2. If less than approximately 3 oscillations are observed, the experiment requires to
+    increase the time of the experiment. If more than 10 oscillations are observed, the experiment requires to decrease
+    the time of the experiment. The frequency of the oscillations should be less to the expected offset value.
     """
 
     @log_and_record

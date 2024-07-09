@@ -37,7 +37,7 @@ class NormalisedRabi(Experiment):
             collection_name: str = 'f01',
             mprim_index: int = 0,
             pulse_discretization: bool = True,
-            update=False,
+            update=True,
             initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         """
         Run a Rabi experiment on a given qubit and analyze the results.
@@ -57,6 +57,12 @@ class NormalisedRabi(Experiment):
 
         Returns:
         Dict[str, Any]: Fitted parameters if fit is True, None otherwise.
+
+        Example:
+            >>> # Run an experiment to calibrate the driving amplitude of a single qubit gate
+            >>> rabi_experiment = NormalisedRabi(
+            >>> dut_qubit=dut, amp=0.05, start=0.01, stop=0.3, step=0.002, fit=True,
+            >>> collection_name='f01', mprim_index=0, pulse_discretization=True, update=True)
         """
         # Get c1 from the DUT qubit
         c1 = dut_qubit.get_c1(collection_name)
@@ -131,7 +137,7 @@ class NormalisedRabi(Experiment):
                       collection_name: str = 'f01',
                       mprim_index: int = 0,
                       pulse_discretization: bool = True,
-                      update=False,
+                      update=True,
                       initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         """
         Run a simulated Rabi experiment on a given qubit and analyze the results.
@@ -146,11 +152,12 @@ class NormalisedRabi(Experiment):
         collection_name (str): Collection name for retrieving c1. Default is 'f01'.
         mprim_index (int): Index for retrieving measurement primitive. Default is 0.
         pulse_discretization (bool): Whether to discretize the pulse. Default is False.
-        update (bool): Whether to update the qubit parameters. Default is False.
+        update (bool): Whether to update the qubit parameters. Default is True.
         initial_lpb (Any): Initial lpb to add to the created lpb. Default is None.
 
         Returns:
         Dict[str, Any]: Fitted parameters if fit is True, None otherwise.
+
         """
         if initial_lpb is not None:
             logger.warning("initial_lpb is ignored in the simulated mode.")

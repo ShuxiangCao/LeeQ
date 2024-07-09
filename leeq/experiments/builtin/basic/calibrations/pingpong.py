@@ -25,7 +25,7 @@ logger = setup_logging(__name__)
 __all__ = [
     'PingPongSingleQubitMultilevel',
     'PingPongMultiQubitMultilevel',
-    'AmpTuneUpSingleQubitMultilevel',
+    'AmpPingpongCalibrationSingleQubitMultilevel',
     'AmpTuneUpMultiQubitMultilevel'
 ]
 
@@ -94,8 +94,6 @@ class PingPongSingleQubitMultilevel(Experiment):
 
         area_per_pulse = repeated_block.calculate_envelope_area() / cur_amp
 
-        print("area_per_pulse", area_per_pulse)
-
         t_effective = area_per_pulse * pulse_count
 
         # Rabi oscillation formula
@@ -112,15 +110,17 @@ class PingPongSingleQubitMultilevel(Experiment):
             self.result = np.random.binomial(
                 shot_number, self.result) / shot_number
 
-
         quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
         standard_deviation = np.sum(quiescent_state_distribution[1:])
 
         random_noise_factor = 1 + np.random.normal(
             0, standard_deviation, self.result.shape)
 
-        self.result = np.clip(self.result * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
+        random_noise_offset = np.random.normal(
+            0, standard_deviation/2, self.result.shape)
 
+        self.result = np.clip(self.result * quiescent_state_distribution[0] * random_noise_factor + random_noise_offset,
+                              -1, 1)
 
         self.pulse_count = pulse_count
         self.amplitude = cur_amp
@@ -232,7 +232,7 @@ class PingPongSingleQubitMultilevel(Experiment):
         return fig
 
 
-class AmpTuneUpSingleQubitMultilevel(Experiment):
+class AmpPingpongCalibrationSingleQubitMultilevel(Experiment):
     """
     This class represents an amplitude tuning experiment for a single qubit multilevel system.
     """
