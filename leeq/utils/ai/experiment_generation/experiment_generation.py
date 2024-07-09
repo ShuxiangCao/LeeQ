@@ -52,6 +52,7 @@ def add_comments_annotations_and_gagets(summary: str, code: str):
     """
 
     leeq_example = load_document_file('full_class_example.md')
+    leeq_loading = load_document_file('imports_and_loading.md')
 
     prompt = f"""
     There is a code snippet that has been generated for implementing a quantum experiment. We wish to modify the code 
@@ -61,6 +62,10 @@ def add_comments_annotations_and_gagets(summary: str, code: str):
     <leeq_example>
     {leeq_example}
     </leeq_example>
+    
+    <leeq_imports>
+    {leeq_loading}
+    </leeq_imports>
     
     <summary> 
     {summary}
@@ -76,7 +81,8 @@ def add_comments_annotations_and_gagets(summary: str, code: str):
     - Add comments to the code to make it more readable.
     - Add type annotations to all class arguments to the code to make it more understandable.
     - Add docstrings to the class and all class functions to make it more understandable.
-    - Return the full class code.
+    - Do not change the structure of the code, add or remove class functions.
+    - You have to the full code after modification and redy to be executed. Do not return the code in parts.
     
     Return format:
     {{
@@ -188,7 +194,12 @@ def generate_experiment(description: str, display_progress=True):
         progress_bar.update(1)
 
     experiment_code = summarize_experiment(experiment_summary=descriptions["summary"], code_fragments=code_fragments)
+
+    print(experiment_code)
+
     experiment_code = add_comments_annotations_and_gagets(summary=descriptions["summary"], code=experiment_code)
+
+    print(experiment_code)
 
     if display_progress:
         progress_bar.set_description(steps[4])
