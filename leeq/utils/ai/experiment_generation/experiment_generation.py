@@ -195,11 +195,11 @@ def generate_experiment(description: str, display_progress=True):
 
     experiment_code = summarize_experiment(experiment_summary=descriptions["summary"], code_fragments=code_fragments)
 
-    print(experiment_code)
+    # print(experiment_code)
 
     experiment_code = add_comments_annotations_and_gagets(summary=descriptions["summary"], code=experiment_code)
 
-    print(experiment_code)
+    # print(experiment_code)
 
     if display_progress:
         progress_bar.set_description(steps[4])
