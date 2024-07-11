@@ -30,7 +30,7 @@ def simulation_setup():
 
     setup = HighLevelSimulationSetup(
         name='HighLevelSimulationSetup',
-        virtual_qubits={2:virtual_transmon}
+        virtual_qubits={2: virtual_transmon}
     )
     manager.register_setup(setup)
     return manager
@@ -155,19 +155,20 @@ def test_qubit_spectroscopy(simulation_setup, qubit):
         rep_rate=0., mp_width=0.5, amp=0.01
     )
 
+
 def test_drag_clibration(simulation_setup, qubit):
-    from leeq.experiments.builtin import CrossAllXYDragMultiSingleQubitMultilevel
+    from leeq.experiments.builtin import DragCalibrationSingleQubitMultilevel
     manager = ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
-    sweep = CrossAllXYDragMultiSingleQubitMultilevel(
+    sweep = DragCalibrationSingleQubitMultilevel(
         dut=qubit,
     )
 
 
 def test_pingpong_clibration(simulation_setup, qubit):
-    from leeq.experiments.builtin import AmpTuneUpSingleQubitMultilevel
+    from leeq.experiments.builtin import AmpPingpongCalibrationSingleQubitMultilevel
     manager = ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
-    sweep = AmpTuneUpSingleQubitMultilevel(
+    sweep = AmpPingpongCalibrationSingleQubitMultilevel(
         dut=qubit,
     )

@@ -18,7 +18,7 @@ from leeq.core.primitives.built_in.sizzel_gate import *
 from leeq.theory.fits.fit_exp import *
 from matplotlib import pyplot as plt
 
-from leeq.theory.fits.fit_exp import fit_2d_freq, fit_2d_freq_with_cov
+from leeq.theory.fits.fit_exp import fit_2d_freq_with_cov
 import uncertainties as unc
 
 from leeq.theory.estimator.kalman import KalmanFilter1D

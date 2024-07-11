@@ -1,53 +1,61 @@
-import numpy as np
-from scipy.optimize import minimize, curve_fit
-from typing import Dict, Tuple, Any
-from scipy.fft import fft, fftfreq
-from scipy.optimize import minimize, curve_fit
-
-import numpy as np
-from scipy.optimize import minimize, curve_fit
-from typing import Dict, Tuple, Any
-from scipy.fft import fft, fftfreq
-from scipy.optimize import minimize, curve_fit
 import uncertainties as unc
+from scipy.optimize import curve_fit
+import numpy as np
+from scipy.optimize import minimize
+from typing import Any, Dict, Optional, Union, Tuple
 
 
 def fit_1d_freq(
-        z,
-        dt,
-        use_freq_bound=True,
-        fix_frequency=False,
-        tstart=0,
-        freq_guess=None,
-        **kwargs):
-    if fix_frequency:
-        assert freq_guess is not None
+        z: np.ndarray,
+        dt: float,
+        use_freq_bound: bool = True,
+        fix_frequency: bool = False,
+        tstart: float = 0,
+        freq_guess: Optional[float] = None,
+        **kwargs: Any
+) -> Dict[str, Any]:
+    """
+    Fit a sine wave to a 1D array of data using frequency analysis and optimization.
 
+    Parameters:
+    z (np.ndarray): The data array to fit.
+    dt (float): Time interval between consecutive data points.
+    use_freq_bound (bool, optional): Whether to use frequency bounds in optimization. Defaults to True.
+    fix_frequency (bool, optional): If set to True, use the provided freq_guess without optimization. Defaults to False.
+    tstart (float, optional): Start time of the data array. Defaults to 0.
+    freq_guess (float, optional): Initial guess for the frequency. Required if fix_frequency is True.
+
+    Returns:
+    Dict[str, Any]: A dictionary containing the frequency, amplitude, phase, offset, and residual of the fitted sine wave.
+
+    Example:
+    >>> z = np.array([np.sin(2 * np.pi * 0.5 * t) for t in np.linspace(0, 10, 100)])
+    >>> result = fit_1d_freq(z, 0.1)
+    >>> print(result)
+    {'Frequency': 0.5, 'Amplitude': 1.0, 'Phase': 0.0, 'Offset': 0.0, 'Residual': 0.0}
+    """
+    assert not fix_frequency or freq_guess is not None, "Frequency guess is required when fixing frequency."
+
+    # Perform initial frequency estimation using FFT if no initial guess is provided
     if freq_guess is None:
         rfft = np.abs(np.fft.rfft(z))
         f = np.fft.rfftfreq(len(z), dt)
         imax = np.argmax(rfft[1:]) + 1
         fmax = f[imax]
-
         omega = fmax
-
         df = f[1] - f[0]
         min_omega = fmax - df
         max_omega = fmax + df
     else:
         omega = freq_guess
-        max_omega = omega * 1.5
-        min_omega = omega * 0.5
+        min_omega, max_omega = omega * 0.5, omega * 1.5
 
     t = np.linspace(tstart, tstart + dt * (len(z) - 1), len(z))
-
     cosz = z * np.cos(2.0 * np.pi * omega * t)
     sinz = z * np.sin(2.0 * np.pi * omega * t)
     offset = np.mean(z)
-    # 2 * np.std(z) ** 0.5  # 2 ** 0.5 * np.mean((z - offset) ** 2) ** 0.5
     amp = 0.5 * (np.max(z) - np.min(z))
-    # 3 * np.pi / 2  # np.arctan2(np.mean(cosz),np.mean(sinz))
-    phi = np.arcsin(np.max([np.min([(z[0] - offset) / amp, 1]), -1]))
+    phi = np.arcsin(np.clip((z[0] - offset) / amp, -1, 1))
     if z[1] - z[0] < 0:
         phi = np.pi - phi
 
@@ -56,6 +64,7 @@ def fit_1d_freq(
         fit = amp * np.sin(2. * np.pi * omega * t + phi) + offset
         return np.mean((fit - z) ** 2) * 1e5
 
+    # Define sub-functions for specific parameter optimizations
     def leastsq_without_omega(x, omega, t, z):
         amp, phi, offset = x
         fit = amp * np.sin(2. * np.pi * omega * t + phi) + offset
@@ -71,57 +80,126 @@ def fit_1d_freq(
         fit = amp * np.sin(2. * np.pi * omega * t + phi) + offset
         return np.mean((fit - z) ** 2) * 1e5
 
-    result = minimize(leastsq_phi_only, np.array(
-        [phi]), args=(np.array([omega, amp, offset]), t, z))
+    # Optimization process
+    result = minimize(leastsq_phi_only, np.array([phi]), args=(np.array([omega, amp, offset]), t, z))
     phi = result.x[0]
 
+    args = {}
+
     if not fix_frequency:
-        result = minimize(leastsq_omega_only, np.array(
-            [omega]), args=(np.array([phi, amp, offset]), t, z))
+        result = minimize(leastsq_omega_only, np.array([omega]), args=(np.array([phi, amp, offset]), t, z))
         omega = result.x[0]
 
-    result = minimize(leastsq_phi_only, np.array(
-        [phi]), args=(np.array([omega, amp, offset]), t, z))
-    phi = result.x[0]
-
-    args = dict()
-
     args.update(kwargs)
-
     if not fix_frequency:
         if use_freq_bound:
-            args['bounds'] = ((min_omega, max_omega),
-                              (None, None), (None, None), (None, None))
-        result = minimize(leastsq, np.array(
-            [omega, amp, phi, offset]), args=(t, z), **args)
+            args['bounds'] = ((min_omega, max_omega), (None, None), (None, None), (None, None))
+        result = minimize(leastsq, np.array([omega, amp, phi, offset]), args=(t, z), **args)
         omega, amp, phi, offset = result.x
     else:
-        result = minimize(leastsq_without_omega, np.array(
-            [amp, phi, offset]), args=(omega, t, z), **args)
+        result = minimize(leastsq_without_omega, np.array([amp, phi, offset]), args=(omega, t, z), **args)
         amp, phi, offset = result.x
 
     r = result.fun
 
-    # We here make sure amp > 0
-
     if amp < 0:
-        phi = phi + np.pi
+        phi += np.pi
         amp = -amp
 
-    while phi > np.pi:
-        phi -= np.pi * 2
-    while phi < -np.pi:
-        phi += np.pi * 2
+    phi = (phi + np.pi) % (2 * np.pi) - np.pi
 
     return {
         'Frequency': omega,
         'Amplitude': amp,
         'Phase': phi,
         'Offset': offset,
-        'Residual': r}
+        'Residual': r
+    }
 
 
-def fit_1d_freq_exp(z: np.ndarray, dt: float, use_freq_bound: bool = True) -> Dict[str, float]:
+def _fit_exp_decay(z: np.ndarray,
+                   dt: Optional[float] = None,
+                   t: Optional[np.ndarray] = None) -> Dict[str,
+Union[float,
+Tuple[float,
+float]]]:
+    """
+    Fits an exponential decay to the data points in z.
+
+    Parameters:
+    - z: Data points to be fit.
+    - dt: Time interval between data points. Required if t is not provided.
+    - t: Time values corresponding to the data points in z.
+
+    Returns:
+    A dictionary containing the amplitude, offset, and decay constant.
+    """
+    if t is None:
+        assert dt is not None, "Either t or dt must be provided."
+        t = np.linspace(0., dt * (len(z) - 1), len(z))
+    offset = np.min(z)
+    amp = np.max(z) - offset
+    T = 0.5 * t[-1]
+
+    def leastsq(x: np.ndarray, t: np.ndarray, z: np.ndarray) -> float:
+        """Objective function for optimization."""
+        amp, T, offset = x
+        fit = amp * np.exp(-t / T) + offset
+        return np.sum((fit - z) ** 2) * 1e5
+
+    result = minimize(leastsq, np.array([amp, T, offset]), args=(t, z))
+    amp, T, offset = result.x
+
+    return {'Amplitude': amp, 'Offset': offset, 'Decay': T}
+
+
+def fit_exp_decay_with_cov(z: np.ndarray,
+                           dt: Optional[float] = None,
+                           t: Optional[np.ndarray] = None) -> Dict[str, Union[float, Tuple[float, float]]]:
+    """
+    Fits an exponential decay to the data points in z and calculates covariance.
+
+    Parameters:
+    - z: Data points to be fit.
+    - dt: Time interval between data points. Required if t is not provided.
+    - t: Time values corresponding to the data points in z.
+
+    Returns:
+    A dictionary containing the amplitude, offset, decay constant, and covariance.
+
+    Example:
+    >>> z = np.array([np.exp(-t) for t in np.linspace(0, 10, 100)])
+    >>> result = fit_exp_decay_with_cov(z, 0.1)
+    >>> print(result)
+    {'Amplitude': 1.0+/-0.01, 'Offset': 0.0+/-0.01, 'Decay': 1.0+/-0.01, 'Cov': array}
+    """
+    result = _fit_exp_decay(z, dt=dt, t=t)
+
+    if t is None:
+        assert dt is not None, "Either t or dt must be provided."
+        t = np.linspace(0., dt * (len(z) - 1), len(z))
+
+    amp = result['Amplitude']
+    offset = result['Offset']
+    T = result['Decay']
+
+    def curve(
+            t: np.ndarray,
+            amp: float,
+            T: float,
+            offset: float) -> np.ndarray:
+        """Exponential decay curve function."""
+        return amp * np.exp(-t / T) + offset
+
+    popt, pcov = curve_fit(curve, t, z, p0=[amp, T, offset])
+
+    u_params = unc.correlated_values(popt, pcov)
+
+    return {
+        'Amplitude': u_params[0], 'Offset': u_params[2], 'Decay': u_params[1], 'Cov': pcov}
+
+
+def _fit_1d_freq_exp(z: np.ndarray, dt: float, use_freq_bound: bool = True) -> Dict[str, float]:
     """
     Fits a 1D frequency exponential to a dataset.
 
@@ -132,6 +210,12 @@ def fit_1d_freq_exp(z: np.ndarray, dt: float, use_freq_bound: bool = True) -> Di
 
     Returns:
     dict: A dictionary containing the parameters of the fitted function.
+
+    Example:
+    >>> z = np.array([np.exp(-t) * np.sin(2 * np.pi * 0.5 * t) for t in np.linspace(0, 10, 100)])
+    >>> result = _fit_1d_freq_exp(z, 0.1)
+    >>> print(result)
+    {'Frequency': 0.5, 'Amplitude': 1.0, 'Phase': 0.0, 'Offset': 0.0, 'Decay': 1.0}
     """
     rfft = np.abs(np.fft.rfft(z))
     frequencies = np.fft.rfftfreq(len(z), dt)
@@ -204,9 +288,16 @@ def fit_1d_freq_exp_with_cov(z: np.ndarray, dt: float, use_freq_bound: bool = Tr
     use_freq_bound (bool): Whether to bound the frequency during fitting. Defaults to True.
 
     Returns:
-    dict: A dictionary containing the parameters of the fitted function and covariance.
+    dict: A dictionary containing the parameters of the fitted function and covariance. The parameters are stored as
+    ufloats from the uncertainty package.
+
+    Example:
+    >>> z = np.array([np.exp(-t) * np.sin(2 * np.pi * 0.5 * t) for t in np.linspace(0, 10, 100)])
+    >>> result = fit_1d_freq_exp_with_cov(z, 0.1)
+    >>> print(result)
+    {'Frequency': 0.5+/-0.01, 'Amplitude': 1.0+/-0.01, 'Phase': 0.0+/-0.01, 'Offset': 0.0+/-0.01, 'Decay': 1.0+/-0.01, 'Cov': array}
     """
-    result = fit_1d_freq_exp(z=z, dt=dt, use_freq_bound=use_freq_bound)
+    result = _fit_1d_freq_exp(z=z, dt=dt, use_freq_bound=use_freq_bound)
 
     t = np.linspace(0., dt * (len(z) - 1), len(z))
 
@@ -233,7 +324,7 @@ def fit_1d_freq_exp_with_cov(z: np.ndarray, dt: float, use_freq_bound: bool = Tr
     }
 
 
-def fft_based_initial_estimation(z, dt):
+def _fft_based_initial_estimation(z, dt):
     n = len(z)
     fft_values = np.fft.fft(z)
     frequencies = np.fft.fftfreq(n, dt)
@@ -247,7 +338,7 @@ def fft_based_initial_estimation(z, dt):
     return dominant_frequency, np.max(positive_fft_values)
 
 
-def fit_2d_freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None, t=None, **kwargs):
+def _fit_2d_freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None, t=None, **kwargs):
     # Initial frequency and amplitude estimation
     # estimated_frequency, estimated_amplitude = fft_based_initial_estimation(z, dt)
     # print(f'Initial Frequency Estimate: {estimated_frequency}')
@@ -332,13 +423,9 @@ def fit_2d_freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None
     }
 
 
-import numpy as np
-from scipy.optimize import curve_fit
-
-
-def fit_2d_freq_curvefit(z, dt,
-                         freq_guess, amp_guess, phi_guess, offset_real_guess,
-                         offset_imag_guess, t=None):
+def _fit_2d_freq_curvefit(z, dt,
+                          freq_guess, amp_guess, phi_guess, offset_real_guess,
+                          offset_imag_guess, t=None):
     z = np.asarray(z)
 
     if t is None:
@@ -370,14 +457,36 @@ def fit_2d_freq_curvefit(z, dt,
 
 
 def fit_2d_freq_with_cov(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None, t=None, **kwargs):
-    direct_estimation = fit_2d_freq(z, dt, use_freq_bound=use_freq_bound, fix_frequency=fix_frequency,
-                                    freq_guess=freq_guess, t=t, **kwargs)
-    curve_fit_estimation = fit_2d_freq_curvefit(z, dt,
-                                                freq_guess=direct_estimation['Frequency'],
-                                                amp_guess=direct_estimation['Amplitude'],
-                                                phi_guess=direct_estimation['Phase'],
-                                                offset_real_guess=direct_estimation['Offset'].real,
-                                                offset_imag_guess=direct_estimation['Offset'].imag,
-                                                t=t)
+    """
+    Fit a 2D frequency to a dataset and calculate covariance.
+
+    Parameters:
+    z (np.ndarray): The dataset to fit.
+    dt (float): The time step.
+    use_freq_bound (bool): Whether to bound the frequency during fitting. Defaults to True.
+    fix_frequency (bool): Whether to fix the frequency during fitting. Defaults to False.
+    freq_guess (float): The initial guess for the frequency. Required if fix_frequency is True.
+    t (np.ndarray): The time array. Defaults to None.
+    kwargs: Additional keyword arguments to pass to the optimization function.
+
+    return dict: A dictionary containing the parameters of the fitted function and covariance. The parameters are stored as
+    ufloats from the uncertainty package.
+
+    Example:
+    >>> z = np.array([np.exp(-t) * np.exp(1.j * 2 * np.pi * 0.5 * t) for t in np.linspace(0, 10, 100)])
+    >>> z = np.stack([z.real, z.imag], axis=-1)
+    >>> result = fit_2d_freq_with_cov(z, 0.1)
+    >>> print(result)
+    {'Frequency': 0.5+/-0.01, 'Amplitude': 1.0+/-0.01, 'Phase': 0.0+/-0.01, 'Offset': 0.0+/-0.01, 'Decay': 1.0+/-0.01, 'Cov': array}
+    """
+    direct_estimation = _fit_2d_freq(z, dt, use_freq_bound=use_freq_bound, fix_frequency=fix_frequency,
+                                     freq_guess=freq_guess, t=t, **kwargs)
+    curve_fit_estimation = _fit_2d_freq_curvefit(z, dt,
+                                                 freq_guess=direct_estimation['Frequency'],
+                                                 amp_guess=direct_estimation['Amplitude'],
+                                                 phi_guess=direct_estimation['Phase'],
+                                                 offset_real_guess=direct_estimation['Offset'].real,
+                                                 offset_imag_guess=direct_estimation['Offset'].imag,
+                                                 t=t)
 
     return curve_fit_estimation

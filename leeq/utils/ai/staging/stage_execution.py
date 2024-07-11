@@ -19,11 +19,21 @@ class Stage:
     def to_dict(self) -> dict:
         """Converts the stage to a dictionary."""
         return {
+            "Label": self.label,
             "Title": self.title,
             "ExperimentDescription": self.description,
             "Next": self.next_stage_guide,
             "Overview": self.overview,
         }
+
+    def to_xml(self) -> str:
+        """Converts the stage to an XML string."""
+        stage_dict = self.to_dict()
+        xml_str = "<Stage>\n"
+        for key, value in stage_dict.items():
+            xml_str += f"  <{key}>{value}</{key}>\n"
+        xml_str += "</Stage>"
+        return xml_str
 
     def display(self):
         """
@@ -130,6 +140,7 @@ def check_if_needed_to_break_down(description: str):
     - Repeated Experiments without Specified Parameters: If the stage involves repeating one experiment multiple times without explicitly specified parameters, treat it as a single step.
     - Parameter Variations Within an Experiment: If a single experiment includes variations in parameters, consider these as part of the internal management of the experiment and do not divide the stage.
     - Single Experiment, No Specified Parameters: If the stage comprises only one experiment with no parameters specified, execute it as a single step.
+    - If this is not the first attempt at the stage, do not divide it into multiple steps.
     
     If division into multiple steps is necessary, provide a detailed description of each step, including the parameters for each.
 
@@ -149,7 +160,6 @@ def check_if_needed_to_break_down(description: str):
     res = chat.complete(parse="dict", expensive=True, cache=True)
 
     return res
-
 
 
 class CodegenIdea(Idea):
@@ -214,7 +224,7 @@ class CodegenModel:
         self._cached_recall_res = res
         return res
 
-    def codegen(self, wm: WorkingMemory, recall_res:dict = None) -> str:
+    def codegen(self, wm: WorkingMemory, recall_res: dict = None) -> str:
         """
         Generate code from working memory, updates working memory with recalled ideas in the process.
 
@@ -239,4 +249,3 @@ class CodegenModel:
         code = wm.extract_tag_contents("attempted_code")
         if len(code) > 0:
             return code[0]
-

@@ -12,7 +12,7 @@ from ideanet.utils.logger import RecallLogger
 from leeq.utils import setup_logging
 from leeq.utils.notebook import show_spinner, hide_spinner
 from leeq.utils.ai.staging.stage_execution import CodegenModel
-
+from leeq.utils.ai.staging.stage_generation import find_the_stage_label_based_on_description
 
 from IPython.core.display import display, HTML
 from leeq.experiments import Experiment
@@ -110,12 +110,13 @@ class AIStagedExperiment(Experiment):
             codegen_wm = get_codegen_wm(stage.description, input_var_table)
 
             if stage.title not in coding_ltm_cache:
-               recall_res = code_cog_model.recall(codegen_wm)
-               coding_ltm_cache[stage.title] = recall_res
+                recall_res = code_cog_model.recall(codegen_wm)
+                coding_ltm_cache[stage.title] = recall_res
             else:
-               recall_res = coding_ltm_cache[stage.title]
+                recall_res = coding_ltm_cache[stage.title]
 
-            codes = code_cog_model.codegen(codegen_wm,recall_res)
+            with display_chats():
+                codes = code_cog_model.codegen(codegen_wm, recall_res)
 
             new_var_table = var_table.new_child_table()
 
@@ -175,7 +176,9 @@ class AIStagedExperiment(Experiment):
                     next_stage = stage
                     break
             else:
-                assert False, f"Next stage label {next_stage_label} not found in stages"
+                next_stage = find_the_stage_label_based_on_description(self.stages, next_stage_label)
+                if next_stage is None:
+                    assert False, f"Next stage label {next_stage_label} not found in stages"
 
             if curr_stage.label in next_stage.label:
                 new_description = generate_new_stage_description(next_stage, additional_info)
