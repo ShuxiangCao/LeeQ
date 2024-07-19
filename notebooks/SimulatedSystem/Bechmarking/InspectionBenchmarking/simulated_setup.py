@@ -6,7 +6,7 @@ from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulation
 from leeq.experiments.experiments import ExperimentManager
 from leeq.theory.simulation.numpy.rotated_frame_simulator import VirtualTransmon
 
-def simulation_setup():
+def simulation_setup(qubit_frequency=5040.4,readout_frequency=9645.4):
     from labchronicle import Chronicle
     Chronicle().start_log()
     manager = ExperimentManager()
@@ -14,11 +14,11 @@ def simulation_setup():
 
     virtual_transmon_a = VirtualTransmon(
         name="VQubitA",
-        qubit_frequency=5040.4,
+        qubit_frequency=qubit_frequency,
         anharmonicity=-198,
         t1=70,
         t2=35,
-        readout_frequency=9645.4,
+        readout_frequency=readout_frequency,
         quiescent_state_distribution=np.asarray(
             [
                 0.8,
@@ -130,3 +130,12 @@ configuration_b = {
         }
     }
 }
+
+def extract_results_from_experiment(exp):
+    analyze_results = {
+        'full':exp.get_ai_inspection_results(inspection_method='full',ignore_cache=True),
+        'fitting_only':exp.get_ai_inspection_results(inspection_method='fitting_only',ignore_cache=True),
+        'visual_only':exp.get_ai_inspection_results(inspection_method='visual_only',ignore_cache=True),
+        
+    }
+    return analyze_results
