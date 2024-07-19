@@ -333,28 +333,33 @@ class LeeQAIExperiment(LeeQExperiment):
         """
         return None
 
-    def get_ai_inspection_results(self):
+    def get_ai_inspection_results(self, no_visual_inspection=False):
         """
         Get the AI inspection results.
+
+        Parameters:
+            no_visual_inspection (bool): Whether to skip the visual inspection.
 
         Returns:
             dict: The AI inspection results.
         """
         ai_inspection_results = {}
-        for name, func in self._get_all_ai_inspectable_functions().items():
 
-            if self._ai_inspection_results.get(func.__qualname__) is None:
-                try:
-                    self._run_ai_inspection_on_single_function(func)
-                except Exception as e:
-                    self.logger.warning(
-                        f"Error when doing get AI inspection on {func.__qualname__}: {e}"
-                    )
-                    self.logger.warning(f"Ignore the error and continue.")
-                    self.logger.warning(f"{e}")
+        if not no_visual_inspection:
+            for name, func in self._get_all_ai_inspectable_functions().items():
 
-        ai_inspection_results = {key.split('.')[-1]: val['analysis'] for key, val in
-                                 self._ai_inspection_results.items()}
+                if self._ai_inspection_results.get(func.__qualname__) is None:
+                    try:
+                        self._run_ai_inspection_on_single_function(func)
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Error when doing get AI inspection on {func.__qualname__}: {e}"
+                        )
+                        self.logger.warning(f"Ignore the error and continue.")
+                        self.logger.warning(f"{e}")
+
+            ai_inspection_results = {key.split('.')[-1]: val['analysis'] for key, val in
+                                     self._ai_inspection_results.items()}
         fitting_results = self.get_analyzed_result_prompt()
 
         if fitting_results is not None:
