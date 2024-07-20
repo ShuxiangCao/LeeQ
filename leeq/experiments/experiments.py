@@ -333,19 +333,23 @@ class LeeQAIExperiment(LeeQExperiment):
         """
         return None
 
-    def get_ai_inspection_results(self, no_visual_inspection=False):
+    def get_ai_inspection_results(self, inspection_method='full', ignore_cache=False):
         """
         Get the AI inspection results.
 
         Parameters:
-            no_visual_inspection (bool): Whether to skip the visual inspection.
+            inspection_method (str): The inspection method to use. Can be 'full' or 'visual_only' or 'fitting_only'.
+            ignore_cache (bool): Whether to ignore the cache.
 
         Returns:
             dict: The AI inspection results.
         """
         ai_inspection_results = {}
 
-        if not no_visual_inspection:
+        assert inspection_method in ['full', 'visual_only', 'fitting_only'],\
+            f"inspection_method must be 'full', 'visual_only' or 'fitting_only', got {inspection_method}"
+
+        if inspection_method != 'fitting_only':
             for name, func in self._get_all_ai_inspectable_functions().items():
 
                 if self._ai_inspection_results.get(func.__qualname__) is None:
@@ -360,14 +364,15 @@ class LeeQAIExperiment(LeeQExperiment):
 
             ai_inspection_results = {key.split('.')[-1]: val['analysis'] for key, val in
                                      self._ai_inspection_results.items()}
+
         fitting_results = self.get_analyzed_result_prompt()
 
-        if fitting_results is not None:
+        if fitting_results is not None and inspection_method != 'visual_only':
             ai_inspection_results['fitting'] = fitting_results
 
         if self._experiment_result_analysis_instructions is not None:
 
-            if self._ai_final_analysis is None:
+            if self._ai_final_analysis is None or ignore_cache:
                 spinner_id = show_spinner(f"AI is analyzing the experiment results...")
 
                 run_args_prompt = f"""
@@ -380,7 +385,10 @@ class LeeQAIExperiment(LeeQExperiment):
 
                 summary = get_experiment_summary(self._experiment_result_analysis_instructions, run_args_prompt,
                                                  ai_inspection_results)
-                self._ai_final_analysis = summary
+
+                if not ignore_cache:
+                    self._ai_final_analysis = summary
+
                 hide_spinner(spinner_id)
             else:
                 summary = self._ai_final_analysis

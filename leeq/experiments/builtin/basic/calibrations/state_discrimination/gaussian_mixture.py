@@ -2,6 +2,7 @@ from sklearn.pipeline import Pipeline
 from typing import Optional, Union, List, Dict
 from plotly import graph_objects as go
 from plotly import subplots
+from matplotlib import pyplot as plt
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -499,8 +500,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
     @log_and_record(overwrite_func_name='MeasurementCalibrationMultilevelGMM.run')
     def run_simulated(self,
                       dut: 'TransmonElement',
-                      sweep_lpb_list: List['LogicalPrimitiveBlock']=None,
-                      mprim_index: int=0,
+                      sweep_lpb_list: List['LogicalPrimitiveBlock'] = None,
+                      mprim_index: int = 0,
                       freq: Optional[float] = None,
                       amp: Optional[float] = None,
                       update: bool = False,
@@ -796,6 +797,53 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         """
         if self.result is None:
             return go.Figure()
+
+    @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt("""
+    You are inspecting a plot of collected signal data and determine if the experiment is successful. 
+    The signal represents two hidden state of the system, and each hidden state will generate a 2D gaussian 
+    distribution results in a spherical blobs. 
+    Identify Clusters: You supposed to observe two spherical distributions in the cluster. They may be partially 
+    overlaped and looks like a single elliptical distribution. In this case treat them as two distributions.
+     Check if you can observe these two distributions? 
+    Note that if you see non-spherical distribution that cannot be compsoed from two spherical distributions,
+    or less or more than two distributions, the experiment is considered failed. Otherwise it is success.
+    """)
+    def plot_hexbin(self,result_data=None)->'matplotlib.figure.Figure':
+        """
+        Plot the IQ data with the fitted Gaussian Mixture Model using hexbin.
+
+        Parameters:
+        result_data (Optional[np.ndarray]): The result data to plot. Defaults to the result data from the experiment.
+
+        Returns:
+            Figure: The matplotlib figure.
+        """
+
+        if result_data is None:
+            data = self.result.flatten()
+        else:
+            data = result_data.flatten()
+
+        fig = plt.figure(figsize=(3, 3))
+        ax = fig.add_subplot(111)
+
+        xs = data.real
+        ys = data.imag
+
+        # Create a hexbin map
+        hb = ax.hexbin(xs, ys, gridsize=50, cmap='viridis', bins='log')
+
+        # Add a color bar
+        # cb = plt.colorbar(hb)
+        # cb.set_label('log10(N)')
+
+        # Add labels and title
+        ax.set_xlabel('I channel')
+        ax.set_ylabel('Q channel')
+        ax.axis('equal')
+
+        return fig
 
     def get_analyzed_result_prompt(self) -> Union[str, None]:
         """
