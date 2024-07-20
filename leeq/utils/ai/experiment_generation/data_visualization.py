@@ -35,13 +35,12 @@ def generate_data_visualization(description: str, context: dict[str, Any]):
     Return the `data_visualization` function only.
 
     The format of the return should be:
-    {{
-    'analysis': <how did you implement the data visualization>,
-    'code': <the code snippet that performs the data visualization>,
-    }}
+    ```python
+    <The data visualization code>
+    ```
     """
 
     import mllm
     chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
-    res = chat.complete(parse="dict", cache=True)
-    return res['code']
+    res = chat.complete(parse="quotes", cache=True)
+    return res
