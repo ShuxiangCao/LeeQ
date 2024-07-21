@@ -21,3 +21,4 @@ labchronicle @ git+https://github.com/ShuxiangCao/LabChronicle
 MinimalLLM
 markdownify
 ipywidgets
+kaleido
