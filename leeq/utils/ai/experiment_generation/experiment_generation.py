@@ -41,8 +41,8 @@ def summarize_experiment(experiment_summary: str, code_fragments: List[str]):
     """
 
     import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
-    res = chat.complete(parse="quotes", cache=True)
+    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.")
+    res = chat.complete(parse="quotes", cache=False)
     return res
 
 
@@ -91,8 +91,8 @@ def add_comments_annotations_and_gagets(summary: str, code: str):
     """
 
     import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
-    res = chat.complete(parse="quotes", cache=True)
+    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.")
+    res = chat.complete(parse="quotes", cache=False)
 
     return res
 
@@ -124,6 +124,8 @@ def break_down_description(description: str):
     
     If the information is not provided in the description, please suggest the information is missing in the field.
     
+    Do not reply code snippets, only JSON dict.
+    
     Please provide the information in the following format:
     {{
         "summary": <The summary of the experiment>,
@@ -135,7 +137,7 @@ def break_down_description(description: str):
 
     import mllm
     chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
-    res = chat.complete(parse="dict", cache=True)
+    res = chat.complete(parse="dict", cache=False)
 
     return res
 

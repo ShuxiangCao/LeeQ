@@ -41,6 +41,6 @@ def generate_data_visualization(description: str, context: dict[str, Any]):
     """
 
     import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
-    res = chat.complete(parse="quotes", cache=True)
+    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.")
+    res = chat.complete(parse="quotes", cache=False)
     return res

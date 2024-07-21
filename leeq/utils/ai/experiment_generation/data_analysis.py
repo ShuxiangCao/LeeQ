@@ -72,8 +72,8 @@ def generate_data_analysis(description: str, context: dict[str, Any]):
     """
 
     import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
-    res = chat.complete(parse="quotes", cache=True)
+    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.")
+    res = chat.complete(parse="quotes", cache=False)
 
     return revise_data_analysis(description, res)
 
@@ -117,14 +117,12 @@ def revise_data_analysis(description: str, code: dict[str, Any]):
     Return the `data_analysis` function only.
    
     The format of the return should be:
-    {{
-    'analysis': <how did you implement the data analysis>,
-    'code': <the code snippet that performs the data analysis>,
-    'parameter_updates': <what class attribute have you updated to store the analyzed results>
-    }}
+    ```python
+    <the code snippet that performs the data analysis>
+    ```
     """
 
     import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
-    res = chat.complete(parse="dict", cache=True)
-    return res['code']
+    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.")
+    res = chat.complete(parse="quotes", cache=False)
+    return res
