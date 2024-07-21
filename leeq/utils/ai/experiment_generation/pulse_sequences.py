@@ -37,18 +37,15 @@ def generate_pulse_sequences(overview: str, description: str):
     
     Please write the code implementing the "run" class function, store all your results inside the class attributes.
     
-    Reply in json the following format:
+    Reply in the following format:
     
-    {{
-        "analysis": <Your thoughts on how to implement the function>,
-        "code": <The code implementing the "run" class function>
-        "result_attributes": <The attributes of the class storing the results>
-    }}
+    ```python
+        <The code implementing the "run" class function>
+    ```
     """
 
     import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
-    res = chat.complete(parse="dict", cache=True)
+    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.")
+    res = chat.complete(parse="quotes", cache=True)
 
-    del res['analysis']
-    return res
+    return {'code': res}

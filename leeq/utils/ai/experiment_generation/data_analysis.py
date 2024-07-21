@@ -1,5 +1,5 @@
 from typing import Any
-from fibers.tree.node_attr.code_node import get_type, get_obj
+from fibers.tree.node_attr.code import get_type, get_obj
 
 
 def _load_fitting_function_docstrings():

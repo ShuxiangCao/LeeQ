@@ -39,7 +39,7 @@ caching.cache_kv.inactive = True
 
 
 ### Resonator spec
-def run_benchmark(scan_params):
+def run_benchmark_res_spec(scan_params):
     dut = duts_dict['Q1']
     res = ResonatorSweepTransmissionWithExtraInitialLPB(dut, **scan_params)
     return extract_results_from_experiment(res)
@@ -71,10 +71,13 @@ def run_all_benchmarks_resonator_spec(save_path_prefix, num_samples=10):
             'amp': 0.001
         }
 
-        result = run_benchmark(scan_params)
+        try:
+            result = run_benchmark_res_spec(scan_params)
+        except:
+            continue
 
         success_inspections[i] = result
-        with open(save_path_prefix+'resonator_spec_success_cases.json', 'w') as f:
+        with open(save_path_prefix + 'resonator_spec_success_cases.json', 'w') as f:
             json.dump(success_inspections, f)
 
     failed_inspections = {}
@@ -93,11 +96,15 @@ def run_all_benchmarks_resonator_spec(save_path_prefix, num_samples=10):
             'freq': 9645.5 - 10 + 1 * (0.5 - np.random.random(1)[0]),
         }
 
-        result = run_benchmark(scan_params)
+        try:
+            result = run_benchmark_res_spec(scan_params)
+        except:
+            continue
 
         failed_inspections[i] = result
-        with open(save_path_prefix+'resonator_spec_failed_cases.json', 'w') as f:
+        with open(save_path_prefix + 'resonator_spec_failed_cases.json', 'w') as f:
             json.dump(failed_inspections, f)
+
 
 ### GMM
 
@@ -121,9 +128,11 @@ def run_all_benchmarks_gmm(save_path_prefix, num_samples=10):
             'amp': 0.1 + 0.05 * np.random.random(1)[0],
             'freq': 9645.5 + 1 * (0.5 - np.random.random(1)[0]),
         }
-        print(scan_params)
 
-        result = run_single_benchmark_gmm(scan_params)
+        try:
+            result = run_single_benchmark_gmm(scan_params)
+        except:
+            continue
 
         success_inspections[i] = result
         with open(save_path_prefix + 'gmm_success_cases.json', 'w') as f:
@@ -145,7 +154,10 @@ def run_all_benchmarks_gmm(save_path_prefix, num_samples=10):
             'freq': 9645.5 - 10 + 1 * (0.5 - np.random.random(1)[0]),
         }
 
-        result = run_single_benchmark_gmm(scan_params)
+        try:
+            result = run_single_benchmark_gmm(scan_params)
+        except:
+            continue
 
         failed_inspections[i] = result
         with open(save_path_prefix + 'gmm_failed_cases.json', 'w') as f:
@@ -178,7 +190,10 @@ def run_all_benchmarks_rabi(save_path_prefix, num_samples=10):
             'step': 0.01
         }
 
-        result = run_single_benchmark_rabi(scan_params)
+        try:
+            result = run_single_benchmark_rabi(scan_params)
+        except:
+            continue
 
         success_inspections[i] = result
         with open(save_path_prefix + 'rabi_success_cases.json', 'w') as f:
@@ -201,7 +216,10 @@ def run_all_benchmarks_rabi(save_path_prefix, num_samples=10):
             'step': 0.01
         }
 
-        result = run_single_benchmark_rabi(scan_params)
+        try:
+            result = run_single_benchmark_rabi(scan_params)
+        except:
+            continue
 
         failed_inspections[i] = result
         with open(save_path_prefix + 'rabi_failed_cases.json', 'w') as f:
@@ -235,7 +253,10 @@ def run_all_benchmarks_drag(save_path_prefix, num_samples=10):
             'inv_alpha_stop': center + span_width / 2
         }
 
-        result = run_single_benchmark_drag(scan_params)
+        try:
+            result = run_single_benchmark_drag(scan_params)
+        except:
+            continue
 
         success_inspections[i] = result
         with open(save_path_prefix + 'drag_success_cases.json', 'w') as f:
@@ -260,7 +281,10 @@ def run_all_benchmarks_drag(save_path_prefix, num_samples=10):
             'inv_alpha_stop': center + span_width / 2
         }
 
-        result = run_single_benchmark_drag(scan_params)
+        try:
+            result = run_single_benchmark_drag(scan_params)
+        except:
+            continue
 
         failed_inspections[i] = result
         with open(save_path_prefix + 'drag_failed_cases.json', 'w') as f:

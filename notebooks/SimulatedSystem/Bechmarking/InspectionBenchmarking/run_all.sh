@@ -7,10 +7,10 @@ benchmarks=('resonator_spec' 'gmm' 'rabi' 'drag')
 models=('openai' 'anthropic' 'gemini' 'llama')
 
 # Number of shots, you can adjust this value as needed
-shots=10
+shots=2
 
 # Create a directory for logs if it does not exist
-mkdir -p logs
+mkdir -p benchmark_logs
 
 # Run experiments in parallel
 for benchmark in "${benchmarks[@]}"
@@ -18,7 +18,8 @@ do
     for model in "${models[@]}"
     do
         echo "Running $benchmark with model $model"
-        python your_script_name.py $benchmark $model $shots > "logs/${benchmark}_${model}.out" 2> "logs/${benchmark}_${model}.err" &
+        python run_benchmarks.py $benchmark $model $shots > "benchmark_logs/${benchmark}_${model}.out" 2> "benchmark_logs/${benchmark}_${model}.err" &
+        sleep 2
     done
 done
 
