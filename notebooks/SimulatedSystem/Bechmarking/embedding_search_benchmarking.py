@@ -2,6 +2,10 @@ import leeq
 import argparse
 from leeq.experiments.builtin import *
 
+from mllm.cache.cache_service import caching
+
+caching.cache_kv.inactive = True
+
 experiment_prompt = {
     'GMM': (MeasurementCalibrationMultilevelGMM,[
         'Run GMM measurement calibration',
