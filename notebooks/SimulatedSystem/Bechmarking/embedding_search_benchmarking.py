@@ -177,7 +177,9 @@ def main():
     for i in range(args.shots):
         results[i] = benchmark_all()
 
-    file_path = f'./recall_benchmark_{args.model}.json'
+    model_path_str = args.model.replace('/','_')
+
+    file_path = f'./recall_benchmark_{model_path_str}.json'
     
     import json
     with open(file_path,'w') as f:
