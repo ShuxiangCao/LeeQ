@@ -63,9 +63,8 @@ from typing import List, Any
 # from ..characterization import *
 # from ..tomography import *
 
-
 # Conditional Stark Spectroscopy
-class StarkDriveT1(experiment):
+class StarkSingleQubitT1(experiment):
     # Perform a T1 experiment applying a Stark shifting drive instead of the delay time. Based on SimpleT1()
     @log_and_record
     def run(self,
@@ -73,41 +72,40 @@ class StarkDriveT1(experiment):
             collection_name: str = 'f01',
             initial_lpb: Optional[Any] = None,  # Add the expected type for 'initial_lpb' instead of Any
             mprim_index: int = 0,
-            time_length: float = 100.0,
-            time_resolution: float = 1.0,
+            start=0, stop=3, step=0.03,
             stark_offset=50,
             amp=0.1,
             width=400,
             rise=0.01,
             trunc=1.2):
 
+        self.width = 0
+        self.start = start
+        self.stop = stop
+        self.step = step
+        self.stark_offset = stark_offset
+
         c1 = qubit.get_c1(collection_name)
         mp = qubit.get_measurement_prim_intlist(mprim_index)
 
         self.mp = mp
-        # delay = prims.Delay(0)
 
         self.original_freq = c1['Xp'].freq
-        self.stark_offset = stark_offset
+        self.frequency = self.original_freq + self.stark_offset
 
         cs_pulse = c1['X'].clone()
-        cs_pulse.update_pulse_args(amp=amp, freq= self.stark_offset+self.original_freq, phase=0., shape='soft_square', width=time_length, rise=rise, trunc=trunc)
+        cs_pulse.update_pulse_args(amp=amp, freq= self.frequency, phase=0., shape='soft_square', width=self.stop, rise=rise, trunc=trunc)
 
-        # lpb = c1['X'] + delay + mp
         lpb = c1['X'] + cs_pulse + mp
 
         if initial_lpb:
             lpb = initial_lpb + lpb
 
-        sweep_range = np.arange(0.0, time_length, time_resolution)
-        # swp = Sweeper(sweep_range, params=[sparam.func(delay.set_delay, {}, 'delay')])
-        # swp_width = sweeper(sweep_range, params=[sparam.func(cs_pulse.update_pulse_args, {}, 'width')])
-
         swpparams = [
             sparam.func(cs_pulse.update_pulse_args, {}, 'width'),
         ]
 
-        swp = sweeper(np.arange, n_kwargs={'start': 0.0, 'stop': time_length, 'step': time_resolution},
+        swp = sweeper(np.arange, n_kwargs={'start': 0.0, 'stop': self.stop, 'step': self.step},
                           params=swpparams)
 
         basic(lpb, swp=swp, basis="<z>")
@@ -130,7 +128,7 @@ class StarkDriveT1(experiment):
 
         args = self.retrieve_args(self.run)
 
-        t = np.arange(0, args['time_length'], args['time_resolution'])
+        t = np.arange(0, args['stop'], args['step'])
         trace = np.squeeze(self.mp.result())
 
         if step_no is not None:
@@ -154,7 +152,7 @@ class StarkDriveT1(experiment):
         data = [trace_scatter]
 
         if fit:
-            fit_params = self.fit_exp_decay_with_cov(trace, args['time_resolution'])  # Assuming fit_exp_decay_with_cov is a method of the class
+            fit_params = self.fit_exp_decay_with_cov(trace, args['step'])  # Assuming fit_exp_decay_with_cov is a method of the class
 
             self.fit_params = fit_params
 
@@ -198,68 +196,902 @@ class StarkDriveT1(experiment):
         except (OptimizeWarning, RuntimeError) as e:
             print(f"Optimization warning or error: {e}")
             return {'Amplitude': (np.nan, np.nan), 'Decay': (np.nan, np.nan), 'Offset': (np.nan, np.nan)}
-
-class StarkDriveT1_WithOtherQubit(experiment):
+class StarkTwoQubitsSWAP(experiment):
     # Perform a Stark Shifted T1 experiment on one qubit while also measuring another
     @log_and_record
-    def run(self, qubits, freq_name='f01', initial_lpb=None, mprim_index=0, time_length=100.0, time_resolution=1.0,
-            stark_offset=50, amp=0.1, width=0.1, rise=0.01, trunc=1.2):
+    def run(self, qubits, amp, rise=0.01, start=0, stop=3, step=0.03,
+            stark_offset=50, initial_lpb = None,
+            trunc=1.2):
 
-        c1 = qubits[0].get_c1(freq_name)  # the qubit to be stark shifted and T1 performed on
-        c1_other = qubits[1].get_c1(freq_name)  # the qubit which will just be measured at the same time
-        mps = [qubit.get_measurement_prim_intlist(mprim_index) for qubit in qubits]
-
-        self.original_freq = c1['Xp'].freq
+        self.duts = qubits
         self.stark_offset = stark_offset
-        channel_from = c1['Xp'].primary_channel()
+        self.amp_control = amp
+        self.phase = 0
+        self.width = 0
+        self.start = start
+        self.stop = stop
+        self.step = step
 
-        cs_pulse = prims.LogicalPrimitive(channels=channel_from,
-                                          freq=self.original_freq + self.stark_offset)  # create new pulse on same channel as qubit
-        cs_pulse.set_pulse_shapes(prims.SoftSquare, amp=amp, phase=0, width=width, rise=rise,
-                                  trunc=trunc)  # define shape and some default params
+        c1_control = self.duts[0].get_default_c1()  # the qubit to be stark shifted and T1 performed on
+        c1_target = self.duts[1].get_default_c1()   # the qubit which will just be measured at the same time
 
-        lpb = c1['X'] + cs_pulse + prims.ParallelLPB([mp for mp in mps])
+        self.original_freq = c1_control['Xp'].freq
+        self.frequency = self.original_freq + self.stark_offset
+
+        mprim_control = self.duts[0].get_measurement_prim_intlist(0)
+        mprim_target = self.duts[1].get_measurement_prim_intlist(0)
+
+        cs_pulse = c1_control['X'].clone()
+        cs_pulse.update_pulse_args(amp=self.amp_control, freq=self.frequency, phase=0., shape='soft_square',
+                                   width=self.stop, rise=rise, trunc=trunc)
+
+        swpparams = [
+            sparam.func(cs_pulse.update_pulse_args, {}, 'width'),
+        ]
+
+        swp = sweeper(np.arange, n_kwargs={'start': 0.0, 'stop': self.stop, 'step': self.step},
+                      params=swpparams)
+
+        lpb = c1_control['X'] + cs_pulse + mprim_control * mprim_target
 
         if initial_lpb:
             lpb = initial_lpb + lpb
 
-        swp_width = sweeper(np.arange, n_kwargs={'start': 0.0, 'stop': time_length, 'step': time_resolution},
-                            params=[sparam.func(cs_pulse.update_pulse_args, {}, 'width')])
+        basic(lpb, swp, 'p(1)')
 
-        basic(lpb, swp_width, 'p(1)')
-
-        self.result = [mp.result() for mp in mps]
-        self.traces = [mp.result() for mp in mps]
+        self.result_control = np.asarray(mprim_control.result(), dtype=float).flatten()
+        self.result_target = np.asarray(mprim_target.result(), dtype=float).flatten()
 
     @register_browser_function(available_after=(run,))
     def plot_t1(self):
         args = self.retrieve_args(self.run)
-        self.fit_params = [fits.Fit_Exp_Decay_with_cov(trace, args['time_resolution']) for trace in self.traces]
 
-        t = np.arange(0, args['time_length'], args['time_resolution'])
+        dark_navy = '#000080'
+        dark_purple = '#800080'
 
-        for i, trace in enumerate(self.traces):
-            fig, ax = plt.subplots(figsize=[6, 3])
+        fit_control = self.fit_exp_decay_with_cov(self.result_control, args['step'])
+        fit_target = self.fit_exp_decay_with_cov(self.result_target, args['step'])
 
-            fit = self.fit_params[i]
+        t = np.arange(0, args['stop'], args['step'])
 
-            ax.set_title(
-                f"T1 decay {args['qubits'][i].hrid} transition {args['freq_name']}\n T1={fit['Decay'][0]} $\pm$ {fit['Decay'][1]} us")
-            ax.set_xlabel("Time (us)")
-            ax.set_ylabel("P(1)")
+        fig, axs = plt.subplots(1, 3, figsize=[25, 5])
 
-            ax.scatter(t, trace, marker='x')
-            ax.plot(t, fit['Amplitude'][0] * np.exp(-t / fit['Decay'][0]) + fit['Offset'][0])
+        # Plot for result_control
+        axs[0].set_title(f"Control T1 decay\nT1={fit_control['Decay'][0]:.2f} ± {fit_control['Decay'][1]:.2f} us")
+        axs[0].set_xlabel("Time (us)")
+        axs[0].set_ylabel("P(1)")
+        axs[0].scatter(t, self.result_control, marker='o', color=dark_navy)
+        axs[0].plot(t, fit_control['Amplitude'][0] * np.exp(-t / fit_control['Decay'][0]) + fit_control['Offset'][0],
+                    color=dark_navy)
 
-            fig.tight_layout()
-            plt.show()
+        # Plot for result_target
+        axs[1].set_title(f"Target T1 decay\nT1={fit_target['Decay'][0]:.2f} ± {fit_target['Decay'][1]:.2f} us")
+        axs[1].set_xlabel("Time (us)")
+        axs[1].set_ylabel("P(1)")
+        axs[1].scatter(t, self.result_target, marker='o', color=dark_purple)
+        axs[1].plot(t, fit_target['Amplitude'][0] * np.exp(-t / fit_target['Decay'][0]) + fit_target['Offset'][0],
+                    color=dark_purple)
+
+        # Combined plot
+        axs[2].set_title("Control and Target T1 decay")
+        axs[2].set_xlabel("Time (us)")
+        axs[2].set_ylabel("P(1)")
+        # Plot Control data with both line and scatter markers
+        axs[2].scatter(t, self.result_control, marker='o', color=dark_navy, label='Control', zorder=3)
+        axs[2].plot(t, self.result_control, linestyle='-', marker='_', color=dark_navy, zorder=2)
+
+        # Plot Target data with both line and scatter markers
+        axs[2].scatter(t, self.result_target, marker='o', color=dark_purple, label='Target', zorder=3)
+        axs[2].plot(t, self.result_target, linestyle='-', marker='_', color=dark_purple, zorder=2)
+
+        # axs[2].scatter(t, self.result_control, marker='o', color=dark_navy, label='Control')
+        # axs[2].scatter(t, self.result_target, marker='o', color=dark_purple, label='Target')
+        # axs[2].plot(t, fit_control['Amplitude'][0] * np.exp(-t / fit_control['Decay'][0]) + fit_control['Offset'][0],
+        #             color=dark_navy, label=f'Control Fit T1={fit_control["Decay"][0]:.2f} us')
+        # axs[2].plot(t, fit_target['Amplitude'][0] * np.exp(-t / fit_target['Decay'][0]) + fit_target['Offset'][0],
+        #             color=dark_purple, label=f'Target Fit T1={fit_target["Decay"][0]:.2f} us')
+        axs[2].legend()
+
+        fig.tight_layout()
+        plt.show()
+
+    def fit_exp_decay_with_cov(self, trace, time_resolution):
+        def exp_decay(t, A, tau, C):
+            return A * np.exp(-t / tau) + C
+
+        t = np.arange(0, len(trace) * time_resolution, time_resolution)
+        try:
+            popt, pcov = curve_fit(exp_decay, t, trace, maxfev=2400)
+            A, tau, C = popt
+            perr = np.sqrt(np.diag(pcov))
+            return {'Amplitude': (A, perr[0]), 'Decay': (tau, perr[1]), 'Offset': (C, perr[2])}
+        except (OptimizeWarning, RuntimeError) as e:
+            print(f"Optimization warning or error: {e}")
+            return {'Amplitude': (np.nan, np.nan), 'Decay': (np.nan, np.nan), 'Offset': (np.nan, np.nan)}
+class StarkTwoQubitsSWAPTwoDrives(experiment):
+    # Perform a Stark Shifted T1 experiment on one qubit while also measuring another
+    @log_and_record
+    def run(self, qubits, amp_control, amp_target, rise=0.01, start=0, stop=3, step=0.03,
+            phase_diff = 0, stark_offset=50, initial_lpb = None):
+
+        self.duts = qubits
+        self.stark_offset = stark_offset
+        self.amp_control = amp_control
+        self.amp_target = amp_target
+        self.phase = 0
+        self.width = 0
+        self.start = start
+        self.stop = stop
+        self.step = step
+        self.fitting_2D = None
+        self.phase_diff = phase_diff
+
+        c1_control = self.duts[0].get_default_c1()  # the qubit to be stark shifted and T1 performed on
+        c1_target = self.duts[1].get_default_c1()   # the qubit which will just be measured at the same time
+
+        self.original_freq = c1_control['Xp'].freq
+        self.frequency = self.original_freq + self.stark_offset
+
+        c2 = prims.build_CZ_stark_from_parameters(control_q=self.duts[0], target_q=self.duts[1],
+                                                  amp_target=self.amp_target, amp_control=self.amp_control,
+                                                  frequency=self.frequency, rise=rise, width=self.width,
+                                                  phase_diff=self.phase_diff,
+                                                  iz_control=0,
+                                                  iz_target=0,
+                                                  echo=False,
+                                                  trunc=1.0, zz_interaction_positive=True)
+
+        mprim_control = self.duts[0].get_measurement_prim_intlist(0)
+        mprim_target = self.duts[1].get_measurement_prim_intlist(0)
+
+        cs_pulse = c2.get_stark_drive_pulses()
+        stark_drive_target_pulse = c2['stark_drive_target']
+        stark_drive_control_pulse = c2['stark_drive_control']
+
+        lpb = c1_control['X'] + cs_pulse + mprim_control * mprim_target
+
+        if initial_lpb:
+            lpb = initial_lpb + lpb
+
+        swpparams = [
+            sparam.func(stark_drive_target_pulse.update_pulse_args, {}, 'width'),
+            sparam.func(stark_drive_control_pulse.update_pulse_args, {}, 'width'),
+        ]
+
+        swp = sweeper(np.arange, n_kwargs={'start': start, 'stop': stop, 'step': step},
+                          params=swpparams)
+
+        basic(lpb, swp, 'p(1)')
+
+        self.result_control = np.asarray(mprim_control.result(), dtype=float).flatten()
+        self.result_target = np.asarray(mprim_target.result(), dtype=float).flatten()
+
+    @register_browser_function(available_after=(run,))
+    def plot_t1(self):
+        args = self.retrieve_args(self.run)
+
+        dark_navy = '#000080'
+        dark_purple = '#800080'
+
+        fit_control = self.fit_exp_decay_with_cov(self.result_control, args['step'])
+        fit_target = self.fit_exp_decay_with_cov(self.result_target, args['step'])
+
+        t = np.arange(0, args['stop'], args['step'])
+
+        fig, axs = plt.subplots(1, 3, figsize=[25, 5])
+
+        # Plot for result_control
+        axs[0].set_title(f"Control T1 decay\nT1={fit_control['Decay'][0]:.2f} ± {fit_control['Decay'][1]:.2f} us")
+        axs[0].set_xlabel("Time (us)")
+        axs[0].set_ylabel("P(1)")
+        axs[0].scatter(t, self.result_control, marker='o', color=dark_navy)
+        axs[0].plot(t, fit_control['Amplitude'][0] * np.exp(-t / fit_control['Decay'][0]) + fit_control['Offset'][0],
+                    color=dark_navy)
+
+        # Plot for result_target
+        axs[1].set_title(f"Target T1 decay\nT1={fit_target['Decay'][0]:.2f} ± {fit_target['Decay'][1]:.2f} us")
+        axs[1].set_xlabel("Time (us)")
+        axs[1].set_ylabel("P(1)")
+        axs[1].scatter(t, self.result_target, marker='o', color=dark_purple)
+        axs[1].plot(t, fit_target['Amplitude'][0] * np.exp(-t / fit_target['Decay'][0]) + fit_target['Offset'][0],
+                    color=dark_purple)
+
+        # Combined plot
+        axs[2].set_title("Control and Target T1 decay")
+        axs[2].set_xlabel("Time (us)")
+        axs[2].set_ylabel("P(1)")
+        axs[2].scatter(t, self.result_control, marker='o', color=dark_navy, label='Control')
+        axs[2].scatter(t, self.result_target, marker='o', color=dark_purple, label='Target')
+        axs[2].plot(t, fit_control['Amplitude'][0] * np.exp(-t / fit_control['Decay'][0]) + fit_control['Offset'][0],
+                    color=dark_navy, label=f'Control Fit T1={fit_control["Decay"][0]:.2f} us')
+        axs[2].plot(t, fit_target['Amplitude'][0] * np.exp(-t / fit_target['Decay'][0]) + fit_target['Offset'][0],
+                    color=dark_purple, label=f'Target Fit T1={fit_target["Decay"][0]:.2f} us')
+        axs[2].legend()
+
+        fig.tight_layout()
+        plt.show()
+
+    def fit_exp_decay_with_cov(self, trace, time_resolution):
+        def exp_decay(t, A, tau, C):
+            return A * np.exp(-t / tau) + C
+
+        t = np.arange(0, len(trace) * time_resolution, time_resolution)
+        try:
+            popt, pcov = curve_fit(exp_decay, t, trace, maxfev=2400)
+            A, tau, C = popt
+            perr = np.sqrt(np.diag(pcov))
+            return {'Amplitude': (A, perr[0]), 'Decay': (tau, perr[1]), 'Offset': (C, perr[2])}
+        except (OptimizeWarning, RuntimeError) as e:
+            print(f"Optimization warning or error: {e}")
+            return {'Amplitude': (np.nan, np.nan), 'Decay': (np.nan, np.nan), 'Offset': (np.nan, np.nan)}
+class StarkRamseyMultilevel(Experiment):
+    """
+    Represents a simple Ramsey experiment with multilevel frequency sweeps.
+    This version has changed the step size from 0.001 to 0.005.
+    """
+    @log_and_record
+    def run(self,
+            qubit: Any,  # Replace 'Any' with the actual type of qubit
+            collection_name: str = 'f01',
+            mprim_index: int = 0,
+            # Replace 'Any' with the actual type
+            initial_lpb: Optional[Any] = None,
+            start: float = 0.0,
+            stop: float = 1.0,
+            step: float = 0.005,
+            set_offset: float = 10.0,
+            stark_offset=50, amp=0.1, width=0.1, rise=0.01, trunc=1.2,
+            update: bool = False) -> None:
+        """
+        Run Stark Ramsey experiment.
+
+        Parameters:
+            qubit: The qubit on which the experiment is performed.
+            collection_name: The name of the frequency collection (e.g., 'f01').
+            mprim_index: The index of the measurement primitive.
+            initial_lpb: Initial set of commands, if any.
+            start: The start frequency for the sweep.
+            stop: The stop frequency for the sweep.
+            step: The step size for the frequency sweep.
+            set_offset: The frequency offset.
+            update: Whether to update parameters after the experiment.
+
+        Returns:
+            None
+        """
+        self.set_offset = set_offset
+        self.step = step
+        self.stop = stop
+        self.stark_offset = stark_offset
+
+        # Define the levels for the sweep based on the collection name
+        start_level = int(collection_name[1])
+        end_level = int(collection_name[2])
+        self.level_diff = end_level - start_level
+
+        c1q = qubit.get_c1(collection_name)  # Retrieve the gate collection object
+        # Save original frequency
+        original_freq = c1q['Xp'].freq
+        self.original_freq = original_freq
+
+        self.frequency = self.original_freq + self.stark_offset
+
+        cs_pulse = c1q['X'].clone()
+        cs_pulse.update_pulse_args(amp=amp, freq=self.frequency, phase=0., shape='soft_square', width=self.stop,
+                                   rise=rise, trunc=trunc)
+
+        # Update the frequency with the calculated offset
+        c1q.update_parameters(
+            freq=original_freq +
+                 set_offset /
+                 self.level_diff)
+
+        # Get the measurement primitive
+        mprim = qubit.get_measurement_prim_intlist(mprim_index)
+        self.mp = mprim
+
+        # Construct the logic primitive block
+        lpb = c1q['Xp'] + cs_pulse + c1q['Xm'] + mprim
+
+        if initial_lpb:
+            lpb = initial_lpb + lpb
+
+        swpparams = [
+            sparam.func(cs_pulse.update_pulse_args, {}, 'width'),
+        ]
+
+        swp = sweeper(np.arange, n_kwargs={'start': 0.0, 'stop': self.stop, 'step': self.step},
+                      params=swpparams)
+
+        # Execute the basic experiment routine
+        basic(lpb, swp, '<z>')
+        self.data = np.squeeze(mprim.result())
+
+        self.update = update
+
+        # Analyze data if update is true
+        if update:
+            self.analyze_data()
+            c1q.update_parameters(freq=self.frequency_guess)
+            print(f"Frequency updated: {self.frequency_guess} MHz")
+        else:
+            c1q.update_parameters(freq=original_freq)
+
+    @log_and_record(overwrite_func_name='SimpleRamseyMultilevel.run')
+    def run_simulated(self,
+                      qubit: Any,  # Replace 'Any' with the actual type of qubit
+                      collection_name: str = 'f01',
+                      mprim_index: int = 0,
+                      # Replace 'Any' with the actual type
+                      initial_lpb: Optional[Any] = None,
+                      start: float = 0.0,
+                      stop: float = 1.0,
+                      step: float = 0.005,
+                      set_offset: float = 10.0,
+                      update: bool = True) -> None:
+        """
+        Run the Ramsey experiment.
+
+        Parameters:
+            qubit: The qubit on which the experiment is performed.
+            collection_name: The name of the frequency collection (e.g., 'f01').
+            mprim_index: The index of the measurement primitive.
+            initial_lpb: Initial set of commands, if any.
+            start: The start frequency for the sweep.
+            stop: The stop frequency for the sweep.
+            step: The step size for the frequency sweep.
+            set_offset: The frequency offset.
+            update: Whether to update parameters after the experiment.
+
+        Returns:
+            None
+        """
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        virtual_transmon = simulator_setup.get_virtual_qubit(qubit)
+
+        c1 = qubit.get_c1(collection_name)
+
+        f_q = virtual_transmon.qubit_frequency
+        f_d = c1['X'].freq
+        f_o = set_offset
+        self.set_offset = set_offset
+
+        # Save original frequency
+        original_freq = c1['Xp'].freq
+        self.original_freq = original_freq
+
+        # Define the levels for the sweep based on the collection name
+        start_level = int(collection_name[1])
+        end_level = int(collection_name[2])
+        self.level_diff = end_level - start_level
+
+        t = np.arange(start, stop, step)
+
+        if isinstance(virtual_transmon.t1, list):
+            t1 = virtual_transmon.t1[0]
+        else:
+            t1 = virtual_transmon.t1
+
+        decay_rate = 1 / t1
+
+        # Ramsey fringes formula
+
+        f_o_actual = f_q - (f_d + f_o)
+
+        ramsey_fringes = (1 + np.cos(2 * np.pi * f_o_actual * t)
+                          * np.exp(-decay_rate * t)) / 2
+
+        self.data = ramsey_fringes
+
+        quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+        standard_deviation = np.sum(quiescent_state_distribution[1:])
+
+        random_noise_factor = 1 + np.random.normal(
+            0, standard_deviation, self.data.shape)
+
+        self.data = np.clip(self.data * quiescent_state_distribution[0] * random_noise_factor, 0, 1)
+
+        # If sampling noise is enabled, simulate the noise
+        if setup().status().get_param('Sampling_Noise'):
+            # Get the number of shot used in the simulation
+            shot_number = setup().status().get_param('Shot_Number')
+
+            # generate binomial distribution of the result to simulate the
+            # sampling noise
+            self.data = np.random.binomial(
+                shot_number, self.data) / shot_number
+
+        self.data = self.data * 2 - 1
+
+    def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
+        """
+        Generate live plots for the experiment.
+
+        Parameters:
+            step_no: The current step number, if applicable.
+
+        Returns:
+            A plotly graph object containing the live data.
+        """
+        args = self.retrieve_args(self.run)
+        data = np.squeeze(self.mp.result())
+        t = np.arange(args['start'], args['stop'], args['step'])
+
+        # If a specific step number is provided, slice the data
+        if step_no is not None:
+            t = t[:step_no[0]]
+            data = data[:step_no[0]]
+
+        # Create and return the figure
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=t,
+                y=data,
+                mode='lines+markers',
+                name='data'))
+        fig.update_layout(
+            title=f"Ramsey {args['qubit'].hrid} transition {args['collection_name']}",
+            xaxis_title="Time (us)",
+            yaxis_title="<z>",
+            legend_title="Legend",
+            font=dict(
+                family="Courier New, monospace",
+                size=12,
+                color="Black"),
+            plot_bgcolor="white")
+        return fig
+
+    def analyze_data(self) -> None:
+        """
+        Analyze the experiment data to extract frequency and error information.
+
+        Returns:
+            None
+        """
+        args = self.retrieve_args(self.run)
+        try:
+            # Fit the data to an exponential decay model to extract frequency
+            # Fit the data using a predefined fitting function
+            from leeq.theory.fits import fit_1d_freq_exp_with_cov
+            self.fit_params = fit_1d_freq_exp_with_cov(
+                self.data, dt=args['step'])
+            fitted_freq_offset = (
+                                         self.fit_params['Frequency'][0] - self.set_offset) / self.level_diff
+            self.fitted_freq_offset = fitted_freq_offset
+            self.frequency_guess = self.original_freq - fitted_freq_offset
+            self.error_bar = self.fit_params['Frequency'][1]
+
+        except Exception as e:
+            # In case of fit failure, default the frequency guess and error
+            self.frequency_guess = 0
+            self.error_bar = np.inf
+
+    def dump_results_and_configuration(self) -> Tuple[
+        float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
+        """
+        Dump the results and configuration of the experiment.
+
+        Returns:
+            A tuple containing the guessed frequency, error bar, trace, arguments, and current timestamp.
+        """
+        args = copy.copy(self.retrieve_args(self.run))
+        del args['initial_lpb']
+        args['drive_freq'] = args['qubit'].get_c1(
+            args['collection_name'])['X'].freq
+        args['qubit'] = args['qubit'].hrid
+        return self.frequency_guess, self.error_bar, self.trace, args, datetime.datetime.now()
+
+    @register_browser_function(available_after=('run',))
+    def plot(self) -> go.Figure:
+        """
+        Plots the Ramsey decay with fitted curve using data from the experiment.
+
+        This method uses Plotly for generating the plot. It analyzes the data, performs
+        curve fitting, and then plots the actual data along with the fitted curve.
+        """
+        self.analyze_data()
+        args = self.retrieve_args(self.run)
+
+        # Generate time points based on the experiment arguments
+        time_points = np.arange(args['start'], args['stop'], args['step'])
+        time_points_interpolate = np.arange(
+            args['start'], args['stop'], args['step'] / 10)
+
+        # Create a plot using Plotly
+        fig = make_subplots(rows=1, cols=1)
+        fig.add_trace(
+            go.Scatter(
+                x=time_points,
+                y=self.data,
+                mode='markers',
+                name='Data'),
+            row=1,
+            col=1)
+
+        if hasattr(self, 'fit_params'):
+
+            # Extract fitting parameters
+            frequency = self.fit_params['Frequency'][0]
+            amplitude = self.fit_params['Amplitude'][0]
+            phase = self.fit_params['Phase'][0] - \
+                    2.0 * np.pi * frequency * args['start']
+            offset = self.fit_params['Offset'][0]
+            decay = self.fit_params['Decay'][0]
+
+            # Generate the fitted curve
+            fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * \
+                           np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
+
+            fig.add_trace(
+                go.Scatter(
+                    x=time_points_interpolate,
+                    y=fitted_curve,
+                    mode='lines',
+                    name='Fit'),
+                row=1,
+                col=1)
+
+            # Set plot layout details
+            title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
+                         f"{decay} ± {self.fit_params['Decay'][1]} us"
+            fig.update_layout(
+                title_text=title_text,
+                xaxis_title=f"Time (us) <br> Frequency: {frequency} ± {self.fit_params['Frequency'][1]}",
+                yaxis_title="<z>",
+                plot_bgcolor="white")
+
+        else:
+            # Set plot layout details
+            title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
+                         f"Fit failed"
+            fig.update_layout(title_text=title_text,
+                              xaxis_title=f"Time (us)",
+                              yaxis_title="<z>",
+                              plot_bgcolor="white")
+
+        return fig
+
+    def plot_fft(self, plot_range: Tuple[float, float] = (
+            0.05, 1)) -> go.Figure:
+        """
+        Plots the Fast Fourier Transform (FFT) of the data from the Ramsey experiment.
+
+        Parameters:
+        plot_range: Tuple[float, float], optional
+            The frequency range for the plot. Defaults to (0.05, 1).
+
+        This method uses Plotly for plotting. It computes the FFT of the data and plots the
+        spectrum within the specified range.
+        """
+        self.analyze_data()
+        data = self.data
+        args = self.retrieve_args(self.run)
+        time_step = args['step']
+
+        # Compute the (real) FFT of the data
+        fft_magnitudes = np.abs(np.fft.rfft(data))
+        frequencies = np.fft.rfftfreq(len(data), time_step)
+
+        # Apply frequency range mask
+        mask = (frequencies > plot_range[0]) & (frequencies < plot_range[1])
+
+        # Create a plot using Plotly
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=frequencies[mask],
+                y=fft_magnitudes[mask],
+                mode='lines'))
+
+        # Set plot layout details
+        fig.update_layout(title='Ramsey Spectrum',
+                          xaxis_title='Frequency [MHz]',
+                          yaxis_title='Strength',
+                          plot_bgcolor="white")
+        return fig
+
+    def get_analyzed_result_prompt(self) -> str:
+        """
+        Get a prompt for the analyzed result of the Ramsey experiment.
+
+        Returns:
+            A string containing the prompt for the analyzed result.
+        """
+
+        self.analyze_data()
+
+        if self.error_bar == np.inf:
+            return "The Ramsey experiment failed to fit the data."
+
+        return (f"The Ramsey experiment for qubit {self.retrieve_args(self.run)['qubit'].hrid} has been analyzed. " \
+               f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured offset is "
+               f"{self.fitted_freq_offset:.3f}+- {self.error_bar:.3f} MHz.")
+class StarkDriveRamseyTwoQubits(experiment):
+    # performs a ramsey experiment on two qubits while applying a stark shift drive to one of them. Extension of StarkDriveRamsey()
+    @log_and_record
+    def run(self, qubits,
+            collection_name: str = 'f01',
+            mprim_index: int = 0,
+            # Replace 'Any' with the actual type
+            initial_lpb: Optional[Any] = None,
+            start: float = 0.0,
+            stop: float = 1.0,
+            step: float = 0.005,
+            set_offset: float = 10.0,
+            stark_offset = 50, amp = 0.1, width = 0.1, rise = 0.01, trunc = 1.2,
+            update: bool = False) -> None:
+
+        assert len(qubits) == 2
+
+        self.set_offset = set_offset
+        self.step = step
+        self.stop = stop
+        self.stark_offset = stark_offset
+
+        c1s = [qubit.get_c1(collection_name) for qubit in qubits]  # get qubits. Ramsey on both, stark shift first qubit
+        mps = [qubit.get_measurement_prim_intlist(mprim_index) for qubit in qubits]
+
+        start_level = int(collection_name[1])
+        end_level = int(collection_name[2])
+        self.level_diff = end_level - start_level
+
+        self.original_freqs = [c1['Xp'].freq for c1 in c1s]
+        for c1 in c1s: c1.update_parameters(freq=c1['Xp'].freq + self.set_offset / self.level_diff)
+
+        self.original_freq = c1s[0]['Xp'].freq
+        self.frequency = self.original_freq + self.stark_offset
+
+        cs_pulse = c1s[0]['Xp'].clone()
+        cs_pulse.update_pulse_args(amp=amp, freq=self.frequency, phase=0., shape='soft_square', width=self.stop,
+                                   rise=rise, trunc=trunc)
+
+
+        lpb = prims.ParallelLPB([c1['Xp'] for c1 in c1s]) + cs_pulse + prims.ParallelLPB([c1['Xm'] for c1 in c1s]) + prims.ParallelLPB([mp for mp in mps]) # stark shift ramsey on first qubit, normal ramsey on second
+
+        if initial_lpb is not None:
+            lpb = initial_lpb + lpb
+
+        swpparams = [
+            sparam.func(cs_pulse.update_pulse_args, {}, 'width'),
+        ]
+
+        swp = sweeper(np.arange, n_kwargs={'start': 0.0, 'stop': self.stop, 'step': self.step},
+                      params=swpparams)
+
+        # Execute the basic experiment routine
+        basic(lpb, swp, '<z>')
+
+        self.result = [np.squeeze(mp.result()) for mp in mps]
+        self.traces = self.result
+
+        for i, c1 in enumerate(c1s): c1.update_parameters(freq=self.original_freqs[i])
+
+    def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
+        args = self.retrieve_args(self.run)
+        data0 = np.squeeze(self.traces[0])
+        data1 = np.squeeze(self.traces[1])
+        t = np.arange(args['start'], args['stop'], args['step'])
+
+        if step_no is not None:
+            t = t[:step_no[0]]
+            data0 = data0[:step_no[0]]
+            data1 = data1[:step_no[0]]
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=t, y=data0, mode='lines+markers', name='trace0'))
+        fig.add_trace(go.Scatter(x=t, y=data1, mode='lines+markers', name='trace1'))
+        fig.update_layout(
+            title=f"Ramsey {args['qubits'][0].hrid} and {args['qubits'][1].hrid} transition {args['collection_name']}",
+            xaxis_title="Time (us)",
+            yaxis_title="<z>",
+            legend_title="Legend",
+            font=dict(family="Courier New, monospace", size=12, color="Black"),
+            plot_bgcolor="white"
+        )
+        return fig
+
+    def analyze_data(self) -> None:
+        args = self.retrieve_args(self.run)
+        from leeq.theory.fits import fit_1d_freq_exp_with_cov
+
+        self.frequency_shift = [[], []]
+        self.frequency_guess = [None, None]
+        self.error_bar = [None, None]
+        self.fitted_freq_offset = [None, None]
+        self.fit_params = [None, None]  # Update to store fit_params for each trace
+
+        for i in range(2):
+            try:
+                self.fit_params[i] = fit_1d_freq_exp_with_cov(self.traces[i], dt=args['step'])
+                fitted_freq_offset = (self.fit_params[i]['Frequency'][0] - self.set_offset) / self.level_diff
+                self.fitted_freq_offset[i] = fitted_freq_offset
+                self.frequency_guess[i] = self.original_freqs[i] - fitted_freq_offset
+                self.error_bar[i] = self.fit_params[i]['Frequency'][1]
+                self.frequency_shift[i].append(self.frequency_guess[i] - self.original_freqs[i])
+            except Exception as e:
+                self.frequency_guess[i] = 0
+                self.error_bar[i] = np.inf
+
+    def dump_results_and_configuration(self) -> Tuple[
+        float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
+        args = copy.copy(self.retrieve_args(self.run))
+        del args['initial_lpb']
+        args['drive_freq'] = args['qubits'][0].get_c1(args['collection_name'])['X'].freq
+        args['qubits'] = [qubit.hrid for qubit in args['qubits']]
+        return self.frequency_guess, self.error_bar, self.traces, args, datetime.datetime.now()
+
+    @register_browser_function(available_after=('run',))
+    def plot(self) -> go.Figure:
+        self.analyze_data()
+        args = self.retrieve_args(self.run)
+
+        time_points = np.arange(args['start'], args['stop'], args['step'])
+        time_points_interpolate = np.arange(args['start'], args['stop'], args['step'] / 10)
+
+        fig = make_subplots(rows=2, cols=1, subplot_titles=[f"{args['qubits'][i].hrid} f = {self.frequency_guess[i]} MHz" for i in range(2)])
+
+        for i in range(2):
+            fig.add_trace(go.Scatter(x=time_points, y=self.traces[i], mode='markers', name=f'Trace {i}'), row=i + 1,
+                          col=1)
+            if self.fit_params[i]:
+                frequency = self.fit_params[i]['Frequency'][0]
+                amplitude = self.fit_params[i]['Amplitude'][0]
+                phase = self.fit_params[i]['Phase'][0] - 2.0 * np.pi * frequency * args['start']
+                offset = self.fit_params[i]['Offset'][0]
+                decay = self.fit_params[i]['Decay'][0]
+
+                fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * \
+                               np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
+
+                fig.add_trace(go.Scatter(x=time_points_interpolate, y=fitted_curve, mode='lines', name=f'Fit {i}'),
+                              row=i + 1, col=1)
+                if i == 0:
+                    fig.update_yaxes(title_text="<z>", row=i + 1, col=1)
+                if i == 1:
+                    fig.update_xaxes(title_text="Time (us)", row=i + 1, col=1)
+
+        fig.update_layout(
+            title_text=f"Stark drive Ramsey decay {args['qubits'][0].hrid} and {args['qubits'][1].hrid} transition {args['collection_name']}",
+            plot_bgcolor="white",
+            width=2000,  # Set your desired width here
+            height=800  # Set your desired height here
+        )
+        return fig
+
+    def plot_fft(self, plot_range: Tuple[float, float] = (0.05, 1)) -> go.Figure:
+        self.analyze_data()
+        args = self.retrieve_args(self.run)
+        time_step = args['step']
+
+        fig = go.Figure()
+        for i in range(2):
+            fft_magnitudes = np.abs(np.fft.rfft(self.traces[i]))
+            frequencies = np.fft.rfftfreq(len(self.traces[i]), time_step)
+            mask = (frequencies > plot_range[0]) & (frequencies < plot_range[1])
+            fig.add_trace(go.Scatter(x=frequencies[mask], y=fft_magnitudes[mask], mode='lines', name=f'Trace {i}'))
+
+        fig.update_layout(
+            title='Ramsey Spectrum',
+            xaxis_title='Frequency [MHz]',
+            yaxis_title='Strength',
+            plot_bgcolor="white"
+        )
+        return fig
+
+    def get_analyzed_result_prompt(self) -> str:
+        self.analyze_data()
+
+        if all(err == np.inf for err in self.error_bar):
+            return "The Ramsey experiment failed to fit the data for both traces."
+
+        result_str = ""
+        for i in range(2):
+            if self.error_bar[i] != np.inf:
+                result_str += (
+                    f"The Ramsey experiment for trace {i} of qubit {self.retrieve_args(self.run)['qubits'].hrid} "
+                    f"has been analyzed. The expected offset was set to {self.set_offset:.3f} MHz, "
+                    f"and the measured offset is {self.fitted_freq_offset[i]:.3f}±{self.error_bar[i]:.3f} MHz.\n")
+            else:
+                result_str += f"The Ramsey experiment failed to fit the data for trace {i}.\n"
+
+        return result_str
+
+
+
+
+    # def analyze_data(self):
+    #     self.fit_params = []
+    #     self.frequency_guess = []
+    #     self.error_bar = []
+    #     for i,trace in enumerate(self.traces):
+    #         try:
+    #             fit_params = fits.Fit_1D_Freq_exp_with_cov(trace, dt=self.step)
+    #
+    #             fitted_freq_offset = (fit_params['Frequency'][0] - self.set_offset) / self.level_diff
+    #
+    #             frequency_guess = self.original_freqs[i] - fitted_freq_offset
+    #             error_bar = fit_params['Frequency'][1]
+    #
+    #         except Exception as e:
+    #             fit_params = 0
+    #             frequency_guess = 0
+    #             error_bar = np.inf
+    #             # warnings.warn(repr(e))
+    #
+    #         self.fit_params.append(fit_params)
+    #         self.frequency_guess.append(frequency_guess)
+    #         self.error_bar.append(error_bar)
+    #     # self.fit_params = fits.Fit_1D_Freq_Gaussian_Estimation(self.data, dt=step)[0]
+    #
+    #
+    # def dump_results_and_configuration(self):
+    #     args = copy.copy(self.retrieve_args(self.run))
+    #     del args['initial_lpb']
+    #     args['drive_freq'] = args['qubit'].get_c1(args['collection_name'])['X'].freq
+    #     args['qubit'] = args['qubit'].hrid
+    #     return self.frequency_guess, self.error_bar, self.trace, args, datetime.datetime.now()
+    #
+    # def plot(self):
+    #     self.analyze_data()
+    #     print(self.frequency_guess)
+    #     args = self.retrieve_args(self.run)
+    #
+    #     # fit_params = fits.Fit_1D_Freq_exp_with_cov(self.data, dt=args['step'])
+    #
+    #     t = np.arange(args['start'], args['stop'], args['step'])
+    #     t_interpolate = np.arange(args['start'], args['stop'], args['step'] / 10)
+    #
+    #     for i,trace in enumerate(self.traces):
+    #         fig, ax = plt.subplots(figsize=[6,3])
+    #
+    #         fit_params = self.fit_params[i]
+    #
+    #         # print(t.shape, t)
+    #         # print(trace.shape, trace)
+    #
+    #         ax.set_title(f"Ramsey decay {args['qubits'][i].hrid} transition {args['collection_name']}: \n"
+    #                      f"{fit_params['Decay'][0]} $\pm$ {fit_params['Decay'][1]} us")
+    #         ax.set_xlabel(f"Time (us) Frequency:{fit_params['Frequency'][0]}$\pm${fit_params['Frequency'][1]}")
+    #         ax.set_ylabel("<z>")
+    #
+    #         g = ax.scatter(t, trace, marker='o', alpha=0.5)
+    #         f = fit_params['Frequency'][0]
+    #         a = fit_params['Amplitude'][0]
+    #         p = fit_params['Phase'][0] - 2.0 * np.pi * f * args['start']
+    #         o = fit_params['Offset'][0]
+    #         T = fit_params['Decay'][0]
+    #         fit = a * np.exp(-t_interpolate / T) * np.sin(2.0 * np.pi * f * t_interpolate + p) + o
+    #         ax.plot(t_interpolate, fit)
+    #         fig.tight_layout()
+    #         plt.show()
+    #
+    # ## Not updated this for multi qubit yet:
+    # def plot_fft(self, plot_range=(0.05, 1)):
+    #     self.analyze_data()
+    #     args = self.retrieve_args(self.run)
+    #
+    #     for i,trace in enumerate(self.traces):
+    #         fig, ax = plt.subplots(figsize=[6, 3])
+    #
+    #         dt = args['step']
+    #         rfft = np.abs(np.fft.rfft(trace))
+    #         f = np.fft.rfftfreq(len(trace), dt)
+    #
+    #         mask = (f > plot_range[0]) & (f < plot_range[1])
+    #
+    #         ax.plot(f[mask], rfft[mask])
+    #         ax.set_xlabel('Frequency [MHz]')
+    #         ax.set_ylabel('Strength')
+    #         ax.set_title(f"{args['qubits'][i].hrid} Ramsey spectrum")
+    #         fig.tight_layout()
+    #         plt.show()
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-
 class ConditionalStarkTuneUpRabiXY(experiment):
     @log_and_record
-    def run(self, qubits, amp_control, amp_target, frequency=None, rise=0.01, start=0, stop=3, step=0.03, axis='Y',
+    def run(self, qubits, amp_control, amp_target, frequency=None, rise=0.01, trunc=1.0, start=0, stop=3, step=0.03, axis='Y',
             echo=False, iz_rate_cancel=0, phase_diff=0, iz_rise_drop=0):
         self.duts = qubits
         self.frequency = frequency
@@ -270,6 +1102,8 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         self.start = start
         self.stop = stop
         self.step = step
+        self.rise = rise
+        self.trunc= trunc
         self.fitting_2D = None
         self.phase_diff = phase_diff
 
@@ -452,7 +1286,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         plt.legend()
         plt.show()
 
-        self.plot_rescaled_after_fit()
+        # self.plot_rescaled_after_fit()
 
         self.plot_blochsphere_leakage_to_control()
 
@@ -827,7 +1661,6 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         plt.tight_layout()
         plt.show()
 
-
 class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
 
     @log_and_record
@@ -1081,7 +1914,7 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
 class ConditionalStarkEchoTuneUp(Experiment):
 
     @log_and_record
-    def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0, rise=0.01,
+    def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0, rise=0.01, trunc=1.0,
             t_start=0, t_stop=20, sweep_points=30,
             n_start=0, n_stop=32, update_iz=False, update_zz=True, n_max_iteration=20
             ):
@@ -1097,13 +1930,16 @@ class ConditionalStarkEchoTuneUp(Experiment):
             area_control = amp_rabi_control * duts[0].get_c1('f01')['X'].width
             area_target = amp_rabi_target * duts[1].get_c1('f01')['X'].width
 
+
             params = {
                 'iz_control': 0,
                 'iz_target': 0,
                 'frequency': frequency,
                 'amp_control': amp_control,
                 'amp_target': amp_control * area_target / area_control,
+                # 'amp_target': amp_control,
                 'rise': rise,
+                'trunc': trunc,
                 'width': 0,
                 'phase_diff': phase_diff,
                 'zz_interaction_positive': True,
@@ -1259,7 +2095,7 @@ class ConditionalStarkEchoTuneUp(Experiment):
         self.estimated_iz_list = estimated_iz_list
         self.estimated_zz_list = estimated_zz_list
 
-class ConditionalStarkSpectroscopyDiff(experiment):
+class ConditionalStarkSpectroscopyDiffAmpFreq(experiment):
     """
     A class to execute conditional Stark spectroscopy differential experiments on devices under test (DUTs).
     This involves varying the frequency and amplitude parameters to generate Stark spectroscopy data.
@@ -1297,8 +2133,8 @@ class ConditionalStarkSpectroscopyDiff(experiment):
         # Get the default control pulse for each DUT.
         c1s = [dut.get_default_c1() for dut in duts]
 
-        # Flip both
-        flip_both = prims.ParallelLPB([c1s[0]['Y'], c1s[1]['Y']])
+        # Flip both`
+        flip_both = prims.ParallelLPB([c1s[0]['X'], c1s[1]['X']])
 
         # Update the pulse parameters for all cloned pulses.
         for i, cs_pulse in enumerate(cs_pulses):
@@ -1465,6 +2301,1937 @@ class ConditionalStarkSpectroscopyDiff(experiment):
 
         return self.plot()
 
+class ConditionalStarkSpectroscopyDiffAmpTargetFreq(experiment):
+    """
+    A class to execute conditional Stark spectroscopy differential experiments on devices under test (DUTs).
+    This involves varying the frequency and amplitude parameters to generate Stark spectroscopy data.
+    """
+
+    @log_and_record
+    def run(self, duts: List[Any], freq_start: float = 4100, freq_stop: float = 4144, freq_step: float = 1,
+            amp_control_fixed = 0.2,
+            amp_start: float = 0, amp_stop: float = 0.2, amp_step: float = 0.02,
+            rise: float = 0.01, trunc: float = 1.2, width: float = 0.7, echo=False) -> None:
+        """
+        Executes the spectroscopy experiment by sweeping the amplitude and frequency and observing the difference in measuring Y axis.
+
+        Args:
+            duts (List[Any]): List of device under test instances.
+            freq_start (float): Starting frequency for the sweep (MHz).
+            freq_stop (float): Stopping frequency for the sweep (MHz).
+            freq_step (float): Step size for the frequency sweep (MHz).
+            amp_start (float): Starting amplitude for the sweep.
+            amp_stop (float): Stopping amplitude for the sweep.
+            amp_step (float): Step size for the amplitude sweep.
+            rise (float): Rise time for the pulse shape.
+            trunc (float): Truncation factor for the pulse shape.
+            width (float): Width of the pulse shape.
+            echo (bool): Whether to include an echo pulse in the sequence.
+
+        Returns:
+            None
+        """
+
+        self.amp_control_fixed = amp_control_fixed
+
+        # Clone the control pulse from each DUT for manipulation.
+        cs_pulses = [dut.get_c1('f01')['X'].clone() for dut in duts]
+
+        # Get the measurement primitives from each DUT.
+        mprims = [dut.get_measurement_prim_intlist(0) for dut in duts]
+
+        # Get the default control pulse for each DUT.
+        c1s = [dut.get_default_c1() for dut in duts]
+
+        # Flip both
+        flip_both = prims.ParallelLPB([c1s[0]['X'], c1s[1]['X']])
+
+        # Update the pulse parameters for all cloned pulses.
+        for i, cs_pulse in enumerate(cs_pulses):
+            cs_pulse.update_pulse_args(shape='soft_square', amp=self.amp_control_fixed, phase=0, width=width if not echo else width / 2,
+                                       rise=rise, trunc=trunc)
+
+        # # Create amplitude sweeper.
+        # swp_amp = sweeper(np.arange, n_kwargs={'start': amp_start, 'stop': amp_stop, 'step': amp_step},
+        #                   params=[sparam.func(cs_pulse.update_pulse_args, {}, 'amp') for cs_pulse in cs_pulses])
+
+        # Create amplitude sweeper and apply only to the second cs_pulse only
+        swp_amp = sweeper(
+            np.arange,
+            n_kwargs={'start': amp_start, 'stop': amp_stop, 'step': amp_step},
+            params=[sparam.func(cs_pulses[1].update_pulse_args, {}, 'amp')]  # Target only the second pulse
+        )
+
+        # Create frequency sweeper.
+        swp_freq = sweeper(np.arange, n_kwargs={'start': freq_start, 'stop': freq_stop, 'step': freq_step},
+                           params=[sparam.func(cs_pulse.update_freq, {}, 'freq') for cs_pulse in cs_pulses])
+
+        # Set up additional pulse sequences and sweep.
+        flip_sweep_lpb = prims.SweepLPB([c1s[0]['I'], c1s[0]['X']])
+        swp_flip = sweeper.from_sweep_lpb(flip_sweep_lpb)
+
+        lpb_zz = prims.ParallelLPB(cs_pulses)
+        if echo:
+            lpb_zz = lpb_zz + flip_both + lpb_zz + flip_both
+
+        # lpb = flip_sweep_lpb + c1s[1]['Xp'] + lpb_zz + c1s[1]['Ym'] + prims.ParallelLPB(mprims)
+
+        lpb = c1s[1]['Ym'] * flip_sweep_lpb + lpb_zz + c1s[1]['Xm'] + prims.ParallelLPB(mprims)
+
+        self.mp_control = mprims[0]
+        self.mp_target = mprims[1]
+
+        # Execute the basic spectroscopy sequence with all sweeps combined.
+        basic(lpb, swp=swp_amp + swp_freq + swp_flip, basis="<z>")
+
+        self.result = np.squeeze(self.mp_target.result())
+        self.result_control = np.squeeze(self.mp_control.result())
+
+    @register_browser_function(available_after=(run,))
+    def plot(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as a heatmap.
+
+        Returns:
+            go.Figure: A heatmap plot of the differential measurement results.
+        """
+        # Retrieve arguments used during the run for axis scaling.
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
+        ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
+
+        # Generate the heatmap. RdBu or viridis are good color scales.
+        fig = go.Figure(data=go.Heatmap(
+            z=(self.result[:, :, 0] - self.result[:, :, 1]), x=ys, y=xs,
+            colorscale='RdBu'
+            ))
+
+        # Set plot titles.
+        fig.update_layout(
+            title="Spectroscopy Difference in Y axis on Target Qubit with Control Fixed Amplitude",
+            xaxis_title="Frequency (MHz)",
+            yaxis_title="Target Driving amplitude (a.u)",
+        )
+
+        return fig
+
+    @register_browser_function(available_after=(run,))
+    def plot_leakage_to_control(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as a heatmap.
+
+        Returns:
+            go.Figure: A heatmap plot of the differential measurement results.
+        """
+        # Retrieve arguments used during the run for axis scaling.
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
+        ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
+
+        # Generate the heatmap. RdBu or viridis are good color scales.
+        fig = go.Figure(data=go.Heatmap(
+            z=(self.result_control[:, :, 0] - self.result_control[:, :, 1]), x=ys, y=xs,
+            colorscale='RdBu'
+            ))
+
+        # Set plot titles.
+        fig.update_layout(
+            title="Spectroscopy Difference in Y axis on Control with Control Fixed Amplitude",
+            xaxis_title="Frequency (MHz)",
+            yaxis_title="Target Driving amplitude (a.u)",
+        )
+
+        return fig
+
+    # @register_browser_function(available_after=(run,))
+    def plot_high_resolution(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as heatmaps.
+
+        Returns:
+            go.Figure: A figure with two high-resolution heatmaps, one for the main result and one for the control.
+        """
+        # Retrieve arguments used during the run for axis scaling.
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
+        ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
+
+        # Create a subplot figure with 1 row and 2 columns
+        fig = make_subplots(rows=1, cols=2, subplot_titles=("Spectroscopy Difference in Y axis on Target Qubit with Control Fixed Amplitude",
+                                                            "Spectroscopy Difference in Y axis on Control Qubit with Control Fixed Amplitude"))
+
+        # Generate the heatmap for the main result
+        heatmap_main = go.Heatmap(
+            z=(self.result[:, :, 0] - self.result[:, :, 1]),
+            x=ys,
+            y=xs,
+            colorscale='RdBu',
+            colorbar=dict(title="", titleside="right", x=0.45),  # Adjust x to position the colorbar
+        )
+
+        # Generate the heatmap for the control result
+        heatmap_control = go.Heatmap(
+            z=(self.result_control[:, :, 0] - self.result_control[:, :, 1]),
+            x=ys,
+            y=xs,
+            colorscale='RdBu',
+            colorbar=dict(title="Difference in Y axis", titleside="right", x=1.05),  # Adjust x to position the colorbar
+        )
+
+        # Add heatmaps to the figure
+        fig.add_trace(heatmap_main, row=1, col=1)
+        fig.add_trace(heatmap_control, row=1, col=2)
+
+        # Update layout for the figure
+        fig.update_layout(
+            xaxis_title="Frequency (MHz)",
+            yaxis_title="Target Driving Amplitude (a.u)",
+            font=dict(family="Arial, sans-serif", size=14),
+            title_font=dict(size=18, family="Arial, sans-serif"),
+            margin=dict(l=80, r=20, t=40, b=80),  # Add margins to make space for titles
+            width=1600,  # Increase the width for better resolution
+            height=600,  # Increase the height for better resolution
+            paper_bgcolor='white',
+            plot_bgcolor='white',
+        )
+
+        # Customize x-axis and y-axis for both subplots
+        fig['layout']['xaxis'].update(showline=True, linewidth=2, linecolor='black', mirror=True)
+        fig['layout']['yaxis'].update(showline=True, linewidth=2, linecolor='black', mirror=True)
+        fig['layout']['xaxis2'].update(title='Frequency (MHz)', showline=True, linewidth=2, linecolor='black',
+                                       mirror=True)
+        fig['layout']['yaxis2'].update(title='', showline=True, linewidth=2, linecolor='black',
+                                       mirror=True)
+
+        return fig
+
+    def live_plots(self, step_no: tuple[int] = None):
+        """
+        Generate the live plots. This function is called by the live monitor.
+        The step no denotes the number of data points to plot, while the
+        buffer size is the total number of data points to plot. Some of the data
+        in the buffer is note yet valid, so they should not be plotted.
+        """
+
+        return self.plot()
+
+class ConditionalStarkSpectroscopyDiffPhaseFreq(experiment):
+    """
+    A class to execute conditional Stark spectroscopy differential experiments on devices under test (DUTs).
+    This involves varying the frequency and phase parameters to generate Stark spectroscopy data.
+    """
+
+    @log_and_record
+    def run(self, duts: List[Any], freq_start: float = 4100, freq_stop: float = 4144, freq_step: float = 1,
+            phase_diff_start: float = 0, phase_diff_stop: float = np.pi, phase_diff_step: float = np.pi / 10,
+            rise: float = 0.01, trunc: float = 1.2, width: float = 0.7, amp=0.2, echo=False) -> None:
+        """
+        Executes the spectroscopy experiment by sweeping the phase and frequency and observing the difference in measuring Y axis.
+
+        Args:
+            duts (List[Any]): List of device under test instances.
+            freq_start (float): Starting frequency for the sweep (MHz).
+            freq_stop (float): Stopping frequency for the sweep (MHz).
+            freq_step (float): Step size for the frequency sweep (MHz).
+            phase_diff_start (float): Starting phase difference for the sweep.
+            phase_diff_stop (float): Stopping phase difference for the sweep.
+            phase_diff_step (float): Step size for the phase difference sweep.
+            rise (float): Rise time for the pulse shape.
+            trunc (float): Truncation factor for the pulse shape.
+            width (float): Width of the pulse shape.
+            amp (float): Amplitude for the control and target pulses.
+            echo (bool): Whether to include an echo pulse in the sequence.
+
+        Returns:
+            None
+        """
+        self.duts = duts
+        self.frequency = freq_start
+        self.amp_control = amp
+        self.amp_target = amp
+        self.width = width
+        self.phase_diff = phase_diff_stop
+
+        mprims = [dut.get_measurement_prim_intlist(0) for dut in duts]
+        c1s = [dut.get_default_c1() for dut in duts]
+
+        flip_both = prims.ParallelLPB([c1s[0]['X'], c1s[1]['X']])
+
+        # Clone the control pulse from each DUT for manipulation.
+        cs_pulses = [dut.get_c1('f01')['X'].clone() for dut in duts]
+
+        # Update the pulse parameters for all cloned pulses.
+        for i, cs_pulse in enumerate(cs_pulses):
+            cs_pulse.update_pulse_args(shape='soft_square', amp=0, phase=phase_diff_start, width=width if not echo else width / 2,
+                                       rise=rise, trunc=trunc)
+
+        # Create phase sweeper.
+        # swp_phase = sweeper(np.arange, n_kwargs={'start': phase_diff_start, 'stop': phase_diff_stop, 'step': phase_diff_step},
+        #                   params=[sparam.func(cs_pulse.update_pulse_args, {}, 'phase') for cs_pulse in cs_pulses])
+
+        # Create amplitude sweeper and apply only to the second cs_pulse.
+        swp_phase = sweeper(
+            np.arange,
+            n_kwargs={'start': phase_diff_start, 'stop': phase_diff_stop, 'step': phase_diff_step},
+            params=[sparam.func(cs_pulses[1].update_pulse_args, {}, 'phase')]  # Target only the second pulse
+        )
+
+        # Create frequency sweeper.
+        swp_freq = sweeper(np.arange, n_kwargs={'start': freq_start, 'stop': freq_stop, 'step': freq_step},
+                           params=[sparam.func(cs_pulse.update_freq, {}, 'freq') for cs_pulse in cs_pulses])
+
+
+        flip_sweep_lpb = prims.SweepLPB([c1s[0]['I'], c1s[0]['X']])
+        swp_flip = sweeper.from_sweep_lpb(flip_sweep_lpb)
+
+        lpb_zz = cs_pulse
+        if echo:
+            lpb_zz = lpb_zz + flip_both + lpb_zz + flip_both
+
+        lpb = c1s[1]['Ym'] * flip_sweep_lpb + lpb_zz + c1s[1]['Xm'] + prims.ParallelLPB(mprims)
+
+        self.mp_control = mprims[0]
+        self.mp_target = mprims[1]
+
+        basic(lpb, swp=swp_phase + swp_freq + swp_flip, basis="<z>")
+
+        self.result = np.squeeze(self.mp_target.result())
+        self.result_control = np.squeeze(self.mp_control.result())
+
+    @register_browser_function(available_after=(run,))
+    def plot(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as a heatmap.
+
+        Returns:
+            go.Figure: A heatmap plot of the differential measurement results.
+        """
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
+        ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
+
+        fig = go.Figure(data=go.Heatmap(
+            z=(self.result[:, :, 0] - self.result[:, :, 1]), x=ys, y=xs,
+            colorscale='RdBu'
+        ))
+
+        fig.update_layout(
+            title="Spectroscopy Difference in Y axis on Target Qubit",
+            xaxis_title="Frequency (MHz)",
+            yaxis_title="Phase Difference (radians)",
+        )
+
+        return fig
+
+    @register_browser_function(available_after=(run,))
+    def plot_leakage_to_control(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as a heatmap.
+
+        Returns:
+            go.Figure: A heatmap plot of the differential measurement results.
+        """
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
+        ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
+
+        fig = go.Figure(data=go.Heatmap(
+            z=(self.result_control[:, :, 0] - self.result_control[:, :, 1]), x=ys, y=xs,
+            colorscale='RdBu'
+        ))
+
+        fig.update_layout(
+            title="Spectroscopy Difference in Y axis on Control Qubit",
+            xaxis_title="Frequency (MHz)",
+            yaxis_title="Phase Difference (radians)",
+        )
+
+        return fig
+
+    def plot_high_resolution(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as heatmaps.
+
+        Returns:
+            go.Figure: A figure with two high-resolution heatmaps, one for the main result and one for the control.
+        """
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
+        ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
+
+        fig = make_subplots(rows=1, cols=2, subplot_titles=("Spectroscopy Difference in Y axis on Target Qubit",
+                                                            "Spectroscopy Difference in Y axis on Control Qubit"))
+
+        heatmap_main = go.Heatmap(
+            z=(self.result[:, :, 0] - self.result[:, :, 1]),
+            x=ys,
+            y=xs,
+            colorscale='RdBu',
+            colorbar=dict(title="", titleside="right", x=0.45),
+        )
+
+        heatmap_control = go.Heatmap(
+            z=(self.result_control[:, :, 0] - self.result_control[:, :, 1]),
+            x=ys,
+            y=xs,
+            colorscale='RdBu',
+            colorbar=dict(title="Difference in Y axis", titleside="right", x=1.05),
+        )
+
+        fig.add_trace(heatmap_main, row=1, col=1)
+        fig.add_trace(heatmap_control, row=1, col=2)
+
+        fig.update_layout(
+            xaxis_title="Frequency (MHz)",
+            yaxis_title="Phase Difference (radians)",
+            font=dict(family="Arial, sans-serif", size=14),
+            title_font=dict(size=18, family="Arial, sans-serif"),
+            margin=dict(l=80, r=20, t=40, b=80),
+            width=1600,
+            height=600,
+            paper_bgcolor='white',
+            plot_bgcolor='white',
+        )
+
+        fig['layout']['xaxis'].update(showline=True, linewidth=2, linecolor='black', mirror=True)
+        fig['layout']['yaxis'].update(showline=True, linewidth=2, linecolor='black', mirror=True)
+        fig['layout']['xaxis2'].update(title='Frequency (MHz)', showline=True, linewidth=2, linecolor='black',
+                                       mirror=True)
+        fig['layout']['yaxis2'].update(title='', showline=True, linewidth=2,
+                                       linecolor='black',
+                                       mirror=True)
+
+        return fig
+
+class ConditionalStarkSpectroscopyDiffAmpPhase(experiment):
+    """
+    A class to execute conditional Stark spectroscopy differential experiments on devices under test (DUTs).
+    This involves varying the amplitude and phase parameters to generate Stark spectroscopy data.
+    """
+
+    @log_and_record
+    def run(self, duts: List[Any], amp_start: float = 0, amp_stop: float = 0.2, amp_step: float = 0.02,
+            phase_diff_start: float = 0, phase_diff_stop: float = np.pi, phase_diff_step: float = np.pi / 10,
+            rise: float = 0.01, trunc: float = 1.2, width: float = 0.7, frequency=4700, echo=False) -> None:
+        """
+        Executes the spectroscopy experiment by sweeping the amplitude and phase and observing the difference in measuring Y axis.
+
+        Args:
+            duts (List[Any]): List of device under test instances.
+            amp_start (float): Starting amplitude for the sweep.
+            amp_stop (float): Stopping amplitude for the sweep.
+            amp_step (float): Step size for the amplitude sweep.
+            phase_diff_start (float): Starting phase difference for the sweep.
+            phase_diff_stop (float): Stopping phase difference for the sweep.
+            phase_diff_step (float): Step size for the phase difference sweep.
+            rise (float): Rise time for the pulse shape.
+            trunc (float): Truncation factor for the pulse shape.
+            width (float): Width of the pulse shape.
+            frequency (float): Frequency for the control and target pulses (MHz).
+            echo (bool): Whether to include an echo pulse in the sequence.
+
+        Returns:
+            None
+        """
+        self.duts = duts
+        self.frequency = frequency
+        self.amp_control = amp_start
+        self.amp_target = amp_start
+        self.width = width
+        self.phase_diff = phase_diff_step
+
+        mprims = [dut.get_measurement_prim_intlist(0) for dut in duts]
+        c1s = [dut.get_default_c1() for dut in duts]
+
+        flip_both = prims.ParallelLPB([c1s[0]['X'], c1s[1]['X']])
+
+        # Clone the control pulse from each DUT for manipulation.
+        cs_pulses = [dut.get_c1('f01')['X'].clone() for dut in duts]
+
+        # Update the pulse parameters for all cloned pulses.
+        for i, cs_pulse in enumerate(cs_pulses):
+            cs_pulse.update_pulse_args(shape='soft_square', amp=0, phase=phase_diff_start, width=width if not echo else width / 2,
+                                       rise=rise, trunc=trunc)
+
+        # Create amp sweeper.
+        swp_amp = sweeper(np.arange, n_kwargs={'start': amp_start, 'stop': amp_stop, 'step': amp_step},
+                              params=[sparam.func(cs_pulse.update_pulse_args, {}, 'amp') for cs_pulse in cs_pulses])
+
+        # Create phase sweeper.
+        # swp_phase = sweeper(np.arange, n_kwargs={'start': phase_diff_start, 'stop': phase_diff_stop, 'step': phase_diff_step},
+        #                     params=[sparam.func(cs_pulse.update_pulse_args, {}, 'phase') for cs_pulse in cs_pulses])
+
+        # Create phase sweeper and apply only to the second cs_pulse.
+        swp_phase = sweeper(
+            np.arange,
+            n_kwargs={'start': phase_diff_start, 'stop': phase_diff_stop, 'step': phase_diff_step},
+            params=[sparam.func(cs_pulses[1].update_pulse_args, {}, 'phase')]  # Target only the second pulse
+        )
+
+        flip_sweep_lpb = prims.SweepLPB([c1s[0]['I'], c1s[0]['X']])
+        swp_flip = sweeper.from_sweep_lpb(flip_sweep_lpb)
+
+        lpb_zz = cs_pulse
+        if echo:
+            lpb_zz = lpb_zz + flip_both + lpb_zz + flip_both
+
+        lpb = c1s[1]['Ym'] * flip_sweep_lpb + lpb_zz + c1s[1]['Xm'] + prims.ParallelLPB(mprims)
+
+        self.mp_control = mprims[0]
+        self.mp_target = mprims[1]
+
+        basic(lpb, swp=swp_amp + swp_phase + swp_flip, basis="<z>")
+
+        self.result = np.squeeze(self.mp_target.result())
+        self.result_control = np.squeeze(self.mp_control.result())
+
+    @register_browser_function(available_after=(run,))
+    def plot(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as a heatmap.
+
+        Returns:
+            go.Figure: A heatmap plot of the differential measurement results.
+        """
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
+        ys = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
+
+        fig = go.Figure(data=go.Heatmap(
+            z=(self.result[:, :, 0] - self.result[:, :, 1]), x=ys, y=xs,
+            colorscale='RdBu'
+        ))
+
+        fig.update_layout(
+            title="Spectroscopy Difference in Y axis on Target Qubit",
+            xaxis_title="Phase Difference (radians)",
+            yaxis_title="Amplitude (a.u)",
+        )
+
+        return fig
+
+    @register_browser_function(available_after=(run,))
+    def plot_leakage_to_control(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as a heatmap.
+
+        Returns:
+            go.Figure: A heatmap plot of the differential measurement results.
+        """
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
+        ys = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
+
+        fig = go.Figure(data=go.Heatmap(
+            z=(self.result_control[:, :, 0] - self.result_control[:, :, 1]), x=ys, y=xs,
+            colorscale='RdBu'
+        ))
+
+        fig.update_layout(
+            title="Spectroscopy Difference in Y axis on Control Qubit",
+            xaxis_title="Phase Difference (radians)",
+            yaxis_title="Amplitude (a.u)",
+        )
+
+        return fig
+
+    def plot_high_resolution(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as heatmaps.
+
+        Returns:
+            go.Figure: A figure with two high-resolution heatmaps, one for the main result and one for the control.
+        """
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
+        ys = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
+
+        fig = make_subplots(rows=1, cols=2, subplot_titles=("Spectroscopy Difference in Y axis on Target Qubit",
+                                                            "Spectroscopy Difference in Y axis on Control Qubit"))
+
+        heatmap_main = go.Heatmap(
+            z=(self.result[:, :, 0] - self.result[:, :, 1]),
+            x=ys,
+            y=xs,
+            colorscale='RdBu',
+            colorbar=dict(title="", titleside="right", x=0.45),
+        )
+
+        heatmap_control = go.Heatmap(
+            z=(self.result_control[:, :, 0] - self.result_control[:, :, 1]),
+            x=ys,
+            y=xs,
+            colorscale='RdBu',
+            colorbar=dict(title="Difference in Y axis", titleside="right", x=1.05),
+        )
+
+        fig.add_trace(heatmap_main, row=1, col=1)
+        fig.add_trace(heatmap_control, row=1, col=2)
+
+        fig.update_layout(
+            xaxis_title="Phase Difference (radians)",
+            yaxis_title="Amplitude (a.u)",
+            font=dict(family="Arial, sans-serif", size=14),
+            title_font=dict(size=18, family="Arial, sans-serif"),
+            margin=dict(l=80, r=20, t=40, b=80),
+            width=1600,
+            height=600,
+            paper_bgcolor='white',
+            plot_bgcolor='white',
+        )
+
+        fig['layout']['xaxis'].update(showline=True, linewidth=2, linecolor='black', mirror=True)
+        fig['layout']['yaxis'].update(showline=True, linewidth=2, linecolor='black', mirror=True)
+        fig['layout']['xaxis2'].update(title='Phase Difference (radians)', showline=True, linewidth=2,
+                                       linecolor='black',
+                                       mirror=True)
+        fig['layout']['yaxis2'].update(title='', showline=True, linewidth=2, linecolor='black',
+                                       mirror=True)
+
+        return fig
+
+class ConditionalStarkSizzleSpectroscopyAmpFreq(experiment):
+    """
+    A class to execute conditional Stark spectroscopy differential experiments on devices under test (DUTs).
+    This involves varying the frequency and amplitude parameters to generate Stark spectroscopy data.
+    """
+
+    @log_and_record
+    def run(self, duts: List[Any], freq_start: float = 4100, freq_stop: float = 4144, freq_step: float = 1,
+            amp_start: float = 0, amp_stop: float = 0.2, amp_step: float = 0.02,
+            rise: float = 0.01, trunc: float = 1.2, width: float = 0.7, phase_diff = 0, echo=False) -> None:
+        """
+        Executes the spectroscopy experiment by sweeping the amplitude and frequency and observing the difference in measuring Y axis.
+
+        Args:
+            duts (List[Any]): List of device under test instances.
+            freq_start (float): Starting frequency for the sweep (MHz).
+            freq_stop (float): Stopping frequency for the sweep (MHz).
+            freq_step (float): Step size for the frequency sweep (MHz).
+            amp_start (float): Starting amplitude for the sweep.
+            amp_stop (float): Stopping amplitude for the sweep.
+            amp_step (float): Step size for the amplitude sweep.
+            rise (float): Rise time for the pulse shape.
+            trunc (float): Truncation factor for the pulse shape.
+            width (float): Width of the pulse shape.
+            echo (bool): Whether to include an echo pulse in the sequence.
+
+        Returns:
+            None
+        """
+        # Clone the control pulse from each DUT for manipulation.
+        # cs_pulses = [dut.get_c1('f01')['X'].clone() for dut in duts]
+
+        self.duts = duts
+        self.frequency = freq_start
+        self.amp_control = amp_start
+        self.amp_target = amp_start
+        self.width = width
+        self.phase_diff = phase_diff
+
+
+        # Get the measurement primitives from each DUT.
+        mprims = [dut.get_measurement_prim_intlist(0) for dut in duts]
+
+        # Get the default control pulse for each DUT.
+        c1s = [dut.get_default_c1() for dut in duts]
+
+        # Flip both
+        flip_both = prims.ParallelLPB([c1s[0]['X'], c1s[1]['X']])
+
+        # Update the pulse parameters for all cloned pulses.
+        # for i, cs_pulse in enumerate(cs_pulses):
+        #     cs_pulse.update_pulse_args(shape='soft_square', amp=0, phase=0, width=width if not echo else width / 2,
+        #                                rise=rise, trunc=trunc)
+
+        c2 = prims.build_CZ_stark_from_parameters(control_q=self.duts[0], target_q=self.duts[1],
+                                                  amp_target=self.amp_target, amp_control=self.amp_control,
+                                                  frequency=self.frequency,
+                                                  rise=rise, width=self.width,
+                                                  phase_diff=self.phase_diff,
+                                                  iz_control=0,
+                                                  iz_target=0,
+                                                  echo=False,
+                                                  trunc=1.0, zz_interaction_positive=True)
+        cs_pulse = c2.get_stark_drive_pulses()
+        stark_drive_target_pulse = c2['stark_drive_target']
+        stark_drive_control_pulse = c2['stark_drive_control']
+
+        swpparams_amp = [
+            sparam.func(stark_drive_target_pulse.update_pulse_args, {}, 'amp_target'),
+            sparam.func(stark_drive_control_pulse.update_pulse_args, {}, 'amp_control'),
+        ]
+        # Create amplitude sweeper.
+        swp_amp = sweeper(np.arange, n_kwargs={'start': amp_start, 'stop': amp_stop, 'step': amp_step},
+                          params=swpparams_amp)
+
+        swpparams_freq = [
+            sparam.func(stark_drive_target_pulse.update_pulse_args, {}, 'frequency'),
+            sparam.func(stark_drive_control_pulse.update_pulse_args, {}, 'frequency'),
+        ]
+        # Create frequency sweeper.
+        swp_freq = sweeper(np.arange, n_kwargs={'start': freq_start, 'stop': freq_stop, 'step': freq_step},
+                           params=swpparams_freq)
+
+        # Set up additional pulse sequences and sweep.
+        flip_sweep_lpb = prims.SweepLPB([c1s[0]['I'], c1s[0]['X']])
+        swp_flip = sweeper.from_sweep_lpb(flip_sweep_lpb)
+
+        lpb_zz = cs_pulse
+        if echo:
+            lpb_zz = lpb_zz + flip_both + lpb_zz + flip_both
+
+        # lpb = flip_sweep_lpb + c1s[1]['Xp'] + lpb_zz + c1s[1]['Ym'] + prims.ParallelLPB(mprims)
+
+        lpb = c1s[1]['Ym'] * flip_sweep_lpb + lpb_zz + c1s[1]['Xm'] + prims.ParallelLPB(mprims)
+
+        self.mp_control = mprims[0]
+        self.mp_target = mprims[1]
+
+        # Execute the basic spectroscopy sequence with all sweeps combined.
+        basic(lpb, swp=swp_amp + swp_freq + swp_flip, basis="<z>")
+
+        self.result = np.squeeze(self.mp_target.result())
+        self.result_control = np.squeeze(self.mp_control.result())
+
+    @register_browser_function(available_after=(run,))
+    def plot(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as a heatmap.
+
+        Returns:
+            go.Figure: A heatmap plot of the differential measurement results.
+        """
+        # Retrieve arguments used during the run for axis scaling.
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
+        ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
+
+        # Generate the heatmap. RdBu or viridis are good color scales.
+        fig = go.Figure(data=go.Heatmap(
+            z=(self.result[:, :, 0] - self.result[:, :, 1]), x=ys, y=xs,
+            colorscale='RdBu'
+            ))
+
+        # Set plot titles.
+        fig.update_layout(
+            title="Spectroscopy Difference in Y axis on Target Qubit",
+            xaxis_title="Frequency (MHz)",
+            yaxis_title="Driving amplitude (a.u)",
+        )
+
+        return fig
+
+    @register_browser_function(available_after=(run,))
+    def plot_leakage_to_control(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as a heatmap.
+
+        Returns:
+            go.Figure: A heatmap plot of the differential measurement results.
+        """
+        # Retrieve arguments used during the run for axis scaling.
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
+        ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
+
+        # Generate the heatmap. RdBu or viridis are good color scales.
+        fig = go.Figure(data=go.Heatmap(
+            z=(self.result_control[:, :, 0] - self.result_control[:, :, 1]), x=ys, y=xs,
+            colorscale='RdBu'
+            ))
+
+        # Set plot titles.
+        fig.update_layout(
+            title="Spectroscopy Difference in Y axis on Control Qubit",
+            xaxis_title="Frequency (MHz)",
+            yaxis_title="Driving amplitude (a.u)",
+        )
+
+        return fig
+
+    # @register_browser_function(available_after=(run,))
+    def plot_high_resolution(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as heatmaps.
+
+        Returns:
+            go.Figure: A figure with two high-resolution heatmaps, one for the main result and one for the control.
+        """
+        # Retrieve arguments used during the run for axis scaling.
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
+        ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
+
+        # Create a subplot figure with 1 row and 2 columns
+        fig = make_subplots(rows=1, cols=2, subplot_titles=("Spectroscopy Difference in Y axis on Target Qubit",
+                                                            "Spectroscopy Difference in Y axis on Control Qubit"))
+
+        # Generate the heatmap for the main result
+        heatmap_main = go.Heatmap(
+            z=(self.result[:, :, 0] - self.result[:, :, 1]),
+            x=ys,
+            y=xs,
+            colorscale='RdBu',
+            colorbar=dict(title="", titleside="right", x=0.45),  # Adjust x to position the colorbar
+        )
+
+        # Generate the heatmap for the control result
+        heatmap_control = go.Heatmap(
+            z=(self.result_control[:, :, 0] - self.result_control[:, :, 1]),
+            x=ys,
+            y=xs,
+            colorscale='RdBu',
+            colorbar=dict(title="Difference in Y axis", titleside="right", x=1.05),  # Adjust x to position the colorbar
+        )
+
+        # Add heatmaps to the figure
+        fig.add_trace(heatmap_main, row=1, col=1)
+        fig.add_trace(heatmap_control, row=1, col=2)
+
+        # Update layout for the figure
+        fig.update_layout(
+            xaxis_title="Frequency (MHz)",
+            yaxis_title="Driving Amplitude (a.u)",
+            font=dict(family="Arial, sans-serif", size=14),
+            title_font=dict(size=18, family="Arial, sans-serif"),
+            margin=dict(l=80, r=20, t=40, b=80),  # Add margins to make space for titles
+            width=1600,  # Increase the width for better resolution
+            height=600,  # Increase the height for better resolution
+            paper_bgcolor='white',
+            plot_bgcolor='white',
+        )
+
+        # Customize x-axis and y-axis for both subplots
+        fig['layout']['xaxis'].update(showline=True, linewidth=2, linecolor='black', mirror=True)
+        fig['layout']['yaxis'].update(showline=True, linewidth=2, linecolor='black', mirror=True)
+        fig['layout']['xaxis2'].update(title='Frequency (MHz)', showline=True, linewidth=2, linecolor='black',
+                                       mirror=True)
+        fig['layout']['yaxis2'].update(title='', showline=True, linewidth=2, linecolor='black',
+                                       mirror=True)
+
+        return fig
+
+    def live_plots(self, step_no: tuple[int] = None):
+        """
+        Generate the live plots. This function is called by the live monitor.
+        The step no denotes the number of data points to plot, while the
+        buffer size is the total number of data points to plot. Some of the data
+        in the buffer is note yet valid, so they should not be plotted.
+        """
+
+        return self.plot()
+
+class ConditionalStarkSizzleSpectroscopyPhaseFreq(experiment):
+    """
+    A class to execute conditional Stark spectroscopy differential experiments on devices under test (DUTs).
+    This involves varying the frequency and phase parameters to generate Stark spectroscopy data.
+    """
+
+    @log_and_record
+    def run(self, duts: List[Any], freq_start: float = 4100, freq_stop: float = 4144, freq_step: float = 1,
+            phase_diff_start: float = 0, phase_diff_stop: float = np.pi, phase_diff_step: float = np.pi / 10,
+            rise: float = 0.01, trunc: float = 1.2, width: float = 0.7, amp=0.2, echo=False) -> None:
+        """
+        Executes the spectroscopy experiment by sweeping the phase and frequency and observing the difference in measuring Y axis.
+
+        Args:
+            duts (List[Any]): List of device under test instances.
+            freq_start (float): Starting frequency for the sweep (MHz).
+            freq_stop (float): Stopping frequency for the sweep (MHz).
+            freq_step (float): Step size for the frequency sweep (MHz).
+            phase_diff_start (float): Starting phase difference for the sweep.
+            phase_diff_stop (float): Stopping phase difference for the sweep.
+            phase_diff_step (float): Step size for the phase difference sweep.
+            rise (float): Rise time for the pulse shape.
+            trunc (float): Truncation factor for the pulse shape.
+            width (float): Width of the pulse shape.
+            amp (float): Amplitude for the control and target pulses.
+            echo (bool): Whether to include an echo pulse in the sequence.
+
+        Returns:
+            None
+        """
+        self.duts = duts
+        self.frequency = freq_start
+        self.amp_control = amp
+        self.amp_target = amp
+        self.width = width
+        self.phase_diff = phase_diff_stop
+
+        mprims = [dut.get_measurement_prim_intlist(0) for dut in duts]
+        c1s = [dut.get_default_c1() for dut in duts]
+
+        flip_both = prims.ParallelLPB([c1s[0]['X'], c1s[1]['X']])
+
+        c2 = prims.build_CZ_stark_from_parameters(control_q=self.duts[0], target_q=self.duts[1],
+                                                  amp_target=self.amp_target, amp_control=self.amp_control,
+                                                  frequency=self.frequency,
+                                                  rise=rise, width=self.width,
+                                                  phase_diff=self.phase_diff,
+                                                  iz_control=0,
+                                                  iz_target=0,
+                                                  echo=False,
+                                                  trunc=1.0, zz_interaction_positive=True)
+        cs_pulse = c2.get_stark_drive_pulses()
+        stark_drive_target_pulse = c2['stark_drive_target']
+        stark_drive_control_pulse = c2['stark_drive_control']
+
+        swpparams_phase = [
+            sparam.func(stark_drive_target_pulse.update_pulse_args, {}, 'phase_diff'),
+            sparam.func(stark_drive_control_pulse.update_pulse_args, {}, 'phase_diff'),
+        ]
+        swp_phase = sweeper(np.arange,
+                            n_kwargs={'start': phase_diff_start, 'stop': phase_diff_stop, 'step': phase_diff_step},
+                            params=swpparams_phase)
+
+        swpparams_freq = [
+            sparam.func(stark_drive_target_pulse.update_pulse_args, {}, 'frequency'),
+            sparam.func(stark_drive_control_pulse.update_pulse_args, {}, 'frequency'),
+        ]
+
+        swp_freq = sweeper(np.arange, n_kwargs={'start': freq_start, 'stop': freq_stop, 'step': freq_step},
+                           params=swpparams_freq)
+
+        flip_sweep_lpb = prims.SweepLPB([c1s[0]['I'], c1s[0]['X']])
+        swp_flip = sweeper.from_sweep_lpb(flip_sweep_lpb)
+
+        lpb_zz = cs_pulse
+        if echo:
+            lpb_zz = lpb_zz + flip_both + lpb_zz + flip_both
+
+        lpb = c1s[1]['Ym'] * flip_sweep_lpb + lpb_zz + c1s[1]['Xm'] + prims.ParallelLPB(mprims)
+
+        self.mp_control = mprims[0]
+        self.mp_target = mprims[1]
+
+        basic(lpb, swp=swp_phase + swp_freq + swp_flip, basis="<z>")
+
+        self.result = np.squeeze(self.mp_target.result())
+        self.result_control = np.squeeze(self.mp_control.result())
+
+    @register_browser_function(available_after=(run,))
+    def plot(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as a heatmap.
+
+        Returns:
+            go.Figure: A heatmap plot of the differential measurement results.
+        """
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
+        ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
+
+        fig = go.Figure(data=go.Heatmap(
+            z=(self.result[:, :, 0] - self.result[:, :, 1]), x=ys, y=xs,
+            colorscale='RdBu'
+        ))
+
+        fig.update_layout(
+            title="Spectroscopy Difference in Y axis on Target Qubit",
+            xaxis_title="Frequency (MHz)",
+            yaxis_title="Phase Difference (radians)",
+        )
+
+        return fig
+
+    @register_browser_function(available_after=(run,))
+    def plot_leakage_to_control(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as a heatmap.
+
+        Returns:
+            go.Figure: A heatmap plot of the differential measurement results.
+        """
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
+        ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
+
+        fig = go.Figure(data=go.Heatmap(
+            z=(self.result_control[:, :, 0] - self.result_control[:, :, 1]), x=ys, y=xs,
+            colorscale='RdBu'
+        ))
+
+        fig.update_layout(
+            title="Spectroscopy Difference in Y axis on Control Qubit",
+            xaxis_title="Frequency (MHz)",
+            yaxis_title="Phase Difference (radians)",
+        )
+
+        return fig
+
+    def plot_high_resolution(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as heatmaps.
+
+        Returns:
+            go.Figure: A figure with two high-resolution heatmaps, one for the main result and one for the control.
+        """
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
+        ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
+
+        fig = make_subplots(rows=1, cols=2, subplot_titles=("Spectroscopy Difference in Y axis on Target Qubit",
+                                                            "Spectroscopy Difference in Y axis on Control Qubit"))
+
+        heatmap_main = go.Heatmap(
+            z=(self.result[:, :, 0] - self.result[:, :, 1]),
+            x=ys,
+            y=xs,
+            colorscale='RdBu',
+            colorbar=dict(title="", titleside="right", x=0.45),
+        )
+
+        heatmap_control = go.Heatmap(
+            z=(self.result_control[:, :, 0] - self.result_control[:, :, 1]),
+            x=ys,
+            y=xs,
+            colorscale='RdBu',
+            colorbar=dict(title="Difference in Y axis", titleside="right", x=1.05),
+        )
+
+        fig.add_trace(heatmap_main, row=1, col=1)
+        fig.add_trace(heatmap_control, row=1, col=2)
+
+        fig.update_layout(
+            xaxis_title="Frequency (MHz)",
+            yaxis_title="Phase Difference (radians)",
+            font=dict(family="Arial, sans-serif", size=14),
+            title_font=dict(size=18, family="Arial, sans-serif"),
+            margin=dict(l=80, r=20, t=40, b=80),
+            width=1600,
+            height=600,
+            paper_bgcolor='white',
+            plot_bgcolor='white',
+        )
+
+        fig['layout']['xaxis'].update(showline=True, linewidth=2, linecolor='black', mirror=True)
+        fig['layout']['yaxis'].update(showline=True, linewidth=2, linecolor='black', mirror=True)
+        fig['layout']['xaxis2'].update(title='Frequency (MHz)', showline=True, linewidth=2, linecolor='black',
+                                       mirror=True)
+        fig['layout']['yaxis2'].update(title='', showline=True, linewidth=2,
+                                       linecolor='black',
+                                       mirror=True)
+
+        return fig
+
+class ConditionalStarkSizzleSpectroscopyAmpPhase(experiment):
+    """
+    A class to execute conditional Stark spectroscopy differential experiments on devices under test (DUTs).
+    This involves varying the amplitude and phase parameters to generate Stark spectroscopy data.
+    """
+
+    @log_and_record
+    def run(self, duts: List[Any], amp_start: float = 0, amp_stop: float = 0.2, amp_step: float = 0.02,
+            phase_diff_start: float = 0, phase_diff_stop: float = np.pi, phase_diff_step: float = np.pi / 10,
+            rise: float = 0.01, trunc: float = 1.2, width: float = 0.7, frequency=4700, echo=False) -> None:
+        """
+        Executes the spectroscopy experiment by sweeping the amplitude and phase and observing the difference in measuring Y axis.
+
+        Args:
+            duts (List[Any]): List of device under test instances.
+            amp_start (float): Starting amplitude for the sweep.
+            amp_stop (float): Stopping amplitude for the sweep.
+            amp_step (float): Step size for the amplitude sweep.
+            phase_diff_start (float): Starting phase difference for the sweep.
+            phase_diff_stop (float): Stopping phase difference for the sweep.
+            phase_diff_step (float): Step size for the phase difference sweep.
+            rise (float): Rise time for the pulse shape.
+            trunc (float): Truncation factor for the pulse shape.
+            width (float): Width of the pulse shape.
+            frequency (float): Frequency for the control and target pulses (MHz).
+            echo (bool): Whether to include an echo pulse in the sequence.
+
+        Returns:
+            None
+        """
+        self.duts = duts
+        self.frequency = frequency
+        self.amp_control = amp_start
+        self.amp_target = amp_start
+        self.width = width
+        self.phase_diff = phase_diff_step
+
+        mprims = [dut.get_measurement_prim_intlist(0) for dut in duts]
+        c1s = [dut.get_default_c1() for dut in duts]
+
+        flip_both = prims.ParallelLPB([c1s[0]['X'], c1s[1]['X']])
+
+        c2 = prims.build_CZ_stark_from_parameters(control_q=self.duts[0], target_q=self.duts[1],
+                                                  amp_target=self.amp_target, amp_control=self.amp_control,
+                                                  frequency=self.frequency,
+                                                  rise=rise, width=self.width,
+                                                  phase_diff=self.phase_diff,
+                                                  iz_control=0,
+                                                  iz_target=0,
+                                                  echo=False,
+                                                  trunc=1.0, zz_interaction_positive=True)
+        cs_pulse = c2.get_stark_drive_pulses()
+        stark_drive_target_pulse = c2['stark_drive_target']
+        stark_drive_control_pulse = c2['stark_drive_control']
+
+        swpparams_amp = [
+            sparam.func(stark_drive_target_pulse.update_pulse_args, {}, 'amp_target'),
+            sparam.func(stark_drive_control_pulse.update_pulse_args, {}, 'amp_control'),
+        ]
+        # Create amplitude sweeper.
+        swp_amp = sweeper(np.arange, n_kwargs={'start': amp_start, 'stop': amp_stop, 'step': amp_step},
+                          params=swpparams_amp)
+
+        swpparams_phase = [
+            sparam.func(stark_drive_target_pulse.update_pulse_args, {}, 'phase_diff'),
+            sparam.func(stark_drive_control_pulse.update_pulse_args, {}, 'phase_diff'),
+        ]
+        swp_phase = sweeper(np.arange,
+                            n_kwargs={'start': phase_diff_start, 'stop': phase_diff_stop, 'step': phase_diff_step},
+                            params=swpparams_phase)
+
+        flip_sweep_lpb = prims.SweepLPB([c1s[0]['I'], c1s[0]['X']])
+        swp_flip = sweeper.from_sweep_lpb(flip_sweep_lpb)
+
+        lpb_zz = cs_pulse
+        if echo:
+            lpb_zz = lpb_zz + flip_both + lpb_zz + flip_both
+
+        lpb = c1s[1]['Ym'] * flip_sweep_lpb + lpb_zz + c1s[1]['Xm'] + prims.ParallelLPB(mprims)
+
+        self.mp_control = mprims[0]
+        self.mp_target = mprims[1]
+
+        basic(lpb, swp=swp_amp + swp_phase + swp_flip, basis="<z>")
+
+        self.result = np.squeeze(self.mp_target.result())
+        self.result_control = np.squeeze(self.mp_control.result())
+
+    @register_browser_function(available_after=(run,))
+    def plot(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as a heatmap.
+
+        Returns:
+            go.Figure: A heatmap plot of the differential measurement results.
+        """
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
+        ys = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
+
+        fig = go.Figure(data=go.Heatmap(
+            z=(self.result[:, :, 0] - self.result[:, :, 1]), x=ys, y=xs,
+            colorscale='RdBu'
+        ))
+
+        fig.update_layout(
+            title="Spectroscopy Difference in Y axis on Target Qubit",
+            xaxis_title="Phase Difference (radians)",
+            yaxis_title="Amplitude (a.u)",
+        )
+
+        return fig
+
+    @register_browser_function(available_after=(run,))
+    def plot_leakage_to_control(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as a heatmap.
+
+        Returns:
+            go.Figure: A heatmap plot of the differential measurement results.
+        """
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
+        ys = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
+
+        fig = go.Figure(data=go.Heatmap(
+            z=(self.result_control[:, :, 0] - self.result_control[:, :, 1]), x=ys, y=xs,
+            colorscale='RdBu'
+        ))
+
+        fig.update_layout(
+            title="Spectroscopy Difference in Y axis on Control Qubit",
+            xaxis_title="Phase Difference (radians)",
+            yaxis_title="Amplitude (a.u)",
+        )
+
+        return fig
+
+    def plot_high_resolution(self) -> go.Figure:
+        """
+        Plots the results of the spectroscopy experiment as heatmaps.
+
+        Returns:
+            go.Figure: A figure with two high-resolution heatmaps, one for the main result and one for the control.
+        """
+        args = self.retrieve_args(self.run)
+
+        xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
+        ys = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
+
+        fig = make_subplots(rows=1, cols=2, subplot_titles=("Spectroscopy Difference in Y axis on Target Qubit",
+                                                            "Spectroscopy Difference in Y axis on Control Qubit"))
+
+        heatmap_main = go.Heatmap(
+            z=(self.result[:, :, 0] - self.result[:, :, 1]),
+            x=ys,
+            y=xs,
+            colorscale='RdBu',
+            colorbar=dict(title="", titleside="right", x=0.45),
+        )
+
+        heatmap_control = go.Heatmap(
+            z=(self.result_control[:, :, 0] - self.result_control[:, :, 1]),
+            x=ys,
+            y=xs,
+            colorscale='RdBu',
+            colorbar=dict(title="Difference in Y axis", titleside="right", x=1.05),
+        )
+
+        fig.add_trace(heatmap_main, row=1, col=1)
+        fig.add_trace(heatmap_control, row=1, col=2)
+
+        fig.update_layout(
+            xaxis_title="Phase Difference (radians)",
+            yaxis_title="Amplitude (a.u)",
+            font=dict(family="Arial, sans-serif", size=14),
+            title_font=dict(size=18, family="Arial, sans-serif"),
+            margin=dict(l=80, r=20, t=40, b=80),
+            width=1600,
+            height=600,
+            paper_bgcolor='white',
+            plot_bgcolor='white',
+        )
+
+        fig['layout']['xaxis'].update(showline=True, linewidth=2, linecolor='black', mirror=True)
+        fig['layout']['yaxis'].update(showline=True, linewidth=2, linecolor='black', mirror=True)
+        fig['layout']['xaxis2'].update(title='Phase Difference (radians)', showline=True, linewidth=2,
+                                       linecolor='black',
+                                       mirror=True)
+        fig['layout']['yaxis2'].update(title='', showline=True, linewidth=2, linecolor='black',
+                                       mirror=True)
+
+        return fig
+
+class ConditionalStarkFinePhaseTuneUp(Experiment):
+    @log_and_record
+    def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0, rise=0.0, trunc=1.0,
+            t_start=0, t_stop=20, sweep_points=30,
+            phase_diff_start: float = 0, phase_diff_stop: float = 2*np.pi, phase_diff_step: float = np.pi / 10,
+            n_start=0, n_stop=32, update_iz=False, update_zz=True
+            ):
+        self.duts = duts
+
+        assert update_iz == False
+
+        if params is None:
+            amp_rabi_control = duts[0].get_c1('f01')['X'].amp
+            amp_rabi_target = duts[1].get_c1('f01')['X'].amp
+
+            area_control = amp_rabi_control * duts[0].get_c1('f01')['X'].width
+            area_target = amp_rabi_target * duts[1].get_c1('f01')['X'].width
+
+            params = {
+                'iz_control': 0,
+                'iz_target': 0,
+                'frequency': frequency,
+                'amp_control': amp_control,
+                'amp_target': amp_control * area_target / area_control,
+                'rise': rise,
+                'trunc': trunc,
+                'width': 0,
+                'phase_diff': phase_diff,
+                'zz_interaction_positive': True,
+                'echo': True
+            }
+
+        self.current_params = params
+        self.params_list = [params]
+        self.results = []
+
+        for phase in np.arange(phase_diff_start, phase_diff_stop, phase_diff_step):
+            print(f"phase: {phase:.3f} radians")
+            self.current_params['phase_diff'] = phase
+            iz_rate, zz_rate, result, result_target, result_control = self.run_sizzel_xy_hamiltonian_tomography(
+                t_start=t_start, t_stop=t_stop, sweep_points=sweep_points
+            )
+
+            self.results.append({
+                'phase_diff': phase,
+                'iz_rate': iz_rate,
+                'zz_rate': zz_rate,
+                'result': result,
+                'result_target': result_target,
+                'result_control': result_control,
+                't_start': t_start,
+                't_stop': t_stop,
+                'sweep_points': sweep_points
+            })
+
+            self.current_params['zz_interaction_positive'] = zz_rate.nominal_value > 0
+
+    def run_sizzel_xy_hamiltonian_tomography(self, t_start, t_stop, sweep_points=60):
+        t_step = (t_stop - t_start) / sweep_points
+
+        sizzel_xy = ConditionalStarkTuneUpRabiXY(
+            qubits=self.duts,
+            frequency=self.current_params['frequency'],
+            amp_control=self.current_params['amp_control'],
+            amp_target=self.current_params['amp_target'],
+            rise=self.current_params['rise'],
+            start=t_start,
+            stop=t_stop,
+            step=t_step,
+            phase_diff=self.current_params['phase_diff'],
+            iz_rate_cancel=0,
+            iz_rise_drop=0,
+            echo=True
+        )
+
+        result = sizzel_xy.analyze_results_with_errs()
+        iz_rate = result['iz_rate']
+        zz_rate = result['zz_rate']
+
+        new_params = self.current_params.copy()
+        new_params['width'] = np.abs(0.125 / zz_rate.nominal_value) / 2
+
+        print(f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]} us')
+
+        self.params_list.append(new_params)
+        self.current_params = new_params
+
+        self.result_target = sizzel_xy.result  # Store the result of the current iteration
+        self.result_control = sizzel_xy.result_control  # Assuming result_control is accessible from sizzel_xy
+
+        return iz_rate, zz_rate, result, self.result_target, self.result_control
+
+    @register_browser_function(available_after=(run,))
+    def plot_results(self, plot_size_3d=(800, 2000), fig_size=(600, 2000)):
+        # Colors for the plot
+        dark_navy = '#000080'
+        dark_purple = '#800080'
+        light_black = '#D3D3D3'
+
+        # Prepare data for 3D plots
+        phases = [res['phase_diff'] for res in self.results]
+        times = [np.linspace(res['t_start'], res['t_stop'], res['sweep_points']) for res in self.results]
+
+        # Extract the necessary data for plotting
+        results_ground_x = [np.array(res['result_target'])[:, 0, 0] for res in self.results]
+        results_excited_x = [np.array(res['result_target'])[:, 1, 0] for res in self.results]
+
+        results_ground_y = [np.array(res['result_target'])[:, 0, 1] for res in self.results]
+        results_excited_y = [np.array(res['result_target'])[:, 1, 1] for res in self.results]
+
+        results_control_ground_x = [np.array(res['result_control'])[:, 0, 0] for res in self.results]
+        results_control_excited_x = [np.array(res['result_control'])[:, 1, 0] for res in self.results]
+
+        results_control_ground_y = [np.array(res['result_control'])[:, 0, 1] for res in self.results]
+        results_control_excited_y = [np.array(res['result_control'])[:, 1, 1] for res in self.results]
+
+        iz_rates = [res['iz_rate'].nominal_value for res in self.results]
+        zz_rates = [res['zz_rate'].nominal_value for res in self.results]
+
+        # Create the figure with 3D plots for x data
+        fig_3d_x = make_subplots(rows=1, cols=2,
+                                 subplot_titles=("Target Qubit - X axis", "Control Qubits - X axis"),
+                                 specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]])
+
+        # Plot 3D phase vs time vs result X for ground and excited states
+        for i, phase in enumerate(phases):
+            fig_3d_x.add_trace(
+                go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_ground_x[i], mode='lines',
+                             name='Ground X', showlegend=(i == 0), line=dict(color=dark_navy)),
+                row=1, col=1)
+            fig_3d_x.add_trace(
+                go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_excited_x[i], mode='lines',
+                             name='Excited X', showlegend=(i == 0), line=dict(color=dark_purple)),
+                row=1, col=1)
+
+        # Plot 3D phase vs time vs result control X for ground and excited states
+        for i, phase in enumerate(phases):
+            fig_3d_x.add_trace(
+                go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_control_ground_x[i], mode='lines',
+                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                row=1, col=2)
+            fig_3d_x.add_trace(
+                go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_control_excited_x[i], mode='lines',
+                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                row=1, col=2)
+
+        # Update layout for 3D X figure
+        fig_3d_x.update_layout(
+            height=plot_size_3d[0], width=plot_size_3d[1],
+            # title_text="Conditional Stark Fine Phase Tune-Up Results - 3D X",
+            scene=dict(
+                xaxis=dict(title='Phase', backgroundcolor='white', gridcolor=light_black),
+                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
+                zaxis=dict(title='Result Target X', backgroundcolor='white', gridcolor=light_black)
+            ),
+            scene2=dict(
+                xaxis=dict(title='Phase', backgroundcolor='white', gridcolor=light_black),
+                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
+                zaxis=dict(title='Result Control X', backgroundcolor='white', gridcolor=light_black)
+            )
+        )
+
+        # Create the figure with 3D plots for y data
+        fig_3d_y = make_subplots(rows=1, cols=2,
+                                 subplot_titles=("Target Qubit - Y axis", "Control Qubits - Y axis"),
+                                 specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]])
+
+        # Plot 3D phase vs time vs result Y for ground and excited states
+        for i, phase in enumerate(phases):
+            fig_3d_y.add_trace(
+                go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_ground_y[i], mode='lines',
+                             name='Ground Y', showlegend=(i == 0), line=dict(color=dark_navy)),
+                row=1, col=1)
+            fig_3d_y.add_trace(
+                go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_excited_y[i], mode='lines',
+                             name='Excited Y', showlegend=(i == 0), line=dict(color=dark_purple)),
+                row=1, col=1)
+
+        # Plot 3D phase vs time vs result control Y for ground and excited states
+        for i, phase in enumerate(phases):
+            fig_3d_y.add_trace(
+                go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_control_ground_y[i], mode='lines',
+                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                row=1, col=2)
+            fig_3d_y.add_trace(
+                go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_control_excited_y[i], mode='lines',
+                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                row=1, col=2)
+
+        # Update layout for 3D Y figure
+        fig_3d_y.update_layout(
+            height=plot_size_3d[0], width=plot_size_3d[1],
+            # title_text="Conditional Stark Fine Phase Tune-Up Results - 3D Y",
+            scene=dict(
+                xaxis=dict(title='Phase', backgroundcolor='white', gridcolor=light_black),
+                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
+                zaxis=dict(title='Result Target Y', backgroundcolor='white', gridcolor=light_black)
+            ),
+            scene2=dict(
+                xaxis=dict(title='Phase', backgroundcolor='white', gridcolor=light_black),
+                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
+                zaxis=dict(title='Result Control Y', backgroundcolor='white', gridcolor=light_black)
+            )
+        )
+
+        # Create the third figure with 2D plots
+        fig_2d = make_subplots(rows=1, cols=2,
+                               subplot_titles=("ZZ vs Phase", "IZ vs Phase"),
+                               specs=[[{'type': 'scatter'}, {'type': 'scatter'}]])
+
+        # Plot 2D zz vs phase
+        fig_2d.add_trace(
+            go.Scatter(x=phases, y=zz_rates, mode='lines+markers', name='ZZ vs Phase', line=dict(color=dark_navy)),
+            row=1, col=1)
+
+        # Plot 2D iz vs phase
+        fig_2d.add_trace(
+            go.Scatter(x=phases, y=iz_rates, mode='lines+markers', name='IZ vs Phase', line=dict(color=dark_purple)),
+            row=1, col=2)
+
+        # Update layout for 2D figure
+        fig_2d.update_layout(
+            height=fig_size[0], width=fig_size[1],
+            # title_text="Conditional Stark Fine Phase Tune-Up Results - 2D",
+            plot_bgcolor='white',
+            xaxis=dict(gridcolor=light_black),
+            yaxis=dict(gridcolor=light_black)
+        )
+
+        # Customize 2D plots
+        fig_2d.update_xaxes(title_text="Phase", row=1, col=1)
+        fig_2d.update_yaxes(title_text="ZZ Rate (MHz)", row=1, col=1)
+
+        fig_2d.update_xaxes(title_text="Phase", row=1, col=2)
+        fig_2d.update_yaxes(title_text="IZ Rate (MHz)", row=1, col=2)
+
+        return fig_3d_x.show(), fig_3d_y.show(), fig_2d.show()
+
+class ConditionalStarkFineRiseTuneUp(Experiment):
+    @log_and_record
+    def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0, trunc=1.0,
+            rise_start=0.01, rise_stop=0.1, rise_step=0.01,
+            t_start=0, t_stop=20, sweep_points=30,
+            n_start=0, n_stop=32, update_iz=False, update_zz=True):
+        self.duts = duts
+
+        assert update_iz == False
+
+        if params is None:
+            amp_rabi_control = duts[0].get_c1('f01')['X'].amp
+            amp_rabi_target = duts[1].get_c1('f01')['X'].amp
+
+            area_control = amp_rabi_control * duts[0].get_c1('f01')['X'].width
+            area_target = amp_rabi_target * duts[1].get_c1('f01')['X'].width
+
+            params = {
+                'iz_control': 0,
+                'iz_target': 0,
+                'frequency': frequency,
+                'amp_control': amp_control,
+                'amp_target': amp_control * area_target / area_control,
+                'rise': rise_start,
+                'trunc': trunc,
+                'width': 0,
+                'phase_diff': phase_diff,
+                'zz_interaction_positive': True,
+                'echo': True
+            }
+
+        self.current_params = params
+        self.params_list = [params]
+        self.results = []
+
+        for rise in np.arange(rise_start, rise_stop, rise_step):
+            print(f"rise: {rise}")
+            self.current_params['rise'] = rise
+            iz_rate, zz_rate, result, result_target, result_control = self.run_sizzel_xy_hamiltonian_tomography(
+                t_start=t_start, t_stop=t_stop, sweep_points=sweep_points
+            )
+
+            self.results.append({
+                'rise': rise,
+                'iz_rate': iz_rate,
+                'zz_rate': zz_rate,
+                'result': result,
+                'result_target': result_target,
+                'result_control': result_control,
+                't_start': t_start,
+                't_stop': t_stop,
+                'sweep_points': sweep_points
+            })
+
+            self.current_params['zz_interaction_positive'] = zz_rate.nominal_value > 0
+
+    def run_sizzel_xy_hamiltonian_tomography(self, t_start, t_stop, sweep_points=60):
+        t_step = (t_stop - t_start) / sweep_points
+
+        sizzel_xy = ConditionalStarkTuneUpRabiXY(
+            qubits=self.duts,
+            frequency=self.current_params['frequency'],
+            amp_control=self.current_params['amp_control'],
+            amp_target=self.current_params['amp_target'],
+            rise=self.current_params['rise'],
+            start=t_start,
+            stop=t_stop,
+            step=t_step,
+            phase_diff=self.current_params['phase_diff'],
+            iz_rate_cancel=0,
+            iz_rise_drop=0,
+            echo=True
+        )
+
+        result = sizzel_xy.analyze_results_with_errs()
+        iz_rate = result['iz_rate']
+        zz_rate = result['zz_rate']
+
+        new_params = self.current_params.copy()
+        new_params['width'] = np.abs(0.125 / zz_rate.nominal_value) / 2
+
+        print(f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]} us')
+
+        self.params_list.append(new_params)
+        self.current_params = new_params
+
+        self.result_target = sizzel_xy.result  # Store the result of the current iteration
+        self.result_control = sizzel_xy.result_control  # Assuming result_control is accessible from sizzel_xy
+
+        return iz_rate, zz_rate, result, self.result_target, self.result_control
+
+    @register_browser_function(available_after=(run,))
+    def plot_results(self, plot_size_3d=(800, 2000), fig_size=(600, 2000)):
+        # Colors for the plot
+        dark_navy = '#000080'
+        dark_purple = '#800080'
+        light_black = '#D3D3D3'
+
+        # Prepare data for 3D plots
+        rises = [res['rise'] for res in self.results]
+        times = [np.linspace(res['t_start'], res['t_stop'], res['sweep_points']) for res in self.results]
+
+        # Extract the necessary data for plotting
+        results_ground_x = [np.array(res['result_target'])[:, 0, 0] for res in self.results]
+        results_excited_x = [np.array(res['result_target'])[:, 1, 0] for res in self.results]
+
+        results_ground_y = [np.array(res['result_target'])[:, 0, 1] for res in self.results]
+        results_excited_y = [np.array(res['result_target'])[:, 1, 1] for res in self.results]
+
+        results_control_ground_x = [np.array(res['result_control'])[:, 0, 0] for res in self.results]
+        results_control_excited_x = [np.array(res['result_control'])[:, 1, 0] for res in self.results]
+
+        results_control_ground_y = [np.array(res['result_control'])[:, 0, 1] for res in self.results]
+        results_control_excited_y = [np.array(res['result_control'])[:, 1, 1] for res in self.results]
+
+        iz_rates = [res['iz_rate'].nominal_value for res in self.results]
+        zz_rates = [res['zz_rate'].nominal_value for res in self.results]
+
+        # Create the figure with 3D plots for x data
+        fig_3d_x = make_subplots(rows=1, cols=2,
+                                 subplot_titles=("Target Qubit - X axis", "Control Qubits - X axis"),
+                                 specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]])
+
+        # Plot 3D rise vs time vs result X for ground and excited states
+        for i, rise in enumerate(rises):
+            fig_3d_x.add_trace(
+                go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_ground_x[i], mode='lines',
+                             name='Ground X', showlegend=(i == 0), line=dict(color=dark_navy)),
+                row=1, col=1)
+            fig_3d_x.add_trace(
+                go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_excited_x[i], mode='lines',
+                             name='Excited X', showlegend=(i == 0), line=dict(color=dark_purple)),
+                row=1, col=1)
+
+        # Plot 3D rise vs time vs result control X for ground and excited states
+        for i, rise in enumerate(rises):
+            fig_3d_x.add_trace(
+                go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_control_ground_x[i], mode='lines',
+                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                row=1, col=2)
+            fig_3d_x.add_trace(
+                go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_control_excited_x[i], mode='lines',
+                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                row=1, col=2)
+
+        # Update layout for 3D X figure
+        fig_3d_x.update_layout(
+            height=plot_size_3d[0], width=plot_size_3d[1],
+            scene=dict(
+                xaxis=dict(title='Rise', backgroundcolor='white', gridcolor=light_black),
+                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
+                zaxis=dict(title='Result Target X', backgroundcolor='white', gridcolor=light_black)
+            ),
+            scene2=dict(
+                xaxis=dict(title='Rise', backgroundcolor='white', gridcolor=light_black),
+                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
+                zaxis=dict(title='Result Control X', backgroundcolor='white', gridcolor=light_black)
+            )
+        )
+
+        # Create the figure with 3D plots for y data
+        fig_3d_y = make_subplots(rows=1, cols=2,
+                                 subplot_titles=("Target Qubit - Y axis", "Control Qubits - Y axis"),
+                                 specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]])
+
+        # Plot 3D rise vs time vs result Y for ground and excited states
+        for i, rise in enumerate(rises):
+            fig_3d_y.add_trace(
+                go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_ground_y[i], mode='lines',
+                             name='Ground Y', showlegend=(i == 0), line=dict(color=dark_navy)),
+                row=1, col=1)
+            fig_3d_y.add_trace(
+                go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_excited_y[i], mode='lines',
+                             name='Excited Y', showlegend=(i == 0), line=dict(color=dark_purple)),
+                row=1, col=1)
+
+        # Plot 3D rise vs time vs result control Y for ground and excited states
+        for i, rise in enumerate(rises):
+            fig_3d_y.add_trace(
+                go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_control_ground_y[i], mode='lines',
+                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                row=1, col=2)
+            fig_3d_y.add_trace(
+                go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_control_excited_y[i], mode='lines',
+                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                row=1, col=2)
+
+        # Update layout for 3D Y figure
+        fig_3d_y.update_layout(
+            height=plot_size_3d[0], width=plot_size_3d[1],
+            scene=dict(
+                xaxis=dict(title='Rise', backgroundcolor='white', gridcolor=light_black),
+                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
+                zaxis=dict(title='Result Target Y', backgroundcolor='white', gridcolor=light_black)
+            ),
+            scene2=dict(
+                xaxis=dict(title='Rise', backgroundcolor='white', gridcolor=light_black),
+                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
+                zaxis=dict(title='Result Control Y', backgroundcolor='white', gridcolor=light_black)
+            )
+        )
+
+        # Create the third figure with 2D plots
+        fig_2d = make_subplots(rows=1, cols=2,
+                               subplot_titles=("ZZ vs Rise", "IZ vs Rise"),
+                               specs=[[{'type': 'scatter'}, {'type': 'scatter'}]])
+
+        # Plot 2D zz vs rise
+        fig_2d.add_trace(
+            go.Scatter(x=rises, y=zz_rates, mode='lines+markers', name='ZZ vs Rise', line=dict(color=dark_navy)),
+            row=1, col=1)
+
+        # Plot 2D iz vs rise
+        fig_2d.add_trace(
+            go.Scatter(x=rises, y=iz_rates, mode='lines+markers', name='IZ vs Rise', line=dict(color=dark_purple)),
+            row=1, col=2)
+
+        # Update layout for 2D figure
+        fig_2d.update_layout(
+            height=fig_size[0], width=fig_size[1],
+            plot_bgcolor='white',
+            xaxis=dict(gridcolor=light_black),
+            yaxis=dict(gridcolor=light_black)
+        )
+
+        # Customize 2D plots
+        fig_2d.update_xaxes(title_text="Rise", row=1, col=1)
+        fig_2d.update_yaxes(title_text="ZZ Rate (MHz)", row=1, col=1)
+
+        fig_2d.update_xaxes(title_text="Rise", row=1, col=2)
+        fig_2d.update_yaxes(title_text="IZ Rate (MHz)", row=1, col=2)
+
+        return fig_3d_x.show(), fig_3d_y.show(), fig_2d.show()
+
+class ConditionalStarkFineTruncTuneUp(Experiment):
+    @log_and_record
+    def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0,
+            trunc_start=0.5, trunc_stop=2.0, trunc_step=0.1,
+            rise=0.01, t_start=0, t_stop=20, sweep_points=30,
+            n_start=0, n_stop=32, update_iz=False, update_zz=True):
+        self.duts = duts
+
+        assert update_iz == False
+
+        if params is None:
+            amp_rabi_control = duts[0].get_c1('f01')['X'].amp
+            amp_rabi_target = duts[1].get_c1('f01')['X'].amp
+
+            area_control = amp_rabi_control * duts[0].get_c1('f01')['X'].width
+            area_target = amp_rabi_target * duts[1].get_c1('f01')['X'].width
+
+            params = {
+                'iz_control': 0,
+                'iz_target': 0,
+                'frequency': frequency,
+                'amp_control': amp_control,
+                'amp_target': amp_control * area_target / area_control,
+                'rise': rise,
+                'trunc': trunc_start,
+                'width': 0,
+                'phase_diff': phase_diff,
+                'zz_interaction_positive': True,
+                'echo': True
+            }
+
+        self.current_params = params
+        self.params_list = [params]
+        self.results = []
+
+        for trunc in np.arange(trunc_start, trunc_stop, trunc_step):
+            print(f"trunc: {trunc}")
+            self.current_params['trunc'] = trunc
+            iz_rate, zz_rate, result, result_target, result_control = self.run_sizzel_xy_hamiltonian_tomography(
+                t_start=t_start, t_stop=t_stop, sweep_points=sweep_points
+            )
+
+            self.results.append({
+                'trunc': trunc,
+                'iz_rate': iz_rate,
+                'zz_rate': zz_rate,
+                'result': result,
+                'result_target': result_target,
+                'result_control': result_control,
+                't_start': t_start,
+                't_stop': t_stop,
+                'sweep_points': sweep_points
+            })
+
+            self.current_params['zz_interaction_positive'] = zz_rate.nominal_value > 0
+
+    def run_sizzel_xy_hamiltonian_tomography(self, t_start, t_stop, sweep_points=60):
+        t_step = (t_stop - t_start) / sweep_points
+
+        sizzel_xy = ConditionalStarkTuneUpRabiXY(
+            qubits=self.duts,
+            frequency=self.current_params['frequency'],
+            amp_control=self.current_params['amp_control'],
+            amp_target=self.current_params['amp_target'],
+            rise=self.current_params['rise'],
+            start=t_start,
+            stop=t_stop,
+            step=t_step,
+            phase_diff=self.current_params['phase_diff'],
+            iz_rate_cancel=0,
+            iz_rise_drop=0,
+            echo=True
+        )
+
+        result = sizzel_xy.analyze_results_with_errs()
+        iz_rate = result['iz_rate']
+        zz_rate = result['zz_rate']
+
+        new_params = self.current_params.copy()
+        new_params['width'] = np.abs(0.125 / zz_rate.nominal_value) / 2
+
+        print(f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]} us')
+
+        self.params_list.append(new_params)
+        self.current_params = new_params
+
+        self.result_target = sizzel_xy.result  # Store the result of the current iteration
+        self.result_control = sizzel_xy.result_control  # Assuming result_control is accessible from sizzel_xy
+
+        return iz_rate, zz_rate, result, self.result_target, self.result_control
+
+    @register_browser_function(available_after=(run,))
+    def plot_results(self, plot_size_3d=(800, 2000), fig_size=(600, 2000)):
+        # Colors for the plot
+        dark_navy = '#000080'
+        dark_purple = '#800080'
+        light_black = '#D3D3D3'
+
+        # Prepare data for 3D plots
+        truncs = [res['trunc'] for res in self.results]
+        times = [np.linspace(res['t_start'], res['t_stop'], res['sweep_points']) for res in self.results]
+
+        # Extract the necessary data for plotting
+        results_ground_x = [np.array(res['result_target'])[:, 0, 0] for res in self.results]
+        results_excited_x = [np.array(res['result_target'])[:, 1, 0] for res in self.results]
+
+        results_ground_y = [np.array(res['result_target'])[:, 0, 1] for res in self.results]
+        results_excited_y = [np.array(res['result_target'])[:, 1, 1] for res in self.results]
+
+        results_control_ground_x = [np.array(res['result_control'])[:, 0, 0] for res in self.results]
+        results_control_excited_x = [np.array(res['result_control'])[:, 1, 0] for res in self.results]
+
+        results_control_ground_y = [np.array(res['result_control'])[:, 0, 1] for res in self.results]
+        results_control_excited_y = [np.array(res['result_control'])[:, 1, 1] for res in self.results]
+
+        iz_rates = [res['iz_rate'].nominal_value for res in self.results]
+        zz_rates = [res['zz_rate'].nominal_value for res in self.results]
+
+        # Create the figure with 3D plots for x data
+        fig_3d_x = make_subplots(rows=1, cols=2,
+                                 subplot_titles=("Target Qubit - X axis", "Control Qubits - X axis"),
+                                 specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]])
+
+        # Plot 3D trunc vs time vs result X for ground and excited states
+        for i, trunc in enumerate(truncs):
+            fig_3d_x.add_trace(
+                go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_ground_x[i], mode='lines',
+                             name='Ground X', showlegend=(i == 0), line=dict(color=dark_navy)),
+                row=1, col=1)
+            fig_3d_x.add_trace(
+                go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_excited_x[i], mode='lines',
+                             name='Excited X', showlegend=(i == 0), line=dict(color=dark_purple)),
+                row=1, col=1)
+
+        # Plot 3D trunc vs time vs result control X for ground and excited states
+        for i, trunc in enumerate(truncs):
+            fig_3d_x.add_trace(
+                go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_control_ground_x[i], mode='lines',
+                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                row=1, col=2)
+            fig_3d_x.add_trace(
+                go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_control_excited_x[i], mode='lines',
+                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                row=1, col=2)
+
+        # Update layout for 3D X figure
+        fig_3d_x.update_layout(
+            height=plot_size_3d[0], width=plot_size_3d[1],
+            scene=dict(
+                xaxis=dict(title='Trunc', backgroundcolor='white', gridcolor=light_black),
+                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
+                zaxis=dict(title='Result Target X', backgroundcolor='white', gridcolor=light_black)
+            ),
+            scene2=dict(
+                xaxis=dict(title='Trunc', backgroundcolor='white', gridcolor=light_black),
+                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
+                zaxis=dict(title='Result Control X', backgroundcolor='white', gridcolor=light_black)
+            )
+        )
+
+        # Create the figure with 3D plots for y data
+        fig_3d_y = make_subplots(rows=1, cols=2,
+                                 subplot_titles=("Target Qubit - Y axis", "Control Qubits - Y axis"),
+                                 specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]])
+
+        # Plot 3D trunc vs time vs result Y for ground and excited states
+        for i, trunc in enumerate(truncs):
+            fig_3d_y.add_trace(
+                go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_ground_y[i], mode='lines',
+                             name='Ground Y', showlegend=(i == 0), line=dict(color=dark_navy)),
+                row=1, col=1)
+            fig_3d_y.add_trace(
+                go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_excited_y[i], mode='lines',
+                             name='Excited Y', showlegend=(i == 0), line=dict(color=dark_purple)),
+                row=1, col=1)
+
+        # Plot 3D trunc vs time vs result control Y for ground and excited states
+        for i, trunc in enumerate(truncs):
+            fig_3d_y.add_trace(
+                go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_control_ground_y[i], mode='lines',
+                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                row=1, col=2)
+            fig_3d_y.add_trace(
+                go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_control_excited_y[i], mode='lines',
+                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                row=1, col=2)
+
+        # Update layout for 3D Y figure
+        fig_3d_y.update_layout(
+            height=plot_size_3d[0], width=plot_size_3d[1],
+            scene=dict(
+                xaxis=dict(title='Trunc', backgroundcolor='white', gridcolor=light_black),
+                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
+                zaxis=dict(title='Result Target Y', backgroundcolor='white', gridcolor=light_black)
+            ),
+            scene2=dict(
+                xaxis=dict(title='Trunc', backgroundcolor='white', gridcolor=light_black),
+                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
+                zaxis=dict(title='Result Control Y', backgroundcolor='white', gridcolor=light_black)
+            )
+        )
+
+        # Create the third figure with 2D plots
+        fig_2d = make_subplots(rows=1, cols=2,
+                               subplot_titles=("ZZ vs Trunc", "IZ vs Trunc"),
+                               specs=[[{'type': 'scatter'}, {'type': 'scatter'}]])
+
+        # Plot 2D zz vs trunc
+        fig_2d.add_trace(
+            go.Scatter(x=truncs, y=zz_rates, mode='lines+markers', name='ZZ vs Trunc', line=dict(color=dark_navy)),
+            row=1, col=1)
+
+        # Plot 2D iz vs trunc
+        fig_2d.add_trace(
+            go.Scatter(x=truncs, y=iz_rates, mode='lines+markers', name='IZ vs Trunc', line=dict(color=dark_purple)),
+            row=1, col=2)
+
+        # Update layout for 2D figure
+        fig_2d.update_layout(
+            height=fig_size[0], width=fig_size[1],
+            plot_bgcolor='white',
+            xaxis=dict(gridcolor=light_black),
+            yaxis=dict(gridcolor=light_black)
+        )
+
+        # Customize 2D plots
+        fig_2d.update_xaxes(title_text="Trunc", row=1, col=1)
+        fig_2d.update_yaxes(title_text="ZZ Rate (MHz)", row=1, col=1)
+
+        fig_2d.update_xaxes(title_text="Trunc", row=1, col=2)
+        fig_2d.update_yaxes(title_text="IZ Rate (MHz)", row=1, col=2)
+
+        return fig_3d_x.show(), fig_3d_y.show(), fig_2d.show()
+
 class Arrow3D(FancyArrowPatch):
     def __init__(self, xs, ys, zs, *args, **kwargs):
         """Class for drawing a 3D arrow.
@@ -1488,7 +4255,6 @@ class Arrow3D(FancyArrowPatch):
         xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
         self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
         FancyArrowPatch.draw(self, renderer)
-
 
 class BlochSphere:
     def __init__(self,
@@ -1932,8 +4698,8 @@ class BlochSphere:
                 plt.savefig(f'{directory}{filename}Bloch_sphere.svg', dpi=300)
         plt.show()
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 class ConditionalStarkSpectroscopyEchoNoFitting(experiment):
     @log_and_record

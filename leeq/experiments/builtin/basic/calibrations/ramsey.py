@@ -413,265 +413,264 @@ class SimpleRamseyMultilevel(Experiment):
                f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured offset is "
                f"{self.fitted_freq_offset:.3f}+- {self.error_bar:.3f} MHz.")
 
-#class MultiQubitRamseyMultilevel(Experiment):
-#    """
-#    Implement a multi-qubit Ramsey experiment with multilevel frequency sweeps.
-#    This version has changed the step size from 0.001 to 0.005.
-#    """
-#
-#    @log_and_record
-#    def run(self,
-#            duts: list[Any],
-#            collection_names: Union[list[str], str] = 'f01',
-#            mprim_indexes: Union[int, list[int]] = 0,
-#            initial_lpb: Optional[Any] = None,
-#            start: float = 0.0,
-#            stop: float = 1.0,
-#            step: float = 0.005,
-#            set_offset: float = 10.0,
-#            update: bool = True) -> None:
-#        """
-#        Run the Ramsey experiment.
-#
-#        Parameters:
-#            duts: The DUTs on which the experiment is performed.
-#            collection_names: The name of the frequency collection (e.g., 'f01'). If a single string is provided,
-#                it is used for all DUTs. If a list of strings is provided, it should have the same length as the DUTs.
-#            mprim_indexes: The index of the measurement primitive.
-#                If a single integer is provided, it is used for all DUTs. If a list of integers is provided,
-#                it should have the same length as the DUTs.
-#            initial_lpb: Initial set of commands, if any.
-#            start: The start frequency for the sweep.
-#            stop: The stop frequency for the sweep.
-#            step: The step size for the frequency sweep.
-#            set_offset: The frequency offset.
-#            update: Whether to update parameters after the experiment.
-#
-#        Returns:
-#            None
-#        """
-#
-#        if isinstance(collection_names, str):
-#            collection_names = [collection_names] * len(duts)
-#        if isinstance(mprim_indexes, int):
-#            mprim_indexes = [mprim_indexes] * len(duts)
-#
-#        self.collection_names = collection_names
-#        # Make sure the collection names and mprim indexes have the same length
-#        # as the DUTs
-#        assert len(duts) == len(collection_names) == len(mprim_indexes), \
-#            "The number of DUTs, collection names, and mprim indexes must be the same."
-#
-#        c1s = [qubit.get_c1(collection_name) for qubit, collection_name in
-#               zip(duts, collection_names)]  # Retrieve the control object
-#        self.set_offset = set_offset
-#        self.step = step
-#
-#        # Define the levels for the sweep based on the collection name
-#
-#        self.level_diffs = []
-#        for collection_name in collection_names:
-#            start_level = int(collection_name[1])
-#            end_level = int(collection_name[2])
-#            self.level_diffs.append(end_level - start_level)
-#
-#        # Save original frequency
-#        original_freqs = [c1['Xp'].freq for c1 in c1s]
-#        self.original_freqs = original_freqs
-#
-#        # Create a delay primitive
-#        delay = prims.Delay(0)
-#
-#        # Update the frequency with the calculated offset
-#        for i, c1 in enumerate(c1s):
-#            c1.update_parameters(
-#                freq=original_freqs[i] +
-#                     set_offset /
-#                     self.level_diffs[i])
-#
-#        # Setup the sweeper for the Ramsey experiment
-#        swp = sweeper(
-#            np.arange,
-#            n_kwargs={
-#                'start': start,
-#                'stop': stop,
-#                'step': step},
-#            params=[
-#                sparam.func(
-#                    delay.update_parameters,
-#                    {},
-#                    'delay_time')])
-#
-#        # Get the measurement primitive
-#        mprims = [
-#            qubit.get_measurement_prim_intlist(mprim_index) for qubit,
-#            mprim_index in zip(
-#                duts,
-#                mprim_indexes)]
-#        self.mp = mprims
-#
-#        # Construct the logic primitive block
-#        lpb = prims.ParallelLPB([c1['Xp'] for c1 in c1s]) + delay + \
-#              prims.ParallelLPB([c1['Xm'] for c1 in c1s]) + prims.ParallelLPB(mprims)
-#
-#        if initial_lpb is not None:
-#            lpb = initial_lpb + lpb
-#
-#        # Execute the basic experiment routine
-#        basic(lpb, swp, '<z>')
-#        self.data = [np.squeeze(mprim.result()) for mprim in mprims]
-#        self.update = update
-#
-#        # Analyze data if update is true
-#        if update:
-#            self.analyze_data()
-#            for i, c1 in enumerate(c1s):
-#                c1.update_parameters(freq=self.frequency_guess[i])
-#                print(
-#                    f"Frequency updated: {duts[i].hrid} {self.frequency_guess[i]} MHz")
-#        else:
-#            for i, c1 in enumerate(c1s):
-#                c1.update_parameters(freq=original_freqs[i])
-#
-#    def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
-#        """
-#        Generate live plots for the experiment.
-#
-#        Parameters:
-#            step_no: The current step number, if applicable.
-#
-#        Returns:
-#            A plotly graph object containing the live data.
-#        """
-#        args = self.retrieve_args(self.run)
-#        data = np.squeeze(self.mp.result())
-#        t = np.arange(args['start'], args['stop'], args['step'])
-#
-#        # If a specific step number is provided, slice the data
-#        if step_no is not None:
-#            t = t[:step_no[0]]
-#            data = data[:step_no[0]]
-#
-#        # Create and return the figure
-#        fig = go.Figure()
-#        fig.add_trace(
-#            go.Scatter(
-#                x=t,
-#                y=data,
-#                mode='lines+markers',
-#                name='data'))
-#        fig.update_layout(
-#            title=f"Ramsey {args['qubit'].hrid} transition {args['collection_name']}",
-#            xaxis_title="Time (us)",
-#            yaxis_title="<z>",
-#            legend_title="Legend",
-#            font=dict(
-#                family="Courier New, monospace",
-#                size=12,
-#                color="Black"),
-#            plot_bgcolor="white")
-#        return fig
-#
-#    def analyze_data(self) -> None:
-#        """
-#        Analyze the experiment data to extract frequency and error information.
-#
-#        Returns:
-#            None
-#        """
-#        args = self.retrieve_args(self.run)
-#        try:
-#            # Fit the data to an exponential decay model to extract frequency
-#            # Fit the data using a predefined fitting function
-#            from leeq.theory.fits import fit_1d_freq_exp_with_cov
-#            self.fit_params = [
-#                fit_1d_freq_exp_with_cov(
-#                    data, dt=args['step']) for data in self.data]
-#            fitted_freq_offsets = [
-#                (self.fit_params[i]['Frequency'][0] -
-#                 self.set_offset) /
-#                self.level_diffs[i] for i in range(
-#                    len(
-#                        self.data))]
-#            self.fitted_freq_offsets = fitted_freq_offsets
-#            self.frequency_guess = [
-#                self.original_freqs[i] - fitted_freq_offset for i,
-#                fitted_freq_offset in enumerate(fitted_freq_offsets)]
-#            self.error_bar = [x['Frequency'][1] for x in self.fit_params]
-#
-#        except Exception as e:
-#            # In case of fit failure, default the frequency guess and error
-#            logger.warning(f"Fit failed: {e}")
-#            self.frequency_guess = []
-#            self.error_bar = [np.inf]
-#
-#    @register_browser_function(available_after=('run',))
-#    def plot_all(self):
-#        """
-#        Plots the Ramsey decay with fitted curve using data from the experiment.
-#        """
-#        self.analyze_data()
-#        for i in range(len(self.fit_params)):
-#            fig = self.plot(i)
-#            fig.show()
-#
-#    def plot(self, i) -> go.Figure:
-#        """
-#        Plots the Ramsey decay with fitted curve using data from the experiment.
-#
-#        This method uses Plotly for generating the plot. It analyzes the data, performs
-#        curve fitting, and then plots the actual data along with the fitted curve.
-#
-#        Parameters:
-#            i: The index of the qubit for which to plot the data.
-#        """
-#        args = self.retrieve_args(self.run)
-#        fit_params = self.fit_params[i]
-#
-#        # Generate time points based on the experiment arguments
-#        time_points = np.arange(args['start'], args['stop'], args['step'])
-#        time_points_interpolate = np.arange(
-#            args['start'], args['stop'], args['step'] / 10)
-#
-#        # Extract fitting parameters
-#        frequency = fit_params['Frequency'][0]
-#        amplitude = fit_params['Amplitude'][0]
-#        phase = fit_params['Phase'][0] - 2.0 * \
-#                np.pi * frequency * args['start']
-#        offset = fit_params['Offset'][0]
-#        decay = fit_params['Decay'][0]
-#
-#        # Generate the fitted curve
-#        fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * np.sin(
-#            2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
-#
-#        # Create a plot using Plotly
-#        fig = make_subplots(rows=1, cols=1)
-#        fig.add_trace(
-#            go.Scatter(
-#                x=time_points,
-#                y=self.data[i],
-#                mode='markers',
-#                name='Data'),
-#            row=1,
-#            col=1)
-#        fig.add_trace(
-#            go.Scatter(
-#                x=time_points_interpolate,
-#                y=fitted_curve,
-#                mode='lines',
-#                name='Fit'),
-#            row=1,
-#            col=1)
-#
-#        # Set plot layout details
-#        title_text = f"Ramsey decay {args['duts'][i].hrid} transition {self.collection_names[i]}: <br>" \
-#                     f"{decay} ± {fit_params['Decay'][1]} us"
-#        fig.update_layout(
-#            title_text=title_text,
-#            xaxis_title=f"Time (us) <br> Frequency: {frequency} ± {fit_params['Frequency'][1]}",
-#            yaxis_title="<z>",
-#            plot_bgcolor="white")
-#        return fig
-#
-#
+class MultiQubitRamseyMultilevel(Experiment):
+   """
+   Implement a multi-qubit Ramsey experiment with multilevel frequency sweeps.
+   This version has changed the step size from 0.001 to 0.005.
+   """
+
+   @log_and_record
+   def run(self,
+           duts: list[Any],
+           collection_names: Union[list[str], str] = 'f01',
+           mprim_indexes: Union[int, list[int]] = 0,
+           initial_lpb: Optional[Any] = None,
+           start: float = 0.0,
+           stop: float = 1.0,
+           step: float = 0.005,
+           set_offset: float = 10.0,
+           update: bool = True) -> None:
+       """
+       Run the Ramsey experiment.
+
+       Parameters:
+           duts: The DUTs on which the experiment is performed.
+           collection_names: The name of the frequency collection (e.g., 'f01'). If a single string is provided,
+               it is used for all DUTs. If a list of strings is provided, it should have the same length as the DUTs.
+           mprim_indexes: The index of the measurement primitive.
+               If a single integer is provided, it is used for all DUTs. If a list of integers is provided,
+               it should have the same length as the DUTs.
+           initial_lpb: Initial set of commands, if any.
+           start: The start frequency for the sweep.
+           stop: The stop frequency for the sweep.
+           step: The step size for the frequency sweep.
+           set_offset: The frequency offset.
+           update: Whether to update parameters after the experiment.
+
+       Returns:
+           None
+       """
+
+       if isinstance(collection_names, str):
+           collection_names = [collection_names] * len(duts)
+       if isinstance(mprim_indexes, int):
+           mprim_indexes = [mprim_indexes] * len(duts)
+
+       self.collection_names = collection_names
+       # Make sure the collection names and mprim indexes have the same length
+       # as the DUTs
+       assert len(duts) == len(collection_names) == len(mprim_indexes), \
+           "The number of DUTs, collection names, and mprim indexes must be the same."
+
+       c1s = [qubit.get_c1(collection_name) for qubit, collection_name in
+              zip(duts, collection_names)]  # Retrieve the control object
+       self.set_offset = set_offset
+       self.step = step
+
+       # Define the levels for the sweep based on the collection name
+
+       self.level_diffs = []
+       for collection_name in collection_names:
+           start_level = int(collection_name[1])
+           end_level = int(collection_name[2])
+           self.level_diffs.append(end_level - start_level)
+
+       # Save original frequency
+       original_freqs = [c1['Xp'].freq for c1 in c1s]
+       self.original_freqs = original_freqs
+
+       # Create a delay primitive
+       delay = prims.Delay(0)
+
+       # Update the frequency with the calculated offset
+       for i, c1 in enumerate(c1s):
+           c1.update_parameters(
+               freq=original_freqs[i] +
+                    set_offset /
+                    self.level_diffs[i])
+
+       # Setup the sweeper for the Ramsey experiment
+       swp = sweeper(
+           np.arange,
+           n_kwargs={
+               'start': start,
+               'stop': stop,
+               'step': step},
+           params=[
+               sparam.func(
+                   delay.update_parameters,
+                   {},
+                   'delay_time')])
+
+       # Get the measurement primitive
+       mprims = [
+           qubit.get_measurement_prim_intlist(mprim_index) for qubit,
+           mprim_index in zip(
+               duts,
+               mprim_indexes)]
+       self.mp = mprims
+
+       # Construct the logic primitive block
+       lpb = prims.ParallelLPB([c1['Xp'] for c1 in c1s]) + delay + \
+             prims.ParallelLPB([c1['Xm'] for c1 in c1s]) + prims.ParallelLPB(mprims)
+
+       if initial_lpb is not None:
+           lpb = initial_lpb + lpb
+
+       # Execute the basic experiment routine
+       basic(lpb, swp, '<z>')
+       self.data = [np.squeeze(mprim.result()) for mprim in mprims]
+       self.update = update
+
+       # Analyze data if update is true
+       if update:
+           self.analyze_data()
+           for i, c1 in enumerate(c1s):
+               c1.update_parameters(freq=self.frequency_guess[i])
+               print(
+                   f"Frequency updated: {duts[i].hrid} {self.frequency_guess[i]} MHz")
+       else:
+           for i, c1 in enumerate(c1s):
+               c1.update_parameters(freq=original_freqs[i])
+
+   def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
+       """
+       Generate live plots for the experiment.
+
+       Parameters:
+           step_no: The current step number, if applicable.
+
+       Returns:
+           A plotly graph object containing the live data.
+       """
+       args = self.retrieve_args(self.run)
+       data = np.squeeze(self.mp.result())
+       t = np.arange(args['start'], args['stop'], args['step'])
+
+       # If a specific step number is provided, slice the data
+       if step_no is not None:
+           t = t[:step_no[0]]
+           data = data[:step_no[0]]
+
+       # Create and return the figure
+       fig = go.Figure()
+       fig.add_trace(
+           go.Scatter(
+               x=t,
+               y=data,
+               mode='lines+markers',
+               name='data'))
+       fig.update_layout(
+           title=f"Ramsey {args['qubit'].hrid} transition {args['collection_name']}",
+           xaxis_title="Time (us)",
+           yaxis_title="<z>",
+           legend_title="Legend",
+           font=dict(
+               family="Courier New, monospace",
+               size=12,
+               color="Black"),
+           plot_bgcolor="white")
+       return fig
+
+   def analyze_data(self) -> None:
+       """
+       Analyze the experiment data to extract frequency and error information.
+
+       Returns:
+           None
+       """
+       args = self.retrieve_args(self.run)
+       try:
+           # Fit the data to an exponential decay model to extract frequency
+           # Fit the data using a predefined fitting function
+           from leeq.theory.fits import fit_1d_freq_exp_with_cov
+           self.fit_params = [
+               fit_1d_freq_exp_with_cov(
+                   data, dt=args['step']) for data in self.data]
+           fitted_freq_offsets = [
+               (self.fit_params[i]['Frequency'][0] -
+                self.set_offset) /
+               self.level_diffs[i] for i in range(
+                   len(
+                       self.data))]
+           self.fitted_freq_offsets = fitted_freq_offsets
+           self.frequency_guess = [
+               self.original_freqs[i] - fitted_freq_offset for i,
+               fitted_freq_offset in enumerate(fitted_freq_offsets)]
+           self.error_bar = [x['Frequency'][1] for x in self.fit_params]
+
+       except Exception as e:
+           # In case of fit failure, default the frequency guess and error
+           logger.warning(f"Fit failed: {e}")
+           self.frequency_guess = []
+           self.error_bar = [np.inf]
+
+   @register_browser_function(available_after=('run',))
+   def plot_all(self):
+       """
+       Plots the Ramsey decay with fitted curve using data from the experiment.
+       """
+       self.analyze_data()
+       for i in range(len(self.fit_params)):
+           fig = self.plot(i)
+           fig.show()
+
+   def plot(self, i) -> go.Figure:
+       """
+       Plots the Ramsey decay with fitted curve using data from the experiment.
+
+       This method uses Plotly for generating the plot. It analyzes the data, performs
+       curve fitting, and then plots the actual data along with the fitted curve.
+
+       Parameters:
+           i: The index of the qubit for which to plot the data.
+       """
+       args = self.retrieve_args(self.run)
+       fit_params = self.fit_params[i]
+
+       # Generate time points based on the experiment arguments
+       time_points = np.arange(args['start'], args['stop'], args['step'])
+       time_points_interpolate = np.arange(
+           args['start'], args['stop'], args['step'] / 10)
+
+       # Extract fitting parameters
+       frequency = fit_params['Frequency'][0]
+       amplitude = fit_params['Amplitude'][0]
+       phase = fit_params['Phase'][0] - 2.0 * \
+               np.pi * frequency * args['start']
+       offset = fit_params['Offset'][0]
+       decay = fit_params['Decay'][0]
+
+       # Generate the fitted curve
+       fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * np.sin(
+           2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
+
+       # Create a plot using Plotly
+       fig = make_subplots(rows=1, cols=1)
+       fig.add_trace(
+           go.Scatter(
+               x=time_points,
+               y=self.data[i],
+               mode='markers',
+               name='Data'),
+           row=1,
+           col=1)
+       fig.add_trace(
+           go.Scatter(
+               x=time_points_interpolate,
+               y=fitted_curve,
+               mode='lines',
+               name='Fit'),
+           row=1,
+           col=1)
+
+       # Set plot layout details
+       title_text = f"Ramsey decay {args['duts'][i].hrid} transition {self.collection_names[i]}: <br>" \
+                    f"{decay} ± {fit_params['Decay'][1]} us"
+       fig.update_layout(
+           title_text=title_text,
+           xaxis_title=f"Time (us) <br> Frequency: {frequency} ± {fit_params['Frequency'][1]}",
+           yaxis_title="<z>",
+           plot_bgcolor="white")
+       return fig
+

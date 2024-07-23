@@ -26,7 +26,7 @@ from leeq.utils import setup_logging
 logger = setup_logging(__name__)
 
 _sampling_rate = 8e9
-
+_single_segment_width = 128e-9
 
 def compare_dicts(dict1, dict2, rtol=1e-05, atol=1e-08):
     """
@@ -562,7 +562,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
                 new_sequence = []
                 if segment_type == 'flat':
-                    single_pulse_width = 64e-9  # In seconds, 64 ns
+                    single_pulse_width = _single_segment_width  # In seconds, 64 ns
 
                     # The flat region is too long, we need to split it into multiple pulses
                     num_pulses = int(np.ceil(pulse_width / single_pulse_width))

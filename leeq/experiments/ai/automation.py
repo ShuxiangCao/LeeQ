@@ -9,7 +9,7 @@ from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
 from leeq.utils import setup_logging
 from leeq.utils.notebook import show_spinner, hide_spinner
 
-from ideanet.core.logger import IdeaBaseLogger
+# from ideanet.core.logger import IdeaBaseLogger
 
 logger = setup_logging(__name__)
 
