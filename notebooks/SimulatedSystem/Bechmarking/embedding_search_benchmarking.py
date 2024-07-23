@@ -122,14 +122,14 @@ def benchmark_single(key,exp_class,description,code_cog_model, codegen = False):
     input_var_table = VariableTable()
     codegen_wm = get_codegen_wm(description, input_var_table)
     recall_res = code_cog_model.recall(codegen_wm)
-    obtained_exp_cls = [x.idea.exp_cls for x in recall_res.idea_results]
-    additional_info = obtained_exp_cls
+    obtained_exp_cls_names = [x.idea.exp_cls.__name__ for x in recall_res.idea_results]
+    additional_info = obtained_exp_cls_names
     if codegen:
         codes = code_cog_model.codegen(codegen_wm, recall_res)
         success = exp_class.__name__ in codes
         additional_info.append(codes)
     else:
-        success = exp_class in obtained_exp_cls
+        success = exp_class.__name__ in obtained_exp_cls_names
         
     return success,additional_info
 
@@ -177,11 +177,11 @@ def main():
     for i in range(args.shots):
         results[i] = benchmark_all()
 
-    file_path = f'./recall_benchmark_{args.model}.pkl'
+    file_path = f'./recall_benchmark_{args.model}.json'
     
-    import pickle
-    with open(file_path,'wb') as f:
-        pickle.dump(results,f)
+    import json
+    with open(file_path,'w') as f:
+        json.dump(results,f)
         
 if __name__ == '__main__':
     main()
