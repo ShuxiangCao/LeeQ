@@ -264,6 +264,7 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         lseq = np.linspace(0, np.amax(seq_length) + 1, 1001)
         colors = ['k', 'r', 'g', 'b', 'c', 'm', 'o', 'y']
 
+        fig = plt.figure()
         # Define the colors
         dark_navy = '#000080'
         dark_purple = '#800080'
@@ -288,4 +289,4 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         plt.xlabel(u"Number of of 2Q Cliffords")
         plt.ylabel(u"P(00)")
         plt.legend()
-        plt.show()
+        return fig
