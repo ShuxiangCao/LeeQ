@@ -528,16 +528,20 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                                                                            key in parameters) and key not in [
                                                                        'amp', 'freq', 'phase']}
 
-        if parameters['width'] <= 0.3:  # The pulse width is too long, we need to split it
+        if parameters['width'] <= 0.1:  # The pulse width is too long, we need to split it
             env = {"env_func": get_qubic_envelope_name_from_leeq_name(parameters['shape']),
                    "paradict": parameters_keeping}
+
+            twidth = parameters['width'] / 1e6
+            if 'trunc' in parameters:
+                twidth = twidth * parameters['trunc']
 
             qubic_pulse_dict = {
                 "name": "pulse",
                 "phase": phase_shift + parameters["phase"],
                 "freq": int(parameters['freq'] * 1e6),  # In Hz
                 "amp": parameters['amp'],
-                "twidth": parameters['width'] / 1e6,  # In seconds
+                "twidth": twidth,  # In seconds
                 "env": env,
                 "dest": qubic_dest,  # The channel name
             }

@@ -2,12 +2,6 @@ from typing import Optional, Dict, Any, Union, List
 import numpy as np
 
 from labchronicle import register_browser_function, log_and_record
-from mllm import Chat, display_chats
-
-from ideanet.codegen.code_wmemory import CodeWMemoryItem
-from ideanet.core.lt_memory import LongTermMemory, RecallResult, IdeaResult, Idea
-from ideanet.core.w_memory import WorkingMemory
-from ideanet.utils.logger import RecallLogger
 
 from leeq.utils import setup_logging
 from leeq.utils.notebook import show_spinner, hide_spinner
@@ -20,7 +14,6 @@ from leeq.experiments import Experiment
 logger = setup_logging(__name__)
 
 __all__ = ["AIInstructionExperiment", "FullyAutomatedExperiment", "AIRun", "AutoRun"]
-
 
 class AIStagedExperiment(Experiment):
     """
@@ -314,6 +307,7 @@ if __name__ == '__main__':
     from leeq.utils.ai.variable_table import VariableTable
     from leeq.utils.ai.staging.stage_execution import get_codegen_wm, CodegenModel
     from leeq.utils.ai.code_indexer import build_leeq_code_ltm
+    from ideanet.utils.logger import RecallLogger
 
     prompt = "Do qubit measurement calibration to update the GMM model."
     wm = get_codegen_wm(prompt, VariableTable())
@@ -322,5 +316,6 @@ if __name__ == '__main__':
     code_cog_model.n_recall_items = 5
     for idea in leeq_code_ltm.ideas:
         code_cog_model.lt_memory.add_idea(idea)
+
     with RecallLogger():
         code = code_cog_model.codegen(wm)

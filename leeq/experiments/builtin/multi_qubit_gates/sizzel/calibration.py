@@ -1,35 +1,12 @@
 # Conditional AC stark shift induced CZ gate
-
-from datetime import datetime
-from plotly.subplots import make_subplots
-from labchronicle import register_browser_function, log_and_record
-
-import leeq.theory.fits
-from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
-from leeq import Experiment, SweepParametersSideEffectFactory, Sweeper
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
-from leeq.utils.compatibility import *
 from leeq.theory import fits
-from plotly import graph_objects as go
-from leeq.core.primitives.built_in.sizzel_gate import *
-from leeq.theory.fits.fit_exp import *
-from matplotlib import pyplot as plt
-
-from leeq.theory.fits.fit_exp import fit_2d_freq, fit_2d_freq_with_cov
-import uncertainties as unc
 
 from leeq.theory.estimator.kalman import KalmanFilter1D
 
 logger = setup_logging(__name__)
 
-from typing import Any, Optional, Tuple, Dict, Union
-import numpy as np
-import datetime
-import copy
-
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from labchronicle import log_and_record, register_browser_function
 from leeq import Experiment, Sweeper, basic_run
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
@@ -43,8 +20,6 @@ from leeq.utils.compatibility import prims
 from leeq.theory.fits import *
 
 from qutip import Bloch
-
-from typing import List, Any
 
 import pandas as pd
 from IPython.display import display
@@ -663,7 +638,7 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
             iz_control=self.iz_control,
             iz_target=self.iz_target,
             echo=echo,
-            trunc=1.05,
+            trunc=1,
             zz_interaction_positive=True  # It doesn't matter what to use here, after one tomography we will find out.
         )
 
@@ -912,7 +887,7 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
 class ConditionalStarkEchoTuneUp(Experiment):
 
     @log_and_record
-    def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0, rise=0.01, trunc=2.0,
+    def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0, rise=0.01, trunc=1.0,
             t_start=0, t_stop=30, sweep_points=30,
             n_start=0, n_stop=32, update_iz=False, update_zz=True, n_max_iteration=20
             ):
