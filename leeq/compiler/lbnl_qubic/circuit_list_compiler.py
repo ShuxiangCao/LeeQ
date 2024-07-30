@@ -562,25 +562,17 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
                 new_sequence = []
                 if segment_type == 'flat':
-                    single_pulse_width = 64e-9  # In seconds, 64 ns
-
-                    # The flat region is too long, we need to split it into multiple pulses
-                    num_pulses = int(np.ceil(pulse_width / single_pulse_width))
-                    for i in range(num_pulses):
-                        small_pulse_width = min(single_pulse_width, pulse_width - i * single_pulse_width)
-
-                        qubic_pulse_dict = {
-                            "name": "pulse",
-                            "freq": int(parameters['freq'] * 1e6),  # In Hz
-                            "twidth": small_pulse_width,  # In seconds
-                            "env": {'env_func': 'square',
-                                    'paradict': {'phase': segmented_pulse['phase'],
-                                                 'amplitude': segmented_pulse['amp'],
-                                                 'twidth': small_pulse_width}},
-                            "dest": qubic_dest,  # The channel name
-                        }
-                        new_sequence.append(qubic_pulse_dict)
-
+                    # Use CW tone
+                    qubic_pulse_dict = {
+                        "name": "pulse",
+                        "freq": int(parameters['freq'] * 1e6),  # In Hz
+                        "twidth": pulse_width,  # In seconds
+                        "env": 'cw',
+                        "dest": qubic_dest,  # The channel name
+                        "amp": parameters['amp'],
+                        "phase": parameters['phase']
+                    }
+                    new_sequence.append(qubic_pulse_dict)
                 else:
                     parameters_segment = parameters_keeping.copy()
                     parameters_segment['width'] = parameters['width']
