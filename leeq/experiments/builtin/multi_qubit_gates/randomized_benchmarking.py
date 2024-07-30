@@ -1,6 +1,7 @@
 import multiprocessing
 
 import numpy as np
+import pandas as pd
 from scipy import optimize as so
 from labchronicle import register_browser_function, log_and_record
 from matplotlib import pyplot as plt
@@ -11,6 +12,8 @@ import multiprocessing
 import uncertainties as unc
 from uncertainties.umath import exp as uexp
 from leeq.utils.ai.vlms import visual_analyze_prompt
+
+import matplotlib.pyplot as plt
 
 from leeq import Sweeper, basic_run, Experiment
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel, \
@@ -113,6 +116,9 @@ class RandomizedBenchmarking2Qubits(Experiment):
 
     @register_browser_function()
     def plot(self):
+        dark_navy = '#000080'
+        dark_purple = '#800080'
+
         self.analyze_result()
 
         args = self.retrieve_args(self.run)
@@ -120,9 +126,10 @@ class RandomizedBenchmarking2Qubits(Experiment):
 
         lseq = np.linspace(0, np.amax(seq_length) + 1, 1001)
         colors = ['k', 'r', 'g', 'b', 'c', 'm', 'o', 'y']
-        plt.scatter(seq_length, self.success_probability, marker='o', label='Experiment')
-        fit_curve = self.popt[0] * np.exp(self.popt[1]) ** lseq + self.popt[2]
-        plt.plot(lseq, fit_curve, label='Fitting', color='k')
+        plt.scatter(seq_length, self.success_probability, marker='o', label='RB', color=dark_navy)
+
+        fit_curve = self.popt[0] * np.exp(self.popt[1] ** lseq) + self.popt[2]
+        plt.plot(lseq, fit_curve, label='', color='k')
 
         plt.title(f'Randomized benchmarking 2Q \n F={1 - self.infidelity}')
         plt.xlabel(u"Number of of 2Q Cliffords")
@@ -239,29 +246,46 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         Generates a plot comparing the fitting curves and success probabilities for
         standard and interleaved randomized benchmarking.
         """
+
+        fidelity = 1 - self.infidelity
+        data = {
+            'Infidelity': self.infidelity,
+            'Fidelity': fidelity
+        }
+        df = pd.DataFrame(list(data.items()), columns=['Parameter', 'Value'])
+
+        # Formatting the float values to three decimal places
+        df['Value'] = df['Value'].apply(lambda x: f"{x:.3f}" if isinstance(x, float) else x)
+        print(df)
+
         args = self.retrieve_args(self.run)
         seq_length = args['seq_length']
 
         lseq = np.linspace(0, np.amax(seq_length) + 1, 1001)
-        colors = ['black', 'red', 'green', 'blue', 'cyan', 'magenta', 'orange', 'yellow']
+        colors = ['k', 'r', 'g', 'b', 'c', 'm', 'o', 'y']
 
-        fig = plt.figure()
+        # Define the colors
+        dark_navy = '#000080'
+        dark_purple = '#800080'
 
-        plt.scatter(self.seq_length_std, self.success_probability['standard'], marker='o', label='Standard')
-        plt.scatter(self.seq_length_interleaved, self.success_probability['interleaved'], marker='o',
+        # Plot scatter data with the specified colors
+        plt.scatter(self.seq_length_std, self.success_probability['standard'], marker='o', color=dark_navy,
+                    label='Standard')
+        plt.scatter(self.seq_length_interleaved, self.success_probability['interleaved'], marker='o', color=dark_purple,
                     label='Interleaved')
 
-        # Fit curves for standard and interleaved RB
         fit_curve_standard = self.fit_params['standard']['popt'][0] * np.exp(
             self.fit_params['standard']['popt'][1]) ** lseq + self.fit_params['standard']['popt'][2]
         fit_curve_interleaved = self.fit_params['interleaved']['popt'][0] * np.exp(
             self.fit_params['interleaved']['popt'][1]) ** lseq + self.fit_params['interleaved']['popt'][2]
 
-        plt.plot(lseq, fit_curve_standard, label='Fitting standard RB', color='black')
-        plt.plot(lseq, fit_curve_interleaved, label='Fitting interleaved RB', color='red')
+        # Plot the fit curves with the same colors as the scatter data
+        plt.plot(lseq, fit_curve_standard, label='', color=dark_navy)
+        plt.plot(lseq, fit_curve_interleaved, label='', color=dark_purple)
 
+        # Add title and labels
         plt.title(f'Randomized benchmarking 2Q \n F={1 - self.infidelity}')
-        plt.xlabel("Number of 2Q Cliffords")
-        plt.ylabel("P(00)")
+        plt.xlabel(u"Number of of 2Q Cliffords")
+        plt.ylabel(u"P(00)")
         plt.legend()
-        return fig
+        plt.show()
