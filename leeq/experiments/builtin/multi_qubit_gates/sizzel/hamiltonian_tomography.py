@@ -70,7 +70,7 @@ class ConditionalStarkFineFrequencyTuneUp(Experiment):
     def run_sizzel_xy_hamiltonian_tomography(self, t_start, t_stop, sweep_points=60):
         t_step = (t_stop - t_start) / sweep_points
 
-        from leeq.experiments.builtin import ConditionalStarkTuneUpRabiXY
+        from leeq.experiments.builtin.multi_qubit_gates.conditional_stark import ConditionalStarkTuneUpRabiXY
         sizzel_xy = ConditionalStarkTuneUpRabiXY(
             qubits=self.duts,
             frequency=self.current_params['frequency'],
@@ -338,6 +338,7 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
     def run_sizzel_xy_hamiltonian_tomography(self, t_start, t_stop, sweep_points=60):
         t_step = (t_stop - t_start) / sweep_points
 
+        from leeq.experiments.builtin.multi_qubit_gates.conditional_stark import ConditionalStarkTuneUpRabiXY
         sizzel_xy = ConditionalStarkTuneUpRabiXY(
             qubits=self.duts,
             frequency=self.current_params['frequency'],
@@ -608,6 +609,7 @@ class ConditionalStarkFinePhaseTuneUp(Experiment):
     def run_sizzel_xy_hamiltonian_tomography(self, t_start, t_stop, sweep_points=60):
         t_step = (t_stop - t_start) / sweep_points
 
+        from leeq.experiments.builtin.multi_qubit_gates.conditional_stark import ConditionalStarkTuneUpRabiXY
         sizzel_xy = ConditionalStarkTuneUpRabiXY(
             qubits=self.duts,
             frequency=self.current_params['frequency'],
@@ -876,6 +878,7 @@ class ConditionalStarkFineRiseTuneUp(Experiment):
     def run_sizzel_xy_hamiltonian_tomography(self, t_start, t_stop, sweep_points=60):
         t_step = (t_stop - t_start) / sweep_points
 
+        from leeq.experiments.builtin.multi_qubit_gates.conditional_stark import ConditionalStarkTuneUpRabiXY
         sizzel_xy = ConditionalStarkTuneUpRabiXY(
             qubits=self.duts,
             frequency=self.current_params['frequency'],
@@ -1141,6 +1144,7 @@ class ConditionalStarkFineTruncTuneUp(Experiment):
     def run_sizzel_xy_hamiltonian_tomography(self, t_start, t_stop, sweep_points=60):
         t_step = (t_stop - t_start) / sweep_points
 
+        from leeq.experiments.builtin.multi_qubit_gates.conditional_stark import ConditionalStarkTuneUpRabiXY
         sizzel_xy = ConditionalStarkTuneUpRabiXY(
             qubits=self.duts,
             frequency=self.current_params['frequency'],
