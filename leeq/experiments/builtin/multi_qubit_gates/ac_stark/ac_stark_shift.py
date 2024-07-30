@@ -1,54 +1,25 @@
 # Conditional AC stark shift induced CZ gate
 
 from datetime import datetime
-from plotly.subplots import make_subplots
-from labchronicle import register_browser_function, log_and_record
-
-import leeq.theory.fits
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
-from leeq import Experiment, SweepParametersSideEffectFactory, Sweeper
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
-from leeq.utils.compatibility import *
-from leeq.theory import fits
-from plotly import graph_objects as go
-from leeq.core.primitives.built_in.sizzel_gate import *
-from leeq.theory.fits.fit_exp import *
-from matplotlib import pyplot as plt
-
-from leeq.theory.fits.fit_exp import fit_2d_freq, fit_2d_freq_with_cov
-import uncertainties as unc
-
-from leeq.theory.estimator.kalman import KalmanFilter1D
 
 logger = setup_logging(__name__)
 
-from typing import Any, Optional, Tuple, Dict, Union
-import numpy as np
 import datetime
 import copy
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-import math
 from labchronicle import log_and_record, register_browser_function
 from leeq import Experiment, Sweeper, basic_run
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.utils.compatibility import *
 
 import matplotlib.pyplot as plt
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockParallel, \
-    LogicalPrimitiveBlock
 
-import numpy as np
-from scipy.optimize import curve_fit
-from typing import List, Optional, Any, Tuple, Union
 from leeq.utils.compatibility import prims
-
-from matplotlib.patches import FancyArrowPatch, Circle
-from mpl_toolkits.mplot3d import proj3d
-import mpl_toolkits.mplot3d.art3d as art3d
 
 from leeq.theory.fits import *
 
@@ -60,6 +31,7 @@ from typing import List, Any
 
 import pandas as pd
 from IPython.display import display
+
 
 # from ..characterization import *
 # from ..tomography import *
@@ -95,7 +67,8 @@ class StarkSingleQubitT1(experiment):
         self.frequency = self.original_freq + self.stark_offset
 
         cs_pulse = c1['X'].clone()
-        cs_pulse.update_pulse_args(amp=amp, freq= self.frequency, phase=0., shape='soft_square', width=self.stop, rise=rise, trunc=trunc)
+        cs_pulse.update_pulse_args(amp=amp, freq=self.frequency, phase=0., shape='soft_square', width=self.stop,
+                                   rise=rise, trunc=trunc)
 
         lpb = c1['X'] + cs_pulse + mp
 
@@ -107,7 +80,7 @@ class StarkSingleQubitT1(experiment):
         ]
 
         swp = sweeper(np.arange, n_kwargs={'start': 0.0, 'stop': self.stop, 'step': self.step},
-                          params=swpparams)
+                      params=swpparams)
 
         basic(lpb, swp=swp, basis="<z>")
         self.trace = np.squeeze(mp.result())
@@ -153,7 +126,8 @@ class StarkSingleQubitT1(experiment):
         data = [trace_scatter]
 
         if fit:
-            fit_params = self.fit_exp_decay_with_cov(trace, args['step'])  # Assuming fit_exp_decay_with_cov is a method of the class
+            fit_params = self.fit_exp_decay_with_cov(trace, args[
+                'step'])  # Assuming fit_exp_decay_with_cov is a method of the class
 
             self.fit_params = fit_params
 
@@ -198,11 +172,12 @@ class StarkSingleQubitT1(experiment):
             print(f"Optimization warning or error: {e}")
             return {'Amplitude': (np.nan, np.nan), 'Decay': (np.nan, np.nan), 'Offset': (np.nan, np.nan)}
 
+
 class StarkTwoQubitsSWAP(experiment):
     # Perform a Stark Shifted T1 experiment on one qubit while also measuring another
     @log_and_record
     def run(self, qubits, amp, rise=0.01, start=0, stop=3, step=0.03,
-            stark_offset=50, initial_lpb = None,
+            stark_offset=50, initial_lpb=None,
             trunc=1.2):
 
         self.duts = qubits
@@ -215,7 +190,7 @@ class StarkTwoQubitsSWAP(experiment):
         self.step = step
 
         c1_control = self.duts[0].get_default_c1()  # the qubit to be stark shifted and T1 performed on
-        c1_target = self.duts[1].get_default_c1()   # the qubit which will just be measured at the same time
+        c1_target = self.duts[1].get_default_c1()  # the qubit which will just be measured at the same time
 
         self.original_freq = c1_control['Xp'].freq
         self.frequency = self.original_freq + self.stark_offset
@@ -311,11 +286,12 @@ class StarkTwoQubitsSWAP(experiment):
             print(f"Optimization warning or error: {e}")
             return {'Amplitude': (np.nan, np.nan), 'Decay': (np.nan, np.nan), 'Offset': (np.nan, np.nan)}
 
+
 class StarkTwoQubitsSWAPTwoDrives(experiment):
     # Perform a Stark Shifted T1 experiment on one qubit while also measuring another
     @log_and_record
     def run(self, qubits, amp_control, amp_target, rise=0.01, start=0, stop=3, step=0.03,
-            phase_diff = 0, stark_offset=50, initial_lpb = None):
+            phase_diff=0, stark_offset=50, initial_lpb=None):
 
         self.duts = qubits
         self.stark_offset = stark_offset
@@ -330,7 +306,7 @@ class StarkTwoQubitsSWAPTwoDrives(experiment):
         self.phase_diff = phase_diff
 
         c1_control = self.duts[0].get_default_c1()  # the qubit to be stark shifted and T1 performed on
-        c1_target = self.duts[1].get_default_c1()   # the qubit which will just be measured at the same time
+        c1_target = self.duts[1].get_default_c1()  # the qubit which will just be measured at the same time
 
         self.original_freq = c1_control['Xp'].freq
         self.frequency = self.original_freq + self.stark_offset
@@ -362,7 +338,7 @@ class StarkTwoQubitsSWAPTwoDrives(experiment):
         ]
 
         swp = sweeper(np.arange, n_kwargs={'start': start, 'stop': stop, 'step': step},
-                          params=swpparams)
+                      params=swpparams)
 
         basic(lpb, swp, 'p(1)')
 
@@ -428,11 +404,13 @@ class StarkTwoQubitsSWAPTwoDrives(experiment):
             print(f"Optimization warning or error: {e}")
             return {'Amplitude': (np.nan, np.nan), 'Decay': (np.nan, np.nan), 'Offset': (np.nan, np.nan)}
 
+
 class StarkRamseyMultilevel(Experiment):
     """
     Represents a simple Ramsey experiment with multilevel frequency sweeps.
     This version has changed the step size from 0.001 to 0.005.
     """
+
     @log_and_record
     def run(self,
             qubit: Any,  # Replace 'Any' with the actual type of qubit
@@ -809,8 +787,9 @@ class StarkRamseyMultilevel(Experiment):
             return "The Ramsey experiment failed to fit the data."
 
         return (f"The Ramsey experiment for qubit {self.retrieve_args(self.run)['qubit'].hrid} has been analyzed. " \
-               f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured offset is "
-               f"{self.fitted_freq_offset:.3f}+- {self.error_bar:.3f} MHz.")
+                f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured offset is "
+                f"{self.fitted_freq_offset:.3f}+- {self.error_bar:.3f} MHz.")
+
 
 class StarkDriveRamseyTwoQubits(experiment):
     # performs a ramsey experiment on two qubits while applying a stark shift drive to one of them. Extension of StarkDriveRamsey()
@@ -824,7 +803,7 @@ class StarkDriveRamseyTwoQubits(experiment):
             stop: float = 1.0,
             step: float = 0.005,
             set_offset: float = 10.0,
-            stark_offset = 50, amp = 0.1, width = 0.1, rise = 0.01, trunc = 1.2,
+            stark_offset=50, amp=0.1, width=0.1, rise=0.01, trunc=1.2,
             update: bool = False) -> None:
 
         assert len(qubits) == 2
@@ -851,8 +830,9 @@ class StarkDriveRamseyTwoQubits(experiment):
         cs_pulse.update_pulse_args(amp=amp, freq=self.frequency, phase=0., shape='soft_square', width=self.stop,
                                    rise=rise, trunc=trunc)
 
-
-        lpb = prims.ParallelLPB([c1['Xp'] for c1 in c1s]) + cs_pulse + prims.ParallelLPB([c1['Xm'] for c1 in c1s]) + prims.ParallelLPB([mp for mp in mps]) # stark shift ramsey on first qubit, normal ramsey on second
+        lpb = prims.ParallelLPB([c1['Xp'] for c1 in c1s]) + cs_pulse + prims.ParallelLPB(
+            [c1['Xm'] for c1 in c1s]) + prims.ParallelLPB(
+            [mp for mp in mps])  # stark shift ramsey on first qubit, normal ramsey on second
 
         if initial_lpb is not None:
             lpb = initial_lpb + lpb
@@ -934,7 +914,9 @@ class StarkDriveRamseyTwoQubits(experiment):
         time_points = np.arange(args['start'], args['stop'], args['step'])
         time_points_interpolate = np.arange(args['start'], args['stop'], args['step'] / 10)
 
-        fig = make_subplots(rows=2, cols=1, subplot_titles=[f"{args['qubits'][i].hrid} f = {self.frequency_guess[i]} MHz" for i in range(2)])
+        fig = make_subplots(rows=2, cols=1,
+                            subplot_titles=[f"{args['qubits'][i].hrid} f = {self.frequency_guess[i]} MHz" for i in
+                                            range(2)])
 
         for i in range(2):
             fig.add_trace(go.Scatter(x=time_points, y=self.traces[i], mode='markers', name=f'Trace {i}'), row=i + 1,
@@ -1001,94 +983,3 @@ class StarkDriveRamseyTwoQubits(experiment):
                 result_str += f"The Ramsey experiment failed to fit the data for trace {i}.\n"
 
         return result_str
-
-
-
-
-    # def analyze_data(self):
-    #     self.fit_params = []
-    #     self.frequency_guess = []
-    #     self.error_bar = []
-    #     for i,trace in enumerate(self.traces):
-    #         try:
-    #             fit_params = fits.Fit_1D_Freq_exp_with_cov(trace, dt=self.step)
-    #
-    #             fitted_freq_offset = (fit_params['Frequency'][0] - self.set_offset) / self.level_diff
-    #
-    #             frequency_guess = self.original_freqs[i] - fitted_freq_offset
-    #             error_bar = fit_params['Frequency'][1]
-    #
-    #         except Exception as e:
-    #             fit_params = 0
-    #             frequency_guess = 0
-    #             error_bar = np.inf
-    #             # warnings.warn(repr(e))
-    #
-    #         self.fit_params.append(fit_params)
-    #         self.frequency_guess.append(frequency_guess)
-    #         self.error_bar.append(error_bar)
-    #     # self.fit_params = fits.Fit_1D_Freq_Gaussian_Estimation(self.data, dt=step)[0]
-    #
-    #
-    # def dump_results_and_configuration(self):
-    #     args = copy.copy(self.retrieve_args(self.run))
-    #     del args['initial_lpb']
-    #     args['drive_freq'] = args['qubit'].get_c1(args['collection_name'])['X'].freq
-    #     args['qubit'] = args['qubit'].hrid
-    #     return self.frequency_guess, self.error_bar, self.trace, args, datetime.datetime.now()
-    #
-    # def plot(self):
-    #     self.analyze_data()
-    #     print(self.frequency_guess)
-    #     args = self.retrieve_args(self.run)
-    #
-    #     # fit_params = fits.Fit_1D_Freq_exp_with_cov(self.data, dt=args['step'])
-    #
-    #     t = np.arange(args['start'], args['stop'], args['step'])
-    #     t_interpolate = np.arange(args['start'], args['stop'], args['step'] / 10)
-    #
-    #     for i,trace in enumerate(self.traces):
-    #         fig, ax = plt.subplots(figsize=[6,3])
-    #
-    #         fit_params = self.fit_params[i]
-    #
-    #         # print(t.shape, t)
-    #         # print(trace.shape, trace)
-    #
-    #         ax.set_title(f"Ramsey decay {args['qubits'][i].hrid} transition {args['collection_name']}: \n"
-    #                      f"{fit_params['Decay'][0]} $\pm$ {fit_params['Decay'][1]} us")
-    #         ax.set_xlabel(f"Time (us) Frequency:{fit_params['Frequency'][0]}$\pm${fit_params['Frequency'][1]}")
-    #         ax.set_ylabel("<z>")
-    #
-    #         g = ax.scatter(t, trace, marker='o', alpha=0.5)
-    #         f = fit_params['Frequency'][0]
-    #         a = fit_params['Amplitude'][0]
-    #         p = fit_params['Phase'][0] - 2.0 * np.pi * f * args['start']
-    #         o = fit_params['Offset'][0]
-    #         T = fit_params['Decay'][0]
-    #         fit = a * np.exp(-t_interpolate / T) * np.sin(2.0 * np.pi * f * t_interpolate + p) + o
-    #         ax.plot(t_interpolate, fit)
-    #         fig.tight_layout()
-    #         plt.show()
-    #
-    # ## Not updated this for multi qubit yet:
-    # def plot_fft(self, plot_range=(0.05, 1)):
-    #     self.analyze_data()
-    #     args = self.retrieve_args(self.run)
-    #
-    #     for i,trace in enumerate(self.traces):
-    #         fig, ax = plt.subplots(figsize=[6, 3])
-    #
-    #         dt = args['step']
-    #         rfft = np.abs(np.fft.rfft(trace))
-    #         f = np.fft.rfftfreq(len(trace), dt)
-    #
-    #         mask = (f > plot_range[0]) & (f < plot_range[1])
-    #
-    #         ax.plot(f[mask], rfft[mask])
-    #         ax.set_xlabel('Frequency [MHz]')
-    #         ax.set_ylabel('Strength')
-    #         ax.set_title(f"{args['qubits'][i].hrid} Ramsey spectrum")
-    #         fig.tight_layout()
-    #         plt.show()
-
