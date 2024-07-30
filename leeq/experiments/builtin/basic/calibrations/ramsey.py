@@ -177,25 +177,45 @@ class SimpleRamseyMultilevel(Experiment):
 
         decay_rate = 1 / t1
 
+        # If the offset is too large, we will not be able to excite the qubit so we check it here
+        c1 = qubit.get_c1(collection_name)
+        amp = c1.get_parameters()['amp']
+
+        # hard code a virtual dut here
+        rabi_rate_per_amp = simulator_setup.get_omega_per_amp(
+            c1.channel)  # MHz
+        omega = rabi_rate_per_amp * amp
+
         # Ramsey fringes formula
 
         f_o_actual = f_q - (f_d + f_o)
 
-        ramsey_fringes = (1 + np.cos(2 * np.pi * f_o_actual * t)
-                          * np.exp(-decay_rate * t)) / 2
+        # Detuning
+        delta = f_o_actual
+
+        # Work out where we are on the Bloch sphere
+        detuning_contribution = np.abs(delta) / (delta ** 2 + omega ** 2)**(1/2)
+        oscillation_amplitude = 1 - detuning_contribution
+        oscillation_baseline = detuning_contribution
+
+        ramsey_fringes = oscillation_amplitude*(np.cos(2 * np.pi * f_o_actual * t)
+                          * np.exp(-decay_rate * t)) + oscillation_baseline
 
         self.data = ramsey_fringes
 
         quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
-        standard_deviation = np.sum(quiescent_state_distribution[1:])
+        standard_deviation = np.std(self.data)
 
         random_noise_factor = 1 + np.random.normal(
-            0, standard_deviation, self.data.shape)
+            0, standard_deviation / 2, self.data.shape)
 
-        self.data = np.clip(self.data * quiescent_state_distribution[0] * random_noise_factor, 0, 1)
+        self.data = np.clip(self.data * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
+
+        self.data = (1+self.data) / 2
 
         # If sampling noise is enabled, simulate the noise
         if setup().status().get_param('Sampling_Noise'):
+            print("Sampling noise is enabled")
             # Get the number of shot used in the simulation
             shot_number = setup().status().get_param('Shot_Number')
 
@@ -204,7 +224,6 @@ class SimpleRamseyMultilevel(Experiment):
             self.data = np.random.binomial(
                 shot_number, self.data) / shot_number
 
-        self.data = self.data * 2 - 1
 
     def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
         """

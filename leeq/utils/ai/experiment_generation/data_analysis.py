@@ -1,5 +1,5 @@
 from typing import Any
-from fibers.tree.node_attr.code_node import get_type, get_obj
+from fibers.tree.node_attr.code import get_type, get_obj
 
 
 def _load_fitting_function_docstrings():
@@ -66,18 +66,16 @@ def generate_data_analysis(description: str, context: dict[str, Any]):
     Return the `data_analysis` function only.
    
     The format of the return should be:
-    {{
-    'analysis': <how did you implement the data analysis>,
-    'code': <the code snippet that performs the data analysis>,
-    'parameter_updates': <what class attribute have you updated to store the analyzed results>
-    }}
+    ```python
+    <The data analysis code>
+    ```
     """
 
     import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
-    res = chat.complete(parse="dict", cache=True)
+    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.")
+    res = chat.complete(parse="quotes", cache=False)
 
-    return revise_data_analysis(description, res['code'])
+    return revise_data_analysis(description, res)
 
 
 def revise_data_analysis(description: str, code: dict[str, Any]):
@@ -119,14 +117,12 @@ def revise_data_analysis(description: str, code: dict[str, Any]):
     Return the `data_analysis` function only.
    
     The format of the return should be:
-    {{
-    'analysis': <how did you implement the data analysis>,
-    'code': <the code snippet that performs the data analysis>,
-    'parameter_updates': <what class attribute have you updated to store the analyzed results>
-    }}
+    ```python
+    <the code snippet that performs the data analysis>
+    ```
     """
 
     import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
-    res = chat.complete(parse="dict", cache=True)
-    return res['code']
+    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.")
+    res = chat.complete(parse="quotes", cache=False)
+    return res

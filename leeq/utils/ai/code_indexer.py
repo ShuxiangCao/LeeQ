@@ -3,7 +3,7 @@ import os
 from typing import Any, Tuple, Type, List
 
 from fibers.data_loader.module_to_tree import get_tree_for_module
-from fibers.tree.node_attr.code_node import get_type, get_obj
+from fibers.tree.node_attr.code import get_type, get_obj
 from mllm import Chat
 from mllm.utils import parallel_map
 

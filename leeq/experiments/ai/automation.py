@@ -115,8 +115,8 @@ class AIStagedExperiment(Experiment):
             else:
                 recall_res = coding_ltm_cache[stage.title]
 
-            with display_chats():
-                codes = code_cog_model.codegen(codegen_wm, recall_res)
+            # with display_chats():
+            codes = code_cog_model.codegen(codegen_wm, recall_res)
 
             new_var_table = var_table.new_child_table()
 
@@ -211,7 +211,7 @@ class AIStagedExperiment(Experiment):
 
         Returns
         -------
-        Experiment: The last experiment run in the staged experiment.
+        Experiment: The last experimen't run in the staged experiment.
         """
         return self.experiment_history[-1]
 

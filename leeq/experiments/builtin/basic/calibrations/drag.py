@@ -230,7 +230,10 @@ class DragCalibrationSingleQubitMultilevel(Experiment):
                            " datasets. Based on your observations, determine whether each trend line accurately"
                            " represents its dataset and if there are notable differences in the trends between the two"
                            " sets of data. The analysis is deemed successful if the two differently colored lines exhibit"
-                           " distinct trends and the line fitting appears appropriate.")
+                           " distinct trends and the line fitting appears appropriate. For a successful experiment you should"
+                           " observe two lines cross at the center of the plot. If you have not observe it please mark the"
+                           "experiment as failed and provide the new range for the sweep."
+                           )
     def plot(self):
         self.linear_fit()
         fig = plt.figure()
