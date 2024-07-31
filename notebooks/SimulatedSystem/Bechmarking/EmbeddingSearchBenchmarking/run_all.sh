@@ -18,6 +18,8 @@ models=(
     )
 
 models=('deepseek/deepseek-coder' 'deepseek/deepseek-chat')
+
+models=('replicate/meta/meta-llama-3.1-405b-instruct' 'claude-3-haiku-20240307')
 # Number of shots, you can adjust this value as needed
 shots=5
 
