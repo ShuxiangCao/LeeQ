@@ -211,7 +211,10 @@ class DragCalibrationSingleQubitMultilevel(Experiment):
         random_noise_factor = 1 + np.random.normal(
             0, standard_deviation, self.result.shape)
 
-        self.result = np.clip(self.result * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
+        random_noise_sum = np.random.normal(
+            0, standard_deviation/2, self.result.shape)
+
+        self.result = np.clip(self.result * (0.5 - quiescent_state_distribution[0]) * 2 * random_noise_factor + random_noise_sum, -1, 1)
 
     def linear_fit(self):
         self.fit_xp = np.polyfit(self.sweep_values, self.result[:, 0], deg=1)
