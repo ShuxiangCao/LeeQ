@@ -372,7 +372,7 @@ trusted, then do not include the value from figure inspection.
      Can you analyze the plot and tell me if there are any sharp dips or peaks at certain frequencies which would
      typically indicate a resonator? Please focuse on the stability of the signal, the presence of noise, and the
      specific behavior around suspected resonant frequencies. Provide a detailed analysis of the magnitude and
-     frequency data shown in the plot.
+     frequency data shown in the plot. If you successfully identify a resonator, the experiment is considered successful.
     """)
     def plot_magnitude(self):
         args = self.retrieve_args(self.run)

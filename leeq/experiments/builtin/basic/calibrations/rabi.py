@@ -200,7 +200,13 @@ class NormalisedRabi(Experiment):
 
         self.data = (2 * self.data - 1)
 
-        self.data = np.clip(self.data * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
+        random_noise_factor = 1 + np.random.normal(
+            0, standard_deviation, self.data.shape)
+
+        random_noise_sum = np.random.normal(
+            0, standard_deviation/2, self.data.shape)
+
+        self.data = np.clip(self.data * (0.5 - quiescent_state_distribution[0]) * 2 * random_noise_factor + random_noise_sum, -1, 1)
 
         # Fit data to a sinusoidal function and return the fit parameters
         self.fit_params = fits.fit_sinusoidal(self.data, time_step=step)
