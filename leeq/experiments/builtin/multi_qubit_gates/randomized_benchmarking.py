@@ -115,7 +115,7 @@ class RandomizedBenchmarking2Qubits(Experiment):
         self.error_bar = self.infidelity.s
 
     @register_browser_function()
-    def plot(self):
+    def plot1(self):
         dark_navy = '#000080'
         dark_purple = '#800080'
 
@@ -125,18 +125,25 @@ class RandomizedBenchmarking2Qubits(Experiment):
         seq_length = args['seq_length']
 
         lseq = np.linspace(0, np.amax(seq_length) + 1, 1001)
-        colors = ['k', 'r', 'g', 'b', 'c', 'm', 'o', 'y']
+
+        fig = plt.figure()
+
         plt.scatter(seq_length, self.success_probability, marker='o', label='RB', color=dark_navy)
 
-        fit_curve = self.popt[0] * np.exp(self.popt[1] ** lseq) + self.popt[2]
-        plt.plot(lseq, fit_curve, label='', color='k')
+        # fit_curve = self.popt[0] * np.exp(self.popt[1] ** lseq) + self.popt[2]
+        fit_curve = self.popt[0] * np.exp(self.popt[1] * lseq) + self.popt[2]
+
+        print(self.popt)
+        print(lseq)
+        print(fit_curve)
+        plt.plot(lseq, fit_curve, color=dark_navy)
 
         plt.title(f'Randomized benchmarking 2Q \n F={1 - self.infidelity}')
         plt.xlabel(u"Number of of 2Q Cliffords")
         plt.ylabel(u"P(00)")
         plt.legend()
-        plt.show()
 
+        return fig
 
 class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
     """
@@ -184,7 +191,7 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         )
 
         # Compute interleaved sequence lengths
-        self.seq_length_interleaved = [i // 2 + 1 if i % 2 else i // 2 for i in seq_length]
+        self.seq_length_interleaved = [i // 2 + 1 if i % 2 else i // 2 for i  in seq_length]
 
         interleaved_rb = RandomizedBenchmarking2Qubits(
             duts=duts,
@@ -262,7 +269,6 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         seq_length = args['seq_length']
 
         lseq = np.linspace(0, np.amax(seq_length) + 1, 1001)
-        colors = ['k', 'r', 'g', 'b', 'c', 'm', 'o', 'y']
 
         fig = plt.figure()
         # Define the colors
@@ -277,6 +283,7 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
 
         fit_curve_standard = self.fit_params['standard']['popt'][0] * np.exp(
             self.fit_params['standard']['popt'][1]) ** lseq + self.fit_params['standard']['popt'][2]
+
         fit_curve_interleaved = self.fit_params['interleaved']['popt'][0] * np.exp(
             self.fit_params['interleaved']['popt'][1]) ** lseq + self.fit_params['interleaved']['popt'][2]
 

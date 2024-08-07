@@ -8,7 +8,6 @@ import numpy as np
 
 from leeq.utils.compatibility import *
 
-
 class ConditionalStarkFineFrequencyTuneUp(Experiment):
     @log_and_record
     def run(self, duts, params=None, phase_diff=0, amp_control=0.2, rise=0.0, trunc=1.0,
@@ -275,7 +274,6 @@ class ConditionalStarkFineFrequencyTuneUp(Experiment):
         fig_2d.update_yaxes(title_text="Width (us)", row=1, col=3)
 
         return fig_2d.show(), fig_3d_x.show(), fig_3d_y.show()
-
 
 class ConditionalStarkFineAmpTuneUp(Experiment):
     @log_and_record
@@ -545,8 +543,8 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
         fig_2d.update_xaxes(title_text="Amp Control", row=1, col=3)
         fig_2d.update_yaxes(title_text="Width (us)", row=1, col=3)
 
-        return fig_2d.show(), fig_3d_x.show(), fig_3d_y.show()
-
+        # return fig_2d.show(), fig_3d_x.show(), fig_3d_y.show()
+        return fig_2d.show()
 
 class ConditionalStarkFinePhaseTuneUp(Experiment):
     @log_and_record
@@ -815,8 +813,8 @@ class ConditionalStarkFinePhaseTuneUp(Experiment):
         fig_2d.update_xaxes(title_text="Phase", row=1, col=3)
         fig_2d.update_yaxes(title_text="Width (us)", row=1, col=3)
 
-        return fig_2d.show(), fig_3d_x.show(), fig_3d_y.show()
-
+        # return fig_2d.show(), fig_3d_x.show(), fig_3d_y.show()
+        return fig_2d.show()
 
 class ConditionalStarkFineRiseTuneUp(Experiment):
     @log_and_record
@@ -1082,7 +1080,6 @@ class ConditionalStarkFineRiseTuneUp(Experiment):
         fig_2d.update_yaxes(title_text="Width (us)", row=1, col=3)
 
         return fig_2d.show(), fig_3d_x.show(), fig_3d_y.show()
-
 
 class ConditionalStarkFineTruncTuneUp(Experiment):
     @log_and_record

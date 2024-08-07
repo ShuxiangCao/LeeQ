@@ -16,7 +16,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         'iz_target': 0,
         'echo': False,
         'phase_diff': 0,
-        'shape': 'soft_square',
+        'shape': 'blackman_square',
         'rise': 0.01,
         'trunc': 1.0,
         'width': 0.1,
@@ -152,7 +152,6 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         if self.echo:
             flip_both = self.c1_control['X'] * self.c1_target['X']
             return full_pulse + flip_both + full_pulse + flip_both + self.get_z_cancellation_pulse()
-            # return full_pulse + self.get_z_cancellation_pulse()
 
         return full_pulse + self.get_z_cancellation_pulse()
 

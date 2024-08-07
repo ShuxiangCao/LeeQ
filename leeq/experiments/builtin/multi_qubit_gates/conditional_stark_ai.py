@@ -654,7 +654,7 @@ class ConditionalStarkTuneUpRepeatedGateXYAI(Experiment):
         plt.show()
 
 
-class ConditionalStarkEchoTuneUp(Experiment):
+class ConditionalStarkEchoTuneUpAI(Experiment):
     """
     Class for performing Conditional Stark Echo Tune-Up experiments.
     """

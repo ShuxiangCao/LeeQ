@@ -143,6 +143,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
                 "elem_params": {
                     "samples_per_clk": 16,
                     "interp_ratio": 1
+                    # "interp_ratio": 4
                 },
                 "env_mem_name": "qdrvenv{core_ind}",
                 "freq_mem_name": "qdrvfreq{core_ind}",

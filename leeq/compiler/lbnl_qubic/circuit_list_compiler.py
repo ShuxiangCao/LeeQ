@@ -1,5 +1,6 @@
 import functools
 import inspect
+from pprint import pprint
 from typing import Union
 
 import numpy as np
@@ -171,6 +172,31 @@ def segment_array(data: np.ndarray, threshold=1e-5, min_flat_length=10):
     return regions_flat, regions_change
 
 
+def _get_pulse_twidth(env_func, paradict):
+    """
+    Get the pulse width of the envelope function.
+
+    Parameters:
+    - env_func: the envelope function
+    - paradict: the parameters of the pulse
+
+    Returns:
+        The pulse width
+    """
+    import inspect
+    parameters = {
+        'amp': 1
+    }
+    parameters.update(paradict)
+
+    parameters_requried = inspect.signature(env_func).parameters
+    parameters_keeping = {key: parameters[key] for key in parameters_requried if key in parameters}
+    data = env_func(sampling_rate=_sampling_rate / 1e6, **parameters_keeping)
+
+    pulse_width = len(data) / _sampling_rate  # In seconds
+    return pulse_width
+
+
 def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
     """
     Segment the pulse and isolate flat regions.
@@ -197,6 +223,11 @@ def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
     minimal_pulse_width = 8e-9
     atomic_index_count = int(_sampling_rate * minimal_pulse_width)
 
+    # padding the pulse to make sure the pulse width is a multiple of 4 ns
+    if len(data) % atomic_index_count != 0:
+        data = np.pad(data, (0, atomic_index_count - len(data) % atomic_index_count), mode='constant',
+                      constant_values=0)
+
     # Now we iterate over the segments and make corrections to the indexes
     modified_segments = []
     for i, (start, end, segment_type) in enumerate(segments):
@@ -209,15 +240,22 @@ def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
             modified_start = np.floor(start / atomic_index_count) * atomic_index_count
             modified_end = np.ceil(end / atomic_index_count) * atomic_index_count
 
-        if modified_end - modified_start < atomic_index_count:
-            msg = "The pulse width is smaller than the minimal pulse width 2ns."
-            logger.error(msg)
-            raise ValueError(msg)
-
-        if i == len(segments) - 1:
+        if i == len(segments) - 1 or modified_end > len(data):
             modified_end = end
 
+            if modified_end % atomic_index_count != 0:
+                modified_end = np.ceil(end / atomic_index_count) * atomic_index_count
+
+            modified_segments.append((int(modified_start), int(modified_end), segment_type))
+            break
+
         modified_segments.append((int(modified_start), int(modified_end), segment_type))
+
+    segments = modified_segments
+    modified_segments = []
+    for i, (start, end, segment_type) in enumerate(segments):
+        if start < end:
+            modified_segments.append((start, end, segment_type))
 
     segments = modified_segments
     modified_segments = []
@@ -233,6 +271,12 @@ def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
     # Assert all the start time are properly aligned
     for i, (start, end, segment_type) in enumerate(segments):
         assert start % atomic_index_count == 0, f"Start time is not properly aligned for segment {i}. {start}, {end},{segment_type}, {atomic_index_count}"
+        assert end % atomic_index_count == 0, f"End time is not properly aligned for segment {i}. {start}, {end},{segment_type}, {atomic_index_count}"
+
+    # If the last segment is flat, and it is only a single atomic index, and it has 0 amplitude, we remove it
+    if segments[-1][2] == 'flat' and segments[-1][1] - segments[-1][0] == atomic_index_count and np.all(
+            data[segments[-1][0]:segments[-1][1]] == 0):
+        segments = segments[:-1]
 
     pulses = []
     # Generate the pulses for each segment
@@ -532,9 +576,10 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             env = {"env_func": get_qubic_envelope_name_from_leeq_name(parameters['shape']),
                    "paradict": parameters_keeping}
 
-            twidth = parameters['width'] / 1e6
-            if 'trunc' in parameters:
-                twidth = twidth * parameters['trunc']
+            # twidth = parameters['width'] / 1e6
+            # if 'trunc' in parameters:
+            #     twidth = twidth * parameters['trunc']
+            twidth = _get_pulse_twidth(env_func, parameters_keeping)
 
             qubic_pulse_dict = {
                 "name": "pulse",
@@ -551,7 +596,6 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             segments = _segment_pulse_and_isolate_flat_regions(
                 env_func, parameters, threshold=1e-5
             )
-
             # The pulse width is too long, we need to split it into multiple pulses, each with a width less than 0.5s
             sequence = []
             env_func = get_qubic_envelope_name_from_leeq_name('segment_by_index')
@@ -577,6 +621,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                         "phase": parameters['phase']
                     }
                     new_sequence.append(qubic_pulse_dict)
+
                 else:
                     parameters_segment = parameters_keeping.copy()
                     parameters_segment['width'] = parameters['width']

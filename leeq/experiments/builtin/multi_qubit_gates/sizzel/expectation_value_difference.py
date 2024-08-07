@@ -52,7 +52,7 @@ class ConditionalStarkSpectroscopyDiffAmpFreq(experiment):
 
         # Update the pulse parameters for all cloned pulses.
         for i, cs_pulse in enumerate(cs_pulses):
-            cs_pulse.update_pulse_args(shape='soft_square', amp=0, phase=0, width=width if not echo else width / 2,
+            cs_pulse.update_pulse_args(shape='blackman_square', amp=0, phase=0, width=width if not echo else width / 2,
                                        rise=rise, trunc=trunc)
 
         # Create amplitude sweeper.
@@ -264,7 +264,7 @@ class ConditionalStarkSpectroscopyDiffAmpTargetFreq(experiment):
 
         # Update the pulse parameters for all cloned pulses.
         for i, cs_pulse in enumerate(cs_pulses):
-            cs_pulse.update_pulse_args(shape='soft_square', amp=self.amp_control_fixed, phase=0,
+            cs_pulse.update_pulse_args(shape='blackman_square', amp=self.amp_control_fixed, phase=0,
                                        width=width if not echo else width / 2,
                                        rise=rise, trunc=trunc)
 
@@ -290,8 +290,6 @@ class ConditionalStarkSpectroscopyDiffAmpTargetFreq(experiment):
         lpb_zz = prims.ParallelLPB(cs_pulses)
         if echo:
             lpb_zz = lpb_zz + flip_both + lpb_zz + flip_both
-
-        # lpb = flip_sweep_lpb + c1s[1]['Xp'] + lpb_zz + c1s[1]['Ym'] + prims.ParallelLPB(mprims)
 
         lpb = c1s[1]['Ym'] * flip_sweep_lpb + lpb_zz + c1s[1]['Xm'] + prims.ParallelLPB(mprims)
 
@@ -484,7 +482,7 @@ class ConditionalStarkSpectroscopyDiffPhaseFreq(experiment):
 
         # Update the pulse parameters for all cloned pulses.
         for i, cs_pulse in enumerate(cs_pulses):
-            cs_pulse.update_pulse_args(shape='soft_square', amp=0, phase=phase_diff_start,
+            cs_pulse.update_pulse_args(shape='blackman_square', amp=0, phase=phase_diff_start,
                                        width=width if not echo else width / 2,
                                        rise=rise, trunc=trunc)
 
@@ -672,7 +670,7 @@ class ConditionalStarkSpectroscopyDiffAmpPhase(experiment):
 
         # Update the pulse parameters for all cloned pulses.
         for i, cs_pulse in enumerate(cs_pulses):
-            cs_pulse.update_pulse_args(shape='soft_square', amp=0, phase=phase_diff_start,
+            cs_pulse.update_pulse_args(shape='blackman_square', amp=0, phase=phase_diff_start,
                                        width=width if not echo else width / 2,
                                        rise=rise, trunc=trunc)
 
@@ -853,7 +851,7 @@ class ConsidtionalStarkSpectroscopyDifferenceBase(Experiment):
 
         # Update the pulse parameters for all cloned pulses.
         for i, cs_pulse in enumerate(cs_pulses):
-            cs_pulse.update_pulse_args(shape='soft_square', amp=0, phase=0, width=width if not echo else width / 2,
+            cs_pulse.update_pulse_args(shape='blackman_square', amp=0, phase=0, width=width if not echo else width / 2,
                                        rise=rise, trunc=trunc)
 
         # Set up additional pulse sequences and sweep.
