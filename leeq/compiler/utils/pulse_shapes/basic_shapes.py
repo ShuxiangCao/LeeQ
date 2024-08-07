@@ -315,7 +315,7 @@ def soft_square(
         trunc: Optional[float] = 1,
         delay: float = 0.0,
         phase_shift: float = 0,
-        ex_delay: float = 0,
+        ex_delay: float = 0.1,
 ) -> np.ndarray:
     """
     Generate a soft square wave.

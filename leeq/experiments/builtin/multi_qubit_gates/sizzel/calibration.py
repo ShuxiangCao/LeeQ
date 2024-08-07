@@ -64,7 +64,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
                                                   iz_control=0,
                                                   iz_target=0,
                                                   echo=False,
-                                                  trunc=1.0, zz_interaction_positive=True)
+                                                  trunc=trunc, zz_interaction_positive=True)
 
         mprim_control = self.duts[0].get_measurement_prim_intlist(0)
         mprim_target = self.duts[1].get_measurement_prim_intlist(0)
@@ -73,11 +73,9 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         stark_drive_target_pulse = c2['stark_drive_target']
         stark_drive_control_pulse = c2['stark_drive_control']
 
-        # flip_both = c1_control['Y'] * c1_target['Y']
         flip_both = c1_control['X'] * c1_target['X']
         if echo:
             lpb = cs_pulse + flip_both + cs_pulse + flip_both
-            # lpb = cs_pulse + flip_both + cs_pulse
         else:
             lpb = cs_pulse
 
@@ -85,6 +83,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         swp_flip = sweeper.from_sweep_lpb(lpb_flip_control)
 
         lpb_readout = prims.SweepLPB([c1_target['Yp'], c1_target['Xm']])
+
         swp_readout = sweeper.from_sweep_lpb(lpb_readout)
 
         iz_gate = c1_target.z_omega(iz_rate_cancel * 2 * np.pi)
@@ -361,6 +360,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
             plt.title(f'{label1} and {label2} Data')
             plt.legend()
 
+            from scipy.fft import fft, fftfreq
             # Compute the FFT of the data
             N = len(data1)
             T = t[1] - t[0]  # Sampling interval
@@ -499,22 +499,22 @@ class ConditionalStarkTuneUpRabiXY(experiment):
             plt.plot(t, data, color=color)
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction Leakage to Control Hamiltonian tomography - X axis")
+        plt.title(f"ZZ interaction Leakage to Control Hamiltonian tomography - target X axis")
         plot_specific_axis(data=self.result_control[:, 0, 0], label="Ground", color='#1f77b4')
         plot_specific_axis(data=self.result_control[:, 1, 0], label="Excited", color='#8B0000')
 
         plt.xlabel("Pulse width [us]")
-        plt.ylabel("<X>")
+        plt.ylabel("<Z>")
         plt.legend()
         plt.show()
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction Leakage to Control Hamiltonian tomography - Y axis")
+        plt.title(f"ZZ interaction Leakage to Control Hamiltonian tomography - target Y axis")
         plot_specific_axis(data=self.result_control[:, 0, 1], label="Ground", color='#1f77b4')
         plot_specific_axis(data=self.result_control[:, 1, 1], label="Excited", color='#8B0000')
 
         plt.xlabel("Pulse width [us]")
-        plt.ylabel("<Y>")
+        plt.ylabel("<Z>")
         plt.legend()
         plt.show()
 
@@ -604,7 +604,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
 class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
 
     @log_and_record
-    def run(self, duts, amp_control, amp_target, frequency, phase=0, rise=0.03, axis='Y',
+    def run(self, duts, amp_control, amp_target, frequency, phase=0, rise=0.01, trunc =1.0, axis='Y',
             echo=False, iz_control=0, iz_target=0, width=0, start_gate_number=0, gate_count=40):
         """
         Sweep time and find the initial guess of amplitude
@@ -620,6 +620,7 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
         self.iz_control = iz_control
         self.iz_target = iz_target
         self.rise = rise
+        self.trunc = trunc
         self.start_gate_number = start_gate_number
         self.gate_count = gate_count
 
@@ -638,7 +639,7 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
             iz_control=self.iz_control,
             iz_target=self.iz_target,
             echo=echo,
-            trunc=1,
+            trunc=trunc,
             zz_interaction_positive=True  # It doesn't matter what to use here, after one tomography we will find out.
         )
 
@@ -864,22 +865,22 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
             plt.plot(t, data, color=color)
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction Leakage to Control Hamiltonian tomography - X axis")
+        plt.title(f"ZZ interaction Leakage to Control Hamiltonian tomography - target X axis")
         plot_specific_axis(data=self.result_control[:, 0, 0], label="Ground", color='#1f77b4')
         plot_specific_axis(data=self.result_control[:, 1, 0], label="Excited", color='#8B0000')
 
         plt.xlabel("Pulse count")
-        plt.ylabel("<X>")
+        plt.ylabel("<Z>")
         plt.legend()
         plt.show()
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction Leakage to Control Hamiltonian tomography - Y axis")
+        plt.title(f"ZZ interaction Leakage to Control Hamiltonian tomography - target Y axis")
         plot_specific_axis(data=self.result_control[:, 0, 1], label="Ground", color='#1f77b4')
         plot_specific_axis(data=self.result_control[:, 1, 1], label="Excited", color='#8B0000')
 
         plt.xlabel("Pulse count")
-        plt.ylabel("<Y>")
+        plt.ylabel("<Z>")
         plt.legend()
         plt.show()
 
@@ -888,8 +889,8 @@ class ConditionalStarkEchoTuneUp(Experiment):
 
     @log_and_record
     def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0, rise=0.01, trunc=1.0,
-            t_start=0, t_stop=30, sweep_points=30,
-            n_start=0, n_stop=32, update_iz=False, update_zz=True, n_max_iteration=20
+            t_start=0, t_stop=20, sweep_points=40,
+            n_start=0, n_stop=21, update_iz=False, update_zz=True, n_max_iteration=20
             ):
         self.duts = duts
         self.n_max_iteration = n_max_iteration
@@ -908,9 +909,8 @@ class ConditionalStarkEchoTuneUp(Experiment):
                 'iz_target': 0,
                 'frequency': frequency,
                 'amp_control': amp_control,
-                'amp_target': amp_control * area_target / area_control,
-                # 'amp_target': amp_control * area_control/area_target,
-                # 'amp_target': amp_control,
+                # 'amp_target': amp_control * area_target / area_control,
+                'amp_target': amp_control,
                 'rise': rise,
                 'trunc': trunc,
                 'width': 0,
@@ -953,6 +953,7 @@ class ConditionalStarkEchoTuneUp(Experiment):
             amp_control=self.current_params['amp_control'],
             amp_target=self.current_params['amp_target'],
             rise=self.current_params['rise'],
+            trunc=self.current_params['trunc'],
             start=t_start,
             stop=t_stop,
             step=t_step,
@@ -1002,6 +1003,7 @@ class ConditionalStarkEchoTuneUp(Experiment):
                 amp_control=self.current_params['amp_control'],
                 amp_target=self.current_params['amp_target'],
                 rise=self.current_params['rise'],
+                trunc=self.current_params['trunc'],
                 width=width,
                 start_gate_number=n_start,
                 gate_count=n_stop,

@@ -291,8 +291,6 @@ class ConditionalStarkSpectroscopyDiffAmpTargetFreq(experiment):
         if echo:
             lpb_zz = lpb_zz + flip_both + lpb_zz + flip_both
 
-        # lpb = flip_sweep_lpb + c1s[1]['Xp'] + lpb_zz + c1s[1]['Ym'] + prims.ParallelLPB(mprims)
-
         lpb = c1s[1]['Ym'] * flip_sweep_lpb + lpb_zz + c1s[1]['Xm'] + prims.ParallelLPB(mprims)
 
         self.mp_control = mprims[0]
