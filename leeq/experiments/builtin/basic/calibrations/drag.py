@@ -330,7 +330,7 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
             stop_point = 1 / alpha + 0.006
 
             # Create an AllXY experiment instance.
-            allxy = CrossAllXYDragMultiSingleQubitMultilevel(
+            allxy = DragCalibrationSingleQubitMultilevel(
                 collection_name=collection_name,
                 mprim_index=mprim_index,
                 initial_lpb=initial_lpb,

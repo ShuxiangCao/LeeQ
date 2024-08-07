@@ -16,7 +16,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         'iz_target': 0,
         'echo': False,
         'phase_diff': 0,
-        'shape': 'soft_square',
+        'shape': 'blackman_square',
         'rise': 0.01,
         'trunc': 1.0,
         'width': 0.1,
