@@ -831,7 +831,7 @@ class StarkDriveRamseyTwoQubits(experiment):
         self.frequency = self.original_freq + self.stark_offset
 
         cs_pulse = c1s[0]['Xp'].clone()
-        cs_pulse.update_pulse_args(amp=amp, freq=self.frequency, phase=0., shape='soft_square', width=self.stop,
+        cs_pulse.update_pulse_args(amp=amp, freq=self.frequency, phase=0., shape='blackman_square', width=self.stop,
                                    rise=rise, trunc=trunc)
 
         lpb = prims.ParallelLPB([c1['Xp'] for c1 in c1s]) + cs_pulse + prims.ParallelLPB(

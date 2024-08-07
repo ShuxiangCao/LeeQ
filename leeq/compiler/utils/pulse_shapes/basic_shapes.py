@@ -15,6 +15,7 @@ __all__ = [
     "clk",
     "segment_by_time",
     "segment_by_index",
+    "blackman_square",
 ]
 
 
@@ -122,9 +123,9 @@ def gaussian(
     # Generate and return the Gaussian wave packet.
     # You may extend the function to incorporate it in the future.
     return (
-        amp
-        * np.exp(1.0j * phase)
-        * np.exp(-(((t - gauss_width) / gauss_width) ** 2)).astype("complex64")
+            amp
+            * np.exp(1.0j * phase)
+            * np.exp(-(((t - gauss_width) / gauss_width) ** 2)).astype("complex64")
     )
 
 
@@ -173,7 +174,7 @@ def gaussian_drag(
 
     # Compute the imaginary part using the derivative of the Gaussian
     shape.imag = shape.real * 2.0 * t / \
-        (2.0 * np.pi * alpha2) / gauss_width ** 2
+                 (2.0 * np.pi * alpha2) / gauss_width ** 2
 
     # Return the pulse shape, with applied amplitude and phase modulation
     return amp * np.exp(1.0j * phase) * shape
@@ -220,9 +221,9 @@ def blackman(
 
     # Update the real part of midshape based on the Blackman window formula
     midshape += 1 - (
-        a0
-        - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
-        + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
+            a0
+            - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
+            + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
     )
 
     # Return the scaled and phased shape
@@ -289,21 +290,80 @@ def blackman_drag(
 
     # Apply the Blackman function
     midshape += 1 - (
-        a0
-        - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
-        + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
+            a0
+            - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
+            + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
     )
 
     # Handle imaginary part with a DRAG correction term
     alpha2 = alpha * 2.0
     midshape.imag = -(
-        a1 * 2.0 * np.pi / width * np.sin((2.0 * np.pi * (t + width / 2.0)) / width)
-        - a2 * 4.0 * np.pi / width * np.sin(4.0 * np.pi * (t + width / 2.0) / width)
+            a1 * 2.0 * np.pi / width * np.sin((2.0 * np.pi * (t + width / 2.0)) / width)
+            - a2 * 4.0 * np.pi / width * np.sin(4.0 * np.pi * (t + width / 2.0) / width)
     ) / (2.0 * np.pi * alpha2)
 
     # Return the pulse shaped with phase and amplitude
     env = amp * np.exp(1.0j * phase) * shape
     return env
+
+
+def blackman_square(
+        sampling_rate: int,
+        amp: float = 1.0,
+        phase: float = 0.0,
+        width: float = 1.0,
+        trunc: float = 1.0,
+        rise: float = 0.02,
+) -> np.ndarray:
+    """
+    Generate a modified Blackman square window function.
+
+    Parameters:
+    - sampling_rate (int): The sampling rate in Megasamples per second.
+    - amp (float, optional): The amplitude of the window. Defaults to 1.0.
+    - phase (float, optional): The phase of the window. Defaults to 0.0.
+    - width (float, optional): The width of the window in microseconds. Defaults to 1.0.
+    - trunc (float, optional): Truncation of the window. Defaults to 1.0.
+    - rise (float, optional): Rise time of the signal. Defaults to 0.02.
+
+    Returns:
+    - np.ndarray: The complex-valued modified Blackman window function.
+    """
+
+    # Coefficients used in the Blackman window formula
+    a0 = 7938.0 / 18608.0
+    a1 = 9240.0 / 18608.0
+    a2 = 1430.0 / 18608.0
+
+    # Obtain the timebase
+    t = get_t_list(sampling_rate, width)
+    t_rise = get_t_list(sampling_rate, rise)
+    x_rise = get_t_list(sampling_rate, rise * trunc)
+
+    # Calculate the offset for centering the Blackman window
+    offset = (len(x_rise) - len(t_rise)) // 2
+
+    # Initialize a complex array for shape
+    shape = np.zeros(shape=x_rise.shape, dtype="cfloat")
+
+    # Create a midshape slice for modification
+    midshape = shape[offset: offset + len(t_rise)]
+
+    # Update the real part of midshape based on the Blackman window formula
+    midshape += 1 - (
+            a0
+            - a1 * np.cos((2.0 * np.pi * (t_rise + rise / 2.0)) / rise, dtype="cfloat")
+            + a2 * np.cos(4.0 * np.pi * (t_rise + rise / 2.0) / rise, dtype="cfloat")
+    )
+
+    flat_top = np.ones(shape=t.shape, dtype="cfloat")
+
+    half_rise = int(len(shape) / 2)
+    final_shape = np.concatenate([shape[:half_rise],flat_top , shape[half_rise:]])
+
+    # Return the scaled and phased shape
+    final_shape= amp * np.exp(1.0j * phase) * final_shape
+    return final_shape
 
 
 def soft_square(
@@ -315,7 +375,7 @@ def soft_square(
         trunc: Optional[float] = 1,
         delay: float = 0.0,
         phase_shift: float = 0,
-        ex_delay: float = 0.1,
+        ex_delay: float = 0.0,
 ) -> np.ndarray:
     """
     Generate a soft square wave.
@@ -335,6 +395,8 @@ def soft_square(
     - np.ndarray: Generated soft square wave.
     """
 
+    assert ex_delay == 0, "Extra delay is not supported for soft square wave."
+
     full_width = width + 2. * rise * trunc + ex_delay
     t = get_t_list(sampling_rate, full_width + delay)
 
@@ -344,7 +406,6 @@ def soft_square(
     part_2 = np.tanh((t - 0.5 * width - full_width / 2) / rise)
 
     y = amp * np.exp(1.0j * (phase + phase_shift)) * 0.5 * (part_1 - part_2)
-
 
     if ex_delay > 0:
         extra_delay_y = get_t_list(sampling_rate, delay)
