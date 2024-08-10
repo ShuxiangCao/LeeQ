@@ -40,6 +40,7 @@ Inspect the plot to detect the resonator's presence. If present:
    a. Focus on the expected resonator region.
    b. Reduce the step size for better accuracy.
 3. If linewidth < 0.1 MHz, it's likely not a resonator; move on.
+4. If there are reports from the inspection of the plot and it indicate there is no resonator, believe it and drop the fitting results.
 The experiment is considered successful if a resonator is detected. Otherwise, it is considered unsuccessful and suggest
 a new sweeping range and step size.
     """
