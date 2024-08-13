@@ -203,18 +203,12 @@ class QubiCCircuitSetup(ExperimentalSetup):
         """
         Validate the qubic installation by importing the packages.
         """
-        try:
             # QubiC toolchain for compiling circuits
-            import qubic.toolchain as tc
+        import qubic.toolchain as tc
 
             # QubiC configuration management libraries
-            import qubitconfig.qchip as qc
-            from distproc.hwconfig import FPGAConfig, load_channel_configs, ChannelConfig
-
-        except ImportError:
-            raise ImportError(
-                "Importing QubiC toolchain failed. Please install the QubiC toolchain first."
-                " Refer to https://gitlab.com/LBL-QubiC")
+        import qubitconfig.qchip as qc
+        from distproc.hwconfig import FPGAConfig, load_channel_configs, ChannelConfig
 
         return tc, qc, FPGAConfig, load_channel_configs, ChannelConfig
 
