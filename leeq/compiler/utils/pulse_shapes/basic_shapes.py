@@ -314,6 +314,7 @@ def blackman_square(
         width: float = 1.0,
         trunc: float = 1.0,
         rise: float = 0.02,
+        alpha: float = 1e9,  # 1e9 basically means no drag correction
 ) -> np.ndarray:
     """
     Generate a modified Blackman square window function.
@@ -325,10 +326,14 @@ def blackman_square(
     - width (float, optional): The width of the window in microseconds. Defaults to 1.0.
     - trunc (float, optional): Truncation of the window. Defaults to 1.0.
     - rise (float, optional): Rise time of the signal. Defaults to 0.02.
+    - alpha (float, optional): An alpha parameter for the DRAG pulse. Defaults to 1e9.
 
     Returns:
     - np.ndarray: The complex-valued modified Blackman window function.
     """
+
+    if rise == 0:
+        return square(sampling_rate=sampling_rate, amp=amp, width=width, phase=phase)
 
     # Coefficients used in the Blackman window formula
     a0 = 7938.0 / 18608.0
@@ -337,8 +342,8 @@ def blackman_square(
 
     # Obtain the timebase
     t = get_t_list(sampling_rate, width)
-    t_rise = get_t_list(sampling_rate, rise)
-    x_rise = get_t_list(sampling_rate, rise * trunc)
+    t_rise = get_t_list(sampling_rate, rise * 2)
+    x_rise = get_t_list(sampling_rate, rise * trunc * 2)
 
     # Calculate the offset for centering the Blackman window
     offset = (len(x_rise) - len(t_rise)) // 2
@@ -349,20 +354,17 @@ def blackman_square(
     # Create a midshape slice for modification
     midshape = shape[offset: offset + len(t_rise)]
 
-    # Update the real part of midshape based on the Blackman window formula
-    midshape += 1 - (
-            a0
-            - a1 * np.cos((2.0 * np.pi * (t_rise + rise / 2.0)) / rise, dtype="cfloat")
-            + a2 * np.cos(4.0 * np.pi * (t_rise + rise / 2.0) / rise, dtype="cfloat")
-    )
+    shape[offset: offset + len(t_rise)] = blackman_drag(sampling_rate=sampling_rate, amp=1, phase=0, width=rise * 2,
+                                                        alpha=alpha, trunc=trunc)
 
     flat_top = np.ones(shape=t.shape, dtype="cfloat")
 
     half_rise = int(len(shape) / 2)
-    final_shape = np.concatenate([shape[:half_rise],flat_top , shape[half_rise:]])
+    final_shape = np.concatenate([shape[:half_rise], flat_top, shape[half_rise:]])
 
     # Return the scaled and phased shape
-    final_shape= amp * np.exp(1.0j * phase) * final_shape
+    final_shape = amp * np.exp(1.0j * phase) * final_shape
+
     return final_shape
 
 
@@ -396,6 +398,9 @@ def soft_square(
     """
 
     assert ex_delay == 0, "Extra delay is not supported for soft square wave."
+
+    if rise == 0:
+        return square(sampling_rate=sampling_rate, amp=amp, width=width, phase=phase, delay=delay)
 
     full_width = width + 2. * rise * trunc + ex_delay
     t = get_t_list(sampling_rate, full_width + delay)
