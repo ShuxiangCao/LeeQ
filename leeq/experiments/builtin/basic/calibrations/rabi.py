@@ -200,7 +200,13 @@ class NormalisedRabi(Experiment):
 
         self.data = (2 * self.data - 1)
 
-        self.data = np.clip(self.data * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
+        random_noise_factor = 1 + np.random.normal(
+            0, standard_deviation, self.data.shape)
+
+        random_noise_sum = np.random.normal(
+            0, standard_deviation/2, self.data.shape)
+
+        self.data = np.clip(self.data * (0.5 - quiescent_state_distribution[0]) * 2 * random_noise_factor + random_noise_sum, -1, 1)
 
         # Fit data to a sinusoidal function and return the fit parameters
         self.fit_params = fits.fit_sinusoidal(self.data, time_step=step)
@@ -221,10 +227,8 @@ class NormalisedRabi(Experiment):
     Here is a plot of data from a quantum mechanics experiment involving Rabi oscillations. Can you analyze whether 
         this plot shows a successful experiment or a failed one? Please consider the following aspects in your analysis:
     1. Clarity of Oscillation: Describe if the data points show a clear, regular oscillatory pattern.
-    2. Fit Quality: Evaluate whether the fit line closely follows the data points throughout the plot.
-    3. Data Spread: Assess if the data points are tightly clustered around the fit line or if they are widely dispersed.
-    4. Amplitude and Frequency: Note any inconsistencies in the amplitude and frequency of the oscillations.
-    5. Overall Pattern: Provide a general assessment of the plot based on the typical characteristics of successful
+    2. Amplitude and Frequency: Note any inconsistencies in the amplitude and frequency of the oscillations.
+    3. Overall Pattern: Provide a general assessment of the plot based on the typical characteristics of successful
         Rabi oscillation experiments.
     """)
     def plot(self) -> go.Figure:

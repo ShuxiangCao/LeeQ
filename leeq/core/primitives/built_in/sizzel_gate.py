@@ -20,6 +20,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         'rise': 0.01,
         'trunc': 1.0,
         'width': 0.1,
+        'alpha': 0.05,
         'zz_interaction_positive': True
     }
 

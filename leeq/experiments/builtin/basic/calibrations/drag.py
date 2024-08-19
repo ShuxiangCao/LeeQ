@@ -23,15 +23,16 @@ class DragCalibrationSingleQubitMultilevel(Experiment):
     """
     Class for running a single AllXY drag experiment on a single qubit with a multilevel system.
     """
-    _experiment_result_analysis_instructions = """This experiment aims to calibrate the alpha parameter (DRAG coefficient) by conducting an AllXY DRAG experiment.
-    The experiment will be deemed unsuccessful and will require a retry with the same parameter under the following
-    conditions: if the two differently colored lines do not show distinct trends, or if the line fitting is deemed
-    inappropriate. Additionally, if the predicted optimal DRAG coefficient does not fall within the central half of the
-    sweep, the experiment should conclude *failed* and  be repeated with adjustments to center it around the predicted
-    optimal DRAG coefficient. Conversely, the experiment is considered successful if the two differently colored lines 
-    demonstrate distinct trends, the line fitting is appropriate, and the predicted optimal DRAG coefficient is within
-    the central half of the sweep. For recommending the new sweep range, the experiment should be centered around the
-    predicted optimal DRAG coefficient, and the span should be kept the same.
+    _experiment_result_analysis_instructions = """
+Calibrate the DRAG coefficient (alpha) using an AllXY DRAG experiment. The experiment is successful if:
+1. Two differently colored lines show distinct trends
+2. Line fitting is appropriate, by checking the residuals of the data points.
+3. Predicted optimal DRAG coefficient is within the central half of the sweep
+If any of these conditions are not met, the experiment fails. For failed experiments:
+- Retry with the same parameters if conditions 1 or 2 are not met
+- Adjust and repeat if condition 3 is not met, centering the sweep around the predicted optimal coefficient
+For successful experiments, recommend a new sweep range centered on the predicted optimal coefficient, maintaining the same span.
+If success cannot be determined, consider the experiment failed.
     """
 
     @log_and_record
@@ -211,29 +212,52 @@ class DragCalibrationSingleQubitMultilevel(Experiment):
         random_noise_factor = 1 + np.random.normal(
             0, standard_deviation, self.result.shape)
 
-        self.result = np.clip(self.result * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
+        random_noise_sum = np.random.normal(
+            0, standard_deviation / 2, self.result.shape)
+
+        self.result = np.clip(
+            self.result * (0.5 - quiescent_state_distribution[0]) * 2 * random_noise_factor + random_noise_sum, -1, 1)
 
     def linear_fit(self):
         self.fit_xp = np.polyfit(self.sweep_values, self.result[:, 0], deg=1)
         self.fit_xm = np.polyfit(self.sweep_values, self.result[:, 1], deg=1)
         self.optimum = (self.fit_xp[0] - self.fit_xm[0]) / \
                        (self.fit_xm[1] - self.fit_xp[1])
+        self.residual_xp_avg = np.mean(
+            (self.result[:, 0] - (self.fit_xp[0] * self.sweep_values + self.fit_xp[1])) ** 2)
+        self.residual_xm_avg = np.mean(
+            (self.result[:, 1] - (self.fit_xm[0] * self.sweep_values + self.fit_xm[1])) ** 2)
 
     @register_browser_function()
-    @visual_analyze_prompt("Please carefully review the attached scatter plot, which features two sets of data points,"
-                           " one in blue and the other in red, each with a corresponding trend line. First, analyze the"
-                           " direction of the slopes for each trend line to understand the relationship between the DRAG"
-                           " coefficient (horizontal axis) and the Z expectation value (vertical axis). Examine how well"
-                           " the data points conform to their respective lines, noting any significant deviations, outliers,"
-                           "or consistent patterns in their distribution around the lines. Furthermore, evaluate the"
-                           " consistency in the distribution of data points along the DRAG coefficient range for both"
-                           " datasets. Based on your observations, determine whether each trend line accurately"
-                           " represents its dataset and if there are notable differences in the trends between the two"
-                           " sets of data. The analysis is deemed successful if the two differently colored lines exhibit"
-                           " distinct trends and the line fitting appears appropriate. For a successful experiment you should"
-                           " observe two lines cross at the center of the plot. If you have not observe it please mark the"
-                           "experiment as failed and provide the new range for the sweep."
-                           )
+    @visual_analyze_prompt(
+        """Analyze the scatter plot with blue and red data points and trend lines:
+            1.Compare the slopes of the trend lines.
+            2.Assess how well data points fit their trend lines, noting outliers or patterns.
+            3.Evaluate data point distribution along the DRAG coefficient axis.
+            4.Determine if trend lines accurately represent their datasets.
+            5.Compare trends between the two datasets.
+            6.Estimate the fitting residuals.
+        Success criteria:
+            1.Distinct trends for each color
+            2.Appropriate line fitting, with the blue and red lines has significant difference in distribution.
+            3.Lines intersect near the plot's center region, small shifts away from the center is acceptable.
+            4. Residuals are within acceptable range.
+        If criteria aren't met, mark the experiment as failed and suggest a new range for the sweep."""
+    )
+    # @visual_analyze_prompt("Please carefully review the attached scatter plot, which features two sets of data points,"
+    #                       " one in blue and the other in red, each with a corresponding trend line. First, analyze the"
+    #                       " direction of the slopes for each trend line to understand the relationship between the DRAG"
+    #                       " coefficient (horizontal axis) and the Z expectation value (vertical axis). Examine how well"
+    #                       " the data points conform to their respective lines, noting any significant deviations, outliers,"
+    #                       "or consistent patterns in their distribution around the lines. Furthermore, evaluate the"
+    #                       " consistency in the distribution of data points along the DRAG coefficient range for both"
+    #                       " datasets. Based on your observations, determine whether each trend line accurately"
+    #                       " represents its dataset and if there are notable differences in the trends between the two"
+    #                       " sets of data. The analysis is deemed successful if the two differently colored lines exhibit"
+    #                       " distinct trends and the line fitting appears appropriate. For a successful experiment you should"
+    #                       " observe two lines cross roughly at the center region of the plot. If you have not observe it"
+    #                       " please mark the experiment as failed and provide the new range for the sweep."
+    #                       )
     def plot(self):
         self.linear_fit()
         fig = plt.figure()
@@ -277,6 +301,9 @@ class DragCalibrationSingleQubitMultilevel(Experiment):
             fitting_results += "The estimated optimal DRAG coefficient falls within the central half of the sweep.\n"
         else:
             fitting_results += "The estimated optimal DRAG coefficient does not fall within the central half of the sweep.\n"
+
+        fitting_results += f"Residual average for Xp: {self.residual_xp_avg}\n" \
+                           f"Residual average for Xm: {self.residual_xm_avg}\n"
 
         return fitting_parameters + fitting_results
 

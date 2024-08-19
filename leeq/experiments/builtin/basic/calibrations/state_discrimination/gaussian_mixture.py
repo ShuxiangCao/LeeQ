@@ -674,7 +674,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
 
         return fig
 
-    @register_browser_function(available_after=(run,))
+    # @register_browser_function(available_after=(run,))
     @visual_analyze_prompt("""
         You are inspecting a plot of collected signal data and determine if the experiment is successful. 
         You should observe a spherical distribution on each of the subplot on the left and right. They should be 
@@ -846,18 +846,20 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         if self.result is None:
             return go.Figure()
 
-    # @register_browser_function(available_after=(run,))
-    # @visual_analyze_prompt("""
-    # You are inspecting a plot of collected signal data and determine if the experiment is successful.
-    # The signal represents two hidden state of the system, and each hidden state will generate a 2D gaussian
-    # distribution results in a spherical blobs.
-    # Identify Clusters: You supposed to observe two spherical distributions in the cluster. They may be partially
-    # overlaped and looks like a single elliptical distribution. In this case treat them as two distributions.
-    #  Check if you can observe these two distributions?
-    # Note that if you see non-spherical distribution that cannot be compsoed from two spherical distributions,
-    # or less or more than two distributions, the experiment is considered failed. Otherwise it is success.
-    # """)
-    def plot_hexbin(self,result_data=None)->'matplotlib.figure.Figure':
+    @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt("""
+Analyze a plot of collected signal data to determine experiment success:
+1. Identify clusters: The signal represents hidden system states, with each state generating a 2D Gaussian distribution (spherical blobs).
+2. Count and evaluate distributions:
+   - Treat partially overlapped clusters with two visible density centers as separate distributions.
+   - Consider elliptical distributions with only one visible density center as a single distribution.
+   - Compare densities of observed distributions.
+   - If three or more distributions are present, but only two have major density, consider only the two high-density distributions and ignore the low-density ones.
+3. Experiment outcome:
+   - Success: Exactly two major distributions observed (after accounting for density).
+   - Failure: Any other outcome (e.g., one distribution, or more than two major distributions).
+   """)
+    def plot_hexbin(self, result_data=None) -> 'matplotlib.figure.Figure':
         """
         Plot the IQ data with the fitted Gaussian Mixture Model using hexbin.
 

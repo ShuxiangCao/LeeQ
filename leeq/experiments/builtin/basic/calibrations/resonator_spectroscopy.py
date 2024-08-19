@@ -26,6 +26,7 @@ __all__ = [
     'ResonatorSweepTransmissionXiComparison'
 ]
 
+
 class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
     """
     Class representing a resonator sweep transmission experiment with extra initial LPB.
@@ -33,13 +34,14 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
     """
 
     _experiment_result_analysis_instructions = """
-The plot inspection is to determine if the resonator is present in the data, and the fitting is to find the resonance
-using a predefined model to provide a more accurate result. The resonator linewidth is usually sub MHz to a few MHz.   
-The fitting can be inaccurate if the step size is much larger than the linewidth.
-If we are using a large step size, and the inspection suggests that the resonator is present, we can try to focus on the
-region where the resonator is expected to be and reduce the step size to get a more accurate result. However if the linewidth  
-is too narrow, sub 0.1 MHz, then it is usually not an resonator and the experiment should move on. When the fitted result is
-trusted, then do not include the value from figure inspection.
+Inspect the plot to detect the resonator's presence. If present:
+1. Consider the resonator linewidth (typically sub-MHz to a few MHz).
+2. If the step size is much larger than the linewidth:
+   a. Focus on the expected resonator region.
+   b. Reduce the step size for better accuracy.
+3. If linewidth < 0.1 MHz, it's likely not a resonator; move on.
+The experiment is considered successful if a resonator is detected. Otherwise, it is considered unsuccessful and suggest
+a new sweeping range and step size.
     """
 
     @log_and_record
@@ -368,11 +370,12 @@ trusted, then do not include the value from figure inspection.
 
     @register_browser_function(available_after=(run,))
     @visual_analyze_prompt("""
-     I have a new resonator spectroscopy magnitude plot, and I need to determine if it shows evidence of a resonator.
-     Can you analyze the plot and tell me if there are any sharp dips or peaks at certain frequencies which would
-     typically indicate a resonator? Please focuse on the stability of the signal, the presence of noise, and the
-     specific behavior around suspected resonant frequencies. Provide a detailed analysis of the magnitude and
-     frequency data shown in the plot.
+Analyze a new resonator spectroscopy magnitude plot to determine if it shows evidence of a resonator. Focus on:
+1. Sharp dips or peaks at specific frequencies
+2. Signal stability
+3. Noise levels
+4. Behavior around suspected resonant frequencies
+Provide a detailed analysis of the magnitude and frequency data. Identifying a resonator indicates a successful experiment.
     """)
     def plot_magnitude(self):
         args = self.retrieve_args(self.run)
@@ -492,7 +495,8 @@ trusted, then do not include the value from figure inspection.
             return f"The experiment has an error fitting phase gradient: {e}"
 
         return ("The fitting suggest that the resonant frequency is at %f MHz, "
-                "with a quality factor of %f (resonator linewidth kappa of %f MHz), an amplitude of %f, and a baseline of %f.") % (f0, Q,f0/Q, amp, baseline)
+                "with a quality factor of %f (resonator linewidth kappa of %f MHz), an amplitude of %f, and a baseline of %f.") % (
+            f0, Q, f0 / Q, amp, baseline)
 
 
 class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):

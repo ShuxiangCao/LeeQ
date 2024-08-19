@@ -53,6 +53,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
         self._channel_configs = channel_configs
         self._qubic_core_number = qubic_core_number
         self._leeq_channel_to_qubic_channel = leeq_channel_to_qubic_channel
+        self._qubic_channel_to_leeq_channel = None
 
         self._build_qubic_config()
 
@@ -78,8 +79,6 @@ class QubiCCircuitSetup(ExperimentalSetup):
         self._measurement_results: List[MeasurementResult] = []
 
         self._result = None
-        self._core_to_channel_map = self._build_core_id_to_qubic_channel(
-            self._channel_configs)
 
         super().__init__(name)
 
@@ -109,26 +108,11 @@ class QubiCCircuitSetup(ExperimentalSetup):
             self._leeq_channel_to_qubic_channel, self._channel_configs = self._build_default_channel_config(
                 core_number=self._qubic_core_number)
 
+        self._qubic_channel_to_leeq_channel = dict(
+            [(val, key) for key, val in self._leeq_channel_to_qubic_channel.items()])
+
         if isinstance(self._channel_configs, dict):
             self._channel_configs = load_channel_configs(self._channel_configs)
-
-    @staticmethod
-    def _build_core_id_to_qubic_channel(configs):
-        """
-        Find the map from core id to qubic channel, for assigning readout result.
-        """
-
-        core_to_channel_map = {}
-
-        for name, config in configs.items():
-            if 'rdlo' not in name:
-                continue
-
-            qubic_channel_name = name.split('.')[0]
-            core_ind = config.core_ind
-            core_to_channel_map[core_ind] = qubic_channel_name
-
-        return core_to_channel_map
 
     @staticmethod
     def _build_default_channel_config(core_number: int = 8):
@@ -140,10 +124,11 @@ class QubiCCircuitSetup(ExperimentalSetup):
             ".qdrv": {
                 "core_ind": 7,
                 "elem_ind": 0,
+                "elem_type": "rf",
                 "elem_params": {
                     "samples_per_clk": 16,
-                    "interp_ratio": 1
-                    # "interp_ratio": 4
+                    # "interp_ratio": 1
+                    "interp_ratio": 4
                 },
                 "env_mem_name": "qdrvenv{core_ind}",
                 "freq_mem_name": "qdrvfreq{core_ind}",
@@ -153,6 +138,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
             ".rdrv": {
                 "core_ind": 7,
                 "elem_ind": 1,
+                "elem_type": "rf",
                 "elem_params": {
                     "samples_per_clk": 16,
                     "interp_ratio": 16
@@ -165,6 +151,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
             ".rdlo": {
                 "core_ind": 7,
                 "elem_ind": 2,
+                "elem_type": "rf",
                 "elem_params": {
                     "samples_per_clk": 4,
                     "interp_ratio": 4
@@ -203,18 +190,12 @@ class QubiCCircuitSetup(ExperimentalSetup):
         """
         Validate the qubic installation by importing the packages.
         """
-        try:
             # QubiC toolchain for compiling circuits
-            import qubic.toolchain as tc
+        import qubic.toolchain as tc
 
             # QubiC configuration management libraries
-            import qubitconfig.qchip as qc
-            from distproc.hwconfig import FPGAConfig, load_channel_configs, ChannelConfig
-
-        except ImportError:
-            raise ImportError(
-                "Importing QubiC toolchain failed. Please install the QubiC toolchain first."
-                " Refer to https://gitlab.com/LBL-QubiC")
+        import qubitconfig.qchip as qc
+        from distproc.hwconfig import FPGAConfig, load_channel_configs, ChannelConfig
 
         return tc, qc, FPGAConfig, load_channel_configs, ChannelConfig
 
@@ -382,34 +363,21 @@ class QubiCCircuitSetup(ExperimentalSetup):
         )
 
         if acquisition_type == "IQ" or acquisition_type == "IQ_average":
+
             while True:
                 try:
-                    self._runner.load_circuit(
-                        rawasm=asm_prog,
-                        # if True, (default), zero out all cmd buffers before loading
-                        # circuit
-                        zero=zero,
-                        # load command buffers when the circuit or parameters (amp or
-                        # phase) has changed.
-                        load_commands=load_commands,
-                        # load frequency buffers when frequency changed.
-                        load_freqs=load_freqs,
-                        # load envelope buffers when envelope changed.
-                        load_envs=load_envs
-                    )
+                    self._result = self._runner.run_circuit_batch(executables=[asm_prog],
+                                                                  n_total_shots=n_total_shots,
+                                                                  # timeout_per_shot,
+                                                                  reload_cmd=load_commands,
+                                                                  reload_freq=load_freqs,
+                                                                  reload_env=load_envs,
+                                                                  zero_between_reload=zero)
                     break
                 except CannotSendRequest as e:
                     logger.warning(f"Http request cannot be sent. Retrying...{e}")
                     continue
 
-            self._result = self._runner.run_circuit(
-                n_total_shots=n_total_shots,
-                reads_per_shot=1 * batch_size,
-                # Number of values per shot per channel to read back from accbuf.
-                # Unless there is mid-circuit measurement involved this is typically 1
-                # TODO: add support for mid-circuit measurement
-                # delay_per_shot=0,  # Not used and not functioning
-            )
         elif acquisition_type == "traces":
 
             measure_start_time, measurement_length, channel_demodulation_config = (
@@ -617,15 +585,20 @@ class QubiCCircuitSetup(ExperimentalSetup):
             context.results = []
 
         acquisition_type = self._status.get_parameters("Acquisition_Type")
-        for core_ind, data in self._result.items():
-            qubic_channel = self._core_to_channel_map[int(core_ind)]
+        for channel_name, data in self._result.items():
 
+            if '.rdrv' not in channel_name:
+                continue
+
+            qubic_channel = channel_name.split('.')[0]
             if qubic_channel not in qubic_channel_to_lpb_uuid:
                 # Sometimes qubic returns default data from the board, which we
                 # are not measuring
                 continue
 
             mprim_uuid = qubic_channel_to_lpb_uuid[qubic_channel]
+
+            data = data[0, :, :]  # We only take the outcome of the first circuit from the batch
 
             for i in range(len(contexts)):
                 context = contexts[i]

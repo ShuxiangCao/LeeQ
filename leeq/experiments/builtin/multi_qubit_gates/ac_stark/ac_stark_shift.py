@@ -1,6 +1,10 @@
 # Conditional AC stark shift induced CZ gate
 
 from datetime import datetime
+
+import numpy as np
+
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockSweep
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
 
@@ -13,7 +17,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from labchronicle import log_and_record, register_browser_function
-from leeq import Experiment, Sweeper, basic_run
+from leeq import Experiment, Sweeper, basic_run, SweepParametersSideEffectFactory
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.utils.compatibility import *
 
@@ -172,6 +176,7 @@ class StarkSingleQubitT1(experiment):
             print(f"Optimization warning or error: {e}")
             return {'Amplitude': (np.nan, np.nan), 'Decay': (np.nan, np.nan), 'Offset': (np.nan, np.nan)}
 
+
 class StarkTwoQubitsSWAP(experiment):
     # Perform a Stark Shifted T1 experiment on one qubit while also measuring another
     @log_and_record
@@ -269,6 +274,7 @@ class StarkTwoQubitsSWAP(experiment):
         axs[2].legend()
 
         fig.tight_layout()
+        return fig
         # plt.show()
 
     def fit_exp_decay_with_cov(self, trace, time_resolution):
@@ -964,7 +970,7 @@ class StarkDriveRamseyTwoQubits(experiment):
             yaxis_title='Strength',
             plot_bgcolor="white"
         )
-        # return fig
+        return fig
 
     def get_analyzed_result_prompt(self) -> str:
         self.analyze_data()
@@ -1163,7 +1169,7 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
             yaxis_title='Strength',
             plot_bgcolor="white"
         )
-        # return fig
+        return fig
 
     def get_analyzed_result_prompt(self) -> str:
         self.analyze_data()
@@ -1379,6 +1385,7 @@ class StarkDriveRamseyMultiQubits(experiment):
                 result_str += f"The Ramsey experiment failed to fit the data for trace {i}.\n"
         return result_str
 
+
 class StarkZZShiftTwoQubitMultilevel(Experiment):
     """Class to compute ZZ Shift for Two Qubit Multilevel system."""
 
@@ -1485,3 +1492,212 @@ class StarkZZShiftTwoQubitMultilevel(Experiment):
         ]
 
         setup().status().set_param("Plot_Result_In_Jupyter", plot_result_in_jupyter)
+
+
+class StarkRepeatedGateRabi(Experiment):
+
+    @log_and_record
+    def run(self, dut, amp, frequency, phase=0, rise=0.01, trunc=1.0, width=0, start_gate_number=0, gate_count=40,
+            initial_lpb=None):
+        """
+        Sweep time and find the initial guess of amplitude
+
+        :return:
+        """
+        self.dut = dut
+        self.frequency = frequency
+        self.amp = amp
+        self.phase = phase
+        self.width = width
+        self.rise = rise
+        self.trunc = trunc
+        self.start_gate_number = start_gate_number
+        self.gate_count = gate_count
+
+        pulse_count = np.arange(start_gate_number, start_gate_number + gate_count, 1)
+
+        c1 = self.dut.get_default_c1()
+
+        pulse = c1['X'].clone()
+        pulse.update_pulse_args(
+            amp=self.amp, freq=self.frequency, phase=self.phase, shape='blackman_square', width=self.width,
+            rise=self.rise, trunc=self.trunc)
+
+        lpb = pulse
+
+        sequence_lpb = []
+        mprim = self.dut.get_measurement_prim_intlist(0)
+
+        for n in pulse_count:
+            sequence = LogicalPrimitiveBlockSerial([pulse] * (n) + [mprim])
+            sequence_lpb.append(sequence)
+
+        lpb = LogicalPrimitiveBlockSweep(sequence_lpb)
+        swp = sweeper.from_sweep_lpb(lpb)
+
+        if initial_lpb is not None:
+            lpb = initial_lpb + pulse
+
+        basic(lpb, swp=swp, basis="<z>")
+
+        self.result = np.squeeze(mprim.result())
+
+    @register_browser_function(available_after=(run,))
+    def plot(self):
+        """
+        Plot the results.
+        """
+        args = self.retrieve_args(self.run)
+
+        t = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1)
+
+        data = self.result.squeeze()
+
+        plt.scatter(t, data)
+        plt.xlabel('Number of pulses')
+        plt.ylabel('<z>')
+
+        return plt.gcf()
+
+
+class StarkContinuesRabi(Experiment):
+
+    @log_and_record
+    def run(self, dut, amp, frequency, phase=0, rise=0.01, trunc=1.0, width_start=0, width_stop=4, width_step=0.01,
+            initial_lpb=None):
+        """
+        Sweep time and find the initial guess of amplitude
+
+        :return:
+        """
+        self.dut = dut
+        self.frequency = frequency
+        self.amp = amp
+        self.phase = phase
+        self.rise = rise
+        self.trunc = trunc
+        self.width_start = width_start
+        self.width_stop = width_stop
+        self.width_step = width_step
+
+        c1 = self.dut.get_default_c1()
+
+        pulse = c1['X'].clone()
+        pulse.update_pulse_args(
+            amp=self.amp, freq=self.frequency, phase=self.phase, shape='blackman_square', width=0,
+            rise=self.rise, trunc=self.trunc)
+
+        mprim = self.dut.get_measurement_prim_intlist(0)
+
+        # Set up sweep parameters
+        swpparams = [SweepParametersSideEffectFactory.func(
+            pulse.update_pulse_args, {}, 'width'
+        )]
+        swp = Sweeper(
+            np.arange,
+            n_kwargs={'start': width_start, 'stop': width_stop, 'step': width_step},
+            params=swpparams
+        )
+
+        if initial_lpb is not None:
+            lpb = initial_lpb + pulse
+
+        basic(pulse + mprim, swp=swp, basis="<z>")
+
+        self.result = np.squeeze(mprim.result())
+
+    @register_browser_function(available_after=(run,))
+    def plot(self):
+        """
+        Plot the results.
+        """
+        args = self.retrieve_args(self.run)
+
+        t = np.arange(args['width_start'], args['width_stop'], args['width_step'])
+
+        data = self.result.squeeze()
+
+        plt.scatter(t, data)
+        plt.xlabel('Width [us]')
+        plt.ylabel('<z>')
+
+        return plt.gcf()
+
+
+class StarkRepeatedGateDRAGLeakageCalibration(Experiment):
+
+    @log_and_record
+    def run(self, dut, amp, frequency, phase=0, rise=0.01, trunc=1.0, width=0.1, gate_count=40, initial_lpb=None,
+            inv_alpha_start=None, inv_alpha_stop=None, sweep_count=20):
+        """
+        Sweep time and find the initial guess of amplitude
+
+        :return:
+        """
+        self.dut = dut
+        self.frequency = frequency
+        self.amp = amp
+        self.phase = phase
+        self.width = width
+        self.rise = rise
+        self.trunc = trunc
+        self.gate_count = gate_count
+
+        c1 = self.dut.get_default_c1()
+
+        pulse = c1['X'].clone()
+
+        alpha = pulse.alpha
+        print('alpha',alpha)
+
+        if inv_alpha_start is None:
+            inv_alpha_start = 1 / alpha - 0.006
+        if inv_alpha_stop is None:
+            inv_alpha_stop = 1 / alpha + 0.006
+
+        def update_alpha(n):
+            return pulse.update_parameters(alpha=1 / n)
+
+        # Create a sweeper for the alpha parameter.
+        self.sweep_values = np.linspace(inv_alpha_start, inv_alpha_stop, num=sweep_count)
+        swp = Sweeper(
+            self.sweep_values,
+            params=[
+                SweepParametersSideEffectFactory.func(
+                    update_alpha,
+                    argument_name='n',
+                    kwargs={})])
+
+        pulse.update_pulse_args(
+            amp=self.amp, freq=self.frequency, phase=self.phase, shape='blackman_square', width=self.width,
+            rise=self.rise, trunc=self.trunc)
+
+        lpb = pulse
+
+        mprim = self.dut.get_measurement_prim_intlist(0)
+
+        sequence = LogicalPrimitiveBlockSerial([pulse] * (gate_count) + [mprim])
+
+        if initial_lpb is not None:
+            lpb = initial_lpb + sequence
+
+        basic(lpb+mprim, swp=swp, basis="<z>")
+
+        self.result = np.squeeze(mprim.result())
+
+    @register_browser_function(available_after=(run,))
+    def plot(self):
+        """
+        Plot the results.
+        """
+        args = self.retrieve_args(self.run)
+
+        inv_alpha = self.sweep_values
+
+        data = self.result.squeeze()
+
+        plt.scatter(inv_alpha, data)
+        plt.xlabel('Number of pulses')
+        plt.ylabel('<z>')
+
+        return plt.gcf()
