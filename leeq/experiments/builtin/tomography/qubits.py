@@ -1,3 +1,5 @@
+from typing import List, Any, Union
+
 from labchronicle import log_and_record
 from leeq.utils.compatibility import prims
 from .base import GeneralisedTomographyBase, GeneralisedSingleDutStateTomography, GeneralisedStateTomography, \
@@ -45,17 +47,60 @@ class SingleQubitStateTomography(GeneralisedSingleDutStateTomography):
 
 
 class MultiQubitsStateTomography(GeneralisedStateTomography, QubitTomographyBase):
+    _experiment_result_analysis_instructions = """
+    The result of the experiment is the density matrix of the quantum state. Check if the density matrix has been reported.
+    by data analysis.
+    """
+
     @log_and_record
-    def run(self, duts, mprim_index=0, initial_lpb=None, extra_measurement_duts=None, measurement_mitigation=None):
+    def run(self, duts: List[Any], mprim_index: Union[int, str] = 0, initial_lpb: 'LogicalPrimitiveBlock' = None,
+            extra_measurement_duts: List[Any] = None,
+            measurement_mitigation: Union[None, 'CalibrateFullAssignmentMatrices', bool] = None):
+        """
+        Experiment for multi-qubit state tomography.
+
+        Parameters
+        ----------
+        duts : List[Any]
+            List of DUTs to be characterized.
+        mprim_index : Union[int, str]
+            Measurement primitive index. For qubit, default is 0.
+        initial_lpb : LogicalPrimitiveBlock
+            Initial logical primitive block to prepare the quantum state for characterization.
+        extra_measurement_duts : List[Any]
+            List of DUTs to be used for extra measurements.
+        measurement_mitigation : Union[None, 'CalibrateFullAssignmentMatrices', bool]
+            Measurement mitigation. If True, use the default calibration. If None, no calibration. If an instance of
+            CalibrateFullAssignmentMatrices, use the instance for calibration.
+
+        Example:
+        --------
+        >>> # Run two-qubit state tomography of a bell pair.
+        >>> from leeq.experiments.builtin import MultiQubitsStateTomography
+        >>> c1 = dut_q1.get_c1('f01') # assuming the initialized qubits are dut_q1 and dut q2.
+        >>> lpb = c1.hadamard() + c2_q1q2.get_cnot() # c2 is the two qubit collection which is initialized in advance.
+        >>> tomo = MultiQubitsStateTomography(duts=[dut_q1,dut_q2],initial_lpb=lpb,measurement_mitigation=True)
+        """
         from leeq.theory.tomography import MultiQubitModel
         model = MultiQubitModel(len(duts))
-        super().run(duts, model, mprim_index, initial_lpb, extra_measurement_duts,measurement_mitigation=measurement_mitigation)
+        super().run(duts, model, mprim_index, initial_lpb, extra_measurement_duts,
+                    measurement_mitigation=measurement_mitigation)
+
+    def get_analyzed_result_prompt(self) -> Union[str, None]:
+        return f"""State tomography result:
+        <density matrix>
+        {self.dm}
+        </density matrix>
+        """
 
 
 class MultiQubitsProcessTomography(GeneralisedProcessTomography, QubitTomographyBase):
     @log_and_record
-    def run(self, duts, lpb, mprim_index=0, initial_lpb=None, extra_measurement_duts=None,measurement_mitigation=None):
+    def run(self, duts, lpb, mprim_index=0, initial_lpb=None, extra_measurement_duts=None, measurement_mitigation=None):
+        """
+        Experiment for multi-qubit process tomography.
+        """
         from leeq.theory.tomography import MultiQubitModel
         model = MultiQubitModel(len(duts))
         super().run(duts=duts, model=model, lpb=lpb, mprim_index=mprim_index,
-                    extra_measurement_duts=extra_measurement_duts,measurement_mitigation=measurement_mitigation)
+                    extra_measurement_duts=extra_measurement_duts, measurement_mitigation=measurement_mitigation)

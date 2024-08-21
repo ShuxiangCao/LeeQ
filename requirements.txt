@@ -22,3 +22,4 @@ MinimalLLM
 markdownify
 ipywidgets
 kaleido
+markdownify
