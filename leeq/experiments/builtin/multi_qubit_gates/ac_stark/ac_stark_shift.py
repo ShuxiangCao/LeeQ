@@ -291,6 +291,7 @@ class StarkTwoQubitsSWAP(experiment):
             print(f"Optimization warning or error: {e}")
             return {'Amplitude': (np.nan, np.nan), 'Decay': (np.nan, np.nan), 'Offset': (np.nan, np.nan)}
 
+
 class StarkTwoQubitsSWAPTwoDrives(experiment):
     # Perform a Stark Shifted T1 experiment on one qubit while also measuring another
     @log_and_record
@@ -407,6 +408,7 @@ class StarkTwoQubitsSWAPTwoDrives(experiment):
         except (OptimizeWarning, RuntimeError) as e:
             print(f"Optimization warning or error: {e}")
             return {'Amplitude': (np.nan, np.nan), 'Decay': (np.nan, np.nan), 'Offset': (np.nan, np.nan)}
+
 
 class StarkRamseyMultilevel(Experiment):
     """
@@ -797,6 +799,7 @@ class StarkRamseyMultilevel(Experiment):
                 f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured offset is "
                 f"{self.fitted_freq_offset:.3f}+- {self.error_bar:.3f} MHz.")
 
+
 class StarkDriveRamseyTwoQubits(experiment):
     # performs a ramsey experiment on two qubits while applying a stark shift drive to one of them. Extension of StarkDriveRamsey()
     @log_and_record
@@ -1028,13 +1031,13 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
 
         cs_pulse_a = c1s[0]['Xp'].clone()
         cs_pulse_a.update_pulse_args(amp=amp_a, freq=self.frequency, phase=0., shape='blackman_square', width=self.stop,
-                                   rise=rise, trunc=trunc)
+                                     rise=rise, trunc=trunc)
 
         cs_pulse_b = c1s[1]['Xp'].clone()
         cs_pulse_b.update_pulse_args(amp=amp_b, freq=self.frequency, phase=0., shape='blackman_square', width=self.stop,
-                                   rise=rise, trunc=trunc)
+                                     rise=rise, trunc=trunc)
 
-        lpb = prims.ParallelLPB([c1['Xp'] for c1 in c1s]) + cs_pulse_a*cs_pulse_b + prims.ParallelLPB(
+        lpb = prims.ParallelLPB([c1['Xp'] for c1 in c1s]) + cs_pulse_a * cs_pulse_b + prims.ParallelLPB(
             [c1['Xm'] for c1 in c1s]) + prims.ParallelLPB(
             [mp for mp in mps])  # stark shift ramsey on first qubit, normal ramsey on second
 
@@ -1498,7 +1501,7 @@ class StarkRepeatedGateRabi(Experiment):
 
     @log_and_record
     def run(self, dut, amp, frequency, phase=0, rise=0.01, trunc=1.0, width=0, start_gate_number=0, gate_count=40,
-            initial_lpb=None):
+            initial_lpb=None, alpha=1e9):
         """
         Sweep time and find the initial guess of amplitude
 
@@ -1521,7 +1524,7 @@ class StarkRepeatedGateRabi(Experiment):
         pulse = c1['X'].clone()
         pulse.update_pulse_args(
             amp=self.amp, freq=self.frequency, phase=self.phase, shape='blackman_square', width=self.width,
-            rise=self.rise, trunc=self.trunc)
+            rise=self.rise, trunc=self.trunc, alpha=alpha)
 
         lpb = pulse
 
@@ -1648,7 +1651,7 @@ class StarkRepeatedGateDRAGLeakageCalibration(Experiment):
         pulse = c1['X'].clone()
 
         alpha = pulse.alpha
-        print('alpha',alpha)
+        print('alpha', alpha)
 
         if inv_alpha_start is None:
             inv_alpha_start = 1 / alpha - 0.006
@@ -1681,7 +1684,7 @@ class StarkRepeatedGateDRAGLeakageCalibration(Experiment):
         if initial_lpb is not None:
             lpb = initial_lpb + sequence
 
-        basic(lpb+mprim, swp=swp, basis="<z>")
+        basic(lpb + mprim, swp=swp, basis="<z>")
 
         self.result = np.squeeze(mprim.result())
 

@@ -176,8 +176,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
     @register_browser_function(available_after=(run,))
     def plot(self):
 
-        self.plot_blochsphere()
-
+        # self.plot_blochsphere()
         self.analyze_results_with_errs()
 
         args = {'start': self.start, 'stop': self.stop, 'step': self.step}

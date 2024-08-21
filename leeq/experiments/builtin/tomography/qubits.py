@@ -46,16 +46,16 @@ class SingleQubitStateTomography(GeneralisedSingleDutStateTomography):
 
 class MultiQubitsStateTomography(GeneralisedStateTomography, QubitTomographyBase):
     @log_and_record
-    def run(self, duts, mprim_index=0, initial_lpb=None, extra_measurement_duts=None):
+    def run(self, duts, mprim_index=0, initial_lpb=None, extra_measurement_duts=None, measurement_mitigation=None):
         from leeq.theory.tomography import MultiQubitModel
         model = MultiQubitModel(len(duts))
-        super().run(duts, model, mprim_index, initial_lpb, extra_measurement_duts)
+        super().run(duts, model, mprim_index, initial_lpb, extra_measurement_duts,measurement_mitigation=measurement_mitigation)
 
 
 class MultiQubitsProcessTomography(GeneralisedProcessTomography, QubitTomographyBase):
     @log_and_record
-    def run(self, duts, lpb, mprim_index=0, initial_lpb=None, extra_measurement_duts=None):
+    def run(self, duts, lpb, mprim_index=0, initial_lpb=None, extra_measurement_duts=None,measurement_mitigation=None):
         from leeq.theory.tomography import MultiQubitModel
         model = MultiQubitModel(len(duts))
         super().run(duts=duts, model=model, lpb=lpb, mprim_index=mprim_index,
-                    extra_measurement_duts=extra_measurement_duts)
+                    extra_measurement_duts=extra_measurement_duts,measurement_mitigation=measurement_mitigation)
