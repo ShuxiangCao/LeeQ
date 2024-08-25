@@ -15,6 +15,7 @@ logger = setup_logging(__name__)
 
 __all__ = ["AIInstructionExperiment", "FullyAutomatedExperiment", "AIRun", "AutoRun"]
 
+
 class AIStagedExperiment(Experiment):
     """
     An experiment that contains multiple stages to be run.
@@ -121,7 +122,6 @@ class AIStagedExperiment(Experiment):
 
         curr_stage = self.stages[0]
         for step in range(len(self.stages) * self.n_step_multiplier):
-
             numbers_of_retry = 0
 
             while numbers_of_retry < 3:
@@ -129,13 +129,13 @@ class AIStagedExperiment(Experiment):
                     new_var_table = run_stage_description(curr_stage)
                     exp_object = get_exp_from_var_table(new_var_table)
                     if exp_object is None:
+                        logger.warning(f"Experiment object not found in the variable table.")
                         continue
                     self.experiment_history.append(exp_object)
                     experiment_result = exp_object.get_ai_inspection_results()
                     break
                 except Exception as e:
                     raise e
-                    print(e)
                     numbers_of_retry += 1
                     if numbers_of_retry == 3:
                         raise e
@@ -228,7 +228,7 @@ class AIInstructionExperiment(AIStagedExperiment):
         return self.run(*args, **kwargs)
 
     @log_and_record
-    def run(self, prompt: str, **kwargs):
+    def run(self, prompt: str, next_stage_guide=None, **kwargs):
         """
         Run the experiment powered by language model.
 
@@ -244,12 +244,18 @@ class AIInstructionExperiment(AIStagedExperiment):
         """
         from leeq.utils.ai.staging.stage_execution import Stage
         # label: str, title: str, overview: str, description: str, next_stage_guide: str
+
+        if next_stage_guide is None:
+            next_stage_guide = """Go to Complete if success. 
+                                Go back to the same stage if the experiment failed and the parameters should be adjusted.
+                                Go to Fail if the experiment failed and the parameters cannot be adjusted.
+                                Go to Fail if the experiment failed and there is no suggestion for how to adjust the parameters.
+                                Follow the instructions on how to transit to the next stage from the report of the experiment if there is any.
+                                Go to Fail if the experiment has failed after 3 attempts."""
+
         stage = Stage(label="Stage1", title="Implement experiment",
                       overview='You are requested to implement one experiment and modify the parameter to make it success.',
-                      description=prompt, next_stage_guide="Go to Complete if success. "
-                                                           "Go back to the same stage if the experiment failed and the parameters should be adjusted."
-                                                           "Go to Fail if the experiment failed and the parameters cannot be adjusted."
-                                                           "Go to Fail if the experiment has failed after 3 attempts."
+                      description=prompt, next_stage_guide=next_stage_guide
                       )
         stage_complete = Stage("Complete", "Complete", "The experiment is complete.", "End of experiment.",
                                next_stage_guide='None')

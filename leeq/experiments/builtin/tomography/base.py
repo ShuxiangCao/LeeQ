@@ -137,10 +137,19 @@ class GeneralisedStateTomography(Experiment, GeneralisedTomographyBase):
 class GeneralisedProcessTomography(Experiment, GeneralisedTomographyBase):
 
     @log_and_record
-    def run(self, duts, model, lpb=None, mprim_index=1, extra_measurement_duts=None, base=2):
+    def run(self, duts, model, lpb=None, mprim_index=1, extra_measurement_duts=None, base=2,
+            measurement_mitigation=None):
         self.model = model
         self.initialize_gate_lpbs(duts=duts)
         self.base = base
+        self.measurement_mitigation = measurement_mitigation
+
+        if measurement_mitigation is not None:
+            from leeq.experiments.builtin import CalibrateFullAssignmentMatrices
+            if not isinstance(measurement_mitigation, CalibrateFullAssignmentMatrices):
+                self.measurement_mitigation = CalibrateFullAssignmentMatrices(
+                    duts=duts, mprim_index=mprim_index
+                )
 
         self.process_tomography_model = self.model.construct_process_tomography()
 
@@ -161,10 +170,12 @@ class GeneralisedProcessTomography(Experiment, GeneralisedTomographyBase):
             lpb = preparation_lpb + measurement_lpb + prims.ParallelLPB(mprims)
 
         basic_run(lpb, swp_measurement + swp_preparation, '<zs>')
-        self.result = np.squeeze(np.asarray([mprim.result() for mprim in mprims]), axis=-1)
+        self.result = np.squeeze(np.asarray([mprim.result() for mprim in mprims][::-1]), axis=-1)
 
     def analyze_data(self):
         self.prob = to_dense_probabilities(self.result.transpose([0, 3, 1, 2]), base=self.base)
+        if self.measurement_mitigation is not None:
+            self.prob = self.measurement_mitigation.apply_inverse(self.prob)
         self.ptm = self.process_tomography_model.linear_inverse_process_tomography(self.prob)
 
     @register_browser_function(available_after=(run,))

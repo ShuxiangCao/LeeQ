@@ -102,6 +102,7 @@ def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None)
 - Call exactly one time to the experiment function / class in this edit.
 - Every class or function call will include the data analysis inside the call automatically so there is no need to do data analysis separately.
 - Always use named arguments to call functions or classes.
+- Store the return value of the call functions or classes to a variable.
 """
     wm.add_item(CodeWMemoryItem(notices, tag="notices").set_no_stimuli())
     # wm.add_item(WMemoryNoStimuliItem('The result of the experiment run should be saved in the exp_run variable.',

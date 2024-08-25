@@ -96,7 +96,7 @@ class MultiQubitsStateTomography(GeneralisedStateTomography, QubitTomographyBase
 
 class MultiQubitsProcessTomography(GeneralisedProcessTomography, QubitTomographyBase):
     @log_and_record
-    def run(self, duts, lpb, mprim_index=0, initial_lpb=None, extra_measurement_duts=None, measurement_mitigation=None):
+    def run(self, duts, lpb, mprim_index=0, extra_measurement_duts=None, measurement_mitigation=None):
         """
         Experiment for multi-qubit process tomography.
         """
