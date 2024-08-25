@@ -40,15 +40,15 @@ def remove_unused_stages_and_update_next(stage_info_list: List[dict]) -> List[di
     - For the remaining stages, update the rule for transitioning to the next stage based on the results of the experiment.
     - Keep the rest information of each stage unchanged, return in the same format as the input.
     - Keep the 'Complete' and 'Fail' stages as the final stages of the experiment.
-    
+
     This process ensures that the list reflects only the stages actively involved in the experiment and adjusts the workflow according to experimental outcomes.
-    
+
     <stages>
     {json.JSONEncoder().encode(stage_info_list)}
     </stages>
-    
+
     Return format:
-    
+
     {{
     "stages": List[dict]
     }}
@@ -92,14 +92,14 @@ def refine_stage_description(res: dict) -> dict:
         please set the <contains_experiment> to False. Otherwise set it to True.
 
     Follow the following  example format exactly and do not include any additional information in the description.
-    
+
     Example output:
     {{
         "analysis":"<Describe your thought process for updating the stage description.>",
         "description":"Conduct the <experiment name> with parameters <parameter list for experiment>.",
         "contains_experiment": <true/false>
     }}
-    
+
     """
 
     import mllm
@@ -151,41 +151,38 @@ def get_stages_from_description(description: str) -> List[Stage]:
     """
     # Note: The same experiment with different parameter choice (very common when you need to refine the parameters) needs to be classified into the same stage. #
 
-    prompt = """
-**Objective**: Develop a systematic workflow for a series of scientific experiments involving sequential function calls to operate experimental equipment. The outcomes of each stage guide the next, ensuring logical progression. 
+    prompt = f"""
+<experiment_description>
+{description}
+</experiment_description>
+<requirements>
+Create a structured workflow for conducting a series of scientific experiments that require sequential function calls to operate experimental equipment. Each stage of the experiment should represent a distinct operation with explicit instructions and transition rules, ensuring logical and smooth progression. The stages must be concise, self-contained, and clearly defined. Especially, you are required to output a JSON dict with the following elements:
+</requirements>
+<output>
+- Overview: Summarize the requirement of the experiment. Only include the information from the input, do not add any additional information of your own.
 
-**Overview**: Summarize the requirement of the experiment. Only include the information from the input, do not add any additional information of your own.
-
-**Instructions**:
-
-- **Stages**: Divide the experiment into distinct stages, each representing a specific operation. 
+- Stages: Divide the experiment into distinct stages, each representing a specific operation. 
 Note: Generate as less stages as possible, ideally just one stage, but make sure each stage is distinct and has a clear purpose.
 Note: If multiple sets of parameters are used for the same experiment, they should be considered into different stages.
 Note: The data and result analysis and interpretation should not be considered as a stage.
 Note: Refinement of the parameters should be included in the same stage, not in a separate stage.
 
-- **Experiment Description**: rovide a detailed procedural outline for each stage of the experiment. The description
- should explicitly state the name of the experiment, list all parameters involved, and clearly outline the steps to be
- taken. This information will be distributed among various team members, who will carry out the tasks. Ensure that each
- instruction is clear and self-sufficient, enabling team members to execute their respective parts without needing
- additional context or clarification. Do not include objectives or goals in the description.
+- ExperimentDescription: Provide a detailed procedural outline for each stage of the experiment. The description should explicitly state the name of the experiment, list all parameters involved, and clearly outline the steps to be taken. This information will be distributed among various team members, who will carry out the tasks. Ensure that each instruction is clear and self-sufficient, enabling team members to execute their respective parts without needing additional context or clarification. Do not include objectives or goals in the description.
 
-- **Stage Transitions**:
-    - **Advance**: Always proceed to the next stage when the experiment succeeded.
-    - **Retry**: Specify when to repeat a stage with adjustments. Always retry at least 3 times when error occured 
+- StageTransitions:
+    - `Advance`: Always proceed to the next stage when the experiment succeeded.
+    - `Retry`: Specify when to repeat a stage with adjustments. Always retry at least 3 times when error occured 
         before revert to the previous stage.
-    - **Revert**: Return to the previous stage.
-    
-- **Reference**: Include the original input prompt related to each stage for reference and context.
-    
-- **Output Format**: Present these instructions and conditions in a JSON format, with each stage as a key detailing the experiment and transition rules. 
+    - `Revert`: Return to the previous stage.
+- Reference: Include the original input prompt related to each stage for reference and context.
+</output>
+<output_format>
+Present these instructions and conditions in a JSON format, with each stage as a key detailing the experiment and transition rules. 
 The NEXT key must be a string detailing the transition conditions. Do not use "retry", "advance", or "revert", instead describe the stage label directly.
-
-**Example**:
-
-```json
+</output_format>""" + """
+<output_example>
 {
-    "Overview": <Summary of the experiment>
+  "Overview": <Summary of the experiment>
   "Stage1": {
     "Title": "Experiment1",
     "ExperimentDescription": "Conduct the <experiment name 1> with parameters <parameter list for experiment 1>.",
@@ -215,11 +212,9 @@ The NEXT key must be a string detailing the transition conditions. Do not use "r
     "Next": "None"
   }
 }
-```
-**Deliverables**: Provide a complete JSON detailing all stages, descriptions, and transition criteria for efficient experimentation and analysis. Only return the JSON object.
-    """
+</output_example>"""
 
-    completed_prompt = prompt + description
+    completed_prompt = prompt
     import mllm
     from mllm.utils import parallel_map
 
@@ -282,15 +277,15 @@ def find_the_stage_label_based_on_description(stages: List[Stage], description: 
 
     prompt = f"""
     You have a list of stages for an experiment. Your task is to find the stage label based on the description provided.
-    
+
     <stages>
     {stages_info}
     </stages>
-    
+
     <description>
     {description}
     </description>
-    
+
     Return format:
         {{
             "stage_label": str

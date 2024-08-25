@@ -442,6 +442,9 @@ class ConditionalStarkShiftContinuous(Experiment):
         For the fitting results, if the number of periods is less than 1.5, the experiment is considered failed. Estimate how much you need to increase the stop time
         to obtain about 3 periods.
         
+        For the fitting results, if the absolute value of oscillation frequency is significantly different between the ground and excited states (more than 50%), 
+        the experiment is considered failed due to fitting error, retry with more sampling points. 
+        
         For the fitting results, if the oscillation amplitude is less than 0.2, the experiment is considered failed due to noise data. 
         
         If the above check passes, the experiment is considered successful.
@@ -618,6 +621,9 @@ class ConditionalStarkShiftContinuous(Experiment):
 
             print(f"IZ: {self.iz_rate: 0.5f} MHz: {self.zz_rate: 0.5f} MHz")
             print(f"Phase IZ Contributions from Pulse Rise Drop: {self.iz_from_pulse_rise_drop: 0.5f} rad")
+
+        if len(self.fitting_2D) != 2:
+            return {'error': 'Fitting failed'}
 
         return {
             'fitting_2D': self.fitting_2D,
@@ -807,7 +813,12 @@ class ConditionalStarkShiftContinuous(Experiment):
 
     def get_analyzed_result_prompt(self) -> Union[str, None]:
 
-        self.analyze_results_with_errs()
+        result = self.analyze_results_with_errs()
+
+        error = result.get('error', None)
+
+        if error is not None:
+            return "The experiment failed due to fitting error."
 
         prompt_1 = f"""
         The fitting reports when the control qubit is at the ground state, the target is oscillating at a frequency of {self.fitting_2D[0]['Frequency']} MHz,
@@ -1314,8 +1325,15 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
 
         if not self._xy_hamiltonian_tomography_inspection_results['Experiment success']:
             self._repeated_gate_inspection_results = {'success': False,
-                                                      'analysis': ('Not executed due to the failure of '
+                                                      'analysis': ('Skipped due to the failure of '
                                                                    'Hamiltonian tomography experiment.')
+                                                      }
+            return
+
+        if self.current_params['width'] > 0.4:
+            self._repeated_gate_inspection_results = {'success': True,
+                                                      'analysis': (
+                                                          'Skipped due the width estimation evaluated from hamiltonian tomography is too long.')
                                                       }
             return
 
@@ -1372,7 +1390,8 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
         """
 
         import mllm
-        chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
+        chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict. "
+                                 "Do not include single or double quotes or new lines in the analysis and messages.")
         res = chat.complete(parse="dict", expensive=True, cache=True)
 
         html = dict_to_html(res)
@@ -1420,10 +1439,11 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
                 - echo: True
             """
             #
-            # next_stage_guide = """Go to Complete if success.
-            #                       Go back to the same stage if the experiment failed and the parameters should be adjusted.
-            #                       Go to Fail if the experiment failed and the parameters cannot be adjusted or there is no suggestion for how to adjust the parameters.
-            #                       Go to Fail if the experiment has failed after 3 attempts."""
+            next_stage_guide = """Go to Complete if success.
+                                  Go back to the same stage if the experiment failed and the parameters should be adjusted.
+                                  Go to Fail if the experiment failed and the parameters cannot be adjusted or there is no suggestion for how to adjust the parameters.
+                                  Go to Fail if the experiment has failed because the control qubit population does not meet the criteria.
+                                  Go to Fail if the experiment has failed after 3 attempts."""
 
             ai_experiment = AIInstructionExperiment(
                 prompt,
@@ -1683,6 +1703,7 @@ class ConditionalStarkSearchParameters(Experiment):
             Try parameters of below the lowest qubit frequency, between the qubit frequencies and above the highest qubit frequency.
             The optimal paramter gives the highest ZZ rate and lowest width.
             To make the results comparable with the history results, do not chose a new set of parameters with both new frequency and amplitudes. 
+            If the experiment failed at a certain frequency and amplitude, this is usually the frequency choice is too close to the qubit frequency or the amplitude is too high.
             </Rules of parameter chosing>
         """
 
@@ -1784,7 +1805,8 @@ class ConditionalStarkSearchParameters(Experiment):
         self._display_experiment_history()
 
         from mllm import Chat
-        chat = Chat(prompt)
+        chat = Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict. "
+                                 "Do not include single or double quotes or new lines in the analysis and messages.")
         res = chat.complete(parse="dict", expensive=True, cache=True)
 
         from leeq.utils.ai.display_chat.notebooks import dict_to_html, display_chat
