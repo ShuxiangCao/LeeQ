@@ -426,14 +426,7 @@ class ConditionalStarkShiftContinuous(Experiment):
         Please check the results of the visual inspection of the plots and the fitting results. 
         
         If failed visual inspection plot_fourier indicate a failure experiment, the experiment is considered failed and Suggested parameter updates to None.
-        
-        For the fitting results, check if all the fitting parameters are physical and plausible. Then look at the sampled points 
-        per period. If it is smaller than 8 then the experiment needs to increase the sweep point and the experiment is considered failed. Estimate how much 
-        you need to increase the sweep points to get approximately 12 points per period.
-        
-        For the fitting results, if the number of periods is less than 1.5, the experiment is considered failed. Estimate how much you need to increase the stop time
-        to obtain about 3 periods.
-        
+       
         For the fitting results, if the absolute value of oscillation frequency is significantly different between the ground and excited states (more than 50%), 
         the experiment is considered failed due to fitting error, retry with more sampling points. 
         
@@ -897,7 +890,7 @@ class ConditionalStarkShiftRepeatedGate(Experiment):
         This experiment is a Repeated Gate Conditional Stark Tune-Up Rabi XY experiment for calibrating the IZ and ZZ interactions between two qubits under microwave drives.
         Please check the results of the visual inspection of the plots and the fitting results. 
 
-        For visual inspection, if any of the plot does not show a clear sinusoidal oscillatory pattern, the experiment is considered failed.
+        For visual inspection, if the inspection plot_fourier indicates a failure, the experiment is considered failed and Suggested parameter updates to None.
         
         If the experiment is failed because of the population of the control qubit doesnot meet the criteria, do not retry and directly report the failure.
 
@@ -1798,7 +1791,7 @@ class ConditionalStarkSearchParameters(Experiment):
                             It has to be at least 30 MHz away from both of the single qubit transition frequency.
                             It should not be lower than 60MHz below the lowest qubit frequency and not higher than 60MHz above the highest qubit frequency.
                             Round it to multiples of MHz.
-            'amp_control': You should try from 1.5 time to 2 times of the first qubit's single qubit gate drive amplitude. The experiment may fail when chosing a amplitude too high, therefore you should start from a gentle value. The maximum value is 1.
+            'amp_control': You should try from 1 time to 2 times of the first qubit's single qubit gate drive amplitude. The experiment may fail when chosing a amplitude too high, therefore you should start from a gentle value. The maximum value is 1.
             'rise': No more than 0.02, no less than 0.01. Usually 0.015 is the right value to choose.
             'phase_diff': keep it 0,
             'width': determined by the experiment output,
@@ -1807,6 +1800,8 @@ class ConditionalStarkSearchParameters(Experiment):
             Try different set of parameters, particularly varying the frequency and amplitudes, to find the ZZ rate and the pulse width.
             Try parameters of below the lowest qubit frequency, between the qubit frequencies and above the highest qubit frequency.
             The optimal paramter gives the highest ZZ rate and lowest width.
+            If an experiment succeeds, you can try to improve the results by increase the amplitude or move the frequency closer to the qubits.
+            If an experiment fails, you should try to move the frequency further away from the qubits or decrease the amplitude.
             To make the results comparable with the history results, do not chose a new set of parameters with both new frequency and amplitudes. 
             If the experiment failed at a certain frequency and amplitude, this is usually the frequency choice is too close to the qubit frequency or the amplitude is too high.
             </Rules of parameter chosing>
@@ -1815,7 +1810,8 @@ class ConditionalStarkSearchParameters(Experiment):
     # should be around 30MHz below the lowest qubit frequency to 60 MHz below the lowest qubit frequency.
 
     _objective_prompt = """
-        Please suggest the next experiment you would like to run to find the parameters for the conditional stark-shift gate, based on the previous experiment history.
+        Please suggest the next experiment you would like to run to find the parameters for the conditional stark-shift gate,
+        based on the previous experiment history.
 
         Return in a json dict with the following format:
         {
@@ -1833,10 +1829,10 @@ class ConditionalStarkSearchParameters(Experiment):
         }
 
         If you find a set of parameters that has width less than 0.2 us immediately set status to finish. 
-        If you have done 50 searches, set status to finish.
-        If you have done 20 searches and could not find any improvements, return the set of parameters you believe to be optimal,
-        please set status to 'finish'. 
-        If you have encountered an error, please set status to 'error'. Otherwise 'searching'
+        If you have done 50 experiment, set status to finish.
+        If you have done 20 experiment and could not find any improvements, return the set of parameters you believe to be optimal,
+        please set status to 'finish'. Otherwise keeps state to 'searching' and trying new parameters. 
+        If you have encountered an error, please set status to 'error'.
         """
 
     @log_and_record
