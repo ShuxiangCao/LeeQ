@@ -7,11 +7,9 @@ from fibers.tree.node_attr.code import get_type, get_obj
 from mllm import Chat
 from mllm.utils import parallel_map
 
-from ideanet.codegen.code_wmemory import CodeEditingItem
-from ideanet.core.lt_memory import IdeaResult, LongTermMemory, EmbedIdea
-from ideanet.core.w_memory import WorkingMemory
-from leeq.utils.ai.variable_table import VariableTable
-
+from leeq.utils.ai.ideanet.lt_memory import IdeaResult, LongTermMemory, EmbedIdea
+from leeq.utils.ai.ideanet.w_memory import WorkingMemory
+from .variable_table import VariableTable
 
 def imagine_applications(exp_name, exp_docs) -> List[str]:
     """

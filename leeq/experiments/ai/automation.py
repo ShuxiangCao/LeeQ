@@ -366,7 +366,7 @@ if __name__ == '__main__':
     from leeq.utils.ai.variable_table import VariableTable
     from leeq.utils.ai.staging.stage_execution import get_codegen_wm, CodegenModel
     from leeq.utils.ai.code_indexer import build_leeq_code_ltm
-    from ideanet.utils.logger import RecallLogger
+    from leeq.utils.ai.ideanet.recall_logger import RecallLogger
 
     prompt = "Do qubit measurement calibration to update the GMM model."
     wm = get_codegen_wm(prompt, VariableTable())

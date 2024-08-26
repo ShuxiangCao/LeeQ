@@ -1,7 +1,7 @@
 from typing import List, Tuple, Optional
-from ideanet.codegen.code_wmemory import CodeWMemoryItem
-from ideanet.core.lt_memory import RecallResult, LongTermMemory, IdeaResult, Idea
-from ideanet.core.w_memory import WorkingMemory, WMemoryNoStimuliItem, WMemoryHiddenItem
+from leeq.utils.ai.ideanet.code_wmemory import CodeWMemoryItem
+from leeq.utils.ai.ideanet.lt_memory import RecallResult, LongTermMemory, IdeaResult, Idea
+from leeq.utils.ai.ideanet.w_memory import WorkingMemory, WMemoryNoStimuliItem, WMemoryHiddenItem
 from leeq.utils.ai.variable_table import VariableTable
 
 
