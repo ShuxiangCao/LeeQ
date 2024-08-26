@@ -1,7 +1,10 @@
 from typing import List, Tuple, Optional
+
+from mllm import Chat
+
 from leeq.utils.ai.ideanet.code_wmemory import CodeWMemoryItem
 from leeq.utils.ai.ideanet.lt_memory import RecallResult, LongTermMemory, IdeaResult, Idea
-from leeq.utils.ai.ideanet.w_memory import WorkingMemory, WMemoryNoStimuliItem, WMemoryHiddenItem
+from leeq.utils.ai.ideanet.w_memory import WorkingMemory, WMemoryItem
 from leeq.utils.ai.variable_table import VariableTable
 
 
@@ -77,7 +80,7 @@ def get_code_from_wm(wm: WorkingMemory) -> str:
     return code
 
 
-def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None) -> WorkingMemory:
+def get_codegen_wm(description: str, var_table: VariableTable) -> WorkingMemory:
     """
     Prepares working memory for code generation based on a description and variable table.
 
@@ -89,40 +92,15 @@ def get_codegen_wm(description: str, var_table: VariableTable, hint: str = None)
         WorkingMemory: The working memory prepared for code generation.
     """
 
-    if hint is None:
-        hint = ""
     wm = WorkingMemory()
     if not var_table.is_empty():
         var_table_in_prompt = var_table.get_local_prompt()
-        prompt = f'''
-{var_table_in_prompt}
-'''
-        wm.add_item(CodeWMemoryItem(prompt, "available_variables").set_no_stimuli())
-    notices = """
-- Call exactly one time to the experiment function / class in this edit.
-- Every class or function call will include the data analysis inside the call automatically so there is no need to do data analysis separately.
-- Always use named arguments to call functions or classes.
-- Store the return value of the call functions or classes to a variable.
-"""
-    wm.add_item(CodeWMemoryItem(notices, tag="notices").set_no_stimuli())
-    # wm.add_item(WMemoryNoStimuliItem('The result of the experiment run should be saved in the exp_run variable.',
-    #                                 "return_values"))
-    if hint:
-        wm.add_content(CodeWMemoryItem(hint, "background"))
-    # wm.add_content(""""
-    #               If you need to execute more than one experiment at this stage, please use the following to break it into multiple steps:
-    #               ```
-    #               exp_run = FullyAutomatedExperiment("<The description of all the steps, including the arguments described>",
-    #                    all the available variables passed in with keyword arguments that not described previously )
-    #               ```
-    #               """,'Multiple steps')
-    prompt = f'''
-# [slot: {description}]
-'''
-    wm.add_item(CodeWMemoryItem(prompt, tag="code_to_complete").set_no_stimuli())
-    wm.add_item(WMemoryHiddenItem([description]))
+        var_table_item = WMemoryItem(var_table_in_prompt, "available_variables")
+        var_table_item.set_no_prompt()
+        var_table_item.attrs["_table_obj"] = var_table
+        wm.add_item(var_table_item.set_no_stimuli())
+    wm.add_item(WMemoryItem(description, tag="instruction"))
     return wm
-
 
 def check_if_needed_to_break_down(description: str):
     """
@@ -178,24 +156,45 @@ class CodegenIdea(Idea):
         return 1.0
 
     def run_idea(self, w_memory: WorkingMemory) -> IdeaResult:
-        from mllm import Chat
-        chat = Chat()
-        chat += """
-        Your task is to generate new code for the context described below.
+        instruction = w_memory.extract_tag_contents("instruction")[0]
+        available_variables = w_memory.extract_tag_contents("available_variables")
+        if len(available_variables) == 0:
+            available_variables = ""
+        else:
+            available_variables = available_variables[0]
+        notices = """
+        - Call exactly one time to the experiment function / class in this edit.
+        - Every class or function call will include the data analysis inside the call automatically so there is no need to do data analysis separately.
+        - Always use named arguments to call functions or classes.
+        - Store the return value of the call functions or classes to a variable.
         """
-        chat += w_memory.get_in_prompt_format(tag="context", tags_to_ignore=["comment"])
-        chat += """
-        <instruction>
-        You are required to adopt code that can be used to replace the <code_to_complete> from <code_suggestion>.
-        The adopted code should absolutely just be what should appear in the place of # [slot]. 
-        You should just choose the code and fill it into the slot.
-        Some of the <code_suggestion> might be misleading. But you should pick the most relevant one. You have to pick one of the suggestions unless there is no suggestion.
-        If no suggestion exist, you can write the comment of what to do and put ... as a placeholder
-        Output a JSON dict with the following keys:
-        "analysis" (string): an analysis of the current situation. Especially, focusing on how to generate the code.
-        "code" (string): the new code that can fill the slot in <code_to_complete>.
-        </instruction>
-        """
+        prompt = f"""
+Your task is to generate new code for the context described below.        
+<context>
+<available_variables>
+{available_variables}
+</available_variables>
+<code_to_complete> 
+prompt = f'''
+# [slot: {instruction}]
+'''
+</code_to_complete>
+<notices>
+{notices}
+</notices>
+</context>
+<instruction>
+You are required to adopt code that can be used to replace the <code_to_complete> from <code_suggestion>.
+The adopted code should absolutely just be what should appear in the place of # [slot]. 
+You should just choose the code and fill it into the slot.
+Some of the <code_suggestion> might be misleading. But you should pick the most relevant one. You have to pick one of the suggestions unless there is no suggestion.
+If no suggestion exist, you can write the comment of what to do and put ... as a placeholder
+Output a JSON dict with the following keys:
+"analysis" (string): an analysis of the current situation. Especially, focusing on how to generate the code.
+"code" (string): the new code that can fill the slot in <code_to_complete>.
+</instruction>
+"""
+        chat = Chat(prompt)
         res = chat.complete(parse="dict", expensive=True)["code"]
         idea_res = IdeaResult(self, True)
         code_item = CodeWMemoryItem(res, tag="attempted_code")

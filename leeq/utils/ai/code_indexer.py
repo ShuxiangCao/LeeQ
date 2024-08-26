@@ -51,7 +51,7 @@ You should output 4 sentences.
     return values
 
 
-class LeeQExpIdea(EmbedIdea):
+class LeeQExpCodeIdea(EmbedIdea):
     def __init__(self, exp_cls: Type[Any]):
         """
         Initialize an idea for triggering and embedding experiment-based sentences.
@@ -134,7 +134,7 @@ def add_leeq_exp_to_ltm(lt_memory: LongTermMemory, var_table: VariableTable, exp
         var_table (VariableTable): The variable table for leeq.
         exp_cls (Type[Any]): The experiment class to be added.
     """
-    idea = LeeQExpIdea(exp_cls)
+    idea = LeeQExpCodeIdea(exp_cls)
     lt_memory.add_idea(idea)
     var_table.add_variable(exp_cls.__name__, exp_cls, exp_cls.__name__)
 
@@ -175,9 +175,5 @@ def build_leeq_code_ltm() -> Tuple[LongTermMemory, VariableTable]:
         ...
 
     from leeq import experiments as exp
-    from .procedure_indexer import extract_procedures_to_lt_memory
     root = os.path.dirname(exp.__file__)
-    # extract_procedures_to_lt_memory(root + "/procedures/calibration.md", var_table,
-    #                                lt_memory)
-
     return lt_memory, var_table
