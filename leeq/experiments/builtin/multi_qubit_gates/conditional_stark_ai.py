@@ -70,8 +70,8 @@ class ConditionalStarkShiftContinuousPhaseSweep(Experiment):
         For visual inspection, if any of the plot does not show a clear sinusoidal oscillatory pattern, the experiment is considered failed.
 
         For the fitting results, check if all the fitting parameters are physical and plausible. Then look at the sampled points 
-        per period. If it is smaller than 8 then the experiment needs to increase the sweep point and the experiment is considered failed. Estimate how much 
-        you need to increase the sweep points to get approximately 12 points per period.
+        per period. If it is smaller than 6 then the experiment needs to increase the sweep point and the experiment is considered failed. Estimate how much 
+        you need to increase the sweep points to get approximately 8 points per period. Note that the maximum total sweep point should be 100.
 
         For the fitting results, if the number of periods is less than 2, the experiment is considered failed. Estimate how much you need to increase the stop time
         to obtain about 3 periods.
@@ -201,8 +201,6 @@ class ConditionalStarkShiftContinuousPhaseSweep(Experiment):
         self.result_control = np.squeeze(mprim_control.result())
 
     def analyze_results(self):
-        # print("Shape of result:", self.result.shape)
-
         if self.fitting_2D is None:
 
             self.fitting_2D = []
@@ -213,7 +211,6 @@ class ConditionalStarkShiftContinuousPhaseSweep(Experiment):
 
                 self.fit_result = fits.fit_2d_freq(self.complex_data, dt=self.step, use_freq_bound=False)
                 self.fitting_2D.append(self.fit_result)
-                # print(f"Fit Results for {i}: {self.fit_result}")  # Debugging output
 
             self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
             self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
@@ -234,8 +231,6 @@ class ConditionalStarkShiftContinuousPhaseSweep(Experiment):
         }
 
     def analyze_results_with_errs(self):
-        # print("Shape of result:", self.result.shape)
-
         if self.fitting_2D is None:
             self.fitting_2D = []
             for i in range(2):
@@ -245,7 +240,6 @@ class ConditionalStarkShiftContinuousPhaseSweep(Experiment):
 
                 fit_results = fits.fit_2d_freq_with_cov(self.complex_data, dt=self.step, use_freq_bound=False)
                 self.fitting_2D.append(fit_results)
-                # print(f"Fit Results for {i}: {fit_results}")  # Debugging output
 
             # Calculate iz_rate and zz_rate for Curve Fit
             self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
@@ -275,14 +269,12 @@ class ConditionalStarkShiftContinuousPhaseSweep(Experiment):
 
         def plot_specific_axis(data, label, fit_params, use_imaginary_part=False):
             plt.scatter(t, data, label=label, alpha=0.5)
-            # plt.plot(t, data)
 
             f = fit_params['Frequency'].nominal_value
             a = fit_params['Amplitude'].nominal_value
             p = fit_params['Phase'].nominal_value - 2.0 * np.pi * f * args['start']
             o = fit_params['Offset_real'].nominal_value + 1j * fit_params['Offset_imag'].nominal_value
 
-            # fit = a * np.exp(-decay * t_interpolate) * np.exp(1j * (2.0 * np.pi * f * t_interpolate + p)) + o
             fit = a * np.exp(1.j * (2.0 * np.pi * f * t_interpolate + p)) + o
 
             plt.plot(t_interpolate, np.real(fit) if not use_imaginary_part else np.imag(fit))
@@ -433,7 +425,7 @@ class ConditionalStarkShiftContinuous(Experiment):
         This experiment is a Conditional Stark Tune-Up Rabi XY experiment for calibrating the IZ and ZZ interactions between two qubits under microwave drives.
         Please check the results of the visual inspection of the plots and the fitting results. 
         
-        For visual inspection, if any of the plot does not show a clear sinusoidal oscillatory pattern, the experiment is considered failed.
+        If failed visual inspection plot_fourier indicate a failure experiment, the experiment is considered failed and Suggested parameter updates to None.
         
         For the fitting results, check if all the fitting parameters are physical and plausible. Then look at the sampled points 
         per period. If it is smaller than 8 then the experiment needs to increase the sweep point and the experiment is considered failed. Estimate how much 
@@ -539,7 +531,6 @@ class ConditionalStarkShiftContinuous(Experiment):
         swp_flip = sweeper.from_sweep_lpb(lpb_flip_control)
 
         lpb_readout = prims.SweepLPB([c1_target['Yp'], c1_target['Xm']])
-        # lpb_readout = prims.SweepLPB([c1_target['Yp'], c1_target['Xm'], c1_target['I']])
         swp_readout = sweeper.from_sweep_lpb(lpb_readout)
 
         iz_gate = c1_target.z_omega(iz_rate_cancel * 2 * np.pi)
@@ -567,7 +558,6 @@ class ConditionalStarkShiftContinuous(Experiment):
         self.result_control = np.squeeze(mprim_control.result())
 
     def analyze_results(self):
-        # print("Shape of result:", self.result.shape)
 
         if self.fitting_2D is None:
 
@@ -579,7 +569,6 @@ class ConditionalStarkShiftContinuous(Experiment):
 
                 self.fit_result = fits.fit_2d_freq(self.complex_data, dt=self.step, use_freq_bound=False)
                 self.fitting_2D.append(self.fit_result)
-                # print(f"Fit Results for {i}: {self.fit_result}")  # Debugging output
 
             self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
             self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
@@ -600,7 +589,6 @@ class ConditionalStarkShiftContinuous(Experiment):
         }
 
     def analyze_results_with_errs(self):
-        # print("Shape of result:", self.result.shape)
 
         if self.fitting_2D is None:
             self.fitting_2D = []
@@ -611,7 +599,6 @@ class ConditionalStarkShiftContinuous(Experiment):
 
                 fit_results = fits.fit_2d_freq_with_cov(self.complex_data, dt=self.step, use_freq_bound=False)
                 self.fitting_2D.append(fit_results)
-                # print(f"Fit Results for {i}: {fit_results}")  # Debugging output
 
             # Calculate iz_rate and zz_rate for Curve Fit
             self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
@@ -644,14 +631,12 @@ class ConditionalStarkShiftContinuous(Experiment):
 
         def plot_specific_axis(data, label, fit_params, use_imaginary_part=False):
             plt.scatter(t, data, label=label, alpha=0.5)
-            # plt.plot(t, data)
 
             f = fit_params['Frequency'].nominal_value
             a = fit_params['Amplitude'].nominal_value
             p = fit_params['Phase'].nominal_value - 2.0 * np.pi * f * args['start']
             o = fit_params['Offset_real'].nominal_value + 1j * fit_params['Offset_imag'].nominal_value
 
-            # fit = a * np.exp(-decay * t_interpolate) * np.exp(1j * (2.0 * np.pi * f * t_interpolate + p)) + o
             fit = a * np.exp(1.j * (2.0 * np.pi * f * t_interpolate + p)) + o
 
             plt.plot(t_interpolate, np.real(fit) if not use_imaginary_part else np.imag(fit))
@@ -713,23 +698,32 @@ class ConditionalStarkShiftContinuous(Experiment):
         """
 
         inspection_results = super().get_ai_inspection_results()
-        zz_rate = self.zz_rate
 
-        inspection_results['Calibrated parameters'] = {
-            'amp_control': self.amp_control,
-            'amp_target': self.amp_target,
-            'frequency': self.frequency,
-            'rise': self.rise,
-            'phase_diff': self.phase_diff,
-            'width': np.abs(0.125 / zz_rate.nominal_value) / 2,
-            'zz_interaction_positive': self.zz_rate > 0,
-            'zz_rate': self.zz_rate.n
-        }
+        if self.fitting_2D is None:
+            try:
+                self.analyze_results_with_errs()
+            except Exception as e:
+                inspection_results['error'] = str(e)
+
+        try:
+            zz_rate = self.zz_rate
+
+            inspection_results['Calibrated parameters'] = {
+                'amp_control': self.amp_control,
+                'amp_target': self.amp_target,
+                'frequency': self.frequency,
+                'rise': self.rise,
+                'phase_diff': self.phase_diff,
+                'width': np.abs(0.125 / zz_rate.nominal_value) / 2,
+                'zz_interaction_positive': self.zz_rate > 0,
+                'zz_rate': self.zz_rate.n
+            }
+        except:
+            pass
 
         return inspection_results
 
     @register_browser_function()
-    @visual_analyze_prompt(_v_prompt)
     def plot_X_axis(self):
         self.analyze_results_with_errs()
 
@@ -749,7 +743,6 @@ class ConditionalStarkShiftContinuous(Experiment):
         return fig
 
     @register_browser_function()
-    @visual_analyze_prompt(_v_prompt)
     def plot_Y_axis(self):
         self.analyze_results_with_errs()
 
@@ -768,7 +761,6 @@ class ConditionalStarkShiftContinuous(Experiment):
 
         return fig
 
-    # @register_browser_function()
     def plot_Z_axis(self):
         self.analyze_results_with_errs()
 
@@ -788,11 +780,57 @@ class ConditionalStarkShiftContinuous(Experiment):
         return fig
 
     @register_browser_function()
-    # @visual_analyze_prompt("""
-    #         I have a plot showing the population of the control qubit along the Z axis.
-    #         The experiment is success if the population of the control qubit is stable through the whole experiment.
-    #         If the population of the control qubit is oscillating, or changes too rapidly so the ground and excited state meet each other, it is considered failed.
-    # """)
+    @visual_analyze_prompt("""
+            I have a plot showing ZZ interaction Hamiltonian tomography in the Fourier space. The X-axis represents 
+            the frequency, and the Y-axis shows the amplitude of the fourier transformed value.
+            My objective is to determine if the experiment is a success.
+            The success of the experiment depends on observing two clear peaks in the Fourier space, 
+            one for the ground state and one for the excited state. They should be symmetric around the center of the plot.
+            If the peaks are not clear, the experiment is considered failed.
+            If you observe more than two clear peaks, especially when you have a third one at the center of the plot,
+            the experiment is considered failed.
+            Otherwise, the experiment is considered successful.
+            """)
+    def plot_fourier(self):
+        fig = go.Figure()
+
+        def plot_fourier_trace(fig, data, label, fit_params=None):
+            color_ground = 'mediumblue'
+            color_excited = 'crimson'
+
+            args = {'start': self.start, 'stop': self.stop, 'step': self.step}
+            t = np.arange(args['start'], args['stop'], args['step'])
+
+            color = color_ground if label == 'Ground' else color_excited
+
+            # Compute the Fourier Transform of the data
+            fourier_transform = np.fft.fft(data)
+            frequencies = np.fft.fftfreq(t.size, d=args['step'])
+
+            # Compute the amplitude of the Fourier Transform
+            amplitude = np.abs(fourier_transform)
+
+            # Sort frequencies in ascending order and reorder amplitude accordingly
+            sorting_indices = np.argsort(frequencies)
+            sorted_frequencies = frequencies[sorting_indices]
+            sorted_amplitude = amplitude[sorting_indices]
+
+            fig.add_trace(
+                go.Scatter(x=sorted_frequencies, y=sorted_amplitude, mode="lines+markers",
+                           name=label, opacity=0.5, marker=dict(color=color)))
+
+        plot_fourier_trace(fig=fig, data=self.result[:, 0, 0] + 1.j * self.result[:, 0, 1], label="Ground")
+        plot_fourier_trace(fig=fig, data=self.result[:, 1, 0] + 1.j * self.result[:, 1, 1], label="Excited")
+
+        fig.update_layout(title="ZZ interaction Hamiltonian tomography - Fourier Transform",
+                          xaxis_title="Frequency [MHz]",
+                          yaxis_title="Amplitude [a.u.]",
+                          plot_bgcolor='white',
+                          legend=dict(x=0, y=1, traceorder='normal'))
+
+        return fig
+
+    @register_browser_function()
     def plot_control_population(self):
         self.analyze_results_with_errs()
 
@@ -992,7 +1030,6 @@ class ConditionalStarkShiftRepeatedGate(Experiment):
 
             self.fit_result = fit_2d_freq_with_cov(self.complex_data, dt=t_step, freq_guess=0.125, use_freq_bound=True)
             self.fitting_2D.append(self.fit_result)
-            # print(f"Fit Results for {i}: {self.fit_result}")
 
         self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
         self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
@@ -1030,7 +1067,7 @@ class ConditionalStarkShiftRepeatedGate(Experiment):
                            visible='legendonly'))
 
     @register_browser_function()
-    @visual_analyze_prompt(_v_prompt)
+    # @visual_analyze_prompt(_v_prompt)
     def plot_x_axis(self):
         """
         Plot the results for the X axis using Plotly.
@@ -1053,7 +1090,7 @@ class ConditionalStarkShiftRepeatedGate(Experiment):
         return fig
 
     @register_browser_function()
-    @visual_analyze_prompt(_v_prompt)
+    # @visual_analyze_prompt(_v_prompt)
     def plot_y_axis(self):
         """
         Plot the results for the Y axis using Plotly.
@@ -1098,12 +1135,55 @@ class ConditionalStarkShiftRepeatedGate(Experiment):
         return fig
 
     @register_browser_function()
-    # @visual_analyze_prompt("""
-    #         I have a plot showing the population of the control qubit along the Z axis.
-    #         The experiment is success if the population of the control qubit is stable through the whole experiment.
-    #         If the population of the control qubit is changes too rapidly so the ground and excited state meet each other,
-    #         it is considered failed. It is okay if the two lines are well separated.
-    # """)
+    @visual_analyze_prompt("""
+                I have a plot showing ZZ interaction Hamiltonian tomography in the Fourier space. The X-axis represents 
+                the frequency, and the Y-axis shows the amplitude of the fourier transformed value.
+                My objective is to determine if the experiment is a success.
+                The success of the experiment depends on observing two clear peaks in the Fourier space, 
+                one for the ground state and one for the excited state. They should be symmetric around the center of the plot.
+                If the peaks are not clear, the experiment is considered failed.
+                If you observe more than two clear peaks, the experiment is considered failed.
+                Otherwise, the experiment is considered successful.
+                """)
+    def plot_fourier(self):
+        fig = go.Figure()
+
+        def plot_fourier_trace(fig, data, label, fit_params=None):
+            color_ground = 'mediumblue'
+            color_excited = 'crimson'
+
+            t = np.arange(self.start_gate_number, self.start_gate_number + self.gate_count, 1)
+
+            color = color_ground if label == 'Ground' else color_excited
+
+            # Compute the Fourier Transform of the data
+            fourier_transform = np.fft.fft(data)
+            frequencies = np.fft.fftfreq(t.size, d=1)
+
+            # Compute the amplitude of the Fourier Transform
+            amplitude = np.abs(fourier_transform)
+
+            # Sort frequencies in ascending order and reorder amplitude accordingly
+            sorting_indices = np.argsort(frequencies)
+            sorted_frequencies = frequencies[sorting_indices]
+            sorted_amplitude = amplitude[sorting_indices]
+
+            fig.add_trace(
+                go.Scatter(x=sorted_frequencies, y=sorted_amplitude, mode="lines+markers",
+                           name=label, opacity=0.5, marker=dict(color=color)))
+
+        plot_fourier_trace(fig=fig, data=self.result[:, 0, 0] + 1.j * self.result[:, 0, 1], label="Ground")
+        plot_fourier_trace(fig=fig, data=self.result[:, 1, 0] + 1.j * self.result[:, 1, 1], label="Excited")
+
+        fig.update_layout(title="ZZ interaction repeated gate tomography - Fourier Transform",
+                          xaxis_title="Frequency [MHz]",
+                          yaxis_title="Amplitude [a.u.]",
+                          plot_bgcolor='white',
+                          legend=dict(x=0, y=1, traceorder='normal'))
+
+        return fig
+
+    @register_browser_function()
     def plot_control_population(self):
 
         fig = go.Figure()
@@ -1135,14 +1215,12 @@ class ConditionalStarkShiftRepeatedGate(Experiment):
             data = data.squeeze()
 
             plt.scatter(t, data, label=label, alpha=0.5)
-            # plt.plot(t, data)
 
             f = fit_params['Frequency'].nominal_value
             a = fit_params['Amplitude'].nominal_value
             p = fit_params['Phase'].nominal_value - 2.0 * np.pi * f * args['start_gate_number']
             o = fit_params['Offset_real'].nominal_value + 1j * fit_params['Offset_imag'].nominal_value
 
-            # fit = a * np.exp(-decay * t_interpolate) * np.exp(1j * (2.0 * np.pi * f * t_interpolate + p)) + o
             fit = a * np.exp(1.j * (2.0 * np.pi * f * t_interpolate + p)) + o
 
             plt.plot(t_interpolate, np.real(fit) if not use_imaginary_part else np.imag(fit))
@@ -1217,11 +1295,16 @@ class ConditionalStarkShiftRepeatedGate(Experiment):
         z_control_diff_max = np.max(np.abs(z_control_diff))
         z_control_diff_min = np.min(np.abs(z_control_diff))
 
+        if z_control_diff_min < 0.25 * z_control_diff_max:
+            extra_prompt = "The experiment failed because the population of the control qubit does not meet the criteria"
+        else:
+            extra_prompt = "The experiment is successful."
+
         prompt = f"""
         The expectation value of the control qubit along the Z axis is stable through the whole experiment.
         The maximum difference between the ground and excited state is {z_control_diff_max} and the minimum difference is {z_control_diff_min}.
-        The experiment should be considered successful if the minimum difference is greater than 50% of the maximum difference.
-        """
+        The experiment should be considered successful if the minimum difference is greater than 25% of the maximum difference.
+        """ + extra_prompt
 
         return prompt
 
@@ -1233,7 +1316,7 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
 
     _experiment_result_analysis_instructions = """
     The Conditional Stark Echo Tune-Up experiment has been completed. Please read the following report to analyze the
-    if this is a successful experiment.
+    if this is a successful experiment. Make the analysis concise and clear in one short sentence describing the reason. 
     """
 
     @log_and_record
@@ -1390,8 +1473,8 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
         """
 
         import mllm
-        chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict. "
-                                 "Do not include single or double quotes or new lines in the analysis and messages.")
+        chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict. " +
+                         "Keep everything in a same line in the response.")
         res = chat.complete(parse="dict", expensive=True, cache=True)
 
         html = dict_to_html(res)
@@ -1438,20 +1521,26 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
                 - phase_diff: {self.current_params['phase_diff']}
                 - echo: True
             """
-            #
-            next_stage_guide = """Go to Complete if success.
-                                  Go back to the same stage if the experiment failed and the parameters should be adjusted.
-                                  Go to Fail if the experiment failed and the parameters cannot be adjusted or there is no suggestion for how to adjust the parameters.
-                                  Go to Fail if the experiment has failed because the control qubit population does not meet the criteria.
-                                  Go to Fail if the experiment has failed after 3 attempts."""
 
+            next_stage_guide = """Go to Complete if success. Otherwise Fail."""
+
+            """
             ai_experiment = AIInstructionExperiment(
                 prompt,
-                # next_stage_guide=next_stage_guide,
+                next_stage_guide=next_stage_guide,
                 duts=self.duts,
-
             )
             sizzel_xy = ai_experiment.get_last_experiment()
+            """
+
+            from leeq.experiments.ai.automation import execute_experiment_from_prompt
+            from leeq.utils.ai.staging.stage_execution import get_exp_from_var_table
+
+            ai_experiment_var_table = execute_experiment_from_prompt(
+                prompt=prompt, duts=self.duts,
+            )
+            sizzel_xy = get_exp_from_var_table(ai_experiment_var_table)
+
             inspection_results = sizzel_xy.get_ai_inspection_results()
         else:
             sizzel_xy = ConditionalStarkShiftContinuous(
@@ -1476,17 +1565,23 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
 
         result = sizzel_xy.analyze_results_with_errs()
 
-        iz_rate = result['iz_rate']
-        zz_rate = result['zz_rate']
+        try:
+            iz_rate = result['iz_rate']
+            zz_rate = result['zz_rate']
 
-        new_params = self.current_params.copy()
-        new_params['width'] = np.abs(0.125 / zz_rate.nominal_value) / 2
+            new_params = self.current_params.copy()
+            new_params['width'] = np.abs(0.125 / zz_rate.nominal_value) / 2
 
-        fitted_results_str = f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]} us'
-        print(fitted_results_str)
+            fitted_results_str = f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]} us'
+            print(fitted_results_str)
 
-        self.params_list.append(new_params)
-        self.current_params = new_params
+            self.params_list.append(new_params)
+            self.current_params = new_params
+        except Exception as e:
+            iz_rate = None
+            zz_rate = None
+            inspection_results['Experiment success'] = False
+            inspection_results['error'] = f"Failed to analyze the results. Fitting error"
 
         return iz_rate, zz_rate, inspection_results
 
@@ -1526,7 +1621,7 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
         for i in range(self.n_max_iteration):
 
             try_count = 0
-            while try_count < 3:
+            while try_count < 1:
                 if self.ai_inspection:
                     from leeq import AIInstructionExperiment
 
@@ -1546,11 +1641,22 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
                         - echo: True
                     """
 
+                    """
+                    next_stage_guide = "Go to Complete if success. Otherwise Fail."
                     ai_experiment = AIInstructionExperiment(
                         prompt,
                         duts=self.duts,
-                    )
+                        next_stage_guide=next_stage_guide)
                     repeated_gate = ai_experiment.get_last_experiment()
+                    """
+
+                    from leeq.experiments.ai.automation import execute_experiment_from_prompt
+                    from leeq.utils.ai.staging.stage_execution import get_exp_from_var_table
+
+                    ai_experiment_var_table = execute_experiment_from_prompt(
+                        prompt=prompt, duts=self.duts,
+                    )
+                    repeated_gate = get_exp_from_var_table(ai_experiment_var_table)
                 else:
                     repeated_gate = ConditionalStarkShiftRepeatedGate(
                         duts=self.duts,
@@ -1625,7 +1731,6 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
                 zz_diff = zz_rate.nominal_value * width_diff * 2
                 width += width_diff
                 iz_diff = 0
-                # iz_rate_tQ1_cQ2 * width_diff * np.pi * 2
                 print(f'Update width to {width} us')
                 kalman_zz.predict(
                     movement=zz_diff,
@@ -1693,7 +1798,7 @@ class ConditionalStarkSearchParameters(Experiment):
                             It has to be at least 30 MHz away from both of the single qubit transition frequency.
                             It should not be lower than 60MHz below the lowest qubit frequency and not higher than 60MHz above the highest qubit frequency.
                             Round it to multiples of MHz.
-            'amp_control': You should try from 1 time to 2 times of the single qubit drive amplitude. The experiment may fail when chosing a amplitude too high, therefore you should start from a gentle value. The maximum value is 1.
+            'amp_control': You should try from 1.5 time to 2 times of the first qubit's single qubit gate drive amplitude. The experiment may fail when chosing a amplitude too high, therefore you should start from a gentle value. The maximum value is 1.
             'rise': No more than 0.02, no less than 0.01. Usually 0.015 is the right value to choose.
             'phase_diff': keep it 0,
             'width': determined by the experiment output,
@@ -1727,7 +1832,11 @@ class ConditionalStarkSearchParameters(Experiment):
             },
         }
 
-        If you have have found a set of parameters you believe to be optimal, please set status to 'finish'. If you have encountered an error, please set status to 'error'. Otherwise 'searching'
+        If you find a set of parameters that has width less than 0.2 us immediately set status to finish. 
+        If you have done 50 searches, set status to finish.
+        If you have done 20 searches and could not find any improvements, return the set of parameters you believe to be optimal,
+        please set status to 'finish'. 
+        If you have encountered an error, please set status to 'error'. Otherwise 'searching'
         """
 
     @log_and_record
@@ -1805,8 +1914,8 @@ class ConditionalStarkSearchParameters(Experiment):
         self._display_experiment_history()
 
         from mllm import Chat
-        chat = Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict. "
-                                 "Do not include single or double quotes or new lines in the analysis and messages.")
+        chat = Chat(prompt,
+                    "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.")
         res = chat.complete(parse="dict", expensive=True, cache=True)
 
         from leeq.utils.ai.display_chat.notebooks import dict_to_html, display_chat

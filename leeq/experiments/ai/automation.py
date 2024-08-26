@@ -16,6 +16,59 @@ logger = setup_logging(__name__)
 __all__ = ["AIInstructionExperiment", "FullyAutomatedExperiment", "AIRun", "AutoRun"]
 
 
+def execute_experiment_from_prompt(prompt: str, **kwargs):
+    """
+    Execute an experiment from a prompt.
+
+    Parameters
+    ----------
+    prompt: str
+        The prompt to run the experiment.
+    kwargs
+        Additional keyword arguments.
+
+    Returns
+    -------
+    The variable table after the experiment is run.
+
+    """
+    from leeq.utils.ai.variable_table import VariableTable
+    from leeq.utils.ai.code_indexer import build_leeq_code_ltm
+    from leeq.utils.ai.staging.stage_transition import get_next_stage_label
+    from leeq.utils.ai.staging.stage_transition import generate_new_stage_description
+    from leeq.utils.ai.staging.stage_execution import Stage, get_exp_from_var_table, get_codegen_wm, \
+        get_code_from_wm, check_if_needed_to_break_down
+    from leeq.utils.ai.staging.stage_generation import stages_to_html
+    from leeq.utils.ai.display_chat.notebooks import display_chat, code_to_html, dict_to_html
+
+    spinner_id = show_spinner(f"Interpreting experiment...")
+    input_var_table = VariableTable()
+    for key, value in kwargs.items():
+        input_var_table.add_variable(key, value)
+
+    leeq_code_ltm, exps_var_table = build_leeq_code_ltm()
+    code_cog_model = CodegenModel()
+    for idea in leeq_code_ltm.ideas:
+        code_cog_model.lt_memory.add_idea(idea)
+    code_cog_model.n_recall_items = 5  # Number of items to recall in cognitive model
+    var_table: VariableTable = VariableTable()
+    var_table.add_parent_table(exps_var_table)
+    var_table.add_parent_table(input_var_table)
+
+    codegen_wm = get_codegen_wm(prompt, input_var_table)
+
+    recall_res = code_cog_model.recall(codegen_wm)
+    codes = code_cog_model.codegen(codegen_wm, recall_res)
+
+    new_var_table = var_table.new_child_table()
+
+    hide_spinner(spinner_id)
+    code_html = code_to_html(codes)
+    display_chat("Code generation AI", 'light_purple', f"Here is the generated code:<br>{code_html}")
+    new_var_table.interpret(codes)
+    return new_var_table
+
+
 class AIStagedExperiment(Experiment):
     """
     An experiment that contains multiple stages to be run.
