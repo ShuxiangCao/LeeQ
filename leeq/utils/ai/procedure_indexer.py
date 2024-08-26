@@ -97,7 +97,7 @@ def extract_procedures_to_lt_memory(markdown_path, var_table, lt_memory):
 if __name__ == '__main__':
     #lt_memory, var_table = build_leeq_code_ltm()
     from leeq import experiments as exp
-    from ideanet.core.idea import LongTermMemory
+    from leeq.utils.ai.ideanet.lt_memory import LongTermMemory
     from leeq.utils.ai.variable_table import VariableTable
     lt_memory = LongTermMemory()
     var_table = VariableTable()
