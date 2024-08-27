@@ -7,12 +7,12 @@ The process of recalibrating a single qubit is crucial to maintaining optimal qu
 
 ## Steps
 
-- Do frequency Calibration on `dut`
-- Do amplitude Calibration on `dut`
+- Do gate frequency calibration on `dut`
+- Do gate amplitude calibration on `dut`
 - Do DRAG Calibration on `dut`
 
 
-# Frequency calibration on `dut`
+# Gate frequency calibration on `dut`
 
 ## Background
 

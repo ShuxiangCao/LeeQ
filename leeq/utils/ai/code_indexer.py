@@ -165,8 +165,13 @@ def build_leeq_code_ltm() -> Tuple[LongTermMemory, VariableTable]:
             classes.append(class_obj)
 
     # Load the AI automated experiment class for nested execution.
-    from leeq.experiments import FullyAutomatedExperiment
-    classes.append(FullyAutomatedExperiment)
+    from leeq.experiments import FullyAutomatedExperiment, AIInstructionExperiment, AIRun, AutoRun
+    # classes.append(FullyAutomatedExperiment)
+    # classes.append(AIInstructionExperiment)
+    # classes.append(AIRun)
+    # classes.append(AutoRun)
+
+    var_table.add_variable('AutoRun', AutoRun, None)
 
     def _add_leeq_exp_to_ltm(exp_cls: Type[Any]):
         add_leeq_exp_to_ltm(lt_memory, var_table, exp_cls)

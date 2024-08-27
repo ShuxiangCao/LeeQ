@@ -102,6 +102,7 @@ def get_codegen_wm(description: str, var_table: VariableTable) -> WorkingMemory:
     wm.add_item(WMemoryItem(description, tag="instruction"))
     return wm
 
+
 def check_if_needed_to_break_down(description: str):
     """
     Check if the stage described by the description needs to be broken down into multiple steps.
@@ -162,12 +163,16 @@ class CodegenIdea(Idea):
             available_variables = ""
         else:
             available_variables = available_variables[0]
+        code_suggestions = w_memory.extract_tag_contents("code_suggestion")
+        code_suggestions = ["<code_suggestion>\n" + suggestion + "\n</code_suggestion>\n" for suggestion in
+                            code_suggestions]
+        code_suggestions = "".join(code_suggestions)
         notices = """
-        - Call exactly one time to the experiment function / class in this edit.
-        - Every class or function call will include the data analysis inside the call automatically so there is no need to do data analysis separately.
-        - Always use named arguments to call functions or classes.
-        - Store the return value of the call functions or classes to a variable.
-        """
+- Call exactly one time to the experiment function / class in this edit.
+- Every class or function call will include the data analysis inside the call automatically so there is no need to do data analysis separately.
+- Always use named arguments to call functions or classes.
+- Store the return value of the call functions or classes to a variable.
+"""
         prompt = f"""
 Your task is to generate new code for the context described below.        
 <context>
@@ -179,6 +184,7 @@ prompt = f'''
 # [slot: {instruction}]
 '''
 </code_to_complete>
+{code_suggestions}
 <notices>
 {notices}
 </notices>
@@ -193,15 +199,17 @@ Output a JSON dict with the following keys:
 "analysis" (string): an analysis of the current situation. Especially, focusing on how to generate the code.
 "code" (string): the new code that can fill the slot in <code_to_complete>.
 </instruction>
-"""
+        """
         chat = Chat(prompt)
         res = chat.complete(parse="dict", expensive=True)["code"]
         idea_res = IdeaResult(self, True)
+
+        print(chat)
+
         code_item = CodeWMemoryItem(res, tag="attempted_code")
         idea_res.add_new_wm_item(code_item)
         idea_res.tags_to_remove = ["attempted_code", "code_suggestion"]  # remove the old attempted code
         return idea_res
-
 
 class CodegenModel:
     lt_memory: LongTermMemory
