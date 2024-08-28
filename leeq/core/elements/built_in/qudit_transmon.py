@@ -1,5 +1,8 @@
+from typing import Any
+
 import numpy as np
 
+from leeq import LogicalPrimitiveCollection
 from leeq.core import LogicalPrimitiveFactory
 from leeq.core.elements import Element
 from leeq.core.primitives import LogicalPrimitiveCollectionFactory
@@ -56,6 +59,16 @@ class TransmonElement(Element):
         )
 
         self._default_measurement_primitive_name = "0"
+
+    def add_collection(self, name: str, collection: LogicalPrimitiveCollection):
+        """
+        Add a logical primitive collection to the element.
+
+        Parameters:
+            name (str): The name of the collection.
+            collection (LogicalPrimitiveCollection): The logical primitive collection.
+        """
+        self._lpb_collections[name] = collection
 
     def set_default_measurement_primitive_name(self, name: str):
         """

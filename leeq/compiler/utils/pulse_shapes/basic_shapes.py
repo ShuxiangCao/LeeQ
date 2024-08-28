@@ -1,7 +1,7 @@
 import inspect
 
 import numpy as np  # Assuming numpy is needed based on the provided function.
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 from leeq.compiler.utils.time_base import get_t_list
 
 __all__ = [
@@ -16,6 +16,7 @@ __all__ = [
     "segment_by_time",
     "segment_by_index",
     "blackman_square",
+    "arbitrary_pulse"
 ]
 
 
@@ -97,9 +98,9 @@ def segment_by_index(sampling_rate: int, env_name: str, seg_i_start: float, seg_
 def gaussian(
         sampling_rate: int,
         amp: float,
-        phase: float,
         width: float,
-        trunc: float) -> np.array:
+        phase: float = 0,
+        trunc: float = 1.2) -> np.array:
     """
     Generates a complex Gaussian wave packet.
 
@@ -522,7 +523,31 @@ def clear_square(
     y[(x_final_top < x) & (x < x_end)] = final_top * amp
 
     y = y
+    return y
 
+def arbitrary_pulse(
+        sampling_rate: int,
+        amp: float,
+        pulse_window_array: List,
+        phase: float = 0,
+        width: Optional[float] = None,
+)-> np.ndarray:
+    """
+Generate an arbitrary pulse shape using a window array.
+
+Parameters:
+- sampling_rate (int): Sampling rate in Megasamples per second.
+- amp (float): Amplitude of the signal.
+- pulse_window_array (np.ndarray): Array representing the pulse shape.
+- phase (float, optional): Phase of the signal.
+- width (float, optional): Width of the pulse, not being used.
+"""
+
+    pulse_shape = np.asarray(pulse_window_array)
+
+    pulse_shape = pulse_shape[0, :] + 1.j * pulse_shape[1, :]
+    pulse = amp * np.exp(1.0j * phase) * pulse_shape
+    return pulse
 
 def clk(
         sampling_rate: int,
@@ -558,3 +583,4 @@ def clk(
     y.fill(amp * np.exp(1.0j * (phase + phase_shift)))
     y[x < (delay - width) / 2.0] = 0.0
     return y * np.exp(-kappa * x / 2) + dc_bias
+

@@ -57,9 +57,9 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
             raise TypeError("collection_name must be a string")
         if cliff_set not in {'XY', 'VZX'}:
             raise ValueError("cliff_set must be either 'XY' or 'VZX'")
-        if collection_name not in {'f01', 'f12', 'f23', 'f02', 'f13'}:
-            raise ValueError(
-                "collection_name must be one of the specified collections")
+        # if collection_name not in {'f01', 'f12', 'f23', 'f02', 'f13'}:
+        #     raise ValueError(
+        #         "collection_name must be one of the specified collections")
 
         if cliff_set == 'VZX':
             raise NotImplementedError(
