@@ -1,5 +1,6 @@
 import inspect
 import os.path
+from pprint import pprint
 
 import markdown
 import mllm
@@ -94,7 +95,7 @@ You are trying to decomposing the following instruction for implementation.
 <input_instruction>
 {instruction}
 </input_instruction>
-You should generate the detailed instructions based on the following existing way of decomposing the task.
+You should generate instructions based on the following existing way of decomposing the task.
 <example>
 <instruction>
 {self.title}
@@ -110,26 +111,33 @@ The background for the above instruction is as follows:
 </example>
 <requirements>
 You are required to output a JSON dict with the following keys
-- "analysis" (string): An analysis of the relation between the input_instruction and the example, as well as how to decompose the input_instruction based on the example you have. You should notice that the input_instruction might be totally irrelevant to the example. You should point out whether the example provides a good way to decompose the input_instruction, so that you don't need to modify the steps in the example a lot.
+- "analysis" (string): An analysis of the relation between the input_instruction and the example, as well as how to decompose the input_instruction based on the example you have. You should notice that the input_instruction might be totally irrelevant to the example. You should point out whether the example provides a proper way to decompose the input_instruction, so that you don't need to modify the steps in the example a lot. You should also notice that the input_instruction might involve additional steps beyond the scope of the steps in example.
 - "proper" (bool): Whether the example provides a proper way to decompose the input_instruction. If not proper, you can omit the next key.
 - "broader" (bool): Whether the input_instruction might involve additional steps beyond the scope of the steps in example.
-- "decomposed_steps" (string): The decomposed steps of input_instruction based on the steps in the example. The decomposed steps should be as similar to the steps in the example as possible.
+- "decomposed_steps" (string): The decomposed steps of input_instruction based on the <steps> in the example. You should only modify the existing <steps>. You should not add new steps. You should make minimal change to the existing <steps>.
+- "certain_step" (bool): Whether the input_instruction matches a certain step in the example rather rather than many steps.
+- "annotation" (string): A concise annotation to that indicate what will be implemented based on the decomposed steps.
+</requirements>
 """
         chat = Chat(prompt)
         res = chat.complete(parse="dict", expensive=True)
-        if not res["proper"] or res["broader"]:
+        if not res["proper"] or res["broader"] or res["certain_step"]:
             return IdeaResult(self, False)
-        print(res["decomposed_steps"])
-        print("Analysis")
-        print(res["analysis"])
+        #pprint(res)
+        #print(res["decomposed_steps"])
+        #print("Analysis")
+        #print(res["analysis"])
         arg_in_code = []
         for arg in var_table.variable_objs:
             arg_in_code.append(f", {arg}={arg}")
         arg_in_code = "".join(arg_in_code)
+        annotation_in_prompt = res["annotation"].replace("\n", "\n# ")
         code_suggestion = f'''
+# {annotation_in_prompt}
 # AutoRun function will execute instructions passed to it
 AutoRun("""{res["decomposed_steps"]}""" {arg_in_code})        
 '''
+        #print(code_suggestion)
         idea_res = IdeaResult(self, True)
         idea_res.add_new_wm_content(code_suggestion, tag="code_suggestion")
         return idea_res
@@ -174,15 +182,20 @@ def extract_procedures_to_lt_memory(markdown_path, lt_memory):
     for procedure, idea in p_map(generate_idea_from_procedure, procedures):
         lt_memory.add_idea(idea)
 
+
 if __name__ == '__main__':
     from leeq import experiments as exp
     from leeq.utils.ai.ideanet.lt_memory import LongTermMemory
+    from mllm.provider_switch import set_default_to_anthropic
 
+    #set_default_to_anthropic()
     lt_memory = LongTermMemory()
     root = os.path.dirname(exp.__file__)
     extract_procedures_to_lt_memory(root + "/procedures/calibration.md", lt_memory)
     var_table = VariableTable()
     var_table.add_variable("dut", "DUT", "The device under test")
-    wm = get_codegen_wm("Complete Calibrating Single Qubit `dut` without doing the frequency calibration and with doing the Amplitude Calibration with step=0.001. ", var_table=var_table)
-    #print(wm.stimuli)
+    #inst = "Do a complete Calibrating Single Qubit `dut`, in which set step=0.001 for the gate Amplitude Calibration. "
+    inst = "Conduct a gate amplitude calibration on `dut_1`"
+    wm = get_codegen_wm(inst, var_table=var_table)
+    print(wm.get_in_prompt_format())
     lt_memory.recall_by_wm(wm)
