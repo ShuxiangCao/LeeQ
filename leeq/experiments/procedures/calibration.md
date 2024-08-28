@@ -16,6 +16,8 @@ The process of recalibrating a single qubit is crucial to maintaining optimal qu
 
 ## Background
 
+Gate frequency calibration is one of the essential steps when calibrating a qubit.
+
 Ramsey experiment can predict the qubit frequency different to the frequency I am driving it. First I guess a qubit frequency (which already set in the system), and assume the difference is no more than 10 MHz. Therefore I run a ramsey experiment with frequency offset 10 MHz. Then I wish to do a more accurate calibration by increase the experiment time, and reduce the offset to 1MHz. If this experiment failed and show a value more than 3 MHz its likely that the initial guess is more than 10MHz away from the qubit. Therefore we go back and run experiment at 20MHz offset again. After it succeeded, we do a fine calibration with offset 0.1MHz.
 
 ## Steps
@@ -29,7 +31,9 @@ Ramsey experiment can predict the qubit frequency different to the frequency I a
 
 ## Background
 
-To accurately calibrate the amplitude of the control pulses for our qubit gates, we start with a Rabi oscillation experiment. This experiment helps determine the amplitude required to perform a full rotation on the Bloch sphere. We begin the calibration with a preliminary range of pulse durations starting from 0.01 microseconds up to 0.15 microseconds, incrementing by 0.001 microseconds each step. Successful determination of the Rabi frequency from these measurements will indicate the optimal amplitude setting for the qubit gates.
+Gate Amplitude calibration is one of the essential steps when calibrating a qubit.
+
+To accurately calibrate the amplitude of the control pulses for our qubit gates, we start with a Rabi oscillation experiment. This experiment helps determine the amplitude required to perform a full rotation on the Bloch sphere. Successful determination of the Rabi frequency from these measurements will indicate the optimal amplitude setting for the qubit gates.
 
 After successfully calibrating the Rabi frequency, we proceed to Pingpong amplitude calibration using the default parameters. This secondary calibration further refines our control over the qubit by adjusting the amplitudes based on the results from the Rabi experiment, ensuring more precise and reliable gate operations.
 
@@ -42,6 +46,8 @@ After successfully calibrating the Rabi frequency, we proceed to Pingpong amplit
 # DRAG Parameter Calibration on `dut`
 
 ## Background
+
+DRAG calibration is one of the essential steps in when calibrating a qubit.
 
 Derivative Removal by Adiabatic Gate (DRAG) parameter calibration is essential for minimizing errors in single qubit gates due to the non-idealities of the control pulses, such as leakage to non-computational states. We will run the calibration using default parameters for the single qubit pulse.  If the visual inspection fails, reset the alpha value to 0 and try again. if it failed again call for human assistance.
 
