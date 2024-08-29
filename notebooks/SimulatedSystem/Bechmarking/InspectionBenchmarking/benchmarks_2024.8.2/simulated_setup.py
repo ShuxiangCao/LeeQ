@@ -361,10 +361,11 @@ class NormalisedRabiDataValidityCheck(Experiment):
     @register_browser_function()
     @visual_analyze_prompt("""
 Analyze this quantum mechanics Rabi oscillation experiment plot. Determine if it shows a successful or failed experiment by evaluating:
-    1. Oscillation behaviour in the figure. It may not be perfect, but it needs to distinguish from random noise data. 
+    1. Oscillation behaviour in the figure. It may not be perfect, but it needs to be distinguished from random noise data. 
     2. Amplitude and frequency consistency. inconsistent oscillation is considered a failure.
 For example, the following Image is a successful Rabi oscillation experiment plot:
 Image("openai_rabi_success_cases_0_NormalisedRabiDataValidityCheck.plot.png")
+the following Image is a failure case for the Rabi experiment: Image("openai_rabi_failure_cases_0_NormalisedRabiDataValidityCheck.plot.png")
     """)
     def plot(self) -> go.Figure:
         """

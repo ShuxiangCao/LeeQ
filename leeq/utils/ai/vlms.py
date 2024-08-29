@@ -101,6 +101,7 @@ def visual_inspection(image: "Image", prompt: str, func_file_path, rescale=0.5, 
                        "Please return your message in a json format with keys analysis(str, single paragraph) "
                        "and 'success'(boolean)")
 
+    chat.add_image_message(image)
     res = chat.complete(parse="dict", **kwargs)
 
     return res

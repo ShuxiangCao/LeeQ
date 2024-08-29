@@ -1,15 +1,15 @@
 #!/bin/bash
 
 # Array of benchmark names
-benchmarks=('resonator_spec' 'gmm' 'rabi' 'drag')
-# benchmarks=('resonator_spec')
+# benchmarks=('resonator_spec' 'gmm' 'rabi' 'drag')
+benchmarks=('rabi')
 configs=('success' 'failure')
 # Array of model names
 #models=('openai')
-# models=('openai')
+models=('openai')
 #models=('llama')
 #models=('gemini')
-models=('gemini' 'llama' 'openai')
+# models=('gemini' 'llama' 'openai')
 # models=('openai' 'anthropic' 'gemini' 'llama')
 
 # Number of shots, you can adjust this value as needed
