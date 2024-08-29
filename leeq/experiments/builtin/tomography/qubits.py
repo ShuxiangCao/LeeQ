@@ -1,97 +1,9 @@
-import copy
+from typing import List, Any, Union
 
-import numpy as np
-from labchronicle import log_and_record, register_browser_function
-from matplotlib import pyplot as plt
-
-from leeq import Experiment, basic_run, Sweeper
-from leeq.theory.utils import to_dense_probabilities
+from labchronicle import log_and_record
 from leeq.utils.compatibility import prims
-from .base import GeneralisedTomographyBase
-from ... import sweeper
-
-
-class GeneralisedSingleDutStateTomography(Experiment, GeneralisedTomographyBase):
-    def run(self, dut, model, mprim_index=1, initial_lpb=None, extra_measurement_duts=None):
-        self.model = model
-        self.initialize_gate_lpbs(dut=dut)
-
-        self.state_tomography_model = self.model.construct_state_tomography()
-
-        measurement_sequences = self.state_tomography_model.get_measurement_sequence()
-
-        measurement_lpb = prims.SweepLPB([self.get_lpb(x) for x in measurement_sequences])
-        swp_measurement = Sweeper.from_sweep_lpb(measurement_lpb)
-
-        mprim = dut.get_measurement_prim_intlist(mprim_index)
-
-        lpb = measurement_lpb + mprim
-
-        if initial_lpb is not None:
-            lpb = initial_lpb + lpb
-
-        basic_run(lpb, swp_measurement, 'prob')
-        self.result = np.squeeze(mprim.result())
-
-        self.vec, self.dm = self.state_tomography_model.linear_inverse_state_tomography(self.result.T)
-
-    @register_browser_function(available_after=(run,))
-    def plot(self):
-        self.model.plot_density_matrix(self.dm)
-        plt.show()
-
-
-class GeneralisedSingleDutProcessTomography(Experiment, GeneralisedTomographyBase):
-
-    @log_and_record
-    def run(self, dut, model, lpb=None, mprim_index=1, extra_measurement_duts=None):
-        self.model = model
-        self.initialize_gate_lpbs(dut=dut)
-
-        self.process_tomography_model = self.model.construct_process_tomography()
-
-        measurement_sequences = self.process_tomography_model.get_measurement_sequence()
-        preparation_sequences = self.process_tomography_model.get_preparation_sequence()
-
-        measurement_lpb = prims.SweepLPB([self.get_lpb(x) for x in measurement_sequences])
-        swp_measurement = Sweeper.from_sweep_lpb(measurement_lpb)
-
-        preparation_lpb = prims.SweepLPB([self.get_lpb(x) for x in preparation_sequences])
-        swp_preparation = Sweeper.from_sweep_lpb(preparation_lpb)
-
-        mprim = dut.get_measurement_prim_intlist(mprim_index)
-
-        if lpb is not None:
-            lpb = preparation_lpb + lpb + measurement_lpb + mprim
-        else:
-            lpb = preparation_lpb + measurement_lpb + mprim
-
-        basic_run(lpb, swp_measurement + swp_preparation, 'prob')
-        self.result = mprim.result()
-
-        self.ptm = self.process_tomography_model.linear_inverse_process_tomography(self.result.transpose([0, 2, 1]))
-
-    @register_browser_function(available_after=(run,))
-    def plot(self):
-        self.model.plot_process_matrix(self.ptm)
-        plt.show()
-
-
-class SingleQubitStateTomography(GeneralisedSingleDutStateTomography):
-
-    def initialize_gate_lpbs(self, dut):
-        self._gate_lpbs = {}
-
-        self._gate_lpbs['I'] = dut.get_gate('I')
-        self._gate_lpbs['Xp'] = dut.get_gate('Xp', transition_name='f01')
-        self._gate_lpbs['Yp'] = dut.get_gate('Yp', transition_name='f01')
-        self._gate_lpbs['X'] = dut.get_gate('X', transition_name='f01')
-
-    @log_and_record
-    def run(self, dut, mprim_index=0, initial_lpb=None, extra_measurement_duts=None):
-        from leeq.theory.tomography import SingleQubitModel
-        model = SingleQubitModel()
-        super().run(dut, model, mprim_index, initial_lpb, extra_measurement_duts)
+from .base import GeneralisedTomographyBase, GeneralisedSingleDutStateTomography, GeneralisedStateTomography, \
+    GeneralisedProcessTomography
 
 
 class QubitTomographyBase(GeneralisedTomographyBase):
@@ -117,90 +29,78 @@ class QubitTomographyBase(GeneralisedTomographyBase):
         self._gate_lpbs = dict(zip(full_gate_names, [_get_multi_qubit_lpb_from_name(name) for name in full_gate_names]))
 
 
-class GeneralisedStateTomography(Experiment, GeneralisedTomographyBase):
-    def run(self, duts, model, mprim_index=1, initial_lpb=None, extra_measurement_duts=None):
-        self.model = model
-        self.initialize_gate_lpbs(duts=duts)
+class SingleQubitStateTomography(GeneralisedSingleDutStateTomography):
 
-        self.state_tomography_model = self.model.construct_state_tomography()
+    def initialize_gate_lpbs(self, dut):
+        self._gate_lpbs = {}
 
-        measurement_sequences = self.state_tomography_model.get_measurement_sequence()
-
-        measurement_lpb = prims.SweepLPB([self.get_lpb(x) for x in measurement_sequences])
-        swp_measurement = Sweeper.from_sweep_lpb(measurement_lpb)
-
-        mprims = [dut.get_measurement_prim_intlist(mprim_index) for dut in duts]
-
-        lpb = measurement_lpb + prims.ParallelLPB(mprims)
-
-        if initial_lpb is not None:
-            lpb = initial_lpb + lpb
-
-        basic_run(lpb, swp_measurement, '<zs>')
-        self.result = np.squeeze([mprim.result() for mprim in mprims])
-
-        self.prob = to_dense_probabilities(self.result.transpose([0, 2, 1]))
-
-        self.vec, self.dm = self.state_tomography_model.linear_inverse_state_tomography(self.prob)
-
-    @register_browser_function(available_after=(run,))
-    def plot(self):
-        self.model.plot_density_matrix(self.dm)
-        plt.show()
-
-
-class GeneralisedProcessTomography(Experiment, GeneralisedTomographyBase):
+        self._gate_lpbs['I'] = dut.get_gate('I')
+        self._gate_lpbs['Xp'] = dut.get_gate('Xp', transition_name='f01')
+        self._gate_lpbs['Yp'] = dut.get_gate('Yp', transition_name='f01')
+        self._gate_lpbs['X'] = dut.get_gate('X', transition_name='f01')
 
     @log_and_record
-    def run(self, duts, model, lpb=None, mprim_index=1, extra_measurement_duts=None):
-        self.model = model
-        self.initialize_gate_lpbs(duts=duts)
-
-        self.process_tomography_model = self.model.construct_process_tomography()
-
-        measurement_sequences = self.process_tomography_model.get_measurement_sequence()
-        preparation_sequences = self.process_tomography_model.get_preparation_sequence()
-
-        measurement_lpb = prims.SweepLPB([self.get_lpb(x) for x in measurement_sequences])
-        swp_measurement = Sweeper.from_sweep_lpb(measurement_lpb)
-
-        preparation_lpb = prims.SweepLPB([self.get_lpb(x) for x in preparation_sequences])
-        swp_preparation = Sweeper.from_sweep_lpb(preparation_lpb)
-
-        mprims = [dut.get_measurement_prim_intlist(mprim_index) for dut in duts]
-
-        if lpb is not None:
-            lpb = preparation_lpb + lpb + measurement_lpb + prims.ParallelLPB(mprims)
-        else:
-            lpb = preparation_lpb + measurement_lpb + prims.ParallelLPB(mprims)
-
-        basic_run(lpb, swp_measurement + swp_preparation, '<zs>')
-        self.result = np.squeeze([mprim.result() for mprim in mprims])
-
-    def analyze_data(self):
-
-        self.prob = to_dense_probabilities(self.result.transpose([0, 3, 1, 2]))
-        self.ptm = self.process_tomography_model.linear_inverse_process_tomography(self.prob)
-
-    @register_browser_function(available_after=(run,))
-    def plot(self):
-        self.analyze_data()
-        self.model.plot_process_matrix(self.ptm, base=2)
-        plt.show()
+    def run(self, dut, mprim_index=0, initial_lpb=None, extra_measurement_duts=None):
+        from leeq.theory.tomography import SingleQubitModel
+        model = SingleQubitModel()
+        super().run(dut, model, mprim_index, initial_lpb, extra_measurement_duts)
 
 
 class MultiQubitsStateTomography(GeneralisedStateTomography, QubitTomographyBase):
+    _experiment_result_analysis_instructions = """
+    The result of the experiment is the density matrix of the quantum state. Check if the density matrix has been reported.
+    by data analysis.
+    """
+
     @log_and_record
-    def run(self, duts, mprim_index=0, initial_lpb=None, extra_measurement_duts=None):
+    def run(self, duts: List[Any], mprim_index: Union[int, str] = 0, initial_lpb: 'LogicalPrimitiveBlock' = None,
+            extra_measurement_duts: List[Any] = None,
+            measurement_mitigation: Union[None, 'CalibrateFullAssignmentMatrices', bool] = None):
+        """
+        Experiment for multi-qubit state tomography.
+
+        Parameters
+        ----------
+        duts : List[Any]
+            List of DUTs to be characterized.
+        mprim_index : Union[int, str]
+            Measurement primitive index. For qubit, default is 0.
+        initial_lpb : LogicalPrimitiveBlock
+            Initial logical primitive block to prepare the quantum state for characterization.
+        extra_measurement_duts : List[Any]
+            List of DUTs to be used for extra measurements.
+        measurement_mitigation : Union[None, 'CalibrateFullAssignmentMatrices', bool]
+            Measurement mitigation. If True, use the default calibration. If None, no calibration. If an instance of
+            CalibrateFullAssignmentMatrices, use the instance for calibration.
+
+        Example:
+        --------
+        >>> # Run two-qubit state tomography of a bell pair.
+        >>> from leeq.experiments.builtin import MultiQubitsStateTomography
+        >>> c1 = dut_q1.get_c1('f01') # assuming the initialized qubits are dut_q1 and dut q2.
+        >>> lpb = c1.hadamard() + c2_q1q2.get_cnot() # c2 is the two qubit collection which is initialized in advance.
+        >>> tomo = MultiQubitsStateTomography(duts=[dut_q1,dut_q2],initial_lpb=lpb,measurement_mitigation=True)
+        """
         from leeq.theory.tomography import MultiQubitModel
         model = MultiQubitModel(len(duts))
-        super().run(duts, model, mprim_index, initial_lpb, extra_measurement_duts)
+        super().run(duts, model, mprim_index, initial_lpb, extra_measurement_duts,
+                    measurement_mitigation=measurement_mitigation)
+
+    def get_analyzed_result_prompt(self) -> Union[str, None]:
+        return f"""State tomography result:
+        <density matrix>
+        {self.dm}
+        </density matrix>
+        """
 
 
 class MultiQubitsProcessTomography(GeneralisedProcessTomography, QubitTomographyBase):
     @log_and_record
-    def run(self, duts, lpb, mprim_index=0, initial_lpb=None, extra_measurement_duts=None):
+    def run(self, duts, lpb, mprim_index=0, extra_measurement_duts=None, measurement_mitigation=None):
+        """
+        Experiment for multi-qubit process tomography.
+        """
         from leeq.theory.tomography import MultiQubitModel
         model = MultiQubitModel(len(duts))
         super().run(duts=duts, model=model, lpb=lpb, mprim_index=mprim_index,
-                    extra_measurement_duts=extra_measurement_duts)
+                    extra_measurement_duts=extra_measurement_duts, measurement_mitigation=measurement_mitigation)

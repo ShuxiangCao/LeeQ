@@ -437,6 +437,7 @@ class VirtualTransmon(object):
         population_distribution = np.diag(
             self._density_matrix).astype(
             np.float64)
+
         readout_response = self.get_resonator_response(readout_frequency)
 
         sampled_state = np.random.choice(

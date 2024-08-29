@@ -1,5 +1,6 @@
 import functools
 import inspect
+from pprint import pprint
 from typing import Union
 
 import numpy as np
@@ -54,7 +55,7 @@ def compare_dicts(dict1, dict2, rtol=1e-05, atol=1e-08):
         # If values are both numbers, use np.allclose for comparison
         if isinstance(
                 value1, (int, float)) and isinstance(
-                value2, (int, float)):
+            value2, (int, float)):
             if not np.allclose(value1, value2, rtol=rtol, atol=atol):
                 return False
 
@@ -171,6 +172,31 @@ def segment_array(data: np.ndarray, threshold=1e-5, min_flat_length=10):
     return regions_flat, regions_change
 
 
+def _get_pulse_twidth(env_func, paradict):
+    """
+    Get the pulse width of the envelope function.
+
+    Parameters:
+    - env_func: the envelope function
+    - paradict: the parameters of the pulse
+
+    Returns:
+        The pulse width
+    """
+    import inspect
+    parameters = {
+        'amp': 1
+    }
+    parameters.update(paradict)
+
+    parameters_requried = inspect.signature(env_func).parameters
+    parameters_keeping = {key: parameters[key] for key in parameters_requried if key in parameters}
+    data = env_func(sampling_rate=_sampling_rate / 1e6, **parameters_keeping)
+
+    pulse_width = len(data) / _sampling_rate  # In seconds
+    return pulse_width
+
+
 def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
     """
     Segment the pulse and isolate flat regions.
@@ -197,6 +223,11 @@ def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
     minimal_pulse_width = 8e-9
     atomic_index_count = int(_sampling_rate * minimal_pulse_width)
 
+    # padding the pulse to make sure the pulse width is a multiple of 4 ns
+    if len(data) % atomic_index_count != 0:
+        data = np.pad(data, (0, atomic_index_count - len(data) % atomic_index_count), mode='constant',
+                      constant_values=0)
+
     # Now we iterate over the segments and make corrections to the indexes
     modified_segments = []
     for i, (start, end, segment_type) in enumerate(segments):
@@ -209,15 +240,22 @@ def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
             modified_start = np.floor(start / atomic_index_count) * atomic_index_count
             modified_end = np.ceil(end / atomic_index_count) * atomic_index_count
 
-        if modified_end - modified_start < atomic_index_count:
-            msg = "The pulse width is smaller than the minimal pulse width 2ns."
-            logger.error(msg)
-            raise ValueError(msg)
-
-        if i == len(segments) - 1:
+        if i == len(segments) - 1 or modified_end > len(data):
             modified_end = end
 
+            if modified_end % atomic_index_count != 0:
+                modified_end = np.ceil(end / atomic_index_count) * atomic_index_count
+
+            modified_segments.append((int(modified_start), int(modified_end), segment_type))
+            break
+
         modified_segments.append((int(modified_start), int(modified_end), segment_type))
+
+    segments = modified_segments
+    modified_segments = []
+    for i, (start, end, segment_type) in enumerate(segments):
+        if start < end:
+            modified_segments.append((start, end, segment_type))
 
     segments = modified_segments
     modified_segments = []
@@ -233,6 +271,12 @@ def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
     # Assert all the start time are properly aligned
     for i, (start, end, segment_type) in enumerate(segments):
         assert start % atomic_index_count == 0, f"Start time is not properly aligned for segment {i}. {start}, {end},{segment_type}, {atomic_index_count}"
+        assert end % atomic_index_count == 0, f"End time is not properly aligned for segment {i}. {start}, {end},{segment_type}, {atomic_index_count}"
+
+    # If the last segment is flat, and it is only a single atomic index, and it has 0 amplitude, we remove it
+    if segments[-1][2] == 'flat' and segments[-1][1] - segments[-1][0] == atomic_index_count and np.all(
+            data[segments[-1][0]:segments[-1][1]] == 0):
+        segments = segments[:-1]
 
     pulses = []
     # Generate the pulses for each segment
@@ -330,7 +374,6 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         """
         return PulseShapeFactory().get_pulse_shape_function(pulse_shape_name)
 
-
     def compile_lpb(self, context: ExperimentContext,
                     lpb: LogicalPrimitiveCombinable):
         """
@@ -423,8 +466,9 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         # the tracking data structure
         self._compiled_lpb_uuid.append(lpb.uuid)
 
-        def _parameter_diff(x): return x in parameters and \
-            parameters[x] != self._lpb_uuid_to_parameter_last_compiled[lpb.uuid][x]
+        def _parameter_diff(x):
+            return x in parameters and \
+                parameters[x] != self._lpb_uuid_to_parameter_last_compiled[lpb.uuid][x]
 
         parameters = lpb.get_parameters()
         lpb_id = lpb.uuid
@@ -525,19 +569,24 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         required_parameters = inspect.signature(env_func).parameters
         parameters_keeping = {
             key: parameters[key] for key in required_parameters if (
-                key in parameters) and key not in [
-                'amp', 'freq', 'phase']}
+                                                                           key in parameters) and key not in [
+                                                                       'amp', 'freq', 'phase']}
 
-        if parameters['width'] <= 0.4:  # The pulse width is too long, we need to split it
+        if parameters['width'] <= 0.1:  # The pulse width is too long, we need to split it
             env = {"env_func": get_qubic_envelope_name_from_leeq_name(parameters['shape']),
                    "paradict": parameters_keeping}
+
+            # twidth = parameters['width'] / 1e6
+            # if 'trunc' in parameters:
+            #     twidth = twidth * parameters['trunc']
+            twidth = _get_pulse_twidth(env_func, parameters_keeping)
 
             qubic_pulse_dict = {
                 "name": "pulse",
                 "phase": phase_shift + parameters["phase"],
                 "freq": int(parameters['freq'] * 1e6),  # In Hz
                 "amp": parameters['amp'],
-                "twidth": parameters['width'] / 1e6,  # In seconds
+                "twidth": twidth,  # In seconds
                 "env": env,
                 "dest": qubic_dest,  # The channel name
             }
@@ -547,7 +596,6 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             segments = _segment_pulse_and_isolate_flat_regions(
                 env_func, parameters, threshold=1e-5
             )
-
             # The pulse width is too long, we need to split it into multiple pulses, each with a width less than 0.5s
             sequence = []
             env_func = get_qubic_envelope_name_from_leeq_name('segment_by_index')
@@ -559,26 +607,20 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
                 # Hard code 8 Gsps as sampling rate for now
                 pulse_width = (i_end - i_start) / _sampling_rate  # In seconds
+
                 new_sequence = []
-
                 if segment_type == 'flat':
-                    single_pulse_width = 128e-9  # In seconds, 150 ns
-
-                    # The flat region is too long, we need to split it into multiple pulses
-                    num_pulses = int(np.ceil(pulse_width / single_pulse_width))
-                    for i in range(num_pulses):
-                        small_pulse_width = min(single_pulse_width, pulse_width - i * single_pulse_width)
-                        qubic_pulse_dict = {
-                            "name": "pulse",
-                            "freq": int(parameters['freq'] * 1e6),  # In Hz
-                            "twidth": small_pulse_width,  # In seconds
-                            "env": {'env_func': 'square',
-                                    'paradict': {'phase': segmented_pulse['phase'],
-                                                 'amplitude': segmented_pulse['amp'],
-                                                 'twidth': small_pulse_width}},
-                            "dest": qubic_dest,  # The channel name
-                        }
-                        new_sequence.append(qubic_pulse_dict)
+                    # Use CW tone
+                    qubic_pulse_dict = {
+                        "name": "pulse",
+                        "freq": int(parameters['freq'] * 1e6),  # In Hz
+                        "twidth": pulse_width,  # In seconds
+                        "env": 'cw',
+                        "dest": qubic_dest,  # The channel name
+                        "amp": parameters['amp'],
+                        "phase": parameters['phase']
+                    }
+                    new_sequence.append(qubic_pulse_dict)
 
                 else:
                     parameters_segment = parameters_keeping.copy()
@@ -679,8 +721,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         required_parameters = inspect.signature(env_func).parameters
         parameters_keeping = {
             key: modified_parameters[key] for key in required_parameters if (
-                key in modified_parameters) and key not in [
-                'amp', 'freq', 'phase']}
+                                                                                    key in modified_parameters) and key not in [
+                                                                                'amp', 'freq', 'phase']}
 
         env = {"env_func": get_qubic_envelope_name_from_leeq_name(modified_parameters['shape']),
                "paradict": parameters_keeping}
@@ -701,7 +743,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         # drive signal being picked up
         delay_between_drive_and_measure = {
             'name': 'delay',
-            't': 100e-9,
+            't': 200e-9,
             'scope': [primitive_scope]
         }
 
@@ -721,13 +763,14 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                     "env_func": "square",
                     # Here we use square pulse for demodulation, which means no
                     # window function is applied
-                    "paradict": {"phase": 0.0, "amplitude": 1.0, "twidth": modified_parameters['width'] / 1e6},
+                    "paradict": {"phase": modified_parameters['phase'], "amplitude": 1.0,
+                                 "twidth": modified_parameters['width'] / 1e6},
                 }
             ],
         }
 
         if primitive_scope in self._qubic_channel_to_lpb_uuid and self._qubic_channel_to_lpb_uuid[
-                primitive_scope] != lpb.uuid:
+            primitive_scope] != lpb.uuid:
             msg = "Two measurement primitives exists for a same channel, which is not supported."
             logger.error(msg)
             raise NotImplementedError(msg)
@@ -886,7 +929,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         self._check_parameter_if_dirty(lpb)
 
         return [{"name": "delay", "t": lpb.get_delay_time() /
-                 1e6}], set()  # In seconds
+                                       1e6}], set()  # In seconds
 
     @_compile_lpb.register
     def _(self, lpb: PhaseShift):
@@ -907,9 +950,9 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         for k, m in parameters["transition_multiplier"].items():
             if k not in self._phase_shift[lpb.channel]:
                 self._phase_shift[lpb.channel][k] = m * \
-                    parameters["phase_shift"]
+                                                    parameters["phase_shift"]
             else:
                 self._phase_shift[lpb.channel][k] += m * \
-                    parameters["phase_shift"]
+                                                     parameters["phase_shift"]
 
         return [], set()

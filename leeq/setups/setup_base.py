@@ -292,10 +292,10 @@ class ExperimentalSetup(LeeQObject):
         Initialize the ExperimentalSetup class. Use init to define all the equipments in the setup.
         """
         assert (
-            "_compiler" in self.__dict__
+                "_compiler" in self.__dict__
         ), "The compiler is not defined in the setup, please define it in the __init__."
         assert (
-            "_engine" in self.__dict__
+                "_engine" in self.__dict__
         ), "The engine is not defined in the setup, please define it in the __init__."
         super().__init__(name)
         self._active = False
@@ -343,6 +343,8 @@ class ExperimentalSetup(LeeQObject):
         self._status.add_param("GlobalPostLPB", None)
         # Define if the setup is in high level simulation mode
         self._status.add_param("High_Level_Simulation_Mode", False)
+        # Define if automatically inspect the experiment plots with AI when available
+        self._status.add_param("AIAutoInspectPlots", False)
 
     def get_live_status(self):
         """

@@ -1,18 +1,18 @@
 from sklearn.pipeline import Pipeline
-from typing import Optional, Union, List, Dict, Any
+from typing import Optional, Union, List, Dict
 from plotly import graph_objects as go
 from plotly import subplots
-from sklearn import mixture
+from matplotlib import pyplot as plt
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from labchronicle import register_browser_function, log_and_record
 from leeq import *
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel, \
-    LogicalPrimitiveBlockSerial
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.simulation.numpy.dispersive_readout.simulator import DispersiveReadoutSimulatorSyntheticData
 from leeq.utils import setup_logging
+from leeq.utils.ai.vlms import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 
@@ -235,6 +235,39 @@ def find_output_map(data: np.ndarray, clf: Pipeline) -> Dict[int, int]:
     return outcome_map
 
 
+def find_rotation_phase(clf: Pipeline, output_map: Dict[int, int]) -> Dict[int, float]:
+    """
+    Find the phase of the |0> and |1> states that need to be rotated to align with the I channel.
+
+    Parameters:
+    clf (Pipeline): Classifier pipeline containing the GMM.
+    output_map (Dict[int, int]): Dictionary mapping the predicted state to an outcome index.
+
+    Returns:
+        float : The phase for updating.
+    """
+
+    assert len(output_map) == 2, "The output map should have 2 entries."
+    means = clf.named_steps['gmm'].means_
+
+    means_0 = means[output_map[0], :]
+    means_1 = means[output_map[1], :]
+
+    def wrap(angle):
+        tmp = np.arctan2(np.sin(angle), np.cos(angle))
+        return float(np.where(tmp < 0, 2 * np.pi + tmp, tmp))
+
+    phase_0 = np.angle(means_0[0] + 1j * means_0[1])
+    phase_1 = np.angle(means_1[0] + 1j * means_1[1])
+
+    # Now we need to find the rotation angle applying to the |0> and |1> states
+    # so that the 0 state aligns with the I channel greater than 0 and the 1 state aligns with the I channel less than 0.
+
+    phase_mid = (wrap(phase_0) + wrap(phase_1)) / 2
+    target_angle = np.pi * 2 / 3
+    return target_angle - phase_mid
+
+
 def calculate_signal_to_noise_ratio(
         clf: Pipeline, outcome_map: List[int]) -> Dict[tuple, float]:
     """
@@ -298,36 +331,55 @@ def calculate_signal_to_noise_ratio(
 
 
 class MeasurementCalibrationMultilevelGMM(Experiment):
+    _experiment_result_analysis_instructions = """
+    Analyze the result data using a Gaussian Mixture Model (GMM) and update the measurement primitive.
+    The experiment is considered successful if the SNR ratio is above 2.
+    """
+
     @log_and_record
     def run(self,
             dut: 'TransmonElement',
-            # Replace with actual class
-            sweep_lpb_list: List['LogicalPrimitiveBlock'],
-            mprim_index: int,
+            sweep_lpb_list: Optional[List['LogicalPrimitiveBlock']] = None,
+            mprim_index: int = 0,
             freq: Optional[float] = None,
             amp: Optional[float] = None,
             update: bool = False,
             extra_readout_duts: Optional[List['DeviceUnderTest']] = None,
-            z_threshold: Optional[int] = None) -> None:
+            z_threshold: Optional[int] = None, update_phase_for_two_level=False) -> None:
         """
-        Run the measurement process on a transmon qubit, potentially
+        Run the measurement calibration using a GMM model on a transmon qubit, potentially
         altering frequency and amplitude, and calculate the signal-to-noise ratio.
 
         Parameters:
         dut (TransmonElement): The qubit instance.
-        sweep_lpb_list (List[LogicalPrimitiveBlock]): List of LPBs to be included in the sweep.
-        mprim_index (int): Index of the measurement primitive in use.
+        sweep_lpb_list (Optional[List[LogicalPrimitiveBlock]]): List of LPBs to be included in the sweep. If not
+            provided, we consider it is for qubit.
+        mprim_index (int): Index of the measurement primitive in use. Defaults to 0.
         freq (Optional[float]): New frequency to set, if any.
         amp (Optional[float]): New amplitude to set, if any.
         update (bool): Flag indicating if the original frequency/amplitude should be restored.
         extra_readout_duts (Optional[List[DeviceUnderTest]]): Additional DUTs for readout.
         z_threshold (Optional[int]): Threshold for measurement, defaults to mprim_index + 1 or mprim_index.
+        update_phase_for_two_level (bool): Flag to update the phase for two-level systems for further
+            processing on FPGA mid-circuit measurement.
 
-        Returns:
-        None: This method updates class attributes with the results.
+        Example;
+            Run the experiment for a qubit system
+            >>> calib = MeasurementCalibrationMultilevelGMM(dut, mprim_index=0)
+
+            Run the experiment for a qutrit system
+            >>> lpb_scan = (dut.get_c1('f01')['I'], dut.get_c1('f01')['X'],dut.get_c1('f01')['X']+dut.get_c1('f12')['X'])
+            >>> calib = MeasurementCalibrationMultilevelGMM(dut, mprim_index=1,sweep_lpb_list=lpb_scan)
+
+            Run the experiment for a 4-level system
+            >>> lpb_scan = (dut.get_c1('f01')['I'], dut.get_c1('f01')['X'], dut.get_c1('f01')['X']+dut.get_c1('f12')['X'],dut.get_c1('f01')['X']+dut.get_c1('f12')['X']+dut.get_c1('f23')['X'])
+            >>> calib = MeasurementCalibrationMultilevelGMM(dut, mprim_index=2,sweep_lpb_list=lpb_scan)
         """
 
         self.result = None
+
+        if sweep_lpb_list is None:
+            sweep_lpb_list = [dut.get_c1('f01')['I'], dut.get_c1('f01')['X']]
 
         # Retrieve the measurement primitive by index
         mprim = dut.get_measurement_prim_intlist(str(mprim_index))
@@ -385,6 +437,12 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                                      output_map=self.output_map,
                                      z_threshold=z_threshold)
 
+        if update_phase_for_two_level and len(self.output_map) == 2:
+            # Find the phase of 0 and 1 state
+
+            original_phase = mprim.get_parameters()['phase']
+            mprim.update_parameters(phase=original_phase + find_rotation_phase(self.clf, self.output_map))
+
         # If not updating, restore original frequency and amplitude
         if not update:
             if freq is not None:
@@ -441,15 +499,14 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
 
     @log_and_record(overwrite_func_name='MeasurementCalibrationMultilevelGMM.run')
     def run_simulated(self,
-                      dut: 'DeviceUnderTest',
-                      # Replace with actual class
-                      sweep_lpb_list: List['LogicalPrimitiveBlock'],
-                      mprim_index: int,
+                      dut: 'TransmonElement',
+                      sweep_lpb_list: List['LogicalPrimitiveBlock'] = None,
+                      mprim_index: int = 0,
                       freq: Optional[float] = None,
                       amp: Optional[float] = None,
                       update: bool = False,
                       extra_readout_duts: Optional[List['DeviceUnderTest']] = None,
-                      z_threshold: Optional[int] = None) -> None:
+                      z_threshold: Optional[int] = None, update_phase_for_two_level=False) -> None:
         """
         Run the measurement process on a transmon qubit, potentially altering frequency and amplitude,
          and calculate the signal-to-noise ratio. Note that the sweep_lpb_list only used to indicate the number of
@@ -460,6 +517,9 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         Returns
         -------
         """
+
+        if sweep_lpb_list is None:
+            sweep_lpb_list = [dut.get_c1('f01')['I'], dut.get_c1('f01')['X']]
 
         assert len(sweep_lpb_list) <= 4, ("Only less than 4 LPBs are allowed for simulated data, which represent"
                                           "to prepare to the |0>, |1>, |2>, |3> state.")
@@ -483,6 +543,35 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         f_r = virtual_transmon.readout_frequency
         kappa = virtual_transmon.readout_linewidth
         chis = np.cumsum([virtual_transmon.readout_dipsersive_shift] * 4)
+        quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+
+        def _get_state_based_on_quiescent_state_distribution(target_state):
+            """
+            Get the state based on the quiescent state distribution. If target state == 0,
+            return a sample of the quiescent state distribution. If it equals to 1, swap 0 and 1
+            then return a sample of the quiescent state distribution. If it equals to 2, swap 0 and 2, 1 and 0.
+            Parameters
+            ----------
+            target_state : int
+                The target state.
+
+            Returns
+            -------
+            int
+                The state based on the quiescent state distribution.
+            """
+            if target_state == 0:
+                r = np.random.choice([0, 1, 2, 3], p=quiescent_state_distribution)
+            elif target_state == 1:
+                r = np.random.choice([1, 0, 2, 3], p=quiescent_state_distribution)
+            elif target_state == 2:
+                r = np.random.choice([1, 2, 0, 3], p=quiescent_state_distribution)
+            elif target_state == 3:
+                r = np.random.choice([1, 2, 3, 0], p=quiescent_state_distribution)
+            else:
+                raise ValueError("The target state is not supported.")
+
+            return int(r)
 
         simulator = DispersiveReadoutSimulatorSyntheticData(
             f_r, kappa, chis, amp, baseline, width,
@@ -492,7 +581,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         shot_number = setup().status().get_param('Shot_Number')
 
         data = np.asarray([[simulator._simulate_trace(
-            state=i, noise_std=0.005, f_prob=mp.freq
+            state=_get_state_based_on_quiescent_state_distribution(i), noise_std=0.005, f_prob=mp.freq
         ).sum() for i in range(len(sweep_lpb_list))] for x in range(shot_number)])
 
         self.result = data
@@ -500,6 +589,23 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         self.analyze_gmm_result(dut, mprim_index, self.result)
 
     @register_browser_function(available_after=(run,))
+    # @visual_analyze_prompt("""
+    # Describe the Image: Provide a brief description of the image, particularly focusing on the distribution of points,
+    #    difference between two distributions and the overlap of clusters if any.
+    # Identify Clusters: Note the color and arrangement of the clusters. Are there distinct groups of different colors
+    #    (e.g., red and blue)?
+    # Assess Overlap: Look at the central areas of the plot where the clusters might overlap. How much do the clusters
+    #    mix in these regions?
+    # Assess Distribution: Look at the distribution 0 and distribution 1. Do they have a clear difference?
+    # Check Circles/Ellipses: Observe the circles or ellipses drawn around the clusters. Do these shapes encompass
+    #    predominantly one color, or do they contain a significant mixture of both colors?
+    # Legend Information: If there are percentages or ratios in the legend, they might indicate the extent of separation
+    #    or overlap. Lower values suggest less overlap and better separation.
+    # Overall Impression: Based on the above factors, decide 1) if the clusters are well separated (little to no overlap,
+    #    clear boundaries) or not well separated (significant overlap, indistinct boundaries). 2) if the two distributions
+    #     have clear difference. If they have difference but not separated means the experiment works but fitting failed.
+    #      If there is no difference means the experiment failed.
+    # """)
     def gmm_iq(self, result_data=None):
         """
         Plot the IQ data with the fitted Gaussian Mixture Model with matplotlib.
@@ -563,6 +669,54 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                 ax.set_ylabel('Q')
                 ax.legend()
                 ax.axis('equal')
+
+        plt.tight_layout()
+
+        return fig
+
+    # @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt("""
+        You are inspecting a plot of collected signal data and determine if the experiment is successful. 
+        You should observe a spherical distribution on each of the subplot on the left and right. They should be 
+        positioned significantly differrently in the figure. There might be some small overlap between the two distributions.
+        If they are distinguishable, then the experiment is considered success.
+        Note that if you see non-spherical distributions. The experiment is considered failed.
+        """)
+    def hexbin_iq(self, result_data=None):
+        """
+        Plot the IQ data using hexbin plot with matplotlib.
+
+        Parameters:
+        result_data (Optional[np.ndarray]): The result data to plot. Defaults to the result data from the experiment.
+
+        Returns:
+        """
+        from matplotlib import pyplot as plt
+        import numpy as np
+
+        if result_data is None:
+            result_data = self.result
+
+        fig, axs = plt.subplots(1, result_data.shape[1], figsize=(result_data.shape[1] * 3.5, 3.5), sharex=True,
+                                sharey=True)
+
+        for i in range(result_data.shape[1]):
+            ax = axs[i] if result_data.shape[1] > 1 else axs
+
+            ax.set_title(f"Distribution {i}")
+            data = np.vstack([
+                np.real(result_data[:, i]),
+                np.imag(result_data[:, i])
+            ]).transpose()
+
+            ax.hexbin(data[:, 0], data[:, 1], gridsize=50, cmap='viridis', bins='log')
+
+            ax.set_xlabel('I')
+            ax.set_ylabel('Q')
+            ax.set_aspect('equal')
+
+        # Set the same x and y limits for all subplots
+        # plt.setp(axs, xlim=(data[:, 0].min(), data[:, 0].max()), ylim=(data[:, 1].min(), data[:, 1].max()))
 
         plt.tight_layout()
 
@@ -691,3 +845,86 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         """
         if self.result is None:
             return go.Figure()
+
+    @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt("""
+Analyze a plot of collected signal data to determine experiment success:
+1. Identify clusters: The signal represents hidden system states, with each state generating a 2D Gaussian distribution (spherical blobs).
+2. Count and evaluate distributions:
+   - Treat partially overlapped clusters with two visible density centers as separate distributions.
+   - Consider elliptical distributions with only one visible density center as a single distribution.
+   - Compare densities of observed distributions.
+   - If three or more distributions are present, but only two have major density, consider only the two high-density distributions and ignore the low-density ones.
+3. Experiment outcome:
+   - Success: Exactly two major distributions observed (after accounting for density).
+   - Failure: Any other outcome (e.g., one distribution, or more than two major distributions).
+   """)
+    def plot_hexbin(self, result_data=None) -> 'matplotlib.figure.Figure':
+        """
+        Plot the IQ data with the fitted Gaussian Mixture Model using hexbin.
+
+        Parameters:
+        result_data (Optional[np.ndarray]): The result data to plot. Defaults to the result data from the experiment.
+
+        Returns:
+            Figure: The matplotlib figure.
+        """
+
+        if result_data is None:
+            data = self.result.flatten()
+        else:
+            data = result_data.flatten()
+
+        fig = plt.figure(figsize=(3, 3))
+        ax = fig.add_subplot(111)
+
+        xs = data.real
+        ys = data.imag
+
+        # Create a hexbin map
+        hb = ax.hexbin(xs, ys, gridsize=50, cmap='viridis', bins='log')
+
+        # Add a color bar
+        # cb = plt.colorbar(hb)
+        # cb.set_label('log10(N)')
+
+        # Add labels and title
+        ax.set_xlabel('I channel')
+        ax.set_ylabel('Q channel')
+        ax.set_aspect('equal', adjustable='box')
+
+        return fig
+
+    def get_analyzed_result_prompt(self) -> Union[str, None]:
+        """
+        Get the prompt for the analyzed result.
+
+        Returns:
+        """
+        result_data = self.result
+
+        if self.clf is None:
+            return None
+
+        distribution_prompt = []
+
+        for i in range(result_data.shape[1]):
+            percentage_strings = []
+            data = np.vstack([
+                np.real(result_data[:, i]),
+                np.imag(result_data[:, i])
+            ]).transpose()
+
+            state_label = self.clf.predict(data)
+            data = self.clf.named_steps['scaler'].transform(data)
+
+            for index in np.unique(state_label):
+                percentage = np.average((state_label == index).astype(int))
+                percentage_strings.append(f"{self.output_map[index]}: {percentage * 100:.2f}%")
+
+            distribution_prompt.append(f"Distribution {i}" + ", ".join(percentage_strings))
+
+        distribution_prompt = "\n".join(distribution_prompt)
+
+        return (f"Signal to noise ratio: {self.snr}"
+                f"Distribution in the plot: {distribution_prompt}")

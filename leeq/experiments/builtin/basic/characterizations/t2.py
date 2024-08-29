@@ -3,13 +3,21 @@ from matplotlib import pyplot as plt
 from typing import Optional, Any, Dict, List, Union
 from typing import Optional, Any, Dict, List
 import numpy as np
+import uncertainties as unc
 from plotly import graph_objects as go
 
 from labchronicle import register_browser_function, log_and_record
 from leeq import Experiment, Sweeper
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_exp_decay_with_cov
 from leeq.theory.utils import to_dense_probabilities
+from leeq.utils.ai import visual_analyze_prompt
 from leeq.utils.compatibility import *
+
+__all__ = [
+    'SpinEchoMultiLevel',
+    'MultiQubitSpinEchoMultiLevel'
+]
 
 
 class SpinEchoMultiLevel(
@@ -26,6 +34,71 @@ class SpinEchoMultiLevel(
         Plots the results of the echo experiment.
     """
 
+    _experiment_result_analysis_instructions = """The Spin echo experiment measures the T2 echo relaxation time of a qubit. 
+    Please analyze the fitted plots and the fitting model to verify the data's validity. Subsequently, determine
+    if the experiment needs to be rerun and adjust the experimental parameters as necessary. The suggested time
+    length should be approximately 5 times the T2 value. If there is a significant discrepancy, adjust the time
+    length accordingly and report experiment failure. Additionally, modify the time resolution to capture approximately 50 data points.
+    """
+
+    @log_and_record(overwrite_func_name='SpinEchoMultiLevel.run')
+    def run_simulated(
+            self,
+            qubit: Any,  # Replace 'Any' with the actual type of qubit
+            collection_name: str = 'f01',
+            mprim_index: int = 0,
+            free_evolution_time: float = 100.0,
+            time_resolution: float = 2.0,
+            start: float = 0.0,
+            initial_lpb: Optional[Any] = None,
+    ) -> None:
+        """
+        Run the SimpleSpinEchoMultiLevel experiment for measuring the T2 echo coherence metric.
+
+        Parameters
+        ----------
+        qubit : Any
+            The qubit to be used in the experiment.
+        collection_name : str
+            The name of the pulse collection.
+        mprim_index : int
+            Index of the measurement primitive.
+        free_evolution_time : float, optional
+            The free evolution time, by default 0.0.
+        time_resolution : float, optional
+            The time resolution for the experiment, by default 1.0.
+        start : float, optional
+            Start time of the sweep, by default 0.0.
+        initial_lpb : Any, optional
+            The initial local pulse builder, by default None.
+        """
+
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        virtual_transmon = simulator_setup.get_virtual_qubit(qubit)
+        t2 = virtual_transmon.t2
+
+        sweep_range = np.arange(0.0, free_evolution_time, time_resolution)
+
+        data = 0.5 + np.exp(-sweep_range / t2) / 2
+
+        # If sampling noise is enabled, simulate the noise
+        if setup().status().get_param('Sampling_Noise'):
+            # Get the number of shot used in the simulation
+            shot_number = setup().status().get_param('Shot_Number')
+
+            # generate binomial distribution of the result to simulate the
+            # sampling noise
+            data = np.random.binomial(
+                shot_number, data) / shot_number
+
+        quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+        standard_deviation = np.sum(quiescent_state_distribution[1:])/5
+
+        random_noise_factor = 1 + np.random.normal(
+            0, standard_deviation, data.shape)
+
+        self.trace = np.clip(data * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
+
     @log_and_record
     def run(
             self,
@@ -33,13 +106,12 @@ class SpinEchoMultiLevel(
             collection_name: str = 'f01',
             mprim_index: int = 0,
             free_evolution_time: float = 100.0,
-            time_resolution: float = 4.0,
+            time_resolution: float = 2.0,
             start: float = 0.0,
-            # Replace 'Any' with the actual type
             initial_lpb: Optional[Any] = None,
     ) -> None:
         """
-        Run the SimpleSpinEchoMultiLevel experiment.
+        Run the SimpleSpinEchoMultiLevel experiment for measuring the T2 echo coherence metric.
 
         Parameters
         ----------
@@ -62,6 +134,7 @@ class SpinEchoMultiLevel(
         c1 = qubit.get_c1(collection_name)
         mp = qubit.get_measurement_prim_intlist(mprim_index)
         delay = prims.Delay(0)
+        self.trace = None
 
         self.mp = mp
 
@@ -81,17 +154,30 @@ class SpinEchoMultiLevel(
         if initial_lpb is not None:
             lpb = initial_lpb + lpb
 
-        basic(lpb, swp, 'p(0)')
+        basic(lpb, swp, 'p(1)')
 
         self.trace = np.squeeze(mp.result())
 
     @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt(
+        "Please analyze the experimental data in the plot to determine if there's a clear exponential"
+        "decay pattern followed by stabilization. It is important that the decay is observable, as the "
+        "absence of decay is considered a failure of the experiment. Check if the tail of the decay "
+        "stabilizes within the observed time frame and inform me what portion of the time frame is "
+        "occupied by this stable section. The total sweep time frame value should be approximately 5 times"
+        "the estimated T2 time to ensure a accurate estimation. If the values are too far apart, adjust the "
+        "time frame accordingly."
+    )
     def plot_echo(self, fit=True, step_no=None) -> go.Figure:
         """
         Plot the results of the echo experiment using Plotly.
         """
 
-        trace = np.squeeze(self.mp.result())
+        if self.trace is None:
+            trace = np.squeeze(self.mp.result())
+        else:
+            trace = self.trace
+
         args = self.retrieve_args(self.run)
 
         t = np.arange(0, args['free_evolution_time'], args['time_resolution'])
@@ -105,8 +191,7 @@ class SpinEchoMultiLevel(
             x=t, y=trace,
             mode='markers',
             marker=dict(
-                symbol='x',
-                size=10,
+                size=5,
                 color='blue'
             ),
             name='Experiment data'
@@ -121,16 +206,17 @@ class SpinEchoMultiLevel(
             self.fit_params = fit_params
             trace_line = go.Scatter(
                 x=t,
-                y=fit_params['Amplitude'][0] * np.exp(-t / fit_params['Decay'][0]) + fit_params['Offset'][0],
+                y=fit_params['Amplitude'].n * np.exp(-t / fit_params['Decay'].n) + fit_params['Offset'].n,
                 mode='lines',
                 line=dict(
                     color='blue'
                 ),
-                name='Decay fit'
+                name='Decay fit',
+                visible='legendonly'
             )
             title = (
                 f"T2 echo {args['qubit'].hrid} transition {args['collection_name']}<br>"
-                f"T2={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
+                f"T2={fit_params['Decay']} us")
 
             data = [trace_scatter, trace_line]
 
@@ -153,6 +239,18 @@ class SpinEchoMultiLevel(
         """
 
         return self.plot_echo(fit=step_no[0] > 10, step_no=step_no)
+
+    def get_analyzed_result_prompt(self) -> Union[str, None]:
+
+        trace = self.trace
+        args = self.retrieve_args(self.run)
+
+        fit_params = fit_exp_decay_with_cov(trace, args['time_resolution'])
+        self.fit_params = fit_params
+
+        t2 = fit_params['Decay']
+
+        return f"The sweep time length is {args['free_evolution_time']} us and " + "the fitted curve reports a T2 echo value of " + f"{t2} us."
 
 
 class MultiQubitSpinEchoMultiLevel(
@@ -336,7 +434,7 @@ class MultiQubitSpinEchoMultiLevel(
             fit_params = fit_exp_decay_with_cov(normalized_population, args['time_resolution'])
             trace_line = go.Scatter(
                 x=t,
-                y=fit_params['Amplitude'][0] * np.exp(-t / fit_params['Decay'][0]) + fit_params['Offset'][0],
+                y=fit_params['Amplitude'].n * np.exp(-t / fit_params['Decay'].n) + fit_params['Offset'].n,
                 mode='lines',
                 line=dict(
                     color='black'
@@ -345,7 +443,7 @@ class MultiQubitSpinEchoMultiLevel(
             )
             title = (
                 f"T2 echo {args['duts'][index].hrid} transition {self.collection_names[index]}<br>"
-                f"T2={fit_params['Decay'][0]:.2f} ± {fit_params['Decay'][1]:.2f} us")
+                f"T2={fit_params['Decay']} us")
 
             data.append(trace_line)
 

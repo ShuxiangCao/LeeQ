@@ -3,11 +3,9 @@ import pickle
 import numpy as np
 from typing import Optional, Union
 from scipy import optimize as so
-import plotly.graph_objects as go
 import plotly
 from labchronicle import log_and_record, register_browser_function
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
-from leeq.core.primitives.built_in.common import *
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import SweepParametersSideEffectFactory
 from leeq import Experiment, Sweeper, ExperimentManager, setup
@@ -17,8 +15,16 @@ from typing import List, Tuple, Dict, Any
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
+from leeq.utils.ai.vlms import visual_analyze_prompt
 
 logger = setup_logging(__name__)
+
+__all__ = [
+    'ResonatorSweepTransmissionWithExtraInitialLPB',
+    'ResonatorSweepTransmissionWithExtraInitialLPB',
+    'ResonatorSweepAmpFreqWithExtraInitialLPB',
+    'ResonatorSweepTransmissionXiComparison'
+]
 
 
 class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
@@ -27,32 +33,43 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
     Inherits from a generic "experiment" class.
     """
 
+    _experiment_result_analysis_instructions = """
+Inspect the plot to detect the resonator's presence. If present:
+1. Consider the resonator linewidth (typically sub-MHz to a few MHz).
+2. If the step size is much larger than the linewidth:
+   a. Focus on the expected resonator region.
+   b. Reduce the step size for better accuracy.
+3. If linewidth < 0.1 MHz, it's likely not a resonator; move on.
+The experiment is considered successful if a resonator is detected. Otherwise, it is considered unsuccessful and suggest
+a new sweeping range and step size.
+    """
+
     @log_and_record
     def run(self,
             dut_qubit: TransmonElement,
             start: float = 8000,
             stop: float = 9000,
             step: float = 5.0,
-            num_avs: int = 1000,
+            num_avs: int = 5000,
             rep_rate: float = 0.0,
-            mp_width: float = None,
+            mp_width: float = 8,
             initial_lpb=None,
             amp: float = 0.02) -> None:
         """
-        Run the resonator sweep transmission experiment.
+        Run the resonator sweep transmission experiment. Usually used to find the resonator.
 
         The initial lpb is for exciting the qubit to a different state.
 
         Parameters:
             dut_qubit: The device under test (DUT) qubit.
-            start (float): Start frequency for the sweep. Default is 8000.
-            stop (float): Stop frequency for the sweep. Default is 9000.
-            step (float): Frequency step for the sweep. Default is 5.0.
+            start (float): Start frequency for the sweep. Unit: MHz Default is 8000.
+            stop (float): Stop frequency for the sweep. Unit: MHz Default is 9000.
+            step (float): Frequency step for the sweep. Unit: MHz Default is 5.0.
             num_avs (int): Number of averages. Default is 1000.
-            rep_rate (float): Repetition rate. Default is 10.0.
-            mp_width (float): Measurement pulse width. If None, uses rep_rate. Default is None.
+            rep_rate (float): Repetition rate. Default is 0.0.
+            mp_width (float): Measurement pulse width. Unit us.:w If None, uses rep_rate. Default is None.
             initial_lpb: Initial linear phase behavior (LPB). Default is None.
-            amp (float): Amplitude. Default is 1.0.
+            amp (float): Amplitude. Default is 0.02.
         """
         # Sweep the frequency
         mp = dut_qubit.get_default_measurement_prim_intlist().clone()
@@ -267,10 +284,9 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         """
 
         # Compute the Lorentzian function
-        lorentzian = amp / (1 + (2j * Q * (f - f0) / f0)) + baseline
+        lorentzian = np.abs(amp / (1 + (2j * Q * (f - f0) / f0))) + baseline
 
-        # Return the absolute value of the Lorentzian
-        return abs(lorentzian)
+        return lorentzian
 
     def _fit_phase_gradient(self):
         """
@@ -343,15 +359,24 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         # Finally, we can fit the data
         result = so.minimize(
             leastsq,
-            np.array([f0, Q_guess, amp, baseline], dtype=object),
+            np.array([f0, Q_guess, amp, baseline * direction], dtype=object),
             args=(f, z * direction),
             tol=1.0e-20,
         )  # method='Nelder-Mead',
         f0, Q, amp, baseline = result.x
+        baseline = baseline * direction
 
         return z, f0, Q, amp, baseline, direction
 
     @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt("""
+Analyze a new resonator spectroscopy magnitude plot to determine if it shows evidence of a resonator. Focus on:
+1. Sharp dips or peaks at specific frequencies
+2. Signal stability
+3. Noise levels
+4. Behavior around suspected resonant frequencies
+Provide a detailed analysis of the magnitude and frequency data. Identifying a resonator indicates a successful experiment.
+    """)
     def plot_magnitude(self):
         args = self.retrieve_args(self.run)
         f = np.arange(args["start"], args["stop"], args["step"])
@@ -428,7 +453,7 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
                         Q,
                         amp,
                         baseline) *
-                    direction,
+                      direction,
                     mode="lines",
                     name="Lorentzian fit",
                 ))
@@ -455,6 +480,24 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
 
         return fig
 
+    def get_analyzed_result_prompt(self) -> str:
+        """
+        Get the analyzed result prompt.
+
+        Returns:
+            str: The analyzed result prompt.
+        """
+
+        try:
+            z, f0, Q, amp, baseline, direction = self._fit_phase_gradient()
+            fit_succeed = True
+        except Exception as e:
+            return f"The experiment has an error fitting phase gradient: {e}"
+
+        return ("The fitting suggest that the resonant frequency is at %f MHz, "
+                "with a quality factor of %f (resonator linewidth kappa of %f MHz), an amplitude of %f, and a baseline of %f.") % (
+            f0, Q, f0 / Q, amp, baseline)
+
 
 class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
     @log_and_record
@@ -464,14 +507,15 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
             stop: float = 9000,
             step: float = 5.,
             num_avs: int = 200,
-            rep_rate: float = 10.,
+            rep_rate: float = 0.,
             mp_width: Optional[float] = 8,
             initial_lpb: LogicalPrimitiveBlock = None,
             amp_start: float = 0,
             amp_stop: float = 1,
             amp_step: float = 0.05) -> None:
         """
-        Run an experiment by sweeping the frequency and amplitude of a qubit.
+        Run an experiment by sweeping the frequency and amplitude of a qubit. Do not use this
+        if you are not sweeping the amplitude.
 
         Parameters:
         - dut_qubit: The qubit under test.
@@ -491,7 +535,7 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         None
         """
         # Get the original measurement primitive.
-        mprim_index = 0
+        mprim_index = '0'
         mp = dut_qubit.get_measurement_prim_intlist(mprim_index).clone()
         original_freq = mp.freq
 
@@ -694,12 +738,13 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
             start: float = 8000,
             stop: float = 9000,
             step: float = 5.,
-            num_avs: int = 1000,
-            rep_rate: float = 500.,
-            mp_width: Optional[float] = None,
+            num_avs: int = 5000,
+            rep_rate: float = 0.,
+            mp_width: Optional[float] = 8,
             amp: Optional[float] = None) -> None:
         """
-        Runs the resonator sweep transmission experiment.
+        Runs the resonator sweep transmission experiment and compare the response from the different state of the qubit.
+        Not used for resonator discovery.
 
         Parameters:
             dut_qubit: The device under test (DUT) qubit.

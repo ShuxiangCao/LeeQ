@@ -10,7 +10,7 @@ from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.core.primitives.built_in.common import Delay
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock, LogicalPrimitive, \
     LogicalPrimitiveBlockParallel, LogicalPrimitiveBlockSweep
-from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_2d_freq
+from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_2d_freq_with_cov
 from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
@@ -121,7 +121,7 @@ class HamiltonianTomographySingleQubitBase(Experiment):
                 return fit_1d_freq_exp_with_cov(z=result, dt=step_t)
             elif len(result.shape) == 2:
                 z = result[:, 0] + 1j * result[:, 1]
-                return fit_2d_freq(z=z, dt=step_t)
+                return fit_2d_freq_with_cov(z=z, dt=step_t)
             else:
                 raise NotImplementedError()
 

@@ -6,6 +6,7 @@ from leeq import Experiment, SweepParametersSideEffectFactory, Sweeper
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils.compatibility import *
+from leeq.utils.ai.vlms import visual_analyze_prompt
 from leeq.theory import fits
 from plotly import graph_objects as go
 
@@ -13,20 +14,30 @@ from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
 
+__all__ = ["NormalisedRabi", "MultiQubitRabi"]
+
 
 class NormalisedRabi(Experiment):
+    _experiment_result_analysis_instructions = """
+    The Normalised Rabi experiment is a quantum mechanics experiment that involves the measurement of oscillations.
+    A successful Rabi experiment will show a clear, regular oscillatory pattern with amplitude greater than 0.2.
+    If less than 3 oscillations are observed, the experiment is considered failed. If more than 10 oscillations are 
+    observed, the experiment is considered failed. The new suggested driving amplitude should allow the observation
+    of 5 oscillations, and can refer to the suggested amplitude in the analysis. 
+    """
+
     @log_and_record
     def run(self,
             dut_qubit: Any,
             amp: float = 0.05,
             start: float = 0.01,
-            stop: float = 0.15,
-            step: float = 0.001,
+            stop: float = 0.3,
+            step: float = 0.002,
             fit: bool = True,
             collection_name: str = 'f01',
             mprim_index: int = 0,
             pulse_discretization: bool = True,
-            update=False,
+            update=True,
             initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         """
         Run a Rabi experiment on a given qubit and analyze the results.
@@ -41,11 +52,17 @@ class NormalisedRabi(Experiment):
         collection_name (str): Collection name for retrieving c1. Default is 'f01'.
         mprim_index (int): Index for retrieving measurement primitive. Default is 0.
         pulse_discretization (bool): Whether to discretize the pulse. Default is False.
-        update (bool): Whether to update the qubit parameters. Default is False.
+        update (bool): Whether to update the qubit parameters If you are tuning up the qubit set it to True. Default is False.
         initial_lpb (Any): Initial lpb to add to the created lpb. Default is None.
 
         Returns:
         Dict[str, Any]: Fitted parameters if fit is True, None otherwise.
+
+        Example:
+            >>> # Run an experiment to calibrate the driving amplitude of a single qubit gate
+            >>> rabi_experiment = NormalisedRabi(
+            >>> dut_qubit=dut, amp=0.05, start=0.01, stop=0.3, step=0.002, fit=True,
+            >>> collection_name='f01', mprim_index=0, pulse_discretization=True, update=True)
         """
         # Get c1 from the DUT qubit
         c1 = dut_qubit.get_c1(collection_name)
@@ -120,7 +137,7 @@ class NormalisedRabi(Experiment):
                       collection_name: str = 'f01',
                       mprim_index: int = 0,
                       pulse_discretization: bool = True,
-                      update=False,
+                      update=True,
                       initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         """
         Run a simulated Rabi experiment on a given qubit and analyze the results.
@@ -135,11 +152,12 @@ class NormalisedRabi(Experiment):
         collection_name (str): Collection name for retrieving c1. Default is 'f01'.
         mprim_index (int): Index for retrieving measurement primitive. Default is 0.
         pulse_discretization (bool): Whether to discretize the pulse. Default is False.
-        update (bool): Whether to update the qubit parameters. Default is False.
+        update (bool): Whether to update the qubit parameters. Default is True.
         initial_lpb (Any): Initial lpb to add to the created lpb. Default is None.
 
         Returns:
         Dict[str, Any]: Fitted parameters if fit is True, None otherwise.
+
         """
         if initial_lpb is not None:
             logger.warning("initial_lpb is ignored in the simulated mode.")
@@ -162,7 +180,7 @@ class NormalisedRabi(Experiment):
 
         # Rabi oscillation formula
         self.data = (omega ** 2) / (delta ** 2 + omega ** 2) * \
-            np.sin(0.5 * np.sqrt(delta ** 2 + omega ** 2) * t) ** 2
+                    np.sin(0.5 * np.sqrt(delta ** 2 + omega ** 2) * t) ** 2
 
         # If sampling noise is enabled, simulate the noise
         if setup().status().get_param('Sampling_Noise'):
@@ -173,6 +191,22 @@ class NormalisedRabi(Experiment):
             # sampling noise
             self.data = np.random.binomial(
                 shot_number, self.data) / shot_number
+
+        quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+        standard_deviation = np.sum(quiescent_state_distribution[1:])
+
+        random_noise_factor = 1 + np.random.normal(
+            0, standard_deviation, self.data.shape)
+
+        self.data = (2 * self.data - 1)
+
+        random_noise_factor = 1 + np.random.normal(
+            0, standard_deviation, self.data.shape)
+
+        random_noise_sum = np.random.normal(
+            0, standard_deviation/2, self.data.shape)
+
+        self.data = np.clip(self.data * (0.5 - quiescent_state_distribution[0]) * 2 * random_noise_factor + random_noise_sum, -1, 1)
 
         # Fit data to a sinusoidal function and return the fit parameters
         self.fit_params = fits.fit_sinusoidal(self.data, time_step=step)
@@ -189,6 +223,14 @@ class NormalisedRabi(Experiment):
             print(f"Amplitude updated: {new_amp}")
 
     @register_browser_function()
+    @visual_analyze_prompt("""
+    Here is a plot of data from a quantum mechanics experiment involving Rabi oscillations. Can you analyze whether 
+        this plot shows a successful experiment or a failed one? Please consider the following aspects in your analysis:
+    1. Clarity of Oscillation: Describe if the data points show a clear, regular oscillatory pattern.
+    2. Amplitude and Frequency: Note any inconsistencies in the amplitude and frequency of the oscillations.
+    3. Overall Pattern: Provide a general assessment of the plot based on the typical characteristics of successful
+        Rabi oscillation experiments.
+    """)
     def plot(self) -> go.Figure:
         """
         Plots Rabi oscillations using data from an experiment run.
@@ -218,7 +260,7 @@ class NormalisedRabi(Experiment):
                     color='Blue',
                     size=7,
                     opacity=0.5,
-                    line=dict(color='Black', width=2)
+                    line=dict(color='Black', width=2),
                 ),
                 name=f'data'
             )
@@ -238,7 +280,8 @@ class NormalisedRabi(Experiment):
                 y=fit,
                 mode='lines',
                 line=dict(color='Red'),
-                name=f'fit'
+                name=f'fit',
+                visible='legendonly'
             )
         )
 
@@ -307,6 +350,23 @@ class NormalisedRabi(Experiment):
         )
 
         return fig
+
+    def get_analyzed_result_prompt(self) -> str:
+        """
+        Get the prompt to analyze the result.
+
+        Returns:
+        str: The prompt to analyze the result.
+        """
+
+        oscillation_freq = self.fit_params['Frequency']
+        experiment_time_duration = self.retrieve_args(self.run)['stop'] - self.retrieve_args(self.run)['start']
+        oscillation_count = (experiment_time_duration * oscillation_freq)
+
+        return (f"The fitting result of the Rabi oscillation suggest the amplitude of {self.fit_params['Amplitude']}, "
+                f"the frequency of {self.fit_params['Frequency']}, the phase of {self.fit_params['Phase']}. The offset of"
+                f" {self.fit_params['Offset']}. The suggested new driving amplitude is {self.guess_amp}."
+                f"From the fitting results, the plot should exhibit {oscillation_count} oscillations.")
 
 
 class MultiQubitRabi(Experiment):

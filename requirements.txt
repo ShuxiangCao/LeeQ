@@ -1,7 +1,7 @@
 scipy
 matplotlib
 matplotlib-inline
-numpy
+numpy < 2.0.0
 plotly
 dash
 dash_bootstrap_components
@@ -16,3 +16,13 @@ fsspec
 pyyaml
 decorator
 h5py
+uncertainties
+labchronicle @ git+https://github.com/ShuxiangCao/LabChronicle
+MinimalLLM
+markdownify
+ipywidgets
+kaleido
+markdownify
+pandas
+dill
+asteval

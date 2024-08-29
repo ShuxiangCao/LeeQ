@@ -78,7 +78,16 @@ class StandardStateTomography:
 
         # Ensure the measurement basis forms a complete basis
         all_basis = self.measurement_hilbert_schmidt_basis.reshape([-1, self.dimension ** 2])
-        assert np.linalg.matrix_rank(all_basis) == self.dimension ** 2
+
+        rank = np.linalg.matrix_rank(all_basis)
+        expected_rank = self.dimension ** 2
+
+        if rank != expected_rank:
+            print(f"Measurement basis is not complete. Expected rank: {expected_rank}, got rank: {rank}.")
+
+        assert rank == expected_rank, \
+            (f"Measurement basis is not complete. Expected rank: {expected_rank},"
+             f" got rank: {rank}.")
 
     def get_measurement_sequence(self) -> list:
         """Return the sequence of measurement operations."""

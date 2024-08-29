@@ -23,7 +23,7 @@ def register_leeq_pulse_shapes_to_qubic_pulse_shape_factory():
     Register all the built-in pulse shapes in LeeQ to the Qubic pulse shape factory.
     """
 
-    from qubic.utils.pulse_shape_utils import PulseShapeFactory as QubicPulseShapeFactory
+    from qubic.pulse_factory import PulseShapeFactory as QubicPulseShapeFactory
 
     pulse_shape_factory_leeq = PulseShapeFactory()
     pulse_shape_factory_qubic = QubicPulseShapeFactory()

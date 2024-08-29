@@ -46,11 +46,11 @@ class CalibrateFullAssignmentMatrices(Experiment):
                 new_lpb_groups.append(x + [dut.get_gate('I', transition_name='f01')])
                 new_lpb_groups.append(x + [dut.get_gate('X', transition_name='f01')])
                 if max_level == 1:
-                    break
+                    continue
                 new_lpb_groups.append(
                     x + [dut.get_gate('X', transition_name='f01') + dut.get_gate('X', transition_name='f12')])
                 if max_level == 2:
-                    break
+                    continue
                 new_lpb_groups.append(x + [
                     dut.get_gate('X', transition_name='f01') + dut.get_gate('X', transition_name='f12') + dut.get_gate(
                         'X', transition_name='f23')])
@@ -71,7 +71,7 @@ class CalibrateFullAssignmentMatrices(Experiment):
         basic_run(lpb + prims.ParallelLPB(mprims), swp, '<zs>')
 
         # Process and transpose results to format them as a dense probability matrix.
-        self.result = np.squeeze(np.asarray([x.result() for x in mprims]), axis=-1)
+        self.result = np.squeeze(np.asarray([x.result() for x in mprims][::-1]), axis=-1)
         self.assignment_matrix = to_dense_probabilities(self.result.transpose([0, 2, 1]), base=max_level + 1)
         self.max_level = max_level
 
@@ -98,6 +98,20 @@ class CalibrateFullAssignmentMatrices(Experiment):
 
         fig.update_xaxes(side="top")
         fig.show()
+
+    def apply_inverse(self, probs: np.ndarray) -> np.ndarray:
+        """
+        Apply the inverse of the assignment matrix to the given probabilities.
+
+        Args:
+            probs (np.ndarray): The probabilities to apply the inverse assignment matrix to.
+
+        Returns:
+            np.ndarray: The probabilities after applying the inverse assignment matrix.
+        """
+        prob_shape = probs.shape
+        new_probs = np.linalg.inv(self.assignment_matrix) @ probs.reshape([prob_shape[0], -1])
+        return new_probs.reshape(prob_shape)
 
 
 class CalibrateSingleDutAssignmentMatrices(Experiment):

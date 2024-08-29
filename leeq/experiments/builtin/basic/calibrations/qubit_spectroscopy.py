@@ -1,15 +1,15 @@
-import numpy as np
-import plotly.graph_objects as go
 from labchronicle import log_and_record, register_browser_function
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, ExperimentManager
 from leeq.utils.compatibility import *
 
-from typing import Dict, Any, Union, List, Tuple, Optional
+from typing import Dict, Any, Union, Optional
 import numpy as np
 import plotly.graph_objects as go
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+from leeq.utils.ai.vlms import visual_analyze_prompt
 
+__all__ = ['QubitSpectroscopyFrequency', 'QubitSpectroscopyAmplitudeFrequency']
 
 class QubitSpectroscopyFrequency(Experiment):
     """
@@ -50,7 +50,8 @@ class QubitSpectroscopyFrequency(Experiment):
             mp_width: float = 0.5,
             amp: float = 0.01) -> None:
         """
-        Conducts a frequency sweep on the designated qubit and records the response.
+        Conducts a qubit spectroscopy experiment which fixes the resonator frequency and probes the qubit at different
+         frequencies. Records the response.
 
         Parameters
         ----------
@@ -204,7 +205,15 @@ class QubitSpectroscopyFrequency(Experiment):
             amp_rdrive=effective_amp_readout,
             readout_baseline=2 * effective_amp_readout)
 
-        noise_scale = 100 / num_avs / width
+        num_elements_to_baseline = int(len(response) * 0.2)
+
+        # Randomly select indices to set to 0
+        indices_to_baseline = np.random.choice(response.size, num_elements_to_baseline, replace=False)
+
+        # Set the selected elements to 0
+        response[indices_to_baseline] = response.mean()
+
+        noise_scale = 100 / np.log(num_avs) / np.sqrt(width)
 
         noise = (np.random.normal(0, noise_scale, response.shape) +
                  1j * np.random.normal(0, noise_scale, response.shape))
@@ -223,6 +232,16 @@ class QubitSpectroscopyFrequency(Experiment):
             np.argmax(abs(self.result['Magnitude'] - mean_level))]
 
     @register_browser_function(available_after=(run,))
+    @visual_analyze_prompt(
+        """
+        Given a plot of the phase response of a resonator as a function of frequency, analyze the stability and 
+        features of the phase curve. Identify any distinct and sharp deviations from the baseline phase level, 
+        such as steep dips or peaks. If such features are present at specific frequencies, indicating a significant
+        change in the phase response, conclude that a qubit has been detected at these frequencies. If the plot 
+        shows a noisy or relatively stable phase without any pronounced features across the frequency range, conclude
+        that no qubit has been observed
+        """
+    )
     def plot_magnitude(self, step_no: tuple[int] = None) -> go.Figure:
         """
         Generates a plot for the magnitude response from the frequency sweep data.
