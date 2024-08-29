@@ -23,3 +23,6 @@ markdownify
 ipywidgets
 kaleido
 markdownify
+pandas
+dill
+asteval
