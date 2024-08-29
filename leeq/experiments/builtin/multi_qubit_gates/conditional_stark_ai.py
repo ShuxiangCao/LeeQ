@@ -1773,7 +1773,12 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
         return inspection_results
 
 
-class ConditionalStarkSearchParameters(Experiment):
+class ConditionalStarkTwoQubitGateAIParameterSearch(Experiment):
+    _experiment_result_analysis_instructions = """
+    The Conditional Stark Echo Tune-Up experiment has been completed. Please read the following report to analyze the
+    if this is a successful experiment. Make the analysis concise and clear in one short sentence describing the reason. 
+    """
+
     _background_information = """
             Your objective is to find the optimal parameters for the conditional stark-shift gate that will allow you to entangle 
             two qubits. The parameters you need to find are 
@@ -1791,7 +1796,8 @@ class ConditionalStarkSearchParameters(Experiment):
                             It has to be at least 30 MHz away from both of the single qubit transition frequency.
                             It should not be lower than 60MHz below the lowest qubit frequency and not higher than 60MHz above the highest qubit frequency.
                             Round it to multiples of MHz.
-            'amp_control': You should try from 1 time to 2 times of the first qubit's single qubit gate drive amplitude. The experiment may fail when chosing a amplitude too high, therefore you should start from a gentle value. The maximum value is 1.
+            'amp_control': You should try from 1 time to 2 times of the first qubit's single qubit gate drive amplitude. 
+                        The experiment may fail when chosing a amplitude too high, therefore you should start from a gentle value. The maximum value is 1. Adjust the amplitude to be multiples of 0.05.
             'rise': No more than 0.02, no less than 0.01. Usually 0.015 is the right value to choose.
             'phase_diff': keep it 0,
             'width': determined by the experiment output,
@@ -1799,7 +1805,7 @@ class ConditionalStarkSearchParameters(Experiment):
 
             Try different set of parameters, particularly varying the frequency and amplitudes, to find the ZZ rate and the pulse width.
             Try parameters of below the lowest qubit frequency, between the qubit frequencies and above the highest qubit frequency.
-            The optimal paramter gives the highest ZZ rate and lowest width.
+            The optimal parameters give the highest ZZ rate and the lowest width.
             If an experiment succeeds, you can try to improve the results by increase the amplitude or move the frequency closer to the qubits.
             If an experiment fails, you should try to move the frequency further away from the qubits or decrease the amplitude.
             To make the results comparable with the history results, do not chose a new set of parameters with both new frequency and amplitudes. 
@@ -1838,11 +1844,27 @@ class ConditionalStarkSearchParameters(Experiment):
     @log_and_record
     def run(
             self,
-            duts: List[Any],
+            duts: List[TransmonElement],
             params: Dict[str, Any] = None,
             ai_inspection: bool = False
     ) -> None:
+        """
+        Run the Conditional Stark Echo Tune-Up experiment to calibrate the siZZel two qubit gate parameters for a
+        pair of qubits.
+
+        Parameters:
+            duts: List[TransmonElement]: Devices under test.
+            params: Dict[str, Any]: Parameters for the experiment. Defaults to None.
+            ai_inspection: bool: Flag for AI inspection. Defaults to False. Please set it to True if you
+                want to use the AI inspection feature, or you are an AI writing the code.
+
+        Example:
+            >>> experiment_instance = ConditionalStarkTwoQubitGateAIParameterSearch(
+            >>>     duts=[dut1, dut2],
+            >>> )
+        """
         self._experiment_history = []
+        self._analyze_histroy = []
         self.duts = duts
 
         while self._run_next_experiment() == True:
@@ -1912,7 +1934,9 @@ class ConditionalStarkSearchParameters(Experiment):
         from mllm import Chat
         chat = Chat(prompt,
                     "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.")
-        res = chat.complete(parse="dict", expensive=True, cache=True)
+        res = chat.complete(parse="dict", expensive=True, cache=True,model='claude-3-opus-20240229')
+
+        self._analyze_histroy.append(res)
 
         from leeq.utils.ai.display_chat.notebooks import dict_to_html, display_chat
 
@@ -1941,3 +1965,6 @@ class ConditionalStarkSearchParameters(Experiment):
                 ConditionalStarkEchoTuneUpAI(duts=self.duts, ai_inspection=True, **filtered_kwargs))
 
         return True
+
+    def get_analyzed_result_prompt(self) -> Union[str, None]:
+        return self._analyze_histroy[-1]['analysis']

@@ -29,7 +29,7 @@ class NormalisedRabi(Experiment):
     @log_and_record
     def run(self,
             dut_qubit: Any,
-            amp: float = 0.05,
+            amp: float = 0.2,
             start: float = 0.01,
             stop: float = 0.3,
             step: float = 0.002,
@@ -40,7 +40,9 @@ class NormalisedRabi(Experiment):
             update=True,
             initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         """
-        Run a Rabi experiment on a given qubit and analyze the results.
+        Run a Rabi experiment on a given qubit for rough calibration of the driving amplitude.
+        Note that this experiment is only for rough calibration, and the final calibration should be done using
+        a more accurate method.
 
         Parameters:
         dut_qubit (Any): Device under test (DUT) qubit object.

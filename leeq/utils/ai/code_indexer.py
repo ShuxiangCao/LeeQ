@@ -11,6 +11,7 @@ from leeq.utils.ai.ideanet.lt_memory import IdeaResult, LongTermMemory, EmbedIde
 from leeq.utils.ai.ideanet.w_memory import WorkingMemory
 from .variable_table import VariableTable
 
+
 def imagine_applications(exp_name, exp_docs) -> List[str]:
     """
     Generate a list of imperative sentences based on the documentation of an experiment class method.
@@ -95,7 +96,7 @@ Whenever you need to run experiment `{self.exp_name}`, you should create a new i
 will be carried out when the experiment object is created.
 To create new instance: `experiment_<name> = {self.exp_cls.__name__}(argument1,argument2, ...)`
 If the experiment accepts `ai_inspection` parameter, set it to True.
-If there are certain arguments needs to be passed but you do not know the value, ignore them.
+If there are certain arguments needs to be passed but you do not know the value, ignore these arguments.
 </hint>
 </knowledge>
 The knowledge might be useful to generate some code.
@@ -104,11 +105,14 @@ The knowledge might be useful to generate some code.
 Important: The description of the task is mentioned in the slot. Your knowledge might be totally not useful for the task. You should give empty suggestion and set applicable to false in this case.
 
 You should output a JSON dict. The keys should be
+- "analysis" : The detailed analysis of the relation between the knowledge and the task.
+- "applicable": A boolean whether the knowledge is enough to implement the entire task. 
 - "suggestion": A detailed statement on how to improve the code completion base on the function you are holding. You can leave this empty if the task is not related to your knowledge. You should not provide the full code completion, but you should provide snippets (max 4 lines) that can be readily used to fill in part of the slot.
-- "relation": a string of the relation between the task, experiment and your suggestion.
-- "applicable": a boolean that indicates whether the task and your suggestion is based on the experiment you hold, or it is just some general suggestion. If not, output false.
 </instruction>
 """
+        #        """
+        # If arguments specified in the prompt but not in the argument list of the experiment, ignore the arguments and write your suggestions.
+        #        """
 
         # Generate and handle the response
         chat = Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
@@ -120,7 +124,14 @@ You should output a JSON dict. The keys should be
             return idea_res
 
         idea_res = IdeaResult(self, True)
-        idea_res.add_new_wm_content(res["suggestion"], tag="code_suggestion")
+
+        one_line_reason = res["analysis"].replace('\n', ' ')
+
+        code = f"""
+# {one_line_reason}
+{res["suggestion"]}
+"""
+        idea_res.add_new_wm_content(code, tag="code_suggestion")
 
         return idea_res
 

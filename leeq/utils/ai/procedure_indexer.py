@@ -135,7 +135,7 @@ You are required to output a JSON dict with the following keys
         code_suggestion = f'''
 # {annotation_in_prompt}
 # AutoRun function will execute instructions passed to it
-AutoRun("""{res["decomposed_steps"]}""" {arg_in_code})        
+experiment_instance = AutoRun(prompt="""{res["decomposed_steps"]}""" {arg_in_code})        
 '''
         #print(code_suggestion)
         idea_res = IdeaResult(self, True)

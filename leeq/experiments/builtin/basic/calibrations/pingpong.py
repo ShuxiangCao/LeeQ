@@ -252,10 +252,12 @@ class AmpPingpongCalibrationSingleQubitMultilevel(Experiment):
             initial_lpb: Optional[LogicalPrimitiveBlock] = None,
             flip_other: bool = False) -> None:
         """
-        Run the experiment  for amplitude finetuning of single qubit pulses repeatedly using pingpong scheme.
+        Run the experiment for amplitude fine calibration of single qubit pulses repeatedly using pingpong scheme.
+        Notice this experiment is only for fine calibration and requires a rough calibration in advance, and cannot
+        be used alone for full calibration.
 
         Parameters:
-            dut (object): The device under test.
+            dut (object): The device under test, refers to the target qubit object.
             name (str): The name of the experiment.
             mprim_index (int): The index of the mprim.
             initial_lpb (float): The initial length per block.
