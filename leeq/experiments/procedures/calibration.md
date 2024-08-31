@@ -54,4 +54,3 @@ need to be recalibrated. It is only applicable to single qubit gates amplitude.
 
 - Conduct a Rabi experiment to determine the Rabi rate for rough amplitude calibration.
 - Upon the successful completion of the Rabi experiment, run Pingpong amplitude calibration. If failed directly goto Failure.
-

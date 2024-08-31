@@ -204,7 +204,7 @@ Output a JSON dict with the following keys:
         res = chat.complete(parse="dict", expensive=True)["code"]
         idea_res = IdeaResult(self, True)
 
-        print(chat)
+        # print(chat)
 
         code_item = CodeWMemoryItem(res, tag="attempted_code")
         idea_res.add_new_wm_item(code_item)

@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 
@@ -14,21 +15,26 @@ def get_experiment_summary(description: str, run_parameters: dict[str, Any], res
     needs to be specific on how much of the quantity needs to be changed on the parameters. Otherwise return None for the
     parameter updates.
     
-    Run parameters for this experiment:
-    {run_parameters}
-     
-    Experiment description: 
+    <Run parameters>
+    {json.dumps(run_parameters)}
+    </Run parameters>
+    
+    <Experiment description> 
     {description}
+    </Experiment description>
    
-    Results:
+    <Results>
     {results_str}
+    </Results>
     
     Return in json format:
+    <Return>
     {{
         "analysis": str,
-        "parameter_updates": str,
+        "parameter_updates": "<parameter 1> should be updated by <value> and <parameter 2> should be updated by <value>",
         "success": bool,
     }}
+    </Return>
     """
 
     import mllm

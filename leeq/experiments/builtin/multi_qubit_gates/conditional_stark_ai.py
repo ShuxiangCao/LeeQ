@@ -21,7 +21,7 @@ from leeq.utils.compatibility import *
 import matplotlib.pyplot as plt
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial
 from leeq.utils.compatibility import prims
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Type
 from typing import List, Dict, Any, Tuple
 import numpy as np
 from uncertainties import ufloat
@@ -88,8 +88,8 @@ class ConditionalStarkShiftContinuousPhaseSweep(Experiment):
             frequency: Optional[float] = None,
             rise: float = 0.015,
             start: float = 0,
-            stop: float = 20,
-            sweep_points=40,
+            stop: float = 15,
+            sweep_points=30,
             axis: str = 'Y',
             echo: bool = True,
             iz_rate_cancel: float = 0,
@@ -444,8 +444,8 @@ class ConditionalStarkShiftContinuous(Experiment):
             frequency: Optional[float] = None,
             rise: float = 0.015,
             start: float = 0,
-            stop: float = 20,
-            sweep_points=40,
+            stop: float = 15,
+            sweep_points=30,
             axis: str = 'Y',
             echo: bool = True,
             iz_rate_cancel: float = 0,
@@ -797,6 +797,9 @@ class ConditionalStarkShiftContinuous(Experiment):
             color = color_ground if label == 'Ground' else color_excited
 
             # Compute the Fourier Transform of the data
+
+            data = data - np.mean(data)
+
             fourier_transform = np.fft.fft(data)
             frequencies = np.fft.fftfreq(t.size, d=args['step'])
 
@@ -1150,6 +1153,9 @@ class ConditionalStarkShiftRepeatedGate(Experiment):
             color = color_ground if label == 'Ground' else color_excited
 
             # Compute the Fourier Transform of the data
+
+            data = data - np.mean(data)
+
             fourier_transform = np.fft.fft(data)
             frequencies = np.fft.fftfreq(t.size, d=1)
 
@@ -1322,8 +1328,8 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
             phase_diff: float = 0,
             rise: float = 0.015,
             t_start: float = 0,
-            t_stop: float = 20,
-            sweep_points: int = 40,
+            t_stop: float = 15,
+            sweep_points: int = 30,
             n_start: int = 0,
             n_stop: int = 32,
             update_iz: bool = False,
@@ -1395,9 +1401,15 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
         self.current_params = params
         self.params_list = [params]
 
-        iz_rate, zz_rate, self._xy_hamiltonian_tomography_inspection_results = self.run_sizzel_xy_hamiltonian_tomography(
-            t_start=t_start, t_stop=t_stop, sweep_points=sweep_points
-        )
+        try:
+            iz_rate, zz_rate, self._xy_hamiltonian_tomography_inspection_results = self.run_sizzel_xy_hamiltonian_tomography(
+                t_start=t_start, t_stop=t_stop, sweep_points=sweep_points
+            )
+        except Exception as e:
+            self._repeated_gate_inspection_results = {'success': False,
+                                                      'analysis': f'Exception occurred: {e}'
+                                                      }
+            return
 
         if not self._xy_hamiltonian_tomography_inspection_results['Experiment success']:
             self._repeated_gate_inspection_results = {'success': False,
@@ -1415,9 +1427,14 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
 
         self.current_params['zz_interaction_positive'] = zz_rate.nominal_value > 0
 
-        self._repeated_gate_inspection_results = self.run_repeated_gate_hamiltonian_tomography(
-            zz_rate=zz_rate, n_start=n_start, n_stop=n_stop, update_iz=False, update_zz=True
-        )
+        try:
+            self._repeated_gate_inspection_results = self.run_repeated_gate_hamiltonian_tomography(
+                zz_rate=zz_rate, n_start=n_start, n_stop=n_stop, update_iz=False, update_zz=True
+            )
+        except Exception as e:
+            self._repeated_gate_inspection_results = {'success': False,
+                                                      'analysis': f'Exception occurred: {e}'
+                                                      }
 
     def get_analyzed_result_prompt(self) -> Union[str, None]:
         prompt = f"""
@@ -1773,11 +1790,11 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
         return inspection_results
 
 
-class ConditionalStarkTwoQubitGateAIParameterSearch(Experiment):
-    _experiment_result_analysis_instructions = """
-    The Conditional Stark Echo Tune-Up experiment has been completed. Please read the following report to analyze the
-    if this is a successful experiment. Make the analysis concise and clear in one short sentence describing the reason. 
-    """
+class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
+    # _experiment_result_analysis_instructions = """
+    # The Conditional Stark Echo Tune-Up experiment has been completed. Please read the following report to analyze the
+    # if this is a successful experiment. Make the analysis concise and clear in one short sentence describing the reason.
+    # """
 
     _background_information = """
             Your objective is to find the optimal parameters for the conditional stark-shift gate that will allow you to entangle 
@@ -1934,7 +1951,8 @@ class ConditionalStarkTwoQubitGateAIParameterSearch(Experiment):
         from mllm import Chat
         chat = Chat(prompt,
                     "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.")
-        res = chat.complete(parse="dict", expensive=True, cache=True,model='claude-3-opus-20240229')
+        res = chat.complete(parse="dict", expensive=True, cache=True, model='claude-3-opus-20240229')
+        # , model = 'claude-3-opus-20240229'
 
         self._analyze_histroy.append(res)
 
@@ -1968,3 +1986,319 @@ class ConditionalStarkTwoQubitGateAIParameterSearch(Experiment):
 
     def get_analyzed_result_prompt(self) -> Union[str, None]:
         return self._analyze_histroy[-1]['analysis']
+
+
+class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
+
+    @log_and_record
+    def run(
+            self,
+            duts: List[TransmonElement],
+            run_class: Type[Experiment],
+            ai_inspection: bool = False,
+            maximum_experiments: int = 20,
+            **kwargs
+    ) -> None:
+        self._experiment_history = []
+        self._analyze_histroy = []
+        self.duts = duts
+
+        for i in range(maximum_experiments):
+            if self._run_next_experiment(run_class=run_class, params=kwargs) in ['finish', 'error']:
+                break
+
+    def _get_device_parameters_prompts(self):
+        prompt = f"You have access to the following two qubits: {self.duts[0]._name} and {self.duts[1]._name}. The units for frequency and time are in MHz and microseconds The parameters for these qubits are as follows:"
+
+        for dut in self.duts:
+            prompt += f"""
+            <{dut._name} Parameters>
+            Single qubit gate parameters: {dut.get_c1('f01').get_parameters()}
+            </{dut._name} Parameters>
+            """
+
+        return prompt
+
+    def _experiment_history_to_prompt(self):
+
+        if len(self._experiment_history) == 0:
+            return "You have not run any experiments yet."
+
+        prompt = f"Here is the history of the experiments you have run so far:"
+
+        for i, exp in enumerate(self._experiment_history):
+            result = exp.get_ai_inspection_results()
+            analyze_results = {k: v for k, v in result.items() if
+                               k in ['Experiment success', 'Calibrated parameters', 'Final analysis']}
+
+            section_prompt = f"""\n\n\n
+            <{i}:{exp._name}>
+            {analyze_results}
+            </{i}:{exp._name}>
+            """
+
+            prompt += section_prompt
+
+        return prompt
+
+    def _display_experiment_history(self):
+
+        if len(self._experiment_history) == 0:
+            return
+
+        html_dict = {}
+
+        for i, exp in enumerate(self._experiment_history):
+            result = exp.get_ai_inspection_results()
+            analyze_results = {k: v for k, v in result.items() if
+                               k in ['Experiment success', 'Calibrated parameters', 'Final analysis']}
+            html_dict[f"{i}:{exp._name}"] = analyze_results
+
+        html = dict_to_html(html_dict)
+
+        display_chat(agent_name=f"Previous experiments",
+                     content='<br>' + html,
+                     background_color='#f0f8ff')
+
+    def _run_next_experiment(self, run_class, params):
+
+        prompt = self._background_information + self._get_device_parameters_prompts() + \
+                 self._experiment_history_to_prompt() + self._objective_prompt
+        # print(prompt)
+
+        self._display_experiment_history()
+
+        from mllm import Chat
+        chat = Chat(prompt,
+                    "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.")
+        res = chat.complete(parse="dict", expensive=True, cache=True, model='claude-3-opus-20240229')
+        # , model = 'claude-3-opus-20240229'
+        self._analyze_histroy.append(res)
+
+        from leeq.utils.ai.display_chat.notebooks import dict_to_html, display_chat
+
+        html = dict_to_html(res)
+        display_chat(agent_name=f"Parameter search AI",
+                     content='<br>' + html,
+                     background_color='#f0f8ff')
+
+        if res['status'] in ['finish', 'error']:
+            return res['status']
+        else:
+            params_suggests = res['params']
+
+            updated_params = params.copy()
+            updated_params.update(params_suggests)
+
+            func = run_class.run
+            # For compatibility, select the argument that the function
+            # accepts with inspect
+            sig = inspect.signature(func)
+
+            # Extract the parameter names that the function accepts
+            valid_parameter_names = set(sig.parameters.keys())
+
+            # Filter the kwargs
+            filtered_kwargs = {
+                k: v for k, v in updated_params.items() if k in valid_parameter_names}
+
+            self._experiment_history.append(
+                run_class(duts=self.duts, ai_inspection=True, **filtered_kwargs))
+
+        return res['status']
+
+    def get_analyzed_result_prompt(self) -> Union[str, None]:
+        return self._analyze_histroy[-1]['analysis']
+
+
+class ConditionalStarkTwoQubitGateAIParameterSearchAmplitude(ConditionalStarkTwoQubitGateAIParameterSearchBase):
+    _experiment_result_analysis_instructions = """
+    The amplitude search experiment for conditional stark gate has been completed. Please read the following report to analyze the
+    if this is a successful experiment. Make the analysis concise and clear in one short sentence describing the reason. 
+    Also include the maximum amplitude value you could choose without causing the experiment to fail, based on the experiment history.
+    
+    <Success example>
+    The experiment search at frequency <frequency value> is valid and the amplitude <amplitude value> is the highest amplitude we have chosen to be success.
+    The best parameter set results in a pulse width of <width>. 
+    <amplitude value> is the lowest amplitude we find the experiment to fail. 
+    </Success example>
+    
+    <Failure example>
+    The experiment search at frequency <frequency value> is invalid and we have not observed any successful experiment at this frequency.
+    </Failure example>
+    """
+
+    _background_information = """
+Your objective is to find the optimal parameters for the conditional stark-shift gate that will allow you to entangle 
+two qubits. The parameters you need to find are 
+<parameters>
+    'amp_control':  the amplitude of the control qubit (The first qubit), the required amplitude accuracy is 0.01. 
+</parameters>
+
+<Rules of parameter selection>
+You should try from 1 time to 2 times of the first qubit's single qubit gate drive amplitude. 
+The optimal parameters give the highest ZZ rate and the lowest width.
+The experiment may fail when select a amplitude too high, therefore you should start from a gentle value.
+The maximum amplitude value is 1. The minimum amplitude value is 0.  
+If an experiment succeeds, you can try to improve the results by increase the amplitude.
+If an experiment failed, you can try to recover by reduce the amplitude.
+</Rules of parameter selection>
+        """
+
+    # should be around 30MHz below the lowest qubit frequency to 60 MHz below the lowest qubit frequency.
+
+    _objective_prompt = """
+Please suggest the next experiment you would like to run to find the parameters for the conditional stark-shift gate,
+based on the previous experiment history. Use Binary Search when possible. 
+
+Return in a json dict with the following format:
+{
+    'status': <'searching', 'error' or 'finish'>
+    'analysis': <The reason for choosing this parameter set>,
+    'params': {
+        'amp_control': float,
+    },
+}
+If you have done 10 experiment and could not find any improvements in the recent runs,
+return the set of parameters you believe to be optimal, please set status to 'finish'.
+If the change in amplitude is less than 0.01, please set status to 'finish'. 
+Otherwise keeps state to 'searching' and trying new parameters. 
+If you have encountered an error, please set status to 'error'.
+"""
+    _objective_prompt = """
+Suggest the next experiment to determine parameters for the conditional stark-shift gate, incorporating insights from prior experiments. Implement Binary Search methodology where applicable.
+
+Please format your response as a JSON dictionary using the following structure:
+<format>
+{
+    "status": <'searching', 'error', or 'finish'>,
+    "analysis": <Explanation for choosing this set of parameters>,
+    "params": {
+        "amp_control": float
+    }
+}
+</format>
+
+<Guidelines>
+- If after 10 experiments there are no improvements, conclude the experimentation by returning the optimal parameters set and changing the status to 'finish'.
+- If the amplitude change is less than 0.01, set the status to 'finish'.
+- Continue with 'searching' status if further parameter adjustments are required.
+- Set the status to 'error' if any issues arise during the experiment process.
+</Guidelines>
+"""
+
+    @log_and_record
+    def run(
+            self,
+            duts: List[TransmonElement],
+            ai_inspection: bool = False,
+            maximum_experiments: int = 5,
+            **kwargs
+    ) -> None:
+        super().run(duts=duts, run_class=ConditionalStarkEchoTuneUpAI, **kwargs, ai_inspection=ai_inspection,
+                    maximum_experiments=maximum_experiments)
+
+
+class ConditionalStarkTwoQubitGateAIParameterSearchFrequencyAmplitude(
+    ConditionalStarkTwoQubitGateAIParameterSearchBase):
+    _experiment_result_analysis_instructions = """
+    The frequency search experiment for conditional stark gate has been completed. Please read the following report to analyze the
+    if this is a successful experiment. Make the analysis concise and clear in one short sentence describing the reason. 
+    Also include the maximum amplitude value you could choose without causing the experiment to fail, based on the experiment history.
+    """
+
+    _background_information = """
+Your objective is to find the optimal parameters for the conditional stark-shift gate that will allow you to entangle 
+two qubits. The parameters you need to find are 
+<parameters>
+    'frequency': the frequency of the drive pulse ,
+</parameters>
+
+<Rules of parameter selection>
+'frequency': It can be below, between or above the single qubit transition transition frequencies. 
+                It has to be at least 30 MHz away from both of the single qubit transition frequency.
+                It should not be lower than 60MHz below the lowest qubit frequency and not higher than 60MHz above the highest qubit frequency.
+                Round it to multiples of MHz.
+Try parameters of below the lowest qubit frequency, between the qubit frequencies and above the highest qubit frequency.
+The optimal parameters give the highest ZZ rate and the lowest width.
+If an experiment succeeds, you can try to improve the results by move the frequency closer to the qubits.
+If an experiment fails, you should try to move the frequency further away from the qubits.
+If the experiment failed at a certain frequency, this is usually the frequency choice is too close to the qubit frequency.
+</Rules of parameter selection>
+"""
+
+    # should be around 30MHz below the lowest qubit frequency to 60 MHz below the lowest qubit frequency.
+
+    _objective_prompt = """
+    
+First consider the frequency region below the lowest qubit frequency, then between the qubit frequencies and finally above the highest qubit frequency.
+Please suggest the next experiment you would like to run to find the parameters for the conditional stark-shift gate, based on the previous experiment history.
+You should at least try each available region once.
+
+Return in a json dict with the following format:
+{
+    'status': <'searching', 'error' or 'finish'>
+    'analysis': <The reason for choosing this parameter set>,
+    'params': {
+        'frequency': float,
+    },
+}
+If you have done 10 experiment and could not find any improvements in the recent runs,
+return the set of parameters you believe to be optimal, please set status to 'finish'.
+Otherwise keeps state to 'searching' and trying new parameters. 
+If you have encountered an error, please set status to 'error'.
+"""
+
+    @log_and_record
+    def run(
+            self,
+            duts: List[TransmonElement],
+            parameters: Dict[str, Any] = None,
+            ai_inspection: bool = False,
+            maximum_experiments: int = 20,
+    ) -> None:
+        if parameters is None:
+            parameters = {
+                'rise': 0.015,
+                'phase_diff': 0,
+            }
+
+        super().run(duts=duts, run_class=ConditionalStarkTwoQubitGateAIParameterSearchAmplitude, **parameters,
+                    ai_inspection=ai_inspection,
+                    maximum_experiments=maximum_experiments)
+
+    def _run_next_experiment(self, run_class, params):
+
+        prompt = self._background_information + self._get_device_parameters_prompts() + \
+                 self._experiment_history_to_prompt() + self._objective_prompt
+
+        self._display_experiment_history()
+
+        from mllm import Chat
+        chat = Chat(prompt,
+                    "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.")
+        res = chat.complete(parse="dict", expensive=True, cache=True, model='claude-3-opus-20240229')
+
+        self._analyze_histroy.append(res)
+
+        from leeq.utils.ai.display_chat.notebooks import dict_to_html, display_chat
+
+        html = dict_to_html(res)
+        display_chat(agent_name=f"Parameter search AI",
+                     content='<br>' + html,
+                     background_color='#f0f8ff')
+
+        if res['status'] in ['finish', 'error']:
+            return res['status']
+        else:
+            params_suggests = res['params']
+
+            updated_params = params.copy()
+            updated_params.update(params_suggests)
+
+            func = run_class.run
+
+            self._experiment_history.append(
+                run_class(duts=self.duts, ai_inspection=True, **updated_params))
+
+        return res['status']
