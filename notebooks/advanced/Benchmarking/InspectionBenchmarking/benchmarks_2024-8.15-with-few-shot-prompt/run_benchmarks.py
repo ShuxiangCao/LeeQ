@@ -52,6 +52,11 @@ def main() -> None:
 
     # Set the model and run the benchmark
     model_name_to_func[args.model]()
+
+    from mllm.config import parse_options
+    # You have to enable this option before using the `correct_json_by_model` rule
+    parse_options.correct_json_by_model = True
+
     run_benchmarks(f'./{args.model}_{args.benchmark}_{config}_cases', args.shots, benchmark_func, config)
 
 if __name__ == '__main__':
