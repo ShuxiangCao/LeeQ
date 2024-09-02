@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, Union
+cfrom typing import Optional, Dict, Any, Union
 import numpy as np
 
 from labchronicle import register_browser_function, log_and_record

@@ -85,8 +85,8 @@ def run_benchmarks(save_path_prefix, num_samples, benchmark_func, config_key, ex
                 image.save(f"./images/{save_path_prefix}_{i}_{key}_{exp_type}.png")
                 print('image saved to ' + f"{save_path_prefix}_{i}_{key.split('.')[-1]}_{exp_type}.png")
 
-            pprint(inspections[i])
-            save_results(f"{save_path_prefix}_{exp_type}.json", inspections)
+        pprint(inspections[i])
+        save_results(f"{save_path_prefix}.json", inspections)
 
 
 # Benchmark functions
