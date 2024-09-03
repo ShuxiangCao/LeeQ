@@ -1,5 +1,8 @@
 import numpy as np
 import json
+
+from mllm import display_chats
+
 import leeq
 import json
 from simulated_setup import *  # Change to your customized setup file
@@ -14,6 +17,8 @@ from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.experiments.builtin import *
 from pprint import pprint
 from simulated_setup import *
+
+enable_few_shot = True
 
 dut_dict = {
     'Q1': {'Active': True, 'Tuneup': False, 'FromLog': False, 'Params': configuration_a},
@@ -113,15 +118,17 @@ def run_benchmark_res_spec(index, config, inspections):
 
     dut = duts_dict['Q1']
 
+    inspections[index] = {}
+    exps = {}
+
     res_raw = ResonatorSweepTransmissionRaw(dut_qubit=dut, **scan_params)
-    res_image_prompt = ResonatorSweepTransmissionImageFewShot(dut_qubit=dut, **scan_params)
-
-    inspections[index] = {
-        'no_image_few_shot': extract_results_from_experiment(res_raw),
-        'image_few_shot': extract_results_from_experiment(res_image_prompt)
-    }
-
-    return {'raw': res_raw, 'image_few_shot': res_image_prompt}
+    inspections[index]['no_image_few_shot'] = extract_results_from_experiment(res_raw)
+    exps['raw'] = res_raw
+    if enable_few_shot:
+        res_image_prompt = ResonatorSweepTransmissionImageFewShot(dut_qubit=dut, **scan_params)
+        inspections[index]['image_few_shot'] = extract_results_from_experiment(res_image_prompt)
+        exps['image_few_shot'] = res_image_prompt
+    return exps
 
 
 def run_single_benchmark_gmm(index, config, inspections):
@@ -134,15 +141,18 @@ def run_single_benchmark_gmm(index, config, inspections):
 
     dut = duts_dict['Q1']
 
+    inspections[index] = {}
+    exps = {}
+
     res_raw = MeasurementCalibrationMultilevelGMMRaw(dut=dut, **scan_params)
-    res_image_prompt = MeasurementCalibrationMultilevelGMMImageFewShot(dut=dut, **scan_params)
+    inspections[index]['no_image_few_shot'] = extract_results_from_experiment(res_raw)
+    exps['raw'] = res_raw
+    if enable_few_shot:
+        res_image_prompt = MeasurementCalibrationMultilevelGMMImageFewShot(dut=dut, **scan_params)
+        inspections[index]['image_few_shot'] = extract_results_from_experiment(res_image_prompt)
+        exps['image_few_shot'] = res_image_prompt
+    return exps
 
-    inspections[index] = {
-        'no_image_few_shot': extract_results_from_experiment(res_raw),
-        'image_few_shot': extract_results_from_experiment(res_image_prompt)
-    }
-
-    return {'raw': res_raw, 'image_few_shot': res_image_prompt}
 
 
 def run_single_benchmark_rabi(index, config, inspections):
@@ -156,15 +166,16 @@ def run_single_benchmark_rabi(index, config, inspections):
     }
 
     dut = duts_dict['Q1']
-
+    inspections[index] = {}
+    exps = {}
     res_raw = NormalisedRabiDataValidityCheckRaw(dut_qubit=dut, **scan_params)
-    res_image_prompt = NormalisedRabiDataValidityCheckImageFewShot(dut_qubit=dut, **scan_params)
-
-    inspections[index] = {
-        'no_image_few_shot': extract_results_from_experiment(res_raw),
-        'image_few_shot': extract_results_from_experiment(res_image_prompt)
-    }
-    return {'raw': res_raw, 'image_few_shot': res_image_prompt}
+    inspections[index]['no_image_few_shot'] = extract_results_from_experiment(res_raw)
+    exps['raw'] = res_raw
+    if enable_few_shot:
+        res_image_prompt = NormalisedRabiDataValidityCheckImageFewShot(dut_qubit=dut, **scan_params)
+        inspections[index]['image_few_shot'] = extract_results_from_experiment(res_image_prompt)
+        exps['image_few_shot'] = res_image_prompt
+    return exps
 
 
 def run_single_benchmark_drag(index, config, inspections):
@@ -180,12 +191,14 @@ def run_single_benchmark_drag(index, config, inspections):
     }
 
     dut = duts_dict['Q1']
-
+    inspections[index] = {}
+    exps = {}
     res_raw = DragCalibrationSingleQubitMultilevelRaw(dut=dut, **scan_params)
-    res_image_prompt = DragCalibrationSingleQubitMultilevelImageFewShot(dut=dut, **scan_params)
-
-    inspections[index] = {
-        'no_image_few_shot': extract_results_from_experiment(res_raw),
-        'image_few_shot': extract_results_from_experiment(res_image_prompt)
-    }
-    return {'raw': res_raw, 'image_few_shot': res_image_prompt}
+    inspections[index]['no_image_few_shot'] = extract_results_from_experiment(res_raw)
+    exps['raw'] = res_raw
+    if enable_few_shot:
+        #with display_chats():
+        res_image_prompt = DragCalibrationSingleQubitMultilevelImageFewShot(dut=dut, **scan_params)
+        inspections[index]['image_few_shot'] = extract_results_from_experiment(res_image_prompt)
+        exps['image_few_shot'] = res_image_prompt
+    return exps

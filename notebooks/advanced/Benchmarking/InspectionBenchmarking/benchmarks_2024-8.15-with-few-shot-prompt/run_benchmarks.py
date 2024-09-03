@@ -14,11 +14,25 @@ benchmark_name_to_config: dict[str, tuple[Callable, str]] = {
     'drag': (run_single_benchmark_drag, 'success'),
 }
 
+def set_default_to_chatgpt_4o_latest() -> None:
+    """
+    Set the default model to chatgpt-4o-latest.
+    """
+    default_models["normal"] = "chatgpt-4o-latest"
+    default_models["expensive"] = "chatgpt-4o-latest"
+    default_models["vision"] = "chatgpt-4o-latest"
+    default_models["embedding"] = "text-embedding-3-large"
+def set_default_to_gemini_1_5():
+    default_models["normal"] = "gemini/gemini-1.5-pro"
+    default_models["expensive"] = "gemini/gemini-1.5-pro"
+    default_models["vision"] = "gemini/gemini-1.5-pro"
+    default_models["embedding"] = "text-embedding-3-large"
+
 # Mapping of model names to functions that set the model as default
 model_name_to_func: dict[str, Callable] = {
-    'openai': lambda: None,
+    'openai': set_default_to_chatgpt_4o_latest,
     'anthropic': set_default_to_anthropic,
-    'gemini': set_default_to_gemini,
+    'gemini': set_default_to_gemini_1_5,
     'llama': set_default_to_llama,
 }
 
