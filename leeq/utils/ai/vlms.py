@@ -1,5 +1,9 @@
+import inspect
+import os
+import re
 from functools import partial
 
+from mllm import Chat
 from plotly import graph_objects as go
 from matplotlib import pyplot as plt
 from IPython.display import display
@@ -16,6 +20,7 @@ def visual_analyze_prompt(prompt: str):
     Returns:
         Any: The return value of the function.
     """
+    calling_path = inspect.stack()[1].filename
 
     def inner_func(func):
         """
@@ -30,6 +35,7 @@ def visual_analyze_prompt(prompt: str):
             Any: The same function.
         """
         func._visual_prompt = prompt
+        func._file_path = calling_path
         func.ai_inspect = partial(_fast_visual_inspection, func)
 
         return func
@@ -67,7 +73,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 
 
-def visual_inspection(image: "Image", prompt: str, rescale=0.5, **kwargs) -> dict:
+def visual_inspection(image: "Image", prompt: str, func_file_path, rescale=0.5, **kwargs) -> dict:
     """
     Ask a question about the data shape. For example, the number of peaks, or whether the data is nearly periodic.
     The answer is either True or False.
@@ -89,21 +95,46 @@ def visual_inspection(image: "Image", prompt: str, rescale=0.5, **kwargs) -> dic
                                                            go.Figure), "The image must be a PIL image or a Matplotlib or Plotly figure."
         image = matplotlib_plotly_to_pil(image)
 
-    #original_width, original_height = image.size
-    #new_size = (int(original_width * rescale), int(original_height * rescale))
-    #image = image.resize(new_size)
-    #print("The image is shown below:")
-    #display(image)
     from mllm import Chat
-    chat = Chat(
-        system_message="You are a helpful visual assistant that able to provide analysis on images or plots. "
+    chat = prepare_visual_inspection_chat(prompt, func_file_path)
+    chat.system_message = ("You are a helpful visual assistant that able to provide analysis on images or plots. "
                        "Please return your message in a json format with keys analysis(str, single paragraph) "
                        "and 'success'(boolean)")
-    chat.add_user_message(prompt)
+    chat.add_user_message("Here is the input image:")
     chat.add_image_message(image)
     res = chat.complete(parse="dict", **kwargs)
 
     return res
+
+def prepare_visual_inspection_chat(raw_prompt, func_file_path):
+    # extract all the Image("...") or Image('...') patterns and break the raw_prompt into parts
+    # for example "123 Image("dasda") 123" should be broken into ['123 ', 'Image("dasda")', ' 123']
+    func_dir = os.path.dirname(func_file_path)
+    image_pattern = re.compile(r'Image\(["\'].*?["\']\)')
+    image_matches = image_pattern.findall(raw_prompt)
+    parts = image_pattern.split(raw_prompt)
+    path_pattern = re.compile(r'Image\(["\'](.*?)["\']\)')
+
+    merged_parts = []
+    for part, image_match in zip(parts, image_matches):
+        merged_parts.append(part)
+        #
+        path = path_pattern.search(image_match).group(1)
+        merged_parts.append({"src": os.path.join(func_dir, path), "type": "image"})
+    if len(parts) > len(image_matches):
+        merged_parts.append(parts[-1])
+
+    chat = Chat()
+    for part in merged_parts:
+        if isinstance(part, str):
+            trimmed = part.strip()
+            if len(trimmed) > 0:
+                chat.add_user_message(trimmed)
+        else:
+            chat.add_image_message(part["src"])
+
+    return chat
+
 
 def _fast_visual_inspection(func, image=None, prompt=None, func_kwargs=None, llm_kwargs=None):
     """
@@ -137,7 +168,7 @@ def _fast_visual_inspection(func, image=None, prompt=None, func_kwargs=None, llm
             image = func(**func_kwargs)
             func.__dict__['_image'] = image
 
-    res = visual_inspection(image, prompt, **llm_kwargs)
+    res = visual_inspection(image, prompt, func._file_path, **llm_kwargs)
 
     func.__dict__['_ai_inspect_result'] = res
 
