@@ -260,12 +260,10 @@ a new sweeping range and step size.
 
     @register_browser_function()
     @visual_analyze_prompt("""
-    Analyze a new resonator spectroscopy magnitude plot to determine if it shows evidence of a resonator. Focus on:
-    1. Sharp dips or peaks at specific frequencies
-    2. Signal stability
-    3. Noise levels
-    4. Behavior around suspected resonant frequencies
-    Provide a detailed analysis of the magnitude and frequency data. Identifying a resonator indicates a successful experiment.
+Analyze the resonator spectroscopy magnitude plot to determine if it exhibits characteristics indicative of a resonator. 
+Specifically, look for a sharp dip or peak in the plot, which would signal the presence of a resonator. 
+The rest of the plot should remain relatively stable, without significant fluctuations.
+Provide a detailed analysis of the magnitude and frequency data. Identifying a resonator indicates a successful experiment.
     """)
     def plot_magnitude(self):
         args = self.retrieve_args(self.run)
@@ -297,11 +295,9 @@ class ResonatorSweepTransmissionImageFewShot(ResonatorSweepTransmissionRaw):
 
     @register_browser_function()
     @visual_analyze_prompt("""
-Analyze a new resonator spectroscopy magnitude plot to determine if it shows evidence of a resonator. Focus on:
-1. Sharp dips or peaks at specific frequencies
-2. Signal stability
-3. Noise levels
-4. Behavior around suspected resonant frequencies
+Analyze the resonator spectroscopy magnitude plot to determine if it exhibits characteristics indicative of a resonator. 
+Specifically, look for a sharp dip or peak in the plot, which would signal the presence of a resonator. 
+The rest of the plot should remain relatively stable, without significant fluctuations.
 Provide a detailed analysis of the magnitude and frequency data. Identifying a resonator indicates a successful experiment.
 For example, the following Image is a successful experiment plot:
 Image("image_refs/resonator_spec_success_ResonatorSweepTransmissionWithExtraInitialLPB.plot_magnitude.png")
