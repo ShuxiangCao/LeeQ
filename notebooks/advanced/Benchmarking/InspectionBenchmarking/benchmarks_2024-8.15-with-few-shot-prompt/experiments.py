@@ -32,8 +32,7 @@ class NormalisedRabiDataValidityCheckRaw(NormalisedRabi):
 
     @register_browser_function()
     @visual_analyze_prompt("""
-    Analyze this quantum mechanics Rabi oscillation experiment plot in the Fourier frequency domain. Determine if it shows 
-    a successful or failed experiment by evaluating if there is a significant peak in the figure.
+    Analyze this quantum mechanics Rabi oscillation experiment plot in the Fourier frequency domain. A successful experiment should have a significant peak in the figure.
     """)
     def plot_fft(self) -> go.Figure:
         """
@@ -184,8 +183,8 @@ class NormalisedRabiDataValidityCheckRaw(NormalisedRabi):
 class NormalisedRabiDataValidityCheckImageFewShot(NormalisedRabiDataValidityCheckRaw):
     @register_browser_function()
     @visual_analyze_prompt("""
-    Analyze this quantum mechanics Rabi oscillation experiment plot in the Fourier frequency domain. Determine if it shows a successful or failed experiment by evaluating:
-    If there is a significant peak in the figure.
+    Analyze this quantum mechanics Rabi oscillation experiment plot in the Fourier frequency domain. A successful experiment should have a significant peak in the figure.
+    
     For example, the following Image is a successful Rabi oscillation experiment plot:
     Image("image_refs/rabi_success_NormalisedRabiDataValidityCheck.plot_fft.png")
     the following Image is a failure case for the Rabi experiment:
