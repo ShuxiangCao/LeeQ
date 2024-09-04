@@ -377,6 +377,7 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
 
             # Update alpha estimate based on the inverse of the obtained value
             # from the experiment.
+            allxy.linear_fit()
             alpha_0 = allxy.optimum
 
             print('Guessed alpha:', alpha_0)

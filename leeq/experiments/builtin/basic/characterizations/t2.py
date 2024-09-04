@@ -92,7 +92,7 @@ class SpinEchoMultiLevel(
                 shot_number, data) / shot_number
 
         quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
-        standard_deviation = np.sum(quiescent_state_distribution[1:])/5
+        standard_deviation = np.sum(quiescent_state_distribution[1:]) / 5
 
         random_noise_factor = 1 + np.random.normal(
             0, standard_deviation, data.shape)
@@ -102,7 +102,7 @@ class SpinEchoMultiLevel(
     @log_and_record
     def run(
             self,
-            qubit: Any,  # Replace 'Any' with the actual type of qubit
+            dut: Any,  # Replace 'Any' with the actual type of qubit
             collection_name: str = 'f01',
             mprim_index: int = 0,
             free_evolution_time: float = 100.0,
@@ -111,7 +111,12 @@ class SpinEchoMultiLevel(
             initial_lpb: Optional[Any] = None,
     ) -> None:
         """
-        Run the SimpleSpinEchoMultiLevel experiment for measuring the T2 echo coherence metric.
+        Run the SimpleSpinEchoMultiLevel experiment for measuring the T2 echo coherence value.
+
+        This experiment is implemented in the following way. A pi/2 pulse is applied to the qubit, followed by a delay
+        of free_evolution_time/2. Then a pi pulse is applied, followed by another delay of free_evolution_time/2. Finally,
+        a measurement primitive is applied to the qubit. The experiment is repeated for different values of the delay time
+        to obtain the T2 echo relaxation time.
 
         Parameters
         ----------
@@ -129,6 +134,13 @@ class SpinEchoMultiLevel(
             Start time of the sweep, by default 0.0.
         initial_lpb : Any, optional
             The initial local pulse builder, by default None.
+
+        Example:
+        --------
+        >>> # Assume 'dut' is the qubit object
+        >>> experiment = SpinEchoMultiLevel(
+        >>>     dut=dut, collection_name='f01', mprim_index=0, free_evolution_time=100.0, time_resolution=2.0, start=0.0
+        >>> )
         """
 
         c1 = qubit.get_c1(collection_name)

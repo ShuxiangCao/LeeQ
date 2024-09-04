@@ -1,6 +1,7 @@
 import datetime
 from typing import Union
 from functools import wraps
+import mllm
 
 from IPython.display import display
 import inspect
@@ -159,9 +160,12 @@ class LeeQExperiment(LeeQObject):
         self._browser_function_results = {}
         self._browser_function_images = {}
 
+        # self._llm_logger = mllm.chat.ChatLogger(show_table=False)
+        # self._llm_logger.__enter__()
+
         try:
             # Run the experiment
-            if setup().status().get_parameters("High_Level_Simulation_Mode") :
+            if setup().status().get_parameters("High_Level_Simulation_Mode"):
                 self.run_simulated(*bound.args, **bound.kwargs)
             else:
                 self.run(*bound.args, **bound.kwargs)
@@ -186,6 +190,7 @@ class LeeQExperiment(LeeQObject):
                     logger.warning(msg)
 
         self._post_run()
+        # self._llm_logger.__exit__(None, None, None)
 
     def _post_run(self):
         """
@@ -346,7 +351,7 @@ class LeeQAIExperiment(LeeQExperiment):
         """
         ai_inspection_results = {}
 
-        assert inspection_method in ['full', 'visual_only', 'fitting_only'],\
+        assert inspection_method in ['full', 'visual_only', 'fitting_only'], \
             f"inspection_method must be 'full', 'visual_only' or 'fitting_only', got {inspection_method}"
 
         if inspection_method != 'fitting_only':

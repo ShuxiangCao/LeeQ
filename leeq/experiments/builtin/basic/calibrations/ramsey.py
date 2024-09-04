@@ -35,7 +35,7 @@ class SimpleRamseyMultilevel(Experiment):
 
     @log_and_record
     def run(self,
-            qubit: Any,  # Replace 'Any' with the actual type of qubit
+            dut: 'TransmonElement',
             collection_name: str = 'f01',
             mprim_index: int = 0,
             # Replace 'Any' with the actual type
@@ -49,7 +49,7 @@ class SimpleRamseyMultilevel(Experiment):
         Ramsey experiment for estimating the qubit frequency or T2 ramsey.
 
         Parameters:
-            qubit: The qubit on which the experiment is performed.
+            dut: The qubit on which the experiment is performed.
             collection_name: The name of the frequency collection (e.g., 'f01').
             mprim_index: The index of the measurement primitive.
             initial_lpb: Initial set of commands, if any.
@@ -70,7 +70,7 @@ class SimpleRamseyMultilevel(Experiment):
         end_level = int(collection_name[2])
         self.level_diff = end_level - start_level
 
-        c1q = qubit.get_c1(collection_name)  # Retrieve the gate collection object
+        c1q = dut.get_c1(collection_name)  # Retrieve the gate collection object
         # Save original frequency
         original_freq = c1q['Xp'].freq
         self.original_freq = original_freq
@@ -97,7 +97,7 @@ class SimpleRamseyMultilevel(Experiment):
                     'delay_time')])
 
         # Get the measurement primitive
-        mprim = qubit.get_measurement_prim_intlist(mprim_index)
+        mprim = dut.get_measurement_prim_intlist(mprim_index)
         self.mp = mprim
 
         # Construct the logic primitive block
@@ -121,7 +121,7 @@ class SimpleRamseyMultilevel(Experiment):
 
     @log_and_record(overwrite_func_name='SimpleRamseyMultilevel.run')
     def run_simulated(self,
-                      qubit: Any,  # Replace 'Any' with the actual type of qubit
+                      dut: 'TransmonElement',
                       collection_name: str = 'f01',
                       mprim_index: int = 0,
                       # Replace 'Any' with the actual type
@@ -135,7 +135,7 @@ class SimpleRamseyMultilevel(Experiment):
         Run the Ramsey experiment.
 
         Parameters:
-            qubit: The qubit on which the experiment is performed.
+            dut: The qubit on which the experiment is performed.
             collection_name: The name of the frequency collection (e.g., 'f01').
             mprim_index: The index of the measurement primitive.
             initial_lpb: Initial set of commands, if any.
@@ -150,9 +150,9 @@ class SimpleRamseyMultilevel(Experiment):
         """
 
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
-        virtual_transmon = simulator_setup.get_virtual_qubit(qubit)
+        virtual_transmon = simulator_setup.get_virtual_qubit(dut)
 
-        c1 = qubit.get_c1(collection_name)
+        c1 = dut.get_c1(collection_name)
 
         f_q = virtual_transmon.qubit_frequency
         f_d = c1['X'].freq
@@ -178,7 +178,7 @@ class SimpleRamseyMultilevel(Experiment):
         decay_rate = 1 / t1
 
         # If the offset is too large, we will not be able to excite the qubit so we check it here
-        c1 = qubit.get_c1(collection_name)
+        c1 = dut.get_c1(collection_name)
         amp = c1.get_parameters()['amp']
 
         # hard code a virtual dut here
@@ -253,7 +253,7 @@ class SimpleRamseyMultilevel(Experiment):
                 mode='lines+markers',
                 name='data'))
         fig.update_layout(
-            title=f"Ramsey {args['qubit'].hrid} transition {args['collection_name']}",
+            title=f"Ramsey {args['dut'].hrid} transition {args['collection_name']}",
             xaxis_title="Time (us)",
             yaxis_title="<z>",
             legend_title="Legend",
@@ -299,9 +299,9 @@ class SimpleRamseyMultilevel(Experiment):
         """
         args = copy.copy(self.retrieve_args(self.run))
         del args['initial_lpb']
-        args['drive_freq'] = args['qubit'].get_c1(
+        args['drive_freq'] = args['dut'].get_c1(
             args['collection_name'])['X'].freq
-        args['qubit'] = args['qubit'].hrid
+        args['dut'] = args['dut'].hrid
         return self.frequency_guess, self.error_bar, self.trace, args, datetime.datetime.now()
 
     @register_browser_function(available_after=('run',))
@@ -367,7 +367,7 @@ class SimpleRamseyMultilevel(Experiment):
                 col=1)
 
             # Set plot layout details
-            title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
+            title_text = f"Ramsey decay {args['dut'].hrid} transition {args['collection_name']}: <br>" \
                          f"{self.fit_params['Decay']} us"
             fig.update_layout(
                 title_text=title_text,
@@ -377,7 +377,7 @@ class SimpleRamseyMultilevel(Experiment):
 
         else:
             # Set plot layout details
-            title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
+            title_text = f"Ramsey decay {args['dut'].hrid} transition {args['collection_name']}: <br>" \
                          f"Fit failed"
             fig.update_layout(title_text=title_text,
                               xaxis_title=f"Time (us)",

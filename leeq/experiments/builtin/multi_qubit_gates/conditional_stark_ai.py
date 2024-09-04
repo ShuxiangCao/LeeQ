@@ -62,22 +62,22 @@ class ConditionalStarkShiftContinuousPhaseSweep(Experiment):
             Can you inspect the figure, analyze the oscillations, and conclude whether the experiment is valid based on the
             presence of sinusoidal oscillations?
             """
-
-    _experiment_result_analysis_instructions = """
-        This experiment is a Conditional Stark Tune-Up Rabi XY experiment for calibrating the IZ and ZZ interactions between two qubits under microwave drives.
-        Please check the results of the visual inspection of the plots and the fitting results. 
-
-        For visual inspection, if any of the plot does not show a clear sinusoidal oscillatory pattern, the experiment is considered failed.
-
-        For the fitting results, check if all the fitting parameters are physical and plausible. Then look at the sampled points 
-        per period. If it is smaller than 6 then the experiment needs to increase the sweep point and the experiment is considered failed. Estimate how much 
-        you need to increase the sweep points to get approximately 8 points per period. Note that the maximum total sweep point should be 100.
-
-        For the fitting results, if the number of periods is less than 2, the experiment is considered failed. Estimate how much you need to increase the stop time
-        to obtain about 3 periods.
-
-        If the above check passes, the experiment is considered successful.
-    """
+    #
+    # _experiment_result_analysis_instructions = """
+    #     This experiment is a Conditional Stark Tune-Up Rabi XY experiment for calibrating the IZ and ZZ interactions between two qubits under microwave drives.
+    #     Please check the results of the visual inspection of the plots and the fitting results.
+    #
+    #     For visual inspection, if any of the plot does not show a clear sinusoidal oscillatory pattern, the experiment is considered failed.
+    #
+    #     For the fitting results, check if all the fitting parameters are physical and plausible. Then look at the sampled points
+    #     per period. If it is smaller than 6 then the experiment needs to increase the sweep point and the experiment is considered failed. Estimate how much
+    #     you need to increase the sweep points to get approximately 8 points per period. Note that the maximum total sweep point should be 100.
+    #
+    #     For the fitting results, if the number of periods is less than 2, the experiment is considered failed. Estimate how much you need to increase the stop time
+    #     to obtain about 3 periods.
+    #
+    #     If the above check passes, the experiment is considered successful.
+    # """
 
     @log_and_record
     def run(
@@ -1406,6 +1406,9 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
                 t_start=t_start, t_stop=t_stop, sweep_points=sweep_points
             )
         except Exception as e:
+            self._xy_hamiltonian_tomography_inspection_results = {'success': False,
+                                                                  'analysis': f'Exception occurred: {e}'
+                                                                  }
             self._repeated_gate_inspection_results = {'success': False,
                                                       'analysis': f'Exception occurred: {e}'
                                                       }
@@ -1951,7 +1954,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
         from mllm import Chat
         chat = Chat(prompt,
                     "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.")
-        res = chat.complete(parse="dict", expensive=True, cache=True, model='claude-3-opus-20240229')
+        res = chat.complete(parse="dict", expensive=True, cache=True)
         # , model = 'claude-3-opus-20240229'
 
         self._analyze_histroy.append(res)
@@ -1997,6 +2000,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
             run_class: Type[Experiment],
             ai_inspection: bool = False,
             maximum_experiments: int = 20,
+            filter_parameters: bool = True,
             **kwargs
     ) -> None:
         self._experiment_history = []
@@ -2004,7 +2008,8 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
         self.duts = duts
 
         for i in range(maximum_experiments):
-            if self._run_next_experiment(run_class=run_class, params=kwargs) in ['finish', 'error']:
+            if self._run_next_experiment(run_class=run_class, params=kwargs, filter_parameters=filter_parameters) in [
+                'finish', 'error']:
                 break
 
     def _get_device_parameters_prompts(self):
@@ -2060,7 +2065,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
                      content='<br>' + html,
                      background_color='#f0f8ff')
 
-    def _run_next_experiment(self, run_class, params):
+    def _run_next_experiment(self, run_class, params, filter_parameters=True):
 
         prompt = self._background_information + self._get_device_parameters_prompts() + \
                  self._experiment_history_to_prompt() + self._objective_prompt
@@ -2071,9 +2076,8 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
         from mllm import Chat
         chat = Chat(prompt,
                     "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.")
-        res = chat.complete(parse="dict", expensive=True, cache=True, model='claude-3-opus-20240229')
+        res = chat.complete(parse="dict", expensive=True, cache=True)
         # , model = 'claude-3-opus-20240229'
-        self._analyze_histroy.append(res)
 
         from leeq.utils.ai.display_chat.notebooks import dict_to_html, display_chat
 
@@ -2082,33 +2086,37 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
                      content='<br>' + html,
                      background_color='#f0f8ff')
 
-        if res['status'] in ['finish', 'error']:
-            return res['status']
-        else:
+        if res['status'] not in ['finish', 'error']:
             params_suggests = res['params']
 
             updated_params = params.copy()
             updated_params.update(params_suggests)
 
-            func = run_class.run
-            # For compatibility, select the argument that the function
-            # accepts with inspect
-            sig = inspect.signature(func)
+            res['params'] = updated_params
 
-            # Extract the parameter names that the function accepts
-            valid_parameter_names = set(sig.parameters.keys())
+            if filter_parameters:
+                func = run_class.run
+                # For compatibility, select the argument that the function
+                # accepts with inspect
+                sig = inspect.signature(func)
 
-            # Filter the kwargs
-            filtered_kwargs = {
-                k: v for k, v in updated_params.items() if k in valid_parameter_names}
+                # Extract the parameter names that the function accepts
+                valid_parameter_names = set(sig.parameters.keys())
+
+                # Filter the kwargs
+                filtered_kwargs = {
+                    k: v for k, v in updated_params.items() if k in valid_parameter_names}
+                updated_params = filtered_kwargs
 
             self._experiment_history.append(
-                run_class(duts=self.duts, ai_inspection=True, **filtered_kwargs))
+                run_class(duts=self.duts, ai_inspection=True, **updated_params))
 
+        self._analyze_histroy.append(res)
         return res['status']
 
     def get_analyzed_result_prompt(self) -> Union[str, None]:
-        return self._analyze_histroy[-1]['analysis']
+        # return self._analyze_histroy[-1]['analysis']
+        return self._experiment_history_to_prompt()
 
 
 class ConditionalStarkTwoQubitGateAIParameterSearchAmplitude(ConditionalStarkTwoQubitGateAIParameterSearchBase):
@@ -2119,8 +2127,21 @@ class ConditionalStarkTwoQubitGateAIParameterSearchAmplitude(ConditionalStarkTwo
     
     <Success example>
     The experiment search at frequency <frequency value> is valid and the amplitude <amplitude value> is the highest amplitude we have chosen to be success.
-    The best parameter set results in a pulse width of <width>. 
     <amplitude value> is the lowest amplitude we find the experiment to fail. 
+    The best calibrated parameters which gives the minimum width are <parameters>.
+    
+     {
+     "iz_control": <iz_control:float>,
+     "iz_target": <iz_target:float>,
+     "frequency": <frequency:float>,
+     "amp_control": <amp_control:float>,
+     "amp_target": <amp_target:float>,
+     "rise": <rise:float>,
+     "width": <width:float>,
+     "phase_diff": <phase_diff:float>,
+     "zz_interaction_positive": <zz_interaction_positive:bool>,
+     "echo": <echo:bool>
+     }
     </Success example>
     
     <Failure example>
@@ -2205,6 +2226,27 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFrequencyAmplitude(
     The frequency search experiment for conditional stark gate has been completed. Please read the following report to analyze the
     if this is a successful experiment. Make the analysis concise and clear in one short sentence describing the reason. 
     Also include the maximum amplitude value you could choose without causing the experiment to fail, based on the experiment history.
+    
+    <Success example>
+    <Summary of the search>
+    The best calibrated parameter set which gives the minimum width is:
+     {
+     "iz_control": <iz_control:float>,
+     "iz_target": <iz_target:float>,
+     "frequency": <frequency:float>,
+     "amp_control": <amp_control:float>,
+     "amp_target": <amp_target:float>,
+     "rise": <rise:float>,
+     "width": <width:float>,
+     "phase_diff": <phase_diff:float>,
+     "zz_interaction_positive": <zz_interaction_positive:bool>,
+     "echo": <echo:bool>
+     }
+    </Success example>
+    
+    <Failure example>
+    The experiment searches are all invalid and we have not observed any successful experiment.
+    </Failure example>
     """
 
     _background_information = """
@@ -2265,40 +2307,4 @@ If you have encountered an error, please set status to 'error'.
 
         super().run(duts=duts, run_class=ConditionalStarkTwoQubitGateAIParameterSearchAmplitude, **parameters,
                     ai_inspection=ai_inspection,
-                    maximum_experiments=maximum_experiments)
-
-    def _run_next_experiment(self, run_class, params):
-
-        prompt = self._background_information + self._get_device_parameters_prompts() + \
-                 self._experiment_history_to_prompt() + self._objective_prompt
-
-        self._display_experiment_history()
-
-        from mllm import Chat
-        chat = Chat(prompt,
-                    "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.")
-        res = chat.complete(parse="dict", expensive=True, cache=True, model='claude-3-opus-20240229')
-
-        self._analyze_histroy.append(res)
-
-        from leeq.utils.ai.display_chat.notebooks import dict_to_html, display_chat
-
-        html = dict_to_html(res)
-        display_chat(agent_name=f"Parameter search AI",
-                     content='<br>' + html,
-                     background_color='#f0f8ff')
-
-        if res['status'] in ['finish', 'error']:
-            return res['status']
-        else:
-            params_suggests = res['params']
-
-            updated_params = params.copy()
-            updated_params.update(params_suggests)
-
-            func = run_class.run
-
-            self._experiment_history.append(
-                run_class(duts=self.duts, ai_inspection=True, **updated_params))
-
-        return res['status']
+                    maximum_experiments=maximum_experiments, filter_parameters=False)
