@@ -1,4 +1,5 @@
 import json
+import pprint
 from typing import Any
 
 
@@ -16,7 +17,7 @@ def get_experiment_summary(description: str, run_parameters: dict[str, Any], res
     parameter updates.
     
     <Run parameters>
-    {json.dumps(run_parameters)}
+    {pprint.pformat(run_parameters)}
     </Run parameters>
     
     <Experiment description> 

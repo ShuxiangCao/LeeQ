@@ -23,7 +23,7 @@ __all__ = [
 class SpinEchoMultiLevel(
     Experiment):  # Class names should follow the CapWords convention
     """
-    A class used to represent the SimpleSpinEchoMultiLevel experiment.
+    A class used to represent the SpinEchoMultiLevel experiment.
 
     Methods
     -------
@@ -53,7 +53,7 @@ class SpinEchoMultiLevel(
             initial_lpb: Optional[Any] = None,
     ) -> None:
         """
-        Run the SimpleSpinEchoMultiLevel experiment for measuring the T2 echo coherence metric.
+        Run the SpinEchoMultiLevel experiment for measuring the T2 echo coherence metric.
 
         Parameters
         ----------
@@ -143,6 +143,7 @@ class SpinEchoMultiLevel(
         >>> )
         """
 
+        qubit = dut
         c1 = qubit.get_c1(collection_name)
         mp = qubit.get_measurement_prim_intlist(mprim_index)
         delay = prims.Delay(0)
@@ -268,7 +269,7 @@ class SpinEchoMultiLevel(
 class MultiQubitSpinEchoMultiLevel(
     Experiment):  # Class names should follow the CapWords convention
     """
-    A class used to represent the SimpleSpinEchoMultiLevel experiment.
+    A class used to represent the SpinEchoMultiLevel experiment.
 
     Methods
     -------
@@ -291,7 +292,7 @@ class MultiQubitSpinEchoMultiLevel(
             initial_lpb: Optional['LogicalPrimitiveBlock'] = None,
     ) -> None:
         """
-        Run the SimpleSpinEchoMultiLevel experiment.
+        Run the SpinEchoMultiLevel experiment.
 
         Parameters
         ----------

@@ -304,7 +304,7 @@ class LeeQAIExperiment(LeeQExperiment):
 
                 spinner_id = show_spinner(f"Vision AI is inspecting the plots...")
                 prompt = get_visual_analyze_prompt(func)
-                inspect_answer = visual_inspection(image, prompt)
+                inspect_answer = visual_inspection(image, prompt, func._file_path)
                 self._ai_inspection_results[func.__qualname__] = inspect_answer
                 hide_spinner(spinner_id)
                 return inspect_answer

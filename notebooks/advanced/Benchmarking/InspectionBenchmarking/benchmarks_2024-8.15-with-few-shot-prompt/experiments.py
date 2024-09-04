@@ -32,8 +32,7 @@ class NormalisedRabiDataValidityCheckRaw(NormalisedRabi):
 
     @register_browser_function()
     @visual_analyze_prompt("""
-Analyze this quantum mechanics Rabi oscillation experiment plot in the Fourier frequency domain. Determine if it shows 
-a successful or failed experiment by evaluating if there is a significant peak in the figure.
+    Analyze this quantum mechanics Rabi oscillation experiment plot in the Fourier frequency domain. A successful experiment should have a significant peak in the figure.
     """)
     def plot_fft(self) -> go.Figure:
         """
@@ -85,12 +84,13 @@ a successful or failed experiment by evaluating if there is a significant peak i
         return fig
 
     @visual_analyze_prompt("""
-Analyze this quantum mechanics Rabi oscillation experiment plot. Determine if it shows a successful or failed experiment by evaluating:
-    1. Oscillation behaviour in the figure. It may not be perfect, but it needs to be distinguished from random noise data. 
-    2. Amplitude and frequency consistency. inconsistent oscillation is considered a failure.
-For example, the following Image is a successful Rabi oscillation experiment plot:
-Image("openai_rabi_success_cases_0_NormalisedRabiDataValidityCheck.plot.png")
-the following Image is a failure case for the Rabi experiment: Image("openai_rabi_failure_cases_0_NormalisedRabiDataValidityCheck.plot.png")
+    Analyze this quantum mechanics Rabi oscillation experiment plot. Determine if it shows a successful or failed experiment by evaluating:
+        1. Oscillation behaviour in the figure. It may not be perfect, but it needs to be distinguished from random noise data. 
+        2. Amplitude and frequency consistency. inconsistent oscillation is considered a failure.
+    For example, the following Image is a successful Rabi oscillation experiment plot:
+    Image("openai_rabi_success_cases_0_NormalisedRabiDataValidityCheck.plot.png")
+    the following Image is a failure case for the Rabi experiment: 
+    Image("openai_rabi_failure_cases_0_NormalisedRabiDataValidityCheck.plot.png")
     """)
     def plot(self) -> go.Figure:
         """
@@ -183,12 +183,12 @@ the following Image is a failure case for the Rabi experiment: Image("openai_rab
 class NormalisedRabiDataValidityCheckImageFewShot(NormalisedRabiDataValidityCheckRaw):
     @register_browser_function()
     @visual_analyze_prompt("""
-Analyze this quantum mechanics Rabi oscillation experiment plot in the Fourier frequency domain. Determine if it shows a successful or failed experiment by evaluating:
-If there is a significant peak in the figure.
-For example, the following Image is a successful Rabi oscillation experiment plot:
-Image("image_refs/rabi_success_NormalisedRabiDataValidityCheck.plot_fft.png")
-the following Image is a failure case for the Rabi experiment:
-Image("image_refs/rabi_failure_NormalisedRabiDataValidityCheck.plot_fft.png")
+    Analyze this quantum mechanics Rabi oscillation experiment plot in the Fourier frequency domain. A successful experiment should have a significant peak in the figure.
+    
+    For example, the following Image is a successful Rabi oscillation experiment plot:
+    Image("image_refs/rabi_success_NormalisedRabiDataValidityCheck.plot_fft.png")
+    the following Image is a failure case for the Rabi experiment:
+    Image("image_refs/rabi_failure_NormalisedRabiDataValidityCheck.plot_fft.png")
     """)
     def plot_fft(self) -> go.Figure:
         """
@@ -256,15 +256,13 @@ Inspect the plot to detect the resonator's presence. If present:
 4. If there are reports from the inspection of the plot and it indicate there is no resonator, believe it and drop the fitting results.
 The experiment is considered successful if a resonator is detected. Otherwise, it is considered unsuccessful and suggest
 a new sweeping range and step size.
-    """
+"""
 
     @register_browser_function()
     @visual_analyze_prompt("""
-Analyze a new resonator spectroscopy magnitude plot to determine if it shows evidence of a resonator. Focus on:
-1. Sharp dips or peaks at specific frequencies
-2. Signal stability
-3. Noise levels
-4. Behavior around suspected resonant frequencies
+Analyze the resonator spectroscopy magnitude plot to determine if it exhibits characteristics indicative of a resonator. 
+Specifically, look for a sharp dip or peak in the plot, which would signal the presence of a resonator. 
+The rest of the plot should remain relatively stable, without significant fluctuations.
 Provide a detailed analysis of the magnitude and frequency data. Identifying a resonator indicates a successful experiment.
     """)
     def plot_magnitude(self):
@@ -297,17 +295,15 @@ class ResonatorSweepTransmissionImageFewShot(ResonatorSweepTransmissionRaw):
 
     @register_browser_function()
     @visual_analyze_prompt("""
-Analyze a new resonator spectroscopy magnitude plot to determine if it shows evidence of a resonator. Focus on:
-1. Sharp dips or peaks at specific frequencies
-2. Signal stability
-3. Noise levels
-4. Behavior around suspected resonant frequencies
+Analyze the resonator spectroscopy magnitude plot to determine if it exhibits characteristics indicative of a resonator. 
+Specifically, look for a sharp dip or peak in the plot, which would signal the presence of a resonator. 
+The rest of the plot should remain relatively stable, without significant fluctuations.
 Provide a detailed analysis of the magnitude and frequency data. Identifying a resonator indicates a successful experiment.
 For example, the following Image is a successful experiment plot:
 Image("image_refs/resonator_spec_success_ResonatorSweepTransmissionWithExtraInitialLPB.plot_magnitude.png")
 the following Image is a failure case for the experiment: 
 Image("image_refs/resonator_spec_failure_ResonatorSweepTransmissionWithExtraInitialLPB.plot_magnitude.png")
-    """)
+""")
     def plot_magnitude(self):
         args = self.retrieve_args(self.run)
         f = np.arange(args["start"], args["stop"], args["step"])
@@ -351,7 +347,7 @@ class MeasurementCalibrationMultilevelGMMImageFewShot(MeasurementCalibrationMult
         Image("image_refs/gmm_success_MeasurementCalibrationMultilevelGMM.plot_hexbin.png")
         the following Image is a failure case for the experiment: 
         Image("image_refs/gmm_failure_MeasurementCalibrationMultilevelGMM.plot_hexbin.png")
-           """)
+        """)
     def plot_hexbin(self, result_data=None) -> 'matplotlib.figure.Figure':
         """
         Plot the IQ data with the fitted Gaussian Mixture Model using hexbin.
@@ -396,7 +392,8 @@ class DragCalibrationSingleQubitMultilevelRaw(DragCalibrationSingleQubitMultilev
 class DragCalibrationSingleQubitMultilevelImageFewShot(DragCalibrationSingleQubitMultilevelRaw):
     @register_browser_function()
     @visual_analyze_prompt(
-        """Analyze the scatter plot with blue and red data points and trend lines:
+        """
+        Analyze the scatter plot with blue and red data points and trend lines:
             1.Compare the slopes of the trend lines.
             2.Assess how well data points fit their trend lines, noting outliers or patterns.
             3.Evaluate data point distribution along the DRAG coefficient axis.
