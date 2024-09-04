@@ -150,7 +150,7 @@ def add_leeq_exp_to_ltm(lt_memory: LongTermMemory, var_table: VariableTable, exp
     var_table.add_variable(exp_cls.__name__, exp_cls, exp_cls.__name__)
 
 
-def build_leeq_code_ltm() -> Tuple[LongTermMemory, VariableTable]:
+def build_leeq_code_ltm(add_document_procedures=True) -> Tuple[LongTermMemory, VariableTable]:
     """
     Build the idea base for leeq. It scans built-in experiments and creates ideas for them.
 
@@ -193,5 +193,6 @@ def build_leeq_code_ltm() -> Tuple[LongTermMemory, VariableTable]:
     from leeq import experiments as exp
     from leeq.utils.ai.procedure_indexer import extract_procedures_to_lt_memory
     root = os.path.dirname(exp.__file__)
-    extract_procedures_to_lt_memory(root + "/procedures/calibration.md", lt_memory)
+    if add_document_procedures:
+        extract_procedures_to_lt_memory(root + "/procedures/calibration.md", lt_memory)
     return lt_memory, var_table

@@ -23,7 +23,7 @@ __all__ = [
 class SpinEchoMultiLevel(
     Experiment):  # Class names should follow the CapWords convention
     """
-    A class used to represent the SimpleSpinEchoMultiLevel experiment.
+    A class used to represent the SpinEchoMultiLevel experiment.
 
     Methods
     -------
@@ -53,7 +53,7 @@ class SpinEchoMultiLevel(
             initial_lpb: Optional[Any] = None,
     ) -> None:
         """
-        Run the SimpleSpinEchoMultiLevel experiment for measuring the T2 echo coherence metric.
+        Run the SpinEchoMultiLevel experiment for measuring the T2 echo coherence metric.
 
         Parameters
         ----------
@@ -102,7 +102,7 @@ class SpinEchoMultiLevel(
     @log_and_record
     def run(
             self,
-            qubit: Any,  # Replace 'Any' with the actual type of qubit
+            qubit,
             collection_name: str = 'f01',
             mprim_index: int = 0,
             free_evolution_time: float = 100.0,
@@ -111,7 +111,8 @@ class SpinEchoMultiLevel(
             initial_lpb: Optional[Any] = None,
     ) -> None:
         """
-        Run the SimpleSpinEchoMultiLevel experiment for measuring the T2 echo coherence metric.
+        Run the SpinEchoMultiLevel experiment for measuring the T2 echo coherence metric.
+        This experiment gives the T2 dephasing time of the qubit.
 
         Parameters
         ----------
@@ -256,7 +257,7 @@ class SpinEchoMultiLevel(
 class MultiQubitSpinEchoMultiLevel(
     Experiment):  # Class names should follow the CapWords convention
     """
-    A class used to represent the SimpleSpinEchoMultiLevel experiment.
+    A class used to represent the SpinEchoMultiLevel experiment.
 
     Methods
     -------
@@ -279,7 +280,7 @@ class MultiQubitSpinEchoMultiLevel(
             initial_lpb: Optional['LogicalPrimitiveBlock'] = None,
     ) -> None:
         """
-        Run the SimpleSpinEchoMultiLevel experiment.
+        Run the SpinEchoMultiLevel experiment.
 
         Parameters
         ----------
