@@ -95,12 +95,45 @@ class MultiQubitsStateTomography(GeneralisedStateTomography, QubitTomographyBase
 
 
 class MultiQubitsProcessTomography(GeneralisedProcessTomography, QubitTomographyBase):
+    _experiment_result_analysis_instructions = """
+    The result of the experiment is the Pauli transfer matrix of the quantum process. Check if the density matrix has been reported by data analysis.
+    """
+
     @log_and_record
     def run(self, duts, lpb, mprim_index=0, extra_measurement_duts=None, measurement_mitigation=None):
         """
         Experiment for multi-qubit process tomography.
+
+        Parameters
+        ----------
+        duts : List[Any]
+            List of DUTs (qubits) to be characterized.
+        lpb : LogicalPrimitiveBlock
+            Logical primitive block representing the quantum process.
+        mprim_index : int
+            Measurement primitive index. For qubit, default is 0.
+        extra_measurement_duts : List[Any]
+            List of DUTs to be used for extra measurements.
+        measurement_mitigation : Union[None, 'CalibrateFullAssignmentMatrices', bool]
+            Measurement mitigation. If True, use the default calibration. If None, no calibration. If an instance of
+            CalibrateFullAssignmentMatrices, use the instance for calibration.
+
+        Example:
+        --------
+        >>> # Run two-qubit process tomography of a CNOT gate.
+        >>> # Assume the initialized qubits are dut_q1 and dut_q2.
+        >>> lpb = c2.get_cnot()
+        >>> tomo = MultiQubitsProcessTomography(duts=[dut_q1,dut_q2],lpb=lpb,measurement_mitigation=True)
+
         """
         from leeq.theory.tomography import MultiQubitModel
         model = MultiQubitModel(len(duts))
         super().run(duts=duts, model=model, lpb=lpb, mprim_index=mprim_index,
                     extra_measurement_duts=extra_measurement_duts, measurement_mitigation=measurement_mitigation)
+
+    def get_analyzed_result_prompt(self) -> Union[str, None]:
+        return f"""Process tomography result:
+        <density matrix>
+        {self.ptm.real}
+        </density matrix>
+        """

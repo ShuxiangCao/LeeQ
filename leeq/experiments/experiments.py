@@ -160,8 +160,8 @@ class LeeQExperiment(LeeQObject):
         self._browser_function_results = {}
         self._browser_function_images = {}
 
-        # self._llm_logger = mllm.chat.ChatLogger(show_table=False)
-        # self._llm_logger.__enter__()
+        self._llm_logger = mllm.chat.ChatLogger(show_table=False)
+        self._llm_logger.__enter__()
 
         try:
             # Run the experiment
@@ -190,7 +190,7 @@ class LeeQExperiment(LeeQObject):
                     logger.warning(msg)
 
         self._post_run()
-        # self._llm_logger.__exit__(None, None, None)
+        self._llm_logger.__exit__(None, None, None)
 
     def _post_run(self):
         """

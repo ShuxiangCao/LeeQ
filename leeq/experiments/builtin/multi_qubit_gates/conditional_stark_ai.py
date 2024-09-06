@@ -62,6 +62,7 @@ class ConditionalStarkShiftContinuousPhaseSweep(Experiment):
             Can you inspect the figure, analyze the oscillations, and conclude whether the experiment is valid based on the
             presence of sinusoidal oscillations?
             """
+
     #
     # _experiment_result_analysis_instructions = """
     #     This experiment is a Conditional Stark Tune-Up Rabi XY experiment for calibrating the IZ and ZZ interactions between two qubits under microwave drives.
@@ -774,16 +775,20 @@ class ConditionalStarkShiftContinuous(Experiment):
 
     @register_browser_function()
     @visual_analyze_prompt("""
-            I have a plot showing ZZ interaction Hamiltonian tomography in the Fourier space. The X-axis represents 
-            the frequency, and the Y-axis shows the amplitude of the fourier transformed value.
-            My objective is to determine if the experiment is a success.
-            The success of the experiment depends on observing two clear peaks in the Fourier space, 
-            one for the ground state and one for the excited state. They should be symmetric around the center of the plot.
-            If the peaks are not clear, the experiment is considered failed.
-            If you observe more than two clear peaks, especially when you have a third one at the center of the plot,
-            the experiment is considered failed.
-            Otherwise, the experiment is considered successful.
-            """)
+I have a plot showing ZZ interaction Hamiltonian tomography in the Fourier space. The X-axis represents 
+the frequency, and the Y-axis shows the amplitude of the fourier transformed value.
+My objective is to determine if the experiment is a success.
+The success of the experiment depends on observing two clear peaks in the Fourier space, 
+one for the ground state and one for the excited state. They should be symmetric around the center of the plot.
+If the peaks are not clear, the experiment is considered failed.
+If you observe more than two clear peaks, the experiment is considered failed.
+Otherwise, the experiment is considered successful.
+            
+For example, the following Image is a successful experiment plot:
+Image("ref_images/success_ConditionalStarkShiftContinuous.plot_fourier.png")
+The following Image is a failure case for the experiment due to the presence of multiple peaks:
+Image("ref_images/failure_ConditionalStarkShiftContinuous.plot_fourier.png")
+""")
     def plot_fourier(self):
         fig = go.Figure()
 
@@ -827,6 +832,17 @@ class ConditionalStarkShiftContinuous(Experiment):
         return fig
 
     @register_browser_function()
+    @visual_analyze_prompt("""
+I have a plot showing status of a qubit over an experiment.
+My objective is to determine if the experiment is a success. The success of the experiment should see the state
+of the qubits remains stable in the Y axis throughout the experiment.
+If you observe oscillations in the Y axis, or the lines crosses each other, the experiment is considered failed.
+Otherwise, the experiment is considered successful.
+For example, the following Image is a successful experiment plot:
+Image("ref_images/success_ConditionalStarkShiftContinuous.plot_control_population.png")
+The following Image is a failure case for the experiment due to the presence of multiple peaks:
+Image("ref_images/failure_ConditionalStarkShiftContinuous.plot_control_population.png")
+    """)
     def plot_control_population(self):
         self.analyze_results_with_errs()
 
@@ -901,12 +917,26 @@ class ConditionalStarkShiftRepeatedGate(Experiment):
     """
 
     @log_and_record
-    def run(self, duts, amp_control, amp_target, frequency, phase_diff=0, rise=0.03, axis='Y',
+    def run(self, duts, amp_control, amp_target, frequency, phase_diff=0, rise=0.03,
             echo=True, iz_control=0, iz_target=0, width=0, start_gate_number=0, gate_count=40, zz_rate=None):
         """
-        Sweep time and find the initial guess of amplitude
+        Runs the Repeated Gate Conditional Stark Tune-Up Rabi XY experiment for calibrating the IZ and ZZ interactions
+        between two qubits under microwave drives.
 
-        :return:
+        Parameters:
+        duts (List[Qubit]): The list of qubits to be used in the experiment.
+        amp_control (float): The amplitude applied to the control qubit (the first qubit in the list).
+        amp_target (float): The amplitude applied to the target qubit (the second qubit in the list).
+        frequency (float): The frequency of the stark drive pulse.
+        phase_diff (float): The phase difference between the stark drive pulse send to the control and target qubits.
+        rise (float): The rising and dropping edge time of the stark drive pulses.
+        echo (bool): Whether to include echo sequences.
+        iz_control (float): The active cancellation of the IZ rate applied to the control qubit.
+        iz_target (float): The active cancellation of the IZ rate applied to the target qubit.
+        width (float): The width of the stark drive pulses.
+        start_gate_number (int): The number of gates to start with.
+        gate_count (int): The maximum number of gates to apply in the sweep.
+        zz_rate (float): The ZZ rate of the interation measured from the conditional stark shift continious experiment.
         """
         self.duts = duts
         self.frequency = frequency
@@ -1132,14 +1162,18 @@ class ConditionalStarkShiftRepeatedGate(Experiment):
 
     @register_browser_function()
     @visual_analyze_prompt("""
-                I have a plot showing ZZ interaction Hamiltonian tomography in the Fourier space. The X-axis represents 
-                the frequency, and the Y-axis shows the amplitude of the fourier transformed value.
-                My objective is to determine if the experiment is a success.
-                The success of the experiment depends on observing two clear peaks in the Fourier space, 
-                one for the ground state and one for the excited state. They should be symmetric around the center of the plot.
-                If the peaks are not clear, the experiment is considered failed.
-                If you observe more than two clear peaks, the experiment is considered failed.
-                Otherwise, the experiment is considered successful.
+I have a plot showing ZZ interaction Hamiltonian tomography in the Fourier space. The X-axis represents 
+the frequency, and the Y-axis shows the amplitude of the fourier transformed value.
+My objective is to determine if the experiment is a success.
+The success of the experiment depends on observing two clear peaks in the Fourier space, 
+one for the ground state and one for the excited state. They should be symmetric around the center of the plot.
+If the peaks are not clear, the experiment is considered failed.
+If you observe more than two clear peaks, the experiment is considered failed.
+Otherwise, the experiment is considered successful.
+For example, the following Image is a successful experiment plot:
+Image("ref_images/success_ConditionalStarkShiftRepeatedGate.plot_fourier.png")
+The following Image is a failure case for the experiment due to the presence of multiple peaks:
+Image("ref_images/failure_3_ConditionalStarkShiftRepeatedGate.plot_fourier.png")
                 """)
     def plot_fourier(self):
         fig = go.Figure()
@@ -1183,6 +1217,17 @@ class ConditionalStarkShiftRepeatedGate(Experiment):
         return fig
 
     @register_browser_function()
+    @visual_analyze_prompt("""
+I have a plot showing status of a qubit over an experiment.
+My objective is to determine if the experiment is a success. The success of the experiment should see the state
+of the qubits remains stable in the Y axis throughout the experiment.
+If you observe oscillations in the Y axis, or the lines crosses each other, the experiment is considered failed.
+Otherwise, the experiment is considered successful.
+For example, the following Image is a successful experiment plot:
+Image("ref_images/success_ConditionalStarkShiftRepeatedGate.plot_control_population.png")
+The following Image is a failure case for the experiment due to the presence of multiple peaks:
+Image("ref_images/failure_ConditionalStarkShiftRepeatedGate.plot_control_population.png")
+""")
     def plot_control_population(self):
 
         fig = go.Figure()
@@ -2003,6 +2048,19 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
             filter_parameters: bool = True,
             **kwargs
     ) -> None:
+        """
+        The base for runing the Conditional Stark Echo Tune-Up experiment using AI to calibrate the siZZel two qubit gate parameters for a
+        pair of qubits.
+
+        Parameters:
+            duts: List[TransmonElement]: Devices under test.
+            run_class: Type[Experiment]: The experiment class to run.
+            ai_inspection: bool: Flag for AI inspection. Defaults to False. Please set it to True if you
+                want to use the AI inspection feature, or you are an AI writing the code.
+            maximum_experiments: int: The maximum number of experiments to run. Defaults to 20.
+            filter_parameters: bool: Flag to filter the parameters. Defaults to True.
+            **kwargs: Dict[str, Any]: Parameters for the experiment.
+        """
         self._experiment_history = []
         self._analyze_histroy = []
         self.duts = duts
@@ -2216,6 +2274,17 @@ Please format your response as a JSON dictionary using the following structure:
             maximum_experiments: int = 5,
             **kwargs
     ) -> None:
+        """
+        Run the Conditional Stark Echo Tune-Up experiment to calibrate the siZZel two qubit gate parameters for a
+        pair of qubits, searching the amplitude.
+
+        Parameters:
+            duts: List[TransmonElement]: Devices under test.
+            ai_inspection: bool: Flag for AI inspection. Defaults to False. Please set it to True if you
+                want to use the AI inspection feature, or you are an AI writing the code.
+            maximum_experiments: int: The maximum number of experiments to run. Defaults to 5.
+            **kwargs: Dict[str, Any]: Parameters for the experiment.
+        """
         super().run(duts=duts, run_class=ConditionalStarkEchoTuneUpAI, **kwargs, ai_inspection=ai_inspection,
                     maximum_experiments=maximum_experiments)
 
@@ -2225,7 +2294,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFrequencyAmplitude(
     _experiment_result_analysis_instructions = """
     The frequency search experiment for conditional stark gate has been completed. Please read the following report to analyze the
     if this is a successful experiment. Make the analysis concise and clear in one short sentence describing the reason. 
-    Also include the maximum amplitude value you could choose without causing the experiment to fail, based on the experiment history.
+    Also include the parameter set results in the smallest width value, based on the experiment history.
     
     <Success example>
     <Summary of the search>
@@ -2299,6 +2368,17 @@ If you have encountered an error, please set status to 'error'.
             ai_inspection: bool = False,
             maximum_experiments: int = 20,
     ) -> None:
+        """
+        Run the Conditional Stark Echo Tune-Up experiment to calibrate the siZZel two qubit gate parameters for a
+        pair of qubits, searching the frequency and amplitude.
+
+        Parameters:
+            duts: List[TransmonElement]: Devices under test.
+            parameters: Dict[str, Any]: Parameters for the experiment. Defaults to None.
+            ai_inspection: bool: Flag for AI inspection. Defaults to False. Please set it to True if you
+                want to use the AI inspection feature, or you are an AI writing the code.
+            maximum_experiments: int: The maximum number of experiments to run. Defaults to 20.
+        """
         if parameters is None:
             parameters = {
                 'rise': 0.015,
