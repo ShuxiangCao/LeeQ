@@ -102,6 +102,7 @@ class AIStagedExperiment(Experiment):
         input_var_table = VariableTable()
         for key, value in kwargs.items():
             input_var_table.add_variable(key, value)
+        input_var_table.add_variable("np", np)
 
         self.stages: List[Stage] = stages
 

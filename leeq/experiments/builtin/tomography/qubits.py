@@ -1,9 +1,12 @@
 from typing import List, Any, Union
 
+import numpy as np
 from labchronicle import log_and_record
 from leeq.utils.compatibility import prims
 from .base import GeneralisedTomographyBase, GeneralisedSingleDutStateTomography, GeneralisedStateTomography, \
     GeneralisedProcessTomography
+from leeq.theory.tomography.utils import evaluate_fidelity_density_matrix_with_state_vector, \
+    evaluate_fidelity_ptm_with_unitary
 
 
 class QubitTomographyBase(GeneralisedTomographyBase):
@@ -49,13 +52,16 @@ class SingleQubitStateTomography(GeneralisedSingleDutStateTomography):
 class MultiQubitsStateTomography(GeneralisedStateTomography, QubitTomographyBase):
     _experiment_result_analysis_instructions = """
     The result of the experiment is the density matrix of the quantum state. Check if the density matrix has been reported.
-    by data analysis.
+    by data analysis. Report the fidelity if applicable. The fidelity is not the criterion for the success of the
+    experiment, do not conclude unsuccessful if the fidelity is low. Conclude unsuccessful if the density matrix is
+    not physically meaningful.
     """
 
     @log_and_record
     def run(self, duts: List[Any], mprim_index: Union[int, str] = 0, initial_lpb: 'LogicalPrimitiveBlock' = None,
             extra_measurement_duts: List[Any] = None,
-            measurement_mitigation: Union[None, 'CalibrateFullAssignmentMatrices', bool] = None):
+            measurement_mitigation: Union[None, 'CalibrateFullAssignmentMatrices', bool] = None,
+            state_vec_ideal: np.ndarray = None):
         """
         Experiment for multi-qubit state tomography.
 
@@ -72,35 +78,53 @@ class MultiQubitsStateTomography(GeneralisedStateTomography, QubitTomographyBase
         measurement_mitigation : Union[None, 'CalibrateFullAssignmentMatrices', bool]
             Measurement mitigation. If True, use the default calibration. If None, no calibration. If an instance of
             CalibrateFullAssignmentMatrices, use the instance for calibration.
+        state_vec_ideal : np.ndarray
+            Ideal state vector for comparison. If provided and the state vector is reported, the fidelity will be
+            calculated and reported.
 
-        Example:
+        Example
         --------
         >>> # Run two-qubit state tomography of a bell pair.
         >>> from leeq.experiments.builtin import MultiQubitsStateTomography
+        >>> import numpy as np
         >>> c1 = dut_q1.get_c1('f01') # assuming the initialized qubits are dut_q1 and dut q2.
         >>> lpb = c1.hadamard() + c2_q1q2.get_cnot() # c2 is the two qubit collection which is initialized in advance.
-        >>> tomo = MultiQubitsStateTomography(duts=[dut_q1,dut_q2],initial_lpb=lpb,measurement_mitigation=True)
+        >>> state_vec_ideal = np.array([1,0,0,1])/np.sqrt(2)
+        >>> tomo = MultiQubitsStateTomography(duts=[dut_q1,dut_q2],initial_lpb=lpb,measurement_mitigation=True,state_vec_ideal=state_vec_ideal)
         """
         from leeq.theory.tomography import MultiQubitModel
+        self.state_vector_ideal = state_vec_ideal
         model = MultiQubitModel(len(duts))
         super().run(duts, model, mprim_index, initial_lpb, extra_measurement_duts,
                     measurement_mitigation=measurement_mitigation)
 
     def get_analyzed_result_prompt(self) -> Union[str, None]:
+        if self.state_vector_ideal is not None:
+            fidelity = evaluate_fidelity_density_matrix_with_state_vector(self.dm, self.state_vector_ideal)
+            fidelity = "Calculated fidelity {:.2f}%".format(fidelity * 100)
+        else:
+            fidelity = "No ideal state vector provided for fidelity calculation."
+
         return f"""State tomography result:
         <density matrix>
         {self.dm}
         </density matrix>
+        <fidelity>
+        {fidelity}
+        </fidelity>
         """
 
 
 class MultiQubitsProcessTomography(GeneralisedProcessTomography, QubitTomographyBase):
     _experiment_result_analysis_instructions = """
-    The result of the experiment is the Pauli transfer matrix of the quantum process. Check if the density matrix has been reported by data analysis.
+    The result of the experiment is the Pauli transfer matrix of the quantum process. Check if the Pauli transfer matrix
+    has been reported by data analysis, and the result is physically meaningful. Report the fidelity if applicable.
+    The fidelity is not the criterion for the success of the experiment, but it is a useful metric for the quality of 
+    the quantum gate implementation.
     """
 
     @log_and_record
-    def run(self, duts, lpb, mprim_index=0, extra_measurement_duts=None, measurement_mitigation=None):
+    def run(self, duts, lpb, mprim_index=0, extra_measurement_duts=None, measurement_mitigation=None, u_ideal=None):
         """
         Experiment for multi-qubit process tomography.
 
@@ -117,23 +141,39 @@ class MultiQubitsProcessTomography(GeneralisedProcessTomography, QubitTomography
         measurement_mitigation : Union[None, 'CalibrateFullAssignmentMatrices', bool]
             Measurement mitigation. If True, use the default calibration. If None, no calibration. If an instance of
             CalibrateFullAssignmentMatrices, use the instance for calibration.
+        u_ideal : np.ndarray
+            Ideal unitary matrix for comparison. If provided and the unitary matrix is reported, the fidelity will be
+            calculated and reported
 
         Example:
         --------
         >>> # Run two-qubit process tomography of a CNOT gate.
         >>> # Assume the initialized qubits are dut_q1 and dut_q2.
+        >>> import numpy as np
         >>> lpb = c2.get_cnot()
-        >>> tomo = MultiQubitsProcessTomography(duts=[dut_q1,dut_q2],lpb=lpb,measurement_mitigation=True)
+        >>> u_ideal = np.array([[1,0,0,0],[0,1,0,0],[0,0,0,1],[0,0,1,0]])
+        >>> tomo = MultiQubitsProcessTomography(duts=[dut_q1,dut_q2],lpb=lpb,measurement_mitigation=True,u_ideal=u_ideal)
 
         """
+        self.u_ideal = u_ideal
         from leeq.theory.tomography import MultiQubitModel
         model = MultiQubitModel(len(duts))
         super().run(duts=duts, model=model, lpb=lpb, mprim_index=mprim_index,
                     extra_measurement_duts=extra_measurement_duts, measurement_mitigation=measurement_mitigation)
 
     def get_analyzed_result_prompt(self) -> Union[str, None]:
+
+        if self.u_ideal is not None:
+            fidelity = evaluate_fidelity_ptm_with_unitary(self.ptm, self.u_ideal, basis=self.model._basis)
+            fidelity = "Calculated fidelity {:.2f}%".format(fidelity * 100)
+        else:
+            fidelity = "No ideal unitary provided for fidelity calculation."
+
         return f"""Process tomography result:
-        <density matrix>
+        <Pauli transfer matrix>
         {self.ptm.real}
-        </density matrix>
+        </Pauli transfer matrix>
+        <fidelity>
+        {fidelity}
+        </fidelity>
         """
