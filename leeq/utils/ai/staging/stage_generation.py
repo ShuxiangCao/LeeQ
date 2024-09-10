@@ -86,19 +86,36 @@ def refine_stage_description(res: dict) -> dict:
 
     - If the generated description contains information not related to the input, remove it. 
     - If the generated description contains objectives or goals, remove them.
-    - Quote the the parameters and the values in the format of `"<parameter name>=<parameter value>"`.
+    - Quote the the parameters and the values in the format of `"<parameter name>=<parameter value>"` if the actual values are present in the description. 
+        The values should be the actual values, not placeholders. 
     - Only modify the parts described above, keep the rest of the description as is.
     - If this stage only contains data and result analysis and interpretation without carrying out any experiment,
-        please set the <contains_experiment> to False. Otherwise set it to True.
+      please set the <contains_experiment> to False. Otherwise set it to True.
+    - If the generated description contains information that is not present in the reference, for example the details
+       how to implement each stages but they are not specifically described in the reference, remove these information.
 
-    Follow the following  example format exactly and do not include any additional information in the description.
+    Follow the following example format exactly and strictly and do not include any additional information
+     in the description. Do not include any information that is not presented in the description, such as the details
+     in how to implement each steps based on your knowledge.
 
-    Example output:
+    Example output when no parameters and their values are present:
+    <example 1>
+    {{
+        "analysis":"<Describe your thought process for updating the stage description.>",
+        "description":"Conduct the <experiment name>.",
+        "contains_experiment": <true/false>
+    }}
+    </example 1>
+    
+    Example output when parameters and their values are present:
+     <example 2>
     {{
         "analysis":"<Describe your thought process for updating the stage description.>",
         "description":"Conduct the <experiment name> with parameters <parameter list for experiment>.",
         "contains_experiment": <true/false>
     }}
+    </example 2>
+    
 
     """
 
@@ -166,6 +183,7 @@ Note: Generate as less stages as possible, ideally just one stage, but make sure
 Note: If multiple sets of parameters are used for the same experiment, they should be considered into different stages.
 Note: The data and result analysis and interpretation should not be considered as a stage.
 Note: Refinement of the parameters should be included in the same stage, not in a separate stage.
+Note: Do not include any additional information that is not present in the description, for example the details how to implement each stages.
 
 - ExperimentDescription: Provide a detailed procedural outline for each stage of the experiment. The description should explicitly state the name of the experiment, list all parameters involved, and clearly outline the steps to be taken. This information will be distributed among various team members, who will carry out the tasks. Ensure that each instruction is clear and self-sufficient, enabling team members to execute their respective parts without needing additional context or clarification. Do not include objectives or goals in the description.
 

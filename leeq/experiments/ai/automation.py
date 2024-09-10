@@ -102,7 +102,7 @@ class AIStagedExperiment(Experiment):
         input_var_table = VariableTable()
         for key, value in kwargs.items():
             input_var_table.add_variable(key, value)
-        input_var_table.add_variable("np", np)
+        # input_var_table.add_variable("np", np)
 
         self.stages: List[Stage] = stages
 
@@ -112,6 +112,12 @@ class AIStagedExperiment(Experiment):
             code_cog_model.lt_memory.add_idea(idea)
         code_cog_model.n_recall_items = 5  # Number of items to recall in cognitive model
         var_table: VariableTable = VariableTable()
+
+        moduler_var_table = VariableTable()
+        moduler_var_table.add_variable("np", np)
+        moduler_var_table.add_variable("numpy", np)
+        var_table.add_parent_table(moduler_var_table)
+
         var_table.add_parent_table(exps_var_table)
         var_table.add_parent_table(input_var_table)
         self.n_step_multiplier = 6  # Multiplier to control the number of execution steps

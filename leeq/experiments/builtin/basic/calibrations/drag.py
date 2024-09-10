@@ -52,12 +52,12 @@ If success cannot be determined, consider the experiment failed.
 
         Parameters:
             dut (Any): The device under test.
-            collection_name (str): The name of the collection.
-            mprim_index (int): The index of the measurement primitive.
-            initial_lpb (LogicalPrimitiveBlock): The initial pulse sequence.
+            collection_name (str): The name of the collection. 'f01' for qubit calibration.
+            mprim_index (int): The index of the measurement primitive. 0 for qubit calibration.
+            initial_lpb (LogicalPrimitiveBlock): The initial pulse sequence. Always use None for qubit calibration.
             N (int): The number of repetitions for the All XY value.
-            inv_alpha_start (float): The start value of the 1/alpha parameter.
-            inv_alpha_stop (float): The stop value of the 1/alpha parameter.
+            inv_alpha_start (float, optional): The start value of the 1/alpha parameter. Default is None.
+            inv_alpha_stop (float, optional): The stop value of the 1/alpha parameter. Default is None.
             num (int): The number of points in the sweep.
         """
 

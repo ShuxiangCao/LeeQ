@@ -1,20 +1,3 @@
-# Calibrate and benchmark two-qubit gate
-
-## Background
-
-This procedure is used to calibrate and benchmark a two-qubit gate. It should be used when doing a full calibration of
-the two-qubit gate. It should not be used when only calibrating a specific aspect of the two-qubit gate. This procedure
-does not apply to single qubit gates.
-
-## Steps
-
-- Use `ConditionalStarkTwoQubitGateAIParameterSearch` experiment to find a set of parameters that optimize the two-qubit
-  gate. Use default parameters.
-- Use `ConditionalStarkEchoTuneUpAI` experiment to fine tune the two-qubit gate, by using the parameters found in the
-  previous step, and use maximum iteration of 10.
-- Implement a state tomography with measurement mitigation on a bell state generated using the parameters fine
-  tuned above.
-
 # Full calibration of Single Qubit `dut`
 
 ## Background
@@ -53,4 +36,4 @@ need to be recalibrated. It is only applicable to single qubit gates amplitude.
 ## Steps
 
 - Conduct a Rabi experiment to determine the Rabi rate for rough amplitude calibration.
-- Upon the successful completion of the Rabi experiment, run Pingpong amplitude calibration. If failed directly goto Failure.
+- Upon the successful completion of the Rabi experiment, run Pingpong experiment to do fine calibration. If failed directly goto Failure.

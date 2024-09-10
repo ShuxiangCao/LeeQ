@@ -120,7 +120,6 @@ You should output a JSON dict. The keys should be
 
         if not res["applicable"]:
             idea_res = IdeaResult(self, False)
-            idea_res.add_suppressing_wm_item(1)
             return idea_res
 
         idea_res = IdeaResult(self, True)

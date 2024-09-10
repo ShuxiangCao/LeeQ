@@ -221,14 +221,16 @@ class CodegenModel:
         self.n_recall_items = 10
         self._cached_recall_res = None
 
-    def recall(self, wm: WorkingMemory) -> RecallResult:
+    def recall(self, wm: WorkingMemory, n_recall_items=None) -> RecallResult:
         """
         Recall ideas from long term memory, using what is currently in the working memory.
 
         :param wm: the working memory to stimuli ideas
         :return: the result of triggered ideas
         """
-        res = self.lt_memory.recall_by_wm(wm, top_k=self.n_recall_items)
+        if n_recall_items is None:
+            n_recall_items = self.n_recall_items
+        res = self.lt_memory.recall_by_wm(wm, top_k=n_recall_items)
         self._cached_recall_res = res
         return res
 
@@ -250,7 +252,18 @@ class CodegenModel:
             else:
                 recall_res = self._cached_recall_res
 
-        wm.update_by_recall_res(recall_res, to_tick=True)
+        # wm.update_by_recall_res(recall_res, to_tick=True)
+
+        n_recall_items = self.n_recall_items
+        for i in range(3):
+            wm.update_by_recall_res(recall_res, to_tick=True)
+            if len(wm.extract_tag_contents("code_suggestion")) > 0:
+                break
+            else:
+                print("No code suggestion found. Recall more ideas.")
+                n_recall_items += 2
+                recall_res = self.recall(wm, n_recall_items)
+
         idea_res = self.codegen_idea.run_idea(wm)
         recall_res = RecallResult([idea_res])
         wm.update_by_recall_res(recall_res, to_tick=False)

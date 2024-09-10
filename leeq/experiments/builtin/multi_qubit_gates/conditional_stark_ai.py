@@ -2271,7 +2271,7 @@ Please format your response as a JSON dictionary using the following structure:
             self,
             duts: List[TransmonElement],
             ai_inspection: bool = False,
-            maximum_experiments: int = 5,
+            maximum_experiments: int = 2,
             **kwargs
     ) -> None:
         """
@@ -2284,6 +2284,12 @@ Please format your response as a JSON dictionary using the following structure:
                 want to use the AI inspection feature, or you are an AI writing the code.
             maximum_experiments: int: The maximum number of experiments to run. Defaults to 5.
             **kwargs: Dict[str, Any]: Parameters for the experiment.
+
+        Example:
+            >>> # Assume dut1 and dut2 are the devices under test.
+            >>> experiment_instance = ConditionalStarkTwoQubitGateAIParameterSearchAmplitude(
+            >>>     duts=[dut1, dut2],
+            >>> )
         """
         super().run(duts=duts, run_class=ConditionalStarkEchoTuneUpAI, **kwargs, ai_inspection=ai_inspection,
                     maximum_experiments=maximum_experiments)
@@ -2366,7 +2372,7 @@ If you have encountered an error, please set status to 'error'.
             duts: List[TransmonElement],
             parameters: Dict[str, Any] = None,
             ai_inspection: bool = False,
-            maximum_experiments: int = 20,
+            maximum_experiments: int = 2,
     ) -> None:
         """
         Run the Conditional Stark Echo Tune-Up experiment to calibrate the siZZel two qubit gate parameters for a

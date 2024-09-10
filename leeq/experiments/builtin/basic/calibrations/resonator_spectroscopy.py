@@ -33,17 +33,17 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
     Inherits from a generic "experiment" class.
     """
 
-    _experiment_result_analysis_instructions = """
-Inspect the plot to detect the resonator's presence. If present:
-1. Consider the resonator linewidth (typically sub-MHz to a few MHz).
-2. If the step size is much larger than the linewidth:
-   a. Focus on the expected resonator region.
-   b. Reduce the step size for better accuracy.
-3. If linewidth < 0.1 MHz, it's likely not a resonator; move on.
-The experiment is considered successful if a resonator is detected. Otherwise, it is considered unsuccessful and suggest
-a new sweeping range and step size.
-    """
-
+#     _experiment_result_analysis_instructions = """
+# Inspect the plot to detect the resonator's presence. If present:
+# 1. Consider the resonator linewidth (typically sub-MHz to a few MHz).
+# 2. If the step size is much larger than the linewidth:
+#    a. Focus on the expected resonator region.
+#    b. Reduce the step size for better accuracy.
+# 3. If linewidth < 0.1 MHz, it's likely not a resonator; move on.
+# The experiment is considered successful if a resonator is detected. Otherwise, it is considered unsuccessful and suggest
+# a new sweeping range and step size.
+#     """
+#
     @log_and_record
     def run(self,
             dut_qubit: TransmonElement,

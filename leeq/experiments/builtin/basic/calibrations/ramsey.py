@@ -53,10 +53,10 @@ class SimpleRamseyMultilevel(Experiment):
             collection_name: The name of the frequency collection (e.g., 'f01').
             mprim_index: The index of the measurement primitive.
             initial_lpb: Initial set of commands, if any.
-            start: The start time for the sweep.
-            stop: The stop time for the sweep.
-            step: The step size for the frequency sweep.
-            set_offset: The frequency offset.
+            start: The start time for the sweep. Units are in microseconds.
+            stop: The stop time for the sweep. Units are in microseconds.
+            step: The step size for the frequency sweep. Units are in microseconds.
+            set_offset: The frequency offset. Units are in MHz.
             update: Whether to update parameters after the experiment.
 
         Returns:
@@ -442,7 +442,7 @@ class SimpleRamseyMultilevel(Experiment):
         if self.error_bar == np.inf:
             return "The Ramsey experiment failed to fit the data."
 
-        return (f"The Ramsey experiment for qubit {self.retrieve_args(self.run)['qubit'].hrid} has been analyzed. " \
+        return (f"The Ramsey experiment for qubit {self.retrieve_args(self.run)['dut'].hrid} has been analyzed. " \
                 f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured oscillation is "
                 f"{self.set_offset + self.fitted_freq_offset * self.level_diff:.3f} MHz. Oscillation"
                 f" amplitude is {self.fit_params['Amplitude']}."
