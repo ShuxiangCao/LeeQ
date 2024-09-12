@@ -14,7 +14,7 @@ from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
 
-__all__ = ["NormalisedRabi", "MultiQubitRabi"]
+__all__ = ["NormalisedRabi", "MultiQubitRabi", "PowerRabi"]
 
 
 class NormalisedRabi(Experiment):
@@ -369,6 +369,218 @@ class NormalisedRabi(Experiment):
                 f"the frequency of {self.fit_params['Frequency']}, the phase of {self.fit_params['Phase']}. The offset of"
                 f" {self.fit_params['Offset']}. The suggested new driving amplitude is {self.guess_amp}."
                 f"From the fitting results, the plot should exhibit {oscillation_count} oscillations.")
+
+
+class PowerRabi(Experiment):
+    @log_and_record
+    def run(self,
+            dut_qubit: Any,
+            width: float = None,
+            amp_start: float = 0.01,
+            amp_stop: float = 0.4,
+            amp_step: float = 0.01,
+            fit: bool = True,
+            collection_name: str = 'f01',
+            mprim_index: int = 0,
+            update=True,
+            initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+        """
+        Run a Rabi experiment on a given qubit for rough calibration of the driving amplitude.
+        Note that this experiment is only for rough calibration, and the final calibration should be done using
+        a more accurate method.
+
+        Parameters:
+        dut_qubit (Any): Device under test (DUT) qubit object.
+        amp (float): Amplitude of the Rabi pulse. Default is 0.05.
+        start (float): Start width for the pulse width sweep. Default is 0.01.
+        stop (float): Stop width for the pulse width sweep. Default is 0.15.
+        step (float): Step width for the pulse width sweep. Default is 0.001.
+        fit (bool): Whether to fit the resulting data to a sinusoidal function. Default is True.
+        collection_name (str): Collection name for retrieving c1. Default is 'f01'.
+        mprim_index (int): Index for retrieving measurement primitive. Default is 0.
+        pulse_discretization (bool): Whether to discretize the pulse. Default is False.
+        update (bool): Whether to update the qubit parameters If you are tuning up the qubit set it to True. Default is False.
+        initial_lpb (Any): Initial lpb to add to the created lpb. Default is None.
+
+        Returns:
+        Dict[str, Any]: Fitted parameters if fit is True, None otherwise.
+
+        Example:
+            >>> # Run an experiment to calibrate the driving amplitude of a single qubit gate
+            >>> rabi_experiment = NormalisedRabi(
+            >>> dut_qubit=dut, amp=0.05, start=0.01, stop=0.3, step=0.002, fit=True,
+            >>> collection_name='f01', mprim_index=0, pulse_discretization=True, update=True)
+        """
+        # Get c1 from the DUT qubit
+        c1 = dut_qubit.get_c1(collection_name)
+        rabi_pulse = c1['X'].clone()
+
+        if width is not None:
+            rabi_pulse.update_pulse_args(
+                width=width, phase=0., shape='square', amp=amp_start)
+        else:
+            amp = rabi_pulse.amp
+
+        # Set up sweep parameters
+        swpparams = [SweepParametersSideEffectFactory.func(
+                rabi_pulse.update_pulse_args, {}, 'amp'
+            )]
+        swp = Sweeper(
+                np.arange,
+                n_kwargs={'start': amp_start, 'stop': amp_stop, 'step': amp_step},
+                params=swpparams
+            )
+        pulse = rabi_pulse
+
+        # Get the measurement primitive
+        mprim = dut_qubit.get_measurement_prim_intlist(mprim_index)
+        self.mp = mprim
+
+        # Create the loopback pulse (lpb)
+        lpb = pulse + mprim
+
+        if initial_lpb is not None:
+            lpb = initial_lpb + lpb
+
+        # Run the basic experiment
+        basic(lpb, swp, '<z>')
+
+        # Extract the data
+        self.data = np.squeeze(mprim.result())
+
+        if not fit:
+            return None
+
+        # Fit data to a sinusoidal function and return the fit parameters
+        self.fit_params = fits.fit_sinusoidal(self.data, time_step=amp_step)
+
+        # The amplitude should be chosen such that the rabi rotation finish half a period.
+        if update:
+            self.optimal_amp = 1 / self.fit_params['Frequency'] / 2
+            c1.update_parameters(amp=self.optimal_amp)
+            print(f"Amplitude updated: {self.optimal_amp}")
+
+    @register_browser_function()
+    def plot(self) -> go.Figure:
+        """
+        Plots Rabi oscillations using data from an experiment run.
+
+        This method retrieves arguments from the 'run' object, processes the data,
+        and then creates a plot using Plotly. The plot features scatter points
+        representing the original data and a sine fit for each qubit involved in the
+        experiment.
+        """
+
+        args = self.retrieve_args(self.run)
+        t = np.arange(args['amp_start'], args['amp_stop'], args['amp_step'])
+        amp_interpolate = np.arange(
+            args['amp_start'],
+            args['amp_stop'],
+            args['amp_step'] / 5)
+
+        # Create subplots: each qubit's data gets its own plot
+        fig = go.Figure()
+        # Scatter plot of the actual data
+        fig.add_trace(
+            go.Scatter(
+                x=t,
+                y=self.data,
+                mode='markers',
+                marker=dict(
+                    color='Blue',
+                    size=7,
+                    opacity=0.5,
+                    line=dict(color='Black', width=2),
+                ),
+                name=f'data'
+            )
+        )
+
+        # Fit data
+        f = self.fit_params['Frequency']
+        a = self.fit_params['Amplitude']
+        p = self.fit_params['Phase'] - 2.0 * np.pi * f * args['amp_start']
+        o = self.fit_params['Offset']
+        fit = a * np.sin(2.0 * np.pi * f * amp_interpolate + p) + o
+
+        # Line plot of the fit
+        fig.add_trace(
+            go.Scatter(
+                x=amp_interpolate,
+                y=fit,
+                mode='lines',
+                line=dict(color='Red'),
+                name=f'fit',
+                visible='legendonly'
+            )
+        )
+
+        # Update layout for better visualization
+        fig.update_layout(
+            title='Power Rabi',
+            xaxis_title='Time (µs)',
+            yaxis_title='<z>',
+            legend_title='Legend',
+            font=dict(
+                family='Courier New, monospace',
+                size=12,
+                color='Black'
+            ),
+            plot_bgcolor='white'
+        )
+
+        return fig
+
+    def live_plots(self, step_no=None) -> go.Figure:
+        """
+        Plots Rabi oscillations live using data from an experiment run.
+
+        Parameters:
+        step_no (int): Number of steps to plot. Default is None.
+
+        Returns:
+        go.Figure: Plotly figure.
+
+        """
+
+        args = self.retrieve_args(self.run)
+        t = np.arange(args['start'], args['stop'], args['step'])
+        data = np.squeeze(self.mp.result())
+
+        # Create subplots: each qubit's data gets its own plot
+        fig = go.Figure()
+        # Scatter plot of the actual data
+        fig.add_trace(
+            go.Scatter(
+                x=t[:step_no[0]],
+                y=data[:step_no[0]],
+                mode='lines',
+                marker=dict(
+                    color='Blue',
+                    size=7,
+                    opacity=0.5,
+                    line=dict(color='Black', width=2)
+                ),
+                name=f'data'
+            )
+        )
+
+        # Update layout for better visualization
+        fig.update_layout(
+            title='Time Rabi',
+            xaxis_title='Time (µs)',
+            yaxis_title='<z>',
+            legend_title='Legend',
+            font=dict(
+                family='Courier New, monospace',
+                size=12,
+                color='Black'
+            ),
+            plot_bgcolor='white'
+        )
+
+        return fig
+
 
 
 class MultiQubitRabi(Experiment):

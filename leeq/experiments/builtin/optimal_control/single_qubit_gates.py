@@ -58,7 +58,6 @@ class GRAPESingleQubitGate(Experiment):
                                              max_amplitude=0.015, )
         self.grape_result = grape
 
-
         # Run the Rabi experiment
         from leeq.experiments.builtin import NormalisedRabi
         self.rabi = NormalisedRabi(dut_qubit=dut,
@@ -76,7 +75,10 @@ class GRAPESingleQubitGate(Experiment):
 
         amp_per_rabi_rate = 1 / self.rabi_rate_per_amp * 1000
 
-        pulse_shape = self.grape_result.u[-1, :, :]*amp_per_rabi_rate.tolist()
+        pulse_shape = self.grape_result.u[-1, :, :]#*amp_per_rabi_rate*2
+        pulse_shape = pulse_shape / np.max(np.abs(pulse_shape))
+
+        amp = amp_per_rabi_rate * np.max(np.abs(pulse_shape))
         # Create a new collection
 
         reference_collection = dut.get_c1(reference_collection_name)
@@ -86,13 +88,13 @@ class GRAPESingleQubitGate(Experiment):
             "transition_name": reference_collection.transition_name,
             "channel": reference_collection.channel,
             "freq": reference_collection.freq,
-            "amp": 1,
+            "amp": amp,
             "phase": reference_collection.phase,
             "width": self.grape_result.u.shape[-1] / 2e3,
             # "trunc":1.2,
             "shape": 'arbitrary_pulse',
             # "shape": 'gaussian',
-            "pulse_window_array": pulse_shape,
+            "pulse_window_array": pulse_shape.tolist(),
         }
 
         factory = LogicalPrimitiveCollectionFactory()
@@ -110,7 +112,7 @@ class GRAPESingleQubitGate(Experiment):
         """
         result = self.grape_result
 
-        times = np.arange(len(result.u))
+        times = np.arange(result.u.shape[-1])
 
         from qutip.control import plot_grape_control_fields
         plot_grape_control_fields(times, result.u, ['x', 'y'])
