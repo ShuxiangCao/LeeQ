@@ -18,11 +18,11 @@ from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import SetupStatusParameters
 from leeq.utils import Singleton, setup_logging, display_json_dict
-from leeq.utils.notebook import show_spinner, hide_spinner
+from k_agents.notebook_utils import show_spinner, hide_spinner
 from leeq.utils.ai.display_chat.notebooks import display_chat, dict_to_html
 import leeq.experiments.plots.live_dash_app as live_monitor
-from leeq.utils.ai.vlms import (has_visual_analyze_prompt, visual_inspection, get_visual_analyze_prompt)
-from leeq.utils.ai.experiment_summarize import get_experiment_summary
+from k_agents.vlms import (has_visual_analyze_prompt, visual_inspection, get_visual_analyze_prompt)
+from k_agents.indexer.experiment_summarize import get_experiment_summary
 
 logger = setup_logging(__name__)
 
@@ -381,12 +381,12 @@ class LeeQAIExperiment(LeeQExperiment):
                 spinner_id = show_spinner(f"AI is analyzing the experiment results...")
 
                 run_args_prompt = f"""
-                Document of this experiment:
-                {self.run.__doc__}
+Document of this experiment:
+{self.run.__doc__}
 
-                Running arguments:
-                {self.retrieve_args(self.run)}
-                """
+Running arguments:
+{self.retrieve_args(self.run)}
+"""
 
                 summary = get_experiment_summary(self._experiment_result_analysis_instructions, run_args_prompt,
                                                  ai_inspection_results)

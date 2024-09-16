@@ -18,7 +18,7 @@ from leeq.experiments.builtin import *
 from pprint import pprint
 from simulated_setup import *
 
-enable_few_shot = True
+enable_few_shot = False
 
 dut_dict = {
     'Q1': {'Active': True, 'Tuneup': False, 'FromLog': False, 'Params': configuration_a},
@@ -74,8 +74,14 @@ def save_results(file_path, data):
 
 
 def run_benchmarks(save_path_prefix, num_samples, benchmark_func, config_key, extra_config={}):
+    print(num_samples)
     inspections = {}
-    for i in range(num_samples):
+    try:
+        with open(f"{save_path_prefix}.json", 'r') as f:
+            inspections = json.load(f)
+    except:
+        pass
+    for i in range(len(inspections), num_samples):
         np.random.seed(i)
         config = EXPERIMENT_CONFIGS[benchmark_func.__name__][config_key]
         config.update(extra_config)
@@ -197,8 +203,8 @@ def run_single_benchmark_drag(index, config, inspections):
     inspections[index]['no_image_few_shot'] = extract_results_from_experiment(res_raw)
     exps['raw'] = res_raw
     if enable_few_shot:
-        #with display_chats():
-        res_image_prompt = DragCalibrationSingleQubitMultilevelImageFewShot(dut=dut, **scan_params)
-        inspections[index]['image_few_shot'] = extract_results_from_experiment(res_image_prompt)
-        exps['image_few_shot'] = res_image_prompt
+        with display_chats(1):
+            res_image_prompt = DragCalibrationSingleQubitMultilevelImageFewShot(dut=dut, **scan_params)
+            inspections[index]['image_few_shot'] = extract_results_from_experiment(res_image_prompt)
+            exps['image_few_shot'] = res_image_prompt
     return exps

@@ -4,7 +4,7 @@ from typing import Callable
 
 # Importing necessary modules and functions from other files
 from benchmarks import *  # Make sure to import the new unified function
-from mllm.provider_switch import *
+from mllm.provider_switch import default_models
 
 # Mapping of benchmark names to their respective function calls and the default configuration to run
 benchmark_name_to_config: dict[str, tuple[Callable, str]] = {
@@ -28,12 +28,24 @@ def set_default_to_gemini_1_5():
     default_models["vision"] = "gemini/gemini-1.5-pro"
     default_models["embedding"] = "text-embedding-3-large"
 
+def set_default_to_anthropic_opus():
+    default_models["normal"] = "claude-3-opus-20240229"
+    default_models["expensive"] = "claude-3-opus-20240229"
+    default_models["vision"] = "claude-3-opus-20240229"
+    default_models["embedding"] = "text-embedding-3-large"
+
+def set_default_to_llama_():
+    default_models["normal"] = "replicate/meta/meta-llama-3-70b-instruct"
+    default_models["expensive"] = "replicate/meta/meta-llama-3-70b-instruct"
+    default_models["vision"] = "replicate/yorickvp/llava-v1.6-34b:41ecfbfb261e6c1adf3ad896c9066ca98346996d7c4045c5bc944a79d430f174"
+    default_models["embedding"] = "text-embedding-3-large"
+
 # Mapping of model names to functions that set the model as default
 model_name_to_func: dict[str, Callable] = {
     'openai': set_default_to_chatgpt_4o_latest,
-    'anthropic': set_default_to_anthropic,
+    'anthropic': set_default_to_anthropic_opus,
     'gemini': set_default_to_gemini_1_5,
-    'llama': set_default_to_llama,
+    'llama': set_default_to_llama_,
 }
 
 def main() -> None:

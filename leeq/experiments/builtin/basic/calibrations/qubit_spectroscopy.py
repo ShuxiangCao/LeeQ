@@ -7,7 +7,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
-from leeq.utils.ai.vlms import visual_analyze_prompt
+from k_agents.vlms import visual_analyze_prompt
 
 __all__ = ['QubitSpectroscopyFrequency', 'QubitSpectroscopyAmplitudeFrequency']
 

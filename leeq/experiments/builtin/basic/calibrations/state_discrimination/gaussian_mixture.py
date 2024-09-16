@@ -12,7 +12,7 @@ from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.simulation.numpy.dispersive_readout.simulator import DispersiveReadoutSimulatorSyntheticData
 from leeq.utils import setup_logging
-from leeq.utils.ai.vlms import visual_analyze_prompt
+from k_agents.vlms import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 

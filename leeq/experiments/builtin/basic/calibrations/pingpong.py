@@ -18,7 +18,7 @@ from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulation
 from leeq.utils.compatibility import prims
 
 from leeq.utils import setup_logging
-from leeq.utils.ai.vlms import visual_analyze_prompt
+from k_agents.vlms import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 

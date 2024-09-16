@@ -11,7 +11,7 @@ from tqdm.notebook import tqdm
 import multiprocessing
 import uncertainties as unc
 from uncertainties.umath import exp as uexp
-from leeq.utils.ai.vlms import visual_analyze_prompt
+from k_agents.vlms import visual_analyze_prompt
 
 import matplotlib.pyplot as plt
 

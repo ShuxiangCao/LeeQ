@@ -1,20 +1,49 @@
 import ast
 
+
 from mllm import display_chats
 from mllm.utils import p_map
 
-import leeq
 import argparse
+
 from leeq.experiments.builtin import *
 import os
 import json
 
 from mllm.cache.cache_service import caching
 
+from k_agents.codegen.codegen_rag import CodegenModelRAG
+
+caching.cache_kv.inactive = True
+
 experiment_prompt = {
+    'T2': (SpinEchoMultiLevel, [
+        'Run experiment to measure dephasing time',
+        'Implement T2 echo experiment on `dut`',
+        'Determine qubit T2 echo experiment with free evolution time equals 200',
+        'Measure coherence time using T2 echo',
+        'Measure T2 dephasing time with echo experiment',
+        'Quantify qubit coherence with echo experiments',
+        'Do T2 echo to observe qubit dephasing',
+        'Check the T2 echo of the qubit with collection_name="f02" ',
+        'Experimentally determine qubit T2 echo',
+        'Measure qubit coherence decay using T2 echo experiment'
+    ]),
+    'Drag': (DragCalibrationSingleQubitMultilevel, [
+        'Implement DRAG calibration to reduce gate errors of `dut`',
+        'Calibrate DRAG parameters to optimize qubit control of `dut`',
+        'Run DRAG calibration for improved qubit gate fidelity',
+        'Optimize DRAG coefficients for quantum gates',
+        'Measure and adjust DRAG parameters for qubit gates',
+        'Calibrate pulse shaping using DRAG technique with collection_name="f02"`',
+        'Run DRAG parameter tuning for gate error reduction',
+        'Implement DRAG calibration routines with mprim_index=3',
+        'Optimize qubit gate performance with DRAG calibration',
+        'Run DRAG calibration to minimize leakage errors'
+    ]),
     'GMM': (MeasurementCalibrationMultilevelGMM, [
-        'Run GMM measurement calibration',
-        'Implement GMM model calibration for measurement',
+        'Run GMM measurement calibration on `dut`',
+        'Implement GMM model calibration for measurement on `dut`',
         'Calibrate the measurement GMM model',
         'Calibrate the measurement GMM model with amplitude=0.2 and drive frequency = 9876 MHz',
         'Run measurement calibration with amp=0.1 and frequency = 8790 MHz',
@@ -42,11 +71,11 @@ experiment_prompt = {
         'Implement Rabi experiment to find pi pulse duration',
         'Calibrate the driving amplitudes for single qubit gate by Rabi',
         'Determine single qubit gate parameter using Rabi experiment',
-        'Run Rabi experiment with default parameters',
+        'Run Rabi experiment with default parameters on the single qubit `dut`',
         'Single qubit gate amplitudes estimation using Rabi experiments',
-        'Do Rabi experiment to measure qubit drive amplitudes',
-        'Run Rabi experiment',
-        'Calibrate qubit drive amplitudes using Rabi experiment'
+        'Do Rabi experiment to measure single qubit drive amplitudes',
+        'Run Rabi experiment on single qubit `dut` with amp=0.3',
+        'Calibrate single qubit drive amplitudes using Rabi experiment'
     ]),
     'Pingpong': (AmpPingpongCalibrationSingleQubitMultilevel, [
         'Fine-tune single qubit gate driving amplitude settings using pingpong method',
@@ -55,7 +84,7 @@ experiment_prompt = {
         'Run single qubit gate amplitude tuning using pingpong experiment',
         'Implement pingpong feedback calibration for fine tuning single qubit gate amplitude',
         'Optimize driving parameters with the pingpong method',
-        'Pingpong tuning of amplitudes settings',
+        'Implement pingpong tuning of amplitudes settings',
         'Amplitude fine-tuning with pingpong approach',
         'Iterative tuning of amplitude using pingpong experiment',
         'Calibrate amplitude settings using iterative pingpong method'
@@ -66,7 +95,7 @@ experiment_prompt = {
         'Calibrate resonator using spectroscopic techniques',
         'Measure quality factor of resonators with spectroscopy',
         'Determine resonator location via resonator spectroscopy',
-        'Spectroscopic analysis of resonator bandwidth using resonator spectroscopy',
+        'Do a spectroscopic analysis of resonator bandwidth using resonator spectroscopy',
         'Run full spectroscopic scan on resonator',
         'Discover resonators with spectroscopy',
         'Resonator frequency mapping using spectroscopy',
@@ -77,25 +106,14 @@ experiment_prompt = {
         'Implement T1 relaxation time measurement',
         'Determine qubit T1 relaxation times',
         'Measure T1 relaxation time of qubit',
-        'Do T1 experiment',
+        'Carry out T1 experiment with time_length=200',
         'Measure T1 Relaxation time',
         'Do T1 experiment for qubit decay',
-        'T1 relaxation profiling of qubits',
+        'Generate T1 relaxation profiling of the dut',
         'Experimentally determine qubit T1 times',
         'Measure decay characteristics with T1 experiment'
     ]),
-    'T2': (SpinEchoMultiLevel, [
-        'Run experiment to measure dephasing time',
-        'Implement T2 echo experiment',
-        'Determine qubit T2 echo experiment with free evolution time equals 200',
-        'Measure coherence time using T2 echo',
-        'Calibrate for T2 dephasing time measurements',
-        'Quantify qubit coherence with echo experiments',
-        'Do T2 echo to observe qubit dephasing',
-        'T2 coherence profiling of qubits',
-        'Experimentally determine qubit T2 times',
-        'Measure qubit coherence decay using T2 experiment'
-    ]),
+
     'RB1Q': (SingleQubitRandomizedBenchmarking, [
         'Run randomized benchmarking to measure single-qubit gate fidelity',
         'Implement one qubit randomized benchmarking',
@@ -107,33 +125,29 @@ experiment_prompt = {
         'Implement randomized benchmarking for single qubits',
         'Calibrate and measure single-qubit errors with randomized benchmarking',
         'Quantify one qubit performance with randomized benchmarking'
-    ]),
-    'Drag': (DragCalibrationSingleQubitMultilevel, [
-        'Implement DRAG calibration to reduce gate errors',
-        'Calibrate DRAG parameters to optimize qubit control',
-        'Run DRAG calibration for improved qubit gate fidelity',
-        'Optimize DRAG coefficients for quantum gates',
-        'Measure and adjust DRAG parameters for qubit gates',
-        'Calibrate pulse shaping using DRAG technique',
-        'DRAG parameter tuning for gate error reduction',
-        'Implement DRAG calibration routines',
-        'Optimize qubit gate performance with DRAG calibration',
-        'DRAG calibration to minimize leakage errors'
     ])
 }
 
 
 def check_code(codes, exp_class):
-    tree = ast.parse(codes)
+    try:
+        tree = ast.parse(codes)
+    except Exception as e:
+        return False
     call_node = None
     for node in tree.body:
         if isinstance(node, ast.Assign):
             # check whether the value of the variable is an instance of the class
-            if isinstance(node.value,
-                          ast.Call) and node.value.func.id == exp_class.__name__:
-                call_node = node.value
-            else:
-                return False
+            try:
+                if isinstance(node.value,
+                              ast.Call) and node.value.func.id == exp_class.__name__:
+                    call_node = node.value
+                else:
+                    continue
+            except Exception:
+                continue
+    if call_node is None:
+        return False
 
     # check whether the call node is a valid class instantiation by checking the parameters
     class_argspec = inspect.getfullargspec(exp_class.run)
@@ -155,35 +169,41 @@ def check_code(codes, exp_class):
     return True
 
 
-from leeq.utils.ai.code_indexer import build_leeq_code_ltm
-from leeq.utils.ai.staging.stage_execution import get_codegen_wm, CodegenModel
-from leeq.utils.ai.variable_table import VariableTable
+from k_agents.indexer.code_indexer import build_leeq_code_ltm
+from k_agents.codegen.codegen import CodegenModel, get_codegen_wm
+from k_agents.variable_table import VariableTable
 
-
-def benchmark_single(key, exp_class, description, code_cog_model, codegen=True):
+class TransmonElementFake:
+    def __repr__(self):
+        return "TransmonElement"
+def benchmark_single(key, exp_class, description, code_cog_model):
     input_var_table = VariableTable()
+    input_var_table.add_variable("dut", TransmonElementFake(), "device under test")
     print("Description:", description)
     codegen_wm = get_codegen_wm(description, input_var_table)
     recall_res = code_cog_model.recall(codegen_wm)
 
     additional_info = []
-    if codegen:
-        codes = code_cog_model.codegen(codegen_wm, recall_res)
+
+    codes = code_cog_model.codegen(codegen_wm, recall_res)
+    try:
         success = check_code(codes, exp_class)
+    except Exception as e:
+        success = False
         additional_info.append(codes)
-    else:
-        obtained_exp_cls_names = [x.idea.exp_cls.__name__ for x in
-                                  recall_res.idea_results]
-        additional_info.append(obtained_exp_cls_names)
-        success = exp_class.__name__ in obtained_exp_cls_names
+        additional_info.append(str(e))
+    additional_info.append(codes)
 
     return success, additional_info
 
 
-def benchmark_all():
+def benchmark_all(rag, n_recall_items):
     leeq_code_ltm, exps_var_table = build_leeq_code_ltm(add_document_procedures=False)
-    code_cog_model = CodegenModel()
-    code_cog_model.n_recall_items = 3
+    if rag:
+        code_cog_model = CodegenModelRAG()
+    else:
+        code_cog_model = CodegenModel()
+    code_cog_model.n_recall_items = n_recall_items
     for idea in leeq_code_ltm.ideas:
         code_cog_model.lt_memory.add_idea(idea)
 
@@ -195,7 +215,7 @@ def benchmark_all():
         exp_prompts = experiment_prompt[_exp_name][1]
         def benchmark_one_prompt(_prompt):
             try:
-                success, additional_info = benchmark_single(_exp_name, exp_class, _prompt, code_cog_model, codegen=True)
+                success, additional_info = benchmark_single(_exp_name, exp_class, _prompt, code_cog_model)
             except Exception as e:
                 success = False
                 additional_info = str(e)
@@ -205,14 +225,15 @@ def benchmark_all():
             print(success, additional_info)
             results.append((prompt, success, additional_info))
         return results
-
-    for exp_name, res in p_map(benchmark_one_experiment, list(experiment_prompt.keys()), n_workers=1):
+    #t = ["RB1Q"]
+    t = list(experiment_prompt.keys())
+    for exp_name, res in p_map(benchmark_one_experiment, t, n_workers=1):
         results_list[exp_name] = res
 
     return results_list
 
 
-def main(model, shots):
+def main(model, shots, rag, n_recall_items):
     """
     Main function that runs benchmarks based on command line arguments.
     """
@@ -224,8 +245,10 @@ def main(model, shots):
     print("Running benchmarks with model:", model)
 
     model_path_str = model.replace('/', '_')
-
-    file_path = f'./recall_benchmark_{model_path_str}.json'
+    if not rag:
+        file_path = f'./recall_benchmark_{model_path_str}-{n_recall_items}-fixed.json'
+    else:
+        file_path = f'./recall_benchmark_{model_path_str}-rag-{n_recall_items}-fixed.json'
 
     if os.path.exists(file_path):
         with open(file_path, 'r') as f:
@@ -241,7 +264,7 @@ def main(model, shots):
         try:
             result = {
                 'status': 'success',
-                'results': benchmark_all()
+                'results': benchmark_all(rag, n_recall_items)
             }
             results[i] = result
         except Exception as e:
@@ -256,14 +279,24 @@ def main(model, shots):
 
 
 def entry():
+    from mllm.config import parse_options,default_options
+    #default_parallel_map_config["n_workers"] = 3
+    default_options.timeout = 120
+    # You have to enable this option before using the `correct_json_by_model` rule
+    parse_options.correct_json_by_model = True
     parser = argparse.ArgumentParser(description="Run benchmarks with specified models.")
     parser.add_argument('model', type=str, nargs='?', help="Name of the model to use.",
-                        default="chatgpt-4o-latest")
+                        #default="claude-3-opus-20240229")
+                        #default="gpt-4-turbo")
+                        #default="gemini/gemini-1.5-pro-latest")
+                        #default="chatgpt-4o-latest")
+                        #default="gpt-4o-mini")
+                        default="replicate/meta/meta-llama-3-70b-instruct")
     parser.add_argument('shots', type=int, nargs='?', default=3,
                         help="Number of shots (iterations) to run (default: 3).")
 
     args = parser.parse_args()
-    main(args.model, args.shots)
+    main(args.model, args.shots, False, 2)
 
 
 if __name__ == '__main__':

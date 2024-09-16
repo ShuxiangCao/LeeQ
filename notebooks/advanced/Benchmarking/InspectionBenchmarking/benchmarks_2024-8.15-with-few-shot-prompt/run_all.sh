@@ -1,13 +1,20 @@
 #!/bin/bash
 
 # Array of benchmark names
-benchmarks=('resonator_spec' 'gmm' 'rabi' 'drag')
-# benchmarks=('rabi')
-configs=('success' 'failure')
+#benchmarks=('resonator_spec' 'gmm' 'rabi' 'drag')
+benchmarks=('resonator_spec' 'gmm' 'rabi')
+#benchmarks=('gmm' 'rabi')
+benchmarks=('rabi')
+#benchmarks=('resonator_spec')
+#configs=('success')
+configs=('failure')
+#configs=('success' 'failure')
 # Array of model names
 #models=('openai')
-models=('openai')
 #models=('llama')
+#models=('llama')
+models=('llama')
+#models=('anthropic')
 #models=('gemini')
 #models=('gemini' 'llama' 'openai')
 # models=('openai' 'anthropic' 'gemini' 'llama ')

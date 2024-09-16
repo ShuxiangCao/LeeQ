@@ -11,7 +11,7 @@ from leeq import Experiment, Sweeper
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_exp_decay_with_cov
 from leeq.theory.utils import to_dense_probabilities
-from leeq.utils.ai import visual_analyze_prompt
+from k_agents.vlms import visual_analyze_prompt
 from leeq.utils.compatibility import *
 
 __all__ = [
@@ -53,7 +53,12 @@ class SpinEchoMultiLevel(
             initial_lpb: Optional[Any] = None,
     ) -> None:
         """
-        Run the SpinEchoMultiLevel experiment for measuring the T2 echo coherence metric.
+        Run the SpinEchoMultiLevel experiment for measuring the T2 echo coherence value.
+
+        This experiment is implemented in the following way. A pi/2 pulse is applied to the qubit, followed by a delay
+        of free_evolution_time/2. Then a pi pulse is applied, followed by another delay of free_evolution_time/2. Finally,
+        a measurement primitive is applied to the qubit. The experiment is repeated for different values of the delay time
+        to obtain the T2 echo relaxation time.
 
         Parameters
         ----------
@@ -111,7 +116,7 @@ class SpinEchoMultiLevel(
             initial_lpb: Optional[Any] = None,
     ) -> None:
         """
-        Run the SimpleSpinEchoMultiLevel experiment for measuring the T2 echo coherence value.
+        Run the SpinEchoMultiLevel experiment for measuring the T2 echo coherence value.
 
         This experiment is implemented in the following way. A pi/2 pulse is applied to the qubit, followed by a delay
         of free_evolution_time/2. Then a pi pulse is applied, followed by another delay of free_evolution_time/2. Finally,

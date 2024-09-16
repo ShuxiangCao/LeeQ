@@ -1562,7 +1562,6 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
         t_step = (t_stop - t_start) / sweep_points
 
         if self.ai_inspection:
-            from leeq import AIInstructionExperiment
 
             prompt = f"""
                 Please implement the ConditionalStarkShiftContinuous experiment with the provided parameters.
@@ -1591,8 +1590,8 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
             sizzel_xy = ai_experiment.get_last_experiment()
             """
 
-            from leeq.experiments.ai.automation import execute_experiment_from_prompt
-            from leeq.utils.ai.staging.stage_execution import get_exp_from_var_table
+            from k_agents.experiment.automation import execute_experiment_from_prompt
+            from k_agents.staging import get_exp_from_var_table
 
             ai_experiment_var_table = execute_experiment_from_prompt(
                 prompt=prompt, duts=self.duts,
@@ -1681,7 +1680,6 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
             try_count = 0
             while try_count < 1:
                 if self.ai_inspection:
-                    from leeq import AIInstructionExperiment
 
                     prompt = f"""
                         Please implement the ConditionalStarkShiftRepeatedGate experiment with the provided parameters.
@@ -1708,8 +1706,8 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
                     repeated_gate = ai_experiment.get_last_experiment()
                     """
 
-                    from leeq.experiments.ai.automation import execute_experiment_from_prompt
-                    from leeq.utils.ai.staging.stage_execution import get_exp_from_var_table
+                    from k_agents.experiment.automation import execute_experiment_from_prompt
+                    from k_agents.staging import get_exp_from_var_table
 
                     ai_experiment_var_table = execute_experiment_from_prompt(
                         prompt=prompt, duts=self.duts,

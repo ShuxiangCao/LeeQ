@@ -10,7 +10,7 @@ from labchronicle import register_browser_function, log_and_record
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
 from leeq import Experiment
-from leeq.utils.ai import visual_analyze_prompt
+from k_agents.vlms import visual_analyze_prompt
 from leeq.utils.compatibility import *
 from plotly import graph_objects as go
 
@@ -46,7 +46,7 @@ class SimpleRamseyMultilevel(Experiment):
             set_offset: float = 10.0,
             update: bool = True) -> None:
         """
-        Ramsey experiment for estimating the qubit frequency or T2 ramsey.
+        Ramsey experiment for estimating the qubit frequency or T2 ramsey (not T2 echo).
 
         Parameters:
             dut: The qubit on which the experiment is performed.

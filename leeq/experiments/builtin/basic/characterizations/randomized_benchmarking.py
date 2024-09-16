@@ -12,7 +12,7 @@ from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.cliffords import get_clifford_from_id
 from leeq.utils.compatibility import prims
-from leeq.utils.ai.vlms import visual_analyze_prompt
+from k_agents.vlms import visual_analyze_prompt
 import scipy.optimize as so
 import uncertainties as unc
 

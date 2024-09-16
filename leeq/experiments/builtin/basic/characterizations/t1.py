@@ -12,7 +12,7 @@ from leeq.utils import setup_logging
 from leeq.utils.compatibility import *
 from leeq.utils.compatibility.prims import SweepLPB
 from leeq.theory.fits.multilevel_decay import fit_decay as fit_multilevel_decay, plot
-from leeq.utils.ai.vlms import visual_analyze_prompt
+from k_agents.vlms import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 
