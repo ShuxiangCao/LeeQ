@@ -27,7 +27,7 @@ from k_agents.indexer.experiment_summarize import get_experiment_summary
 logger = setup_logging(__name__)
 
 
-class LeeQExperiment(LeeQObject):
+class LeeQAIExperiment(LeeQObject):
     """
     Base class for all experiments.
 
@@ -51,6 +51,76 @@ class LeeQExperiment(LeeQObject):
          that the function will be executed when the experiment is finished execution in Jupyter notebook. It also
          allows the function to be executed later when data loaded from the log file.
     """
+
+
+    _experiment_result_analysis_instructions = None
+
+    def __init__(self, *args, **kwargs):
+        """
+        Initialize the experiment.
+        """
+
+        super().__init__(name=f"Experiment: {self.__class__.__name__}")
+
+        self._ai_inspection_results = {}
+        self._ai_final_analysis = None
+        self._browser_function_results = {}
+        self._browser_function_images = {}
+        self._llm_logger = mllm.chat.ChatLogger(show_table=False)
+        self._llm_logger.__enter__()
+
+        # Check the input arguments
+        bound = self._check_arguments(self.run, *args, **kwargs)
+
+        # Register the active experiment instance
+        ExperimentManager().register_active_experiment_instance(self)
+
+        try:
+            # Run the experiment
+            self._run(bound)
+        finally:
+            self.chronicle_log()
+
+        self._post_run()
+        self._llm_logger.__exit__(None, None, None)
+
+    def _run(self, bound):
+        if setup().status().get_parameters("High_Level_Simulation_Mode"):
+            self.run_simulated(*bound.args, **bound.kwargs)
+        else:
+            self.run(*bound.args, **bound.kwargs)
+
+    def chronicle_log(self):
+        # Make sure we print the record details before throwing the
+        # exception
+        if Chronicle().is_recording():
+            # Print the record details
+            record_details = self.retrieve_latest_record_entry_details(
+                self.run)
+            if record_details is not None:
+                record_details = record_details.copy()
+                record_details.update(
+                    {'print_time': datetime.datetime.now().strftime(
+                        "%Y-%m-%d %H:%M:%S")})
+                display_json_dict(
+                    record_details,
+                    root=self.__class__.__qualname__,
+                    expanded=False)
+            else:
+                msg = f"Failed to retrieve and save the record details for {self.run.__qualname__}"
+                logger.warning(msg)
+
+    def run_simulated(self, *args, **kwargs):
+        """
+        Run the experiment in simulation mode. This is useful for debugging.
+        """
+        raise NotImplementedError()
+
+    def run(self, *args, **kwargs):
+        """
+        The main experiment script. Should be decorated by `labchronicle.log_and_record` to log the experiment.
+        """
+        raise NotImplementedError()
 
     def _execute_browsable_plot_function(self, build_static_image=False):
         """
@@ -142,103 +212,6 @@ class LeeQExperiment(LeeQObject):
 
         return bound
 
-    def __init__(self, *args, **kwargs):
-        """
-        Initialize the experiment.
-        """
-
-        # Check the input arguments
-        bound = self._check_arguments(self.run, *args, **kwargs)
-
-        super(
-            LeeQExperiment, self).__init__(
-            name=f"Experiment: {self.__class__.__name__}")
-
-        # Register the active experiment instance
-        ExperimentManager().register_active_experiment_instance(self)
-
-        self._browser_function_results = {}
-        self._browser_function_images = {}
-
-        self._llm_logger = mllm.chat.ChatLogger(show_table=False)
-        self._llm_logger.__enter__()
-
-        try:
-            # Run the experiment
-            if setup().status().get_parameters("High_Level_Simulation_Mode"):
-                self.run_simulated(*bound.args, **bound.kwargs)
-            else:
-                self.run(*bound.args, **bound.kwargs)
-
-        finally:
-            # Make sure we print the record details before throwing the
-            # exception
-            if Chronicle().is_recording():
-                # Print the record details
-                record_details = self.retrieve_latest_record_entry_details(
-                    self.run)
-                if record_details is not None:
-                    record_details = record_details.copy()
-                    record_details.update(
-                        {'print_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
-                    display_json_dict(
-                        record_details,
-                        root=self.__class__.__qualname__,
-                        expanded=False)
-                else:
-                    msg = f"Failed to retrieve and save the record details for {self.run.__qualname__}"
-                    logger.warning(msg)
-
-        self._post_run()
-        self._llm_logger.__exit__(None, None, None)
-
-    def _post_run(self):
-        """
-        The post run method to execute after the experiment is finished.
-        """
-
-        # Check if we need to plot
-        show_plots = setup().status().get_parameters("Plot_Result_In_Jupyter")
-
-        if show_plots:
-            for name, func in self.get_browser_functions():
-                try:
-                    self._execute_single_browsable_plot_function(func)
-                    result = self._browser_function_results[func.__qualname__]
-                except Exception as e:
-                    self.logger.warning(
-                        f"Error when executing the browsable plot function {name}:{e}."
-                    )
-                    self.logger.warning(f"Ignore the error and continue.")
-                    self.logger.warning(f"{e}")
-                    continue
-
-                try:
-                    if isinstance(
-                            result, plotly.graph_objs.Figure):
-                        result.show()
-                    if isinstance(result, matplotlib.figure.Figure):
-                        from matplotlib import pyplot as plt
-                        display(result)
-                        plt.close(result)
-                except Exception as e:
-                    self.logger.warning(
-                        f"Error when displaying experiment result of {func.__qualname__}: {e}"
-                    )
-                    self.logger.warning(f"Ignore the error and continue.")
-                    self.logger.warning(f"{e}")
-
-    def run_simulated(self, *args, **kwargs):
-        """
-        Run the experiment in simulation mode. This is useful for debugging.
-        """
-        raise NotImplementedError()
-
-    def run(self, *args, **kwargs):
-        """
-        The main experiment script. Should be decorated by `labchronicle.log_and_record` to log the experiment.
-        """
-        raise NotImplementedError()
 
     def get_experiment_details(self):
         """
@@ -258,22 +231,6 @@ class LeeQExperiment(LeeQObject):
 
         return {"record_details": self.retrieve_latest_record_entry_details(
             self.run), "experiment_arguments": kwargs, }
-
-
-class LeeQAIExperiment(LeeQExperiment):
-    """
-    A extension class for AI compatible experiments definitions.
-    """
-
-    _experiment_result_analysis_instructions = None
-
-    def __init__(self, *args, **kwargs):
-        """
-        Initialize the experiment.
-        """
-        self._ai_inspection_results = {}
-        self._ai_final_analysis = None
-        super(LeeQAIExperiment, self).__init__(*args, **kwargs)
 
     @classmethod
     def is_ai_compatible(cls):
@@ -408,8 +365,41 @@ Running arguments:
         """
         The post run method to execute after the experiment is finished.
         """
+        """
+                The post run method to execute after the experiment is finished.
+                """
 
-        super(LeeQAIExperiment, self)._post_run()
+        # Check if we need to plot
+        show_plots = setup().status().get_parameters("Plot_Result_In_Jupyter")
+
+        if show_plots:
+            for name, func in self.get_browser_functions():
+                try:
+                    self._execute_single_browsable_plot_function(func)
+                    result = self._browser_function_results[func.__qualname__]
+                except Exception as e:
+                    self.logger.warning(
+                        f"Error when executing the browsable plot function {name}:{e}."
+                    )
+                    self.logger.warning(f"Ignore the error and continue.")
+                    self.logger.warning(f"{e}")
+                    continue
+
+                try:
+                    if isinstance(
+                            result, plotly.graph_objs.Figure):
+                        result.show()
+                    if isinstance(result, matplotlib.figure.Figure):
+                        from matplotlib import pyplot as plt
+                        display(result)
+                        plt.close(result)
+                except Exception as e:
+                    self.logger.warning(
+                        f"Error when displaying experiment result of {func.__qualname__}: {e}"
+                    )
+                    self.logger.warning(f"Ignore the error and continue.")
+                    self.logger.warning(f"{e}")
+
 
         run_ai_inspection = setup().status().get_parameters("AIAutoInspectPlots")
 
@@ -423,6 +413,7 @@ Running arguments:
                     display_chat(agent_name=f"Inspection AI",
                                  content='<br>' + html,
                                  background_color=color)
+
 
 
 Experiment = LeeQAIExperiment
