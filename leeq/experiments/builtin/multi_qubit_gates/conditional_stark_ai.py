@@ -3,7 +3,7 @@ import inspect
 
 from leeq.utils import setup_logging
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
-from leeq.utils.ai import visual_analyze_prompt
+from k_agents.vlms import visual_analyze_prompt
 from leeq.utils.ai.display_chat.notebooks import dict_to_html, display_chat
 from leeq.theory import fits
 from leeq.theory.fits.fit_exp import fit_2d_freq_with_cov
