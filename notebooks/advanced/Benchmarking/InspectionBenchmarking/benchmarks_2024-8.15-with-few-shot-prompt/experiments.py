@@ -32,7 +32,7 @@ class NormalisedRabiDataValidityCheckRaw(NormalisedRabi):
         the magnitude of the frequency components of the data.
         """
 
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
         t = np.arange(args['start'], args['stop'], args['step'])
         delta_t = t[1] - t[0]  # Time step
 
@@ -91,7 +91,7 @@ class NormalisedRabiDataValidityCheckRaw(NormalisedRabi):
         experiment.
         """
 
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
         t = np.arange(args['start'], args['stop'], args['step'])
         t_interpolate = np.arange(
             args['start'],
@@ -160,7 +160,7 @@ class NormalisedRabiDataValidityCheckRaw(NormalisedRabi):
         """
 
         oscillation_freq = self.fit_params['Frequency']
-        experiment_time_duration = self.retrieve_args(self.run)['stop'] - self.retrieve_args(self.run)['start']
+        experiment_time_duration = self.get_run_args_dict()['stop'] - self.get_run_args_dict()['start']
         oscillation_count = (experiment_time_duration * oscillation_freq)
 
         return (f"The fitting result of the Rabi oscillation suggest the amplitude of {self.fit_params['Amplitude']}, "
@@ -188,7 +188,7 @@ class NormalisedRabiDataValidityCheckImageFewShot(NormalisedRabiDataValidityChec
         the magnitude of the frequency components of the data.
         """
 
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
         t = np.arange(args['start'], args['stop'], args['step'])
         delta_t = t[1] - t[0]  # Time step
 
@@ -255,7 +255,7 @@ The rest of the plot should remain relatively stable, without significant fluctu
 Provide a detailed analysis of the magnitude and frequency data. Identifying a resonator indicates a successful experiment.
     """)
     def plot_magnitude(self):
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
         f = np.arange(args["start"], args["stop"], args["step"])
 
         fig = go.Figure()
@@ -294,7 +294,7 @@ the following Image is a failure case for the experiment:
 Image("image_refs/resonator_spec_failure_ResonatorSweepTransmissionWithExtraInitialLPB.plot_magnitude.png")
 """)
     def plot_magnitude(self):
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
         f = np.arange(args["start"], args["stop"], args["step"])
 
         fig = go.Figure()

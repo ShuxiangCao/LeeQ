@@ -1,4 +1,6 @@
 import datetime
+import inspect
+
 import mllm
 import numpy as np
 import matplotlib
@@ -50,11 +52,40 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
         KExperiment.__init__(self, *args, **kwargs)
         self._llm_logger = mllm.chat.ChatLogger(show_table=False)
 
-
         # Check the input arguments
-        bound = self._check_arguments(self.run, *args, **kwargs)
-        self._run(bound)
+        args, kwargs = self._check_arguments(self.bare_run, *args, **kwargs)
+        self.run(*args, **kwargs)
 
+    def _check_arguments(self, func, *args, **kwargs):
+        """
+        Check the arguments of the function.
+
+        Parameters:
+            func (callable): The function to check.
+            args (list): The arguments of the function.
+            kwargs (dict): The keyword arguments of the function.
+
+        Returns:
+            dict: The arguments of the function.
+        """
+        sig = inspect.signature(func)
+
+        if 'ai_inspection' in kwargs and 'ai_inspection' not in sig.parameters:
+            del kwargs['ai_inspection']
+
+        try:
+            bound = sig.bind(*args, **kwargs)
+            bound.apply_defaults()
+            msg = None
+        except TypeError as e:
+            msg = f"{e}\n\n"
+            msg += f"Function signature: {sig}\n\n"
+            msg += f"Documents:\n\n {self.bare_run.__doc__}\n\n"
+
+        if msg is not None:
+            raise TypeError(msg)
+
+        return bound.args, bound.kwargs
 
     def _before_run(self, args, kwargs):
         KExperiment._before_run(self, args, kwargs)
@@ -76,7 +107,7 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
         if Chronicle().is_recording():
             # Print the record details
             record_details = self.retrieve_latest_record_entry_details(
-                self.run)
+                self.bare_run)
             if record_details is not None:
                 record_details = record_details.copy()
                 record_details.update(
@@ -87,7 +118,7 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
                     root=self.__class__.__qualname__,
                     expanded=False)
             else:
-                msg = f"Failed to retrieve and save the record details for {self.run.__qualname__}"
+                msg = f"Failed to retrieve and save the record details for {self.bare_run.__qualname__}"
                 logger.warning(msg)
 
     def get_experiment_details(self):
@@ -99,15 +130,15 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
             dict: The experiment details.
         """
 
-        if self.run.__qualname__ not in self._register_log_and_record_args_map:
+        if self.bare_run.__qualname__ not in self._register_log_and_record_args_map:
             return {}
 
-        kwargs = self.retrieve_args(self.run)
+        kwargs = self.retrieve_args(self.bare_run)
         kwargs = {k: repr(v) for k, v in kwargs.items()}
         kwargs['name'] = self._name
 
         return {"record_details": self.retrieve_latest_record_entry_details(
-            self.run), "experiment_arguments": kwargs, }
+            self.bare_run), "experiment_arguments": kwargs, }
 
     def show_plots(self):
         for name, func in self.get_plot_functions():

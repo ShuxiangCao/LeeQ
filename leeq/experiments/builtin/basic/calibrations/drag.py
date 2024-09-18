@@ -283,7 +283,7 @@ If success cannot be determined, consider the experiment failed.
 
     def get_analyzed_result_prompt(self) -> Union[str, None]:
 
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         fitting_parameters = f"Sweep start: {self.inv_alpha_start}\n" \
                              f"Sweep stop: {self.inv_alpha_stop}\n"

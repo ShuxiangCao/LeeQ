@@ -243,7 +243,7 @@ class NormalisedRabi(Experiment):
         experiment.
         """
 
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
         t = np.arange(args['start'], args['stop'], args['step'])
         t_interpolate = np.arange(
             args['start'],
@@ -315,7 +315,7 @@ class NormalisedRabi(Experiment):
 
         """
 
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
         t = np.arange(args['start'], args['stop'], args['step'])
         data = np.squeeze(self.mp.result())
 
@@ -362,7 +362,7 @@ class NormalisedRabi(Experiment):
         """
 
         oscillation_freq = self.fit_params['Frequency']
-        experiment_time_duration = self.retrieve_args(self.run)['stop'] - self.retrieve_args(self.run)['start']
+        experiment_time_duration = self.get_run_args_dict()['stop'] - self.get_run_args_dict()['start']
         oscillation_count = (experiment_time_duration * oscillation_freq)
 
         return (f"The fitting result of the Rabi oscillation suggest the amplitude of {self.fit_params['Amplitude']}, "
@@ -471,7 +471,7 @@ class PowerRabi(Experiment):
         experiment.
         """
 
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
         t = np.arange(args['amp_start'], args['amp_stop'], args['amp_step'])
         amp_interpolate = np.arange(
             args['amp_start'],
@@ -543,7 +543,7 @@ class PowerRabi(Experiment):
 
         """
 
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
         t = np.arange(args['start'], args['stop'], args['step'])
         data = np.squeeze(self.mp.result())
 
@@ -722,7 +722,7 @@ class MultiQubitRabi(Experiment):
             i (int): Index of the qubit to plot.
         """
 
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
         t = np.arange(args['start'], args['stop'], args['step'])
         t_interpolate = np.arange(
             args['start'],

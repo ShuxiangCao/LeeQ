@@ -77,9 +77,9 @@ class RandomizedBenchmarking2Qubits(Experiment):
         self.results = [mprim.result() for mprim in mprims]
 
     def analyze_result(self):
-        kinds = self.retrieve_args(self.run)['kinds']
-        seq_length = self.retrieve_args(self.run)['seq_length']
-        duts = self.retrieve_args(self.run)['duts']
+        kinds = self.get_run_args_dict()['kinds']
+        seq_length = self.get_run_args_dict()['seq_length']
+        duts = self.get_run_args_dict()['duts']
 
         data = np.squeeze(np.asarray(self.results)).transpose([0, 2, 1])
         data = to_dense_probabilities(data)
@@ -121,7 +121,7 @@ class RandomizedBenchmarking2Qubits(Experiment):
 
         self.analyze_result()
 
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
         seq_length = args['seq_length']
 
         lseq = np.linspace(0, np.amax(seq_length) + 1, 1001)
@@ -265,7 +265,7 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         df['Value'] = df['Value'].apply(lambda x: f"{x:.3f}" if isinstance(x, float) else x)
         print(df)
 
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
         seq_length = args['seq_length']
 
         lseq = np.linspace(0, np.amax(seq_length) + 1, 1001)

@@ -741,7 +741,7 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
         """
         Plot the results.
         """
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         t = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1)
         t_interpolate = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1 / 10)
@@ -798,7 +798,7 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
         self.plot_leakage_to_control()
 
     def plot_rescaled_after_fit(self):
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         t = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1)
         t_interpolate = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1 / 10)
@@ -855,7 +855,7 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
 
     def plot_leakage_to_control(self):
 
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         t = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1)
 

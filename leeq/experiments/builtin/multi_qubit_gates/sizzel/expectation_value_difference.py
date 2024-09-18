@@ -93,7 +93,7 @@ class ConditionalStarkSpectroscopyDiffAmpFreq(experiment):
             go.Figure: A heatmap plot of the differential measurement results.
         """
         # Retrieve arguments used during the run for axis scaling.
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
         ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
@@ -122,7 +122,7 @@ class ConditionalStarkSpectroscopyDiffAmpFreq(experiment):
             go.Figure: A heatmap plot of the differential measurement results.
         """
         # Retrieve arguments used during the run for axis scaling.
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
         ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
@@ -151,7 +151,7 @@ class ConditionalStarkSpectroscopyDiffAmpFreq(experiment):
             go.Figure: A figure with two high-resolution heatmaps, one for the main result and one for the control.
         """
         # Retrieve arguments used during the run for axis scaling.
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
         ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
@@ -311,7 +311,7 @@ class ConditionalStarkSpectroscopyDiffAmpTargetFreq(experiment):
             go.Figure: A heatmap plot of the differential measurement results.
         """
         # Retrieve arguments used during the run for axis scaling.
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
         ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
@@ -340,7 +340,7 @@ class ConditionalStarkSpectroscopyDiffAmpTargetFreq(experiment):
             go.Figure: A heatmap plot of the differential measurement results.
         """
         # Retrieve arguments used during the run for axis scaling.
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
         ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
@@ -369,7 +369,7 @@ class ConditionalStarkSpectroscopyDiffAmpTargetFreq(experiment):
             go.Figure: A figure with two high-resolution heatmaps, one for the main result and one for the control.
         """
         # Retrieve arguments used during the run for axis scaling.
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
         ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
@@ -522,7 +522,7 @@ class ConditionalStarkSpectroscopyDiffPhaseFreq(experiment):
         Returns:
             go.Figure: A heatmap plot of the differential measurement results.
         """
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
         ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
@@ -548,7 +548,7 @@ class ConditionalStarkSpectroscopyDiffPhaseFreq(experiment):
         Returns:
             go.Figure: A heatmap plot of the differential measurement results.
         """
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
         ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
@@ -573,7 +573,7 @@ class ConditionalStarkSpectroscopyDiffPhaseFreq(experiment):
         Returns:
             go.Figure: A figure with two high-resolution heatmaps, one for the main result and one for the control.
         """
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
         ys = np.arange(start=args['freq_start'], stop=args['freq_stop'], step=args['freq_step'])
@@ -714,7 +714,7 @@ class ConditionalStarkSpectroscopyDiffAmpPhase(experiment):
         Returns:
             go.Figure: A heatmap plot of the differential measurement results.
         """
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
         ys = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
@@ -740,7 +740,7 @@ class ConditionalStarkSpectroscopyDiffAmpPhase(experiment):
         Returns:
             go.Figure: A heatmap plot of the differential measurement results.
         """
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
         ys = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
@@ -765,7 +765,7 @@ class ConditionalStarkSpectroscopyDiffAmpPhase(experiment):
         Returns:
             go.Figure: A figure with two high-resolution heatmaps, one for the main result and one for the control.
         """
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
         ys = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
@@ -882,7 +882,7 @@ class ConsidtionalStarkSpectroscopyDifferenceBase(Experiment):
         Returns:
             go.Figure: A heatmap plot of the differential measurement results.
         """
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
         ys = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
@@ -908,7 +908,7 @@ class ConsidtionalStarkSpectroscopyDifferenceBase(Experiment):
         Returns:
             go.Figure: A heatmap plot of the differential measurement results.
         """
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
         ys = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
@@ -933,7 +933,7 @@ class ConsidtionalStarkSpectroscopyDifferenceBase(Experiment):
         Returns:
             go.Figure: A figure with two high-resolution heatmaps, one for the main result and one for the control.
         """
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
 
         xs = np.arange(start=args['amp_start'], stop=args['amp_stop'], step=args['amp_step'])
         ys = np.arange(start=args['phase_diff_start'], stop=args['phase_diff_stop'], step=args['phase_diff_step'])
