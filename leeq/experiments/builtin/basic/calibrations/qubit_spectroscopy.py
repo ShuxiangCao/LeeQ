@@ -257,7 +257,7 @@ class QubitSpectroscopyFrequency(Experiment):
         """
 
         # Retrieve the arguments used in the `run` method
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
 
         # Create a new plot
         fig = go.Figure()
@@ -302,7 +302,7 @@ class QubitSpectroscopyFrequency(Experiment):
         """
 
         # Retrieve the arguments used in the `run` method
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
 
         # Create a new plot
         fig = go.Figure()
@@ -536,7 +536,7 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         """
 
         # Retrieve arguments used during the 'run' function to use for plotting
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         f = np.arange(args['start'], args['stop'], args['step'])
         amps = np.arange(
             args['qubit_amp_start'],

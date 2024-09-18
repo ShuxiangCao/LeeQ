@@ -284,7 +284,7 @@ If success cannot be determined, consider the experiment failed.
     @text_inspection
     def fitting(self) -> Union[str, None]:
 
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
 
         fitting_parameters = f"Sweep start: {self.inv_alpha_start}\n" \
                              f"Sweep stop: {self.inv_alpha_stop}\n"

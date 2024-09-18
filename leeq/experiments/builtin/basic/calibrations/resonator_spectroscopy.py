@@ -224,7 +224,7 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         """
 
         # Get the sweep parameters
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
 
         # Get the data
         result = self.data
@@ -297,7 +297,7 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             z, f0, Q, amp, baseline, direction (tuple): The phase gradient, the resonant frequency, the quality factor,
             the amplitude, the baseline, and the direction of the Lorentzian peak.
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         f = np.arange(args["start"], args["stop"], args["step"])
         phase_trace = self.result["Phase"]
         phase_unwrapped = np.unwrap(phase_trace)
@@ -379,7 +379,7 @@ Analyze a new resonator spectroscopy magnitude plot to determine if it shows evi
 Provide a detailed analysis of the magnitude and frequency data. Identifying a resonator indicates a successful experiment.
     """)
     def plot_magnitude(self):
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         f = np.arange(args["start"], args["stop"], args["step"])
 
         fig = go.Figure()
@@ -429,13 +429,13 @@ Provide a detailed analysis of the magnitude and frequency data. Identifying a r
             fit_succeed = True
         except Exception as e:
             logger.error(f"Error fitting phase gradient: {e}")
-            args = self.get_run_args_dict()
+            args = self._get_run_args_dict()
             f = np.arange(args["start"], args["stop"], args["step"])
             phase_trace = self.result["Phase"]
             phase_unwrapped = np.unwrap(phase_trace)
             z = (phase_unwrapped[1:] - phase_unwrapped[:-1]) / args["step"]
 
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         f = np.arange(args["start"], args["stop"], args["step"])
         f_interpolate = np.arange(
             args["start"],
@@ -633,7 +633,7 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         Returns:
             plotly.graph_objects.Figure: The figure.
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         trace = np.squeeze(self.mp.result()).transpose()
 
         return self._plot_data(
@@ -657,7 +657,7 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
             plotly.graph_objects.Figure: The figure.
         """
 
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         trace = np.squeeze(self.mp.result()).transpose()
 
         return self._plot_data(
@@ -681,7 +681,7 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         Returns:
             plotly.graph_objects.Figure: The figure.
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         trace = np.squeeze(self.mp.result()).transpose()
 
         return self._plot_data(
@@ -707,7 +707,7 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         Returns:
             plotly.graph_objects.Figure: The figure.
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         trace = np.squeeze(self.mp.result()).transpose()
         return self._plot_data(
             x=np.arange(
@@ -776,7 +776,7 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
         """
         Plots the magnitude of the resonator spectroscopy using Plotly.
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         f = np.arange(args['start'], args['stop'], args['step'])
 
         fig = go.Figure()
@@ -802,7 +802,7 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
         """
         Plots the phase of the resonator spectroscopy using Plotly.
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         f = np.arange(args['start'], args['stop'], args['step'])
 
         fig = go.Figure()
@@ -830,7 +830,7 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
         """
         Plots the differentiated phase and its Lorentzian fit using Plotly.
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         f = np.arange(args['start'], args['stop'], args['step'])
         f_interpolate = np.arange(
             args['start'],

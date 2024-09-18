@@ -194,7 +194,7 @@ class SpinEchoMultiLevel(
         else:
             trace = self.trace
 
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
 
         t = np.arange(0, args['free_evolution_time'], args['time_resolution'])
 
@@ -260,7 +260,7 @@ class SpinEchoMultiLevel(
     def fitting(self) -> Union[str, None]:
 
         trace = self.trace
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
 
         fit_params = fit_exp_decay_with_cov(trace, args['time_resolution'])
         self.fit_params = fit_params
@@ -403,7 +403,7 @@ class MultiQubitSpinEchoMultiLevel(
         """
 
         trace = self.probs[index, :, :]
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
 
         colors = ['red', 'blue', 'green', 'orange']
 

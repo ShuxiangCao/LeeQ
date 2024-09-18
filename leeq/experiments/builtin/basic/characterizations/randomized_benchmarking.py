@@ -189,7 +189,7 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
             0], f"Unexpected qubit index {i}, maximum index {self.results.shape[0] - 1}"
 
         # Retrieving arguments and initializing variables
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         seq_length = self.seq_length
         kinds = args['kinds']
 
@@ -281,7 +281,7 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
             self.probs (List[np.ndarray]): List of the converted probabilities distribution of each qubit.
         """
         # Retrieving arguments and initializing variables
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         seq_length = self.seq_length
         kinds = args['kinds']
 
@@ -323,7 +323,7 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
             print(repr(e))
             analyze_success = False
 
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         x = self.seq_length
         kinds = args['kinds']
         xs = np.linspace(x[0], x[-1], 100)

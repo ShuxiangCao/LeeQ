@@ -483,7 +483,7 @@ class PingPongMultiQubitMultilevel(Experiment):
         Plots the results of the ping pong experiment.
         """
 
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         duts = args['duts']
 
         x = self.pulse_count + 0.5  # Adjusting pulse count for plotting
@@ -638,7 +638,7 @@ class AmpTuneUpMultiQubitMultilevel(Experiment):
         Return:
             None
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         duts = args['duts']
         plt.plot(range(self.iteration), [x[i] for x in self.amps])
         plt.xlabel('Iteration')

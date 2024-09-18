@@ -1252,7 +1252,7 @@ Image("ref_images/failure_ConditionalStarkShiftRepeatedGate.plot_control_populat
         """
         Plot the results.
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
 
         t = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1)
         t_interpolate = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1 / 10)

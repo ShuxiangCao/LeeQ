@@ -235,7 +235,7 @@ class SimpleRamseyMultilevel(Experiment):
         Returns:
             A plotly graph object containing the live data.
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         data = np.squeeze(self.mp.result())
         t = np.arange(args['start'], args['stop'], args['step'])
 
@@ -271,7 +271,7 @@ class SimpleRamseyMultilevel(Experiment):
         Returns:
             None
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         try:
             # Fit the data to an exponential decay model to extract frequency
             # Fit the data using a predefined fitting function
@@ -297,7 +297,7 @@ class SimpleRamseyMultilevel(Experiment):
         Returns:
             A tuple containing the guessed frequency, error bar, trace, arguments, and current timestamp.
         """
-        args = copy.copy(self.get_run_args_dict())
+        args = copy.copy(self._get_run_args_dict())
         del args['initial_lpb']
         args['drive_freq'] = args['dut'].get_c1(
             args['collection_name'])['X'].freq
@@ -325,7 +325,7 @@ class SimpleRamseyMultilevel(Experiment):
         curve fitting, and then plots the actual data along with the fitted curve.
         """
         self.analyze_data()
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
 
         # Generate time points based on the experiment arguments
         time_points = np.arange(args['start'], args['stop'], args['step'])
@@ -400,7 +400,7 @@ class SimpleRamseyMultilevel(Experiment):
         """
         self.analyze_data()
         data = self.data
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         time_step = args['step']
 
         # Compute the (real) FFT of the data
@@ -436,14 +436,14 @@ class SimpleRamseyMultilevel(Experiment):
 
         self.analyze_data()
 
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
 
         oscillation_count = (self.fit_params['Frequency']) * (args['stop'] - args['start'])
 
         if self.error_bar == np.inf:
             return "The Ramsey experiment failed to fit the data."
 
-        return (f"The Ramsey experiment for qubit {self.get_run_args_dict()['dut'].hrid} has been analyzed. " \
+        return (f"The Ramsey experiment for qubit {self._get_run_args_dict()['dut'].hrid} has been analyzed. " \
                 f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured oscillation is "
                 f"{self.set_offset + self.fitted_freq_offset * self.level_diff:.3f} MHz. Oscillation"
                 f" amplitude is {self.fit_params['Amplitude']}."
@@ -580,7 +580,7 @@ class MultiQubitRamseyMultilevel(Experiment):
         Returns:
             A plotly graph object containing the live data.
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         data = np.squeeze(self.mp.result())
         t = np.arange(args['start'], args['stop'], args['step'])
 
@@ -616,7 +616,7 @@ class MultiQubitRamseyMultilevel(Experiment):
         Returns:
             None
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         try:
             # Fit the data to an exponential decay model to extract frequency
             # Fit the data using a predefined fitting function
@@ -662,7 +662,7 @@ class MultiQubitRamseyMultilevel(Experiment):
         Parameters:
             i: The index of the qubit for which to plot the data.
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         fit_params = self.fit_params[i]
 
         # Generate time points based on the experiment arguments

@@ -188,7 +188,7 @@ class HamiltonianTomographySingleQubitXYBase(HamiltonianTomographySingleQubitBas
                 Parameters:
                     i: The index of the qubit for which to plot the data.
                 """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
         fit_params = self.analyzed_results[i]
 
         # Generate time points based on the experiment arguments
@@ -345,7 +345,7 @@ class HamiltonianTomographySingleQubitStarkShift(HamiltonianTomographySingleQubi
         step_time: float
             Step time of the stark shift drive.
         """
-        kwargs = self.get_run_args_dict()
+        kwargs = self._get_run_args_dict()
         super().analyze_data(kwargs['step_time'])
 
 
@@ -436,5 +436,5 @@ class HamiltonianTomographySingleQubitOffresonanceDrive(HamiltonianTomographySin
         step_time: float
             Step time of the stark shift drive.
         """
-        kwargs = self.get_run_args_dict()
+        kwargs = self._get_run_args_dict()
         super().analyze_data(kwargs['step_time'])

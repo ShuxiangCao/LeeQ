@@ -143,7 +143,7 @@ class SimpleT1(Experiment):
         Returns:
         str: The prompt to analyze the data.
         """
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
 
         t = np.arange(0, args['time_length'], args['time_resolution'])
         trace = self.trace
@@ -179,7 +179,7 @@ class SimpleT1(Experiment):
         """
         self.fit_params = {}  # Initialize as an empty dictionary or suitable default value
 
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
 
         t = np.arange(0, args['time_length'], args['time_resolution'])
 
@@ -352,7 +352,7 @@ class MultiQubitT1(Experiment):
         go.Figure: The Plotly figure object.
         """
 
-        args = self.get_run_args_dict()
+        args = self._get_run_args_dict()
 
         t = np.arange(0, args['time_length'], args['time_resolution'])
         trace = self.traces[i]
