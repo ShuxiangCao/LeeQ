@@ -9,7 +9,7 @@ def extract_results_from_experiment(exp):
         'fitting_only': exp.get_ai_inspection_results(inspection_method='fitting_only', ignore_cache=True),
         'visual_only': exp.get_ai_inspection_results(inspection_method='visual_only', ignore_cache=True),
     }
-    exp._execute_browsable_plot_function(build_static_image=True)
+    exp._execute_plot_functions(build_static_image=True)
     return analyze_results
 
 

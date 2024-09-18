@@ -4,7 +4,7 @@ import inspect
 from leeq.utils import setup_logging
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
 from k_agents.vlms import visual_analyze_prompt
-from leeq.utils.ai.display_chat.notebooks import dict_to_html, display_chat
+from k_agents.notebook_utils import dict_to_html, display_chat
 from leeq.theory import fits
 from leeq.theory.fits.fit_exp import fit_2d_freq_with_cov
 
@@ -2002,7 +2002,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
 
         self._analyze_histroy.append(res)
 
-        from leeq.utils.ai.display_chat.notebooks import dict_to_html, display_chat
+        from k_agents.notebook_utils import dict_to_html, display_chat
 
         html = dict_to_html(res)
         display_chat(agent_name=f"Parameter search AI",
@@ -2135,7 +2135,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
         res = chat.complete(parse="dict", expensive=True, cache=True)
         # , model = 'claude-3-opus-20240229'
 
-        from leeq.utils.ai.display_chat.notebooks import dict_to_html, display_chat
+        from k_agents.notebook_utils import dict_to_html, display_chat
 
         html = dict_to_html(res)
         display_chat(agent_name=f"Parameter search AI",

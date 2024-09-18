@@ -1,7 +1,9 @@
 import datetime
 import mllm
 import numpy as np
+import matplotlib
 import plotly
+from IPython.display import display
 from labchronicle import Chronicle
 from k_agents.experiment.experiment import Experiment as KExperiment
 from leeq.core import LeeQObject
@@ -39,8 +41,6 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
     """
 
 
-
-
     def __init__(self, *args, **kwargs):
         """
         Initialize the experiment.
@@ -56,15 +56,17 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
         self._run(bound)
 
 
-    def _before_run(self):
-        KExperiment._before_run(self)
+    def _before_run(self, args, kwargs):
+        KExperiment._before_run(self, args, kwargs)
         self._llm_logger.__enter__()
         # Register the active experiment instance
         setup().register_active_experiment_instance(self)
 
 
-    def _post_run(self):
-        KExperiment._post_run(self)
+    def _post_run(self, args, kwargs):
+        KExperiment._post_run(self, args, kwargs)
+        if self.to_show_figure_in_notebook:
+            self.show_plots()
         self.chronicle_log()
         self._llm_logger.__exit__(None, None, None)
 
@@ -106,6 +108,35 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
 
         return {"record_details": self.retrieve_latest_record_entry_details(
             self.run), "experiment_arguments": kwargs, }
+
+    def show_plots(self):
+        for name, func in self.get_plot_functions():
+            if not func.__dict__.get('_browser_function', False):
+                continue
+            try:
+                self._execute_single_plot_function(func)
+                result = self._plot_function_result_objs[func.__qualname__]
+            except Exception as e:
+                self.log_warning(
+                    f"Error when executing the browsable plot function {name}:{e}."
+                )
+                self.log_warning(f"Ignore the error and continue.")
+                self.log_warning(f"{e}")
+                continue
+
+            try:
+                if isinstance(result, plotly.graph_objs.Figure):
+                    result.show()
+                if isinstance(result, matplotlib.figure.Figure):
+                    from matplotlib import pyplot as plt
+                    display(result)
+                    plt.close(result)
+            except Exception as e:
+                self.log_warning(
+                    f"Error when displaying experiment result of {func.__qualname__}: {e}"
+                )
+                self.log_warning(f"Ignore the error and continue.")
+                self.log_warning(f"{e}")
 
     @property
     def to_show_figure_in_notebook(self):
