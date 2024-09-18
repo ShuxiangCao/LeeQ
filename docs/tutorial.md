@@ -266,7 +266,7 @@ class SimpleT1(Experiment): # The experiment class should inherit from Experimen
         self.trace = None
         self.fit_params = {}  # Initialize as an empty dictionary or suitable default value
 
-        args = self.retrieve_args(self.run) # Retrieve the arguments from the run function
+        args = self.get_run_args_dict() # Retrieve the arguments from the run function
 
         t = np.arange(0, args['time_length'], args['time_resolution'])
         trace = np.squeeze(self.mp.result())
