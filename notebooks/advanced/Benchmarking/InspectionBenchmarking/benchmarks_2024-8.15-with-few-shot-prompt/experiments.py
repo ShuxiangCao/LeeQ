@@ -1,5 +1,5 @@
 from leeq.experiments.builtin import *
-from k_agents.vlms import visual_analyze_prompt
+from k_agents.inspection.decorator import visual_inspection
 from plotly import graph_objects as go
 
 
@@ -20,7 +20,7 @@ class NormalisedRabiDataValidityCheckRaw(NormalisedRabi):
     """
 
     @register_browser_function()
-    @visual_analyze_prompt("""
+    @visual_inspection("""
     Analyze this quantum mechanics Rabi oscillation experiment plot in the Fourier frequency domain. A successful experiment should have a significant peak in the figure.
     """)
     def plot_fft(self) -> go.Figure:
@@ -72,7 +72,7 @@ class NormalisedRabiDataValidityCheckRaw(NormalisedRabi):
 
         return fig
 
-    @visual_analyze_prompt("""
+    @visual_inspection("""
     Analyze this quantum mechanics Rabi oscillation experiment plot. Determine if it shows a successful or failed experiment by evaluating:
         1. Oscillation behaviour in the figure. It may not be perfect, but it needs to be distinguished from random noise data. 
         2. Amplitude and frequency consistency. inconsistent oscillation is considered a failure.
@@ -151,7 +151,8 @@ class NormalisedRabiDataValidityCheckRaw(NormalisedRabi):
 
         return fig
 
-    def get_analyzed_result_prompt(self) -> str:
+    @text_inspection
+    def fitting(self) -> str:
         """
         Get the prompt to analyze the result.
 
@@ -171,7 +172,7 @@ class NormalisedRabiDataValidityCheckRaw(NormalisedRabi):
 
 class NormalisedRabiDataValidityCheckImageFewShot(NormalisedRabiDataValidityCheckRaw):
     @register_browser_function()
-    @visual_analyze_prompt("""
+    @visual_inspection("""
     Analyze this quantum mechanics Rabi oscillation experiment plot in the Fourier frequency domain. A successful experiment should have a significant peak in the figure.
     
     For example, the following Image is a successful Rabi oscillation experiment plot:
@@ -248,7 +249,7 @@ a new sweeping range and step size.
 """
 
     @register_browser_function()
-    @visual_analyze_prompt("""
+    @visual_inspection("""
 Analyze the resonator spectroscopy magnitude plot to determine if it exhibits characteristics indicative of a resonator. 
 Specifically, look for a sharp dip or peak in the plot, which would signal the presence of a resonator. 
 The rest of the plot should remain relatively stable, without significant fluctuations.
@@ -283,7 +284,7 @@ class ResonatorSweepTransmissionImageFewShot(ResonatorSweepTransmissionRaw):
     """
 
     @register_browser_function()
-    @visual_analyze_prompt("""
+    @visual_inspection("""
 Analyze the resonator spectroscopy magnitude plot to determine if it exhibits characteristics indicative of a resonator. 
 Specifically, look for a sharp dip or peak in the plot, which would signal the presence of a resonator. 
 The rest of the plot should remain relatively stable, without significant fluctuations.
@@ -321,7 +322,7 @@ class MeasurementCalibrationMultilevelGMMRaw(MeasurementCalibrationMultilevelGMM
 
 class MeasurementCalibrationMultilevelGMMImageFewShot(MeasurementCalibrationMultilevelGMMRaw):
     @register_browser_function()
-    @visual_analyze_prompt("""
+    @visual_inspection("""
         Analyze a plot of collected signal data to determine experiment success:
         1. Identify clusters: The signal represents hidden system states, with each state generating a 2D Gaussian distribution (spherical blobs).
         2. Count and evaluate distributions:
@@ -380,7 +381,7 @@ class DragCalibrationSingleQubitMultilevelRaw(DragCalibrationSingleQubitMultilev
 
 class DragCalibrationSingleQubitMultilevelImageFewShot(DragCalibrationSingleQubitMultilevelRaw):
     @register_browser_function()
-    @visual_analyze_prompt(
+    @visual_inspection(
         """
         Analyze the scatter plot with blue and red data points and trend lines:
             1.Compare the slopes of the trend lines.

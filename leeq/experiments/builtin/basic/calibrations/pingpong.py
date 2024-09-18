@@ -11,14 +11,13 @@ import matplotlib.pyplot as plt
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlock
 
 import numpy as np
-from scipy.optimize import curve_fit
-from typing import List, Optional, Any, Tuple, Union
+from typing import List, Optional, Union
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils.compatibility import prims
 
 from leeq.utils import setup_logging
-from k_agents.vlms import visual_analyze_prompt
+from k_agents.inspection.decorator import visual_inspection
 
 logger = setup_logging(__name__)
 
@@ -346,7 +345,7 @@ class AmpPingpongCalibrationSingleQubitMultilevel(Experiment):
         return self.run(*args, **kwargs)
 
     @register_browser_function(available_after=(run,))
-    @visual_analyze_prompt("""
+    @visual_inspection("""
     Please confirm if the amplitude converges through the iterations. If convergence is not achieved, the experiment
     is likely to be unsuccessful. Please check the amplitude plot to confirm the convergence.
     """)

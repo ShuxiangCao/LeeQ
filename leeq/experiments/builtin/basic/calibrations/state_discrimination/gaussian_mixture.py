@@ -1,18 +1,17 @@
 from sklearn.pipeline import Pipeline
-from typing import Optional, Union, List, Dict
+from typing import Union, Dict
 from plotly import graph_objects as go
 from plotly import subplots
 from matplotlib import pyplot as plt
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
-from labchronicle import register_browser_function, log_and_record
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import *
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.simulation.numpy.dispersive_readout.simulator import DispersiveReadoutSimulatorSyntheticData
 from leeq.utils import setup_logging
-from k_agents.vlms import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 
@@ -675,7 +674,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         return fig
 
     # @register_browser_function(available_after=(run,))
-    @visual_analyze_prompt("""
+    @visual_inspection("""
         You are inspecting a plot of collected signal data and determine if the experiment is successful. 
         You should observe a spherical distribution on each of the subplot on the left and right. They should be 
         positioned significantly differrently in the figure. There might be some small overlap between the two distributions.
@@ -847,7 +846,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
             return go.Figure()
 
     @register_browser_function(available_after=(run,))
-    @visual_analyze_prompt("""
+    @visual_inspection("""
 Analyze a plot of collected signal data to determine experiment success:
 1. Identify clusters: The signal represents hidden system states, with each state generating a 2D Gaussian distribution (spherical blobs).
 2. Count and evaluate distributions:
@@ -895,7 +894,8 @@ Analyze a plot of collected signal data to determine experiment success:
 
         return fig
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
         """
         Get the prompt for the analyzed result.
 

@@ -2,11 +2,12 @@ from typing import Optional, Dict, Any, Union
 import numpy as np
 
 from labchronicle import register_browser_function, log_and_record
+
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import Experiment, SweepParametersSideEffectFactory, Sweeper
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils.compatibility import *
-from k_agents.vlms import visual_analyze_prompt
 from leeq.theory import fits
 from plotly import graph_objects as go
 
@@ -225,7 +226,7 @@ class NormalisedRabi(Experiment):
             print(f"Amplitude updated: {new_amp}")
 
     @register_browser_function()
-    @visual_analyze_prompt("""
+    @visual_inspection("""
     Here is a plot of data from a quantum mechanics experiment involving Rabi oscillations. Can you analyze whether 
         this plot shows a successful experiment or a failed one? Please consider the following aspects in your analysis:
     1. Clarity of Oscillation: Describe if the data points show a clear, regular oscillatory pattern.
@@ -353,7 +354,8 @@ class NormalisedRabi(Experiment):
 
         return fig
 
-    def get_analyzed_result_prompt(self) -> str:
+    @text_inspection
+    def fitting(self) -> str:
         """
         Get the prompt to analyze the result.
 

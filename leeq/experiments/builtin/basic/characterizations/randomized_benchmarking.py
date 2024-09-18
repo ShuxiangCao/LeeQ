@@ -1,4 +1,3 @@
-import copy
 from typing import List, Union
 
 import numpy as np
@@ -7,12 +6,13 @@ import uncertainties.umath as umath
 from matplotlib import pyplot as plt
 
 from labchronicle import log_and_record, register_browser_function
+
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import Experiment, Sweeper, basic_run, setup
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.cliffords import get_clifford_from_id
 from leeq.utils.compatibility import prims
-from k_agents.vlms import visual_analyze_prompt
 import scipy.optimize as so
 import uncertainties as unc
 
@@ -479,7 +479,7 @@ class SingleQubitRandomizedBenchmarking(RandomizedBenchmarkingTwoLevelSubspaceMu
         return super().run([dut], collection_name, seq_length, kinds, cliff_set, pi_half_only, mprim_index, seed)
 
     @register_browser_function()
-    @visual_analyze_prompt("""
+    @visual_inspection("""
     This is the analysis of the randomized benchmarking experiment. The experiment is considered successful if 
     a clear exponential decay for the |0> state (blue) is observed, if the decay is too fast, the experiment 
     is failed reduce the sequence length. If the decay is too slow,  the experiment is failed and increase the sequence
@@ -492,7 +492,8 @@ class SingleQubitRandomizedBenchmarking(RandomizedBenchmarkingTwoLevelSubspaceMu
         self.analyze_decay()
         return self.plot_single_qubit_result(0)
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
         """
         Get the prompt for the analyzed result of the experiment.
 

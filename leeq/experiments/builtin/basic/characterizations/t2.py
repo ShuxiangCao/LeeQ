@@ -1,17 +1,15 @@
+from typing import Union
+from typing import Optional, Any
 import numpy as np
-from matplotlib import pyplot as plt
-from typing import Optional, Any, Dict, List, Union
-from typing import Optional, Any, Dict, List
-import numpy as np
-import uncertainties as unc
 from plotly import graph_objects as go
 
 from labchronicle import register_browser_function, log_and_record
-from leeq import Experiment, Sweeper
+
+from k_agents.inspection.decorator import text_inspection, visual_inspection
+from leeq import Experiment
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
-from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_exp_decay_with_cov
+from leeq.theory.fits import fit_exp_decay_with_cov
 from leeq.theory.utils import to_dense_probabilities
-from k_agents.vlms import visual_analyze_prompt
 from leeq.utils.compatibility import *
 
 __all__ = [
@@ -177,7 +175,7 @@ class SpinEchoMultiLevel(
         self.trace = np.squeeze(mp.result())
 
     @register_browser_function(available_after=(run,))
-    @visual_analyze_prompt(
+    @visual_inspection(
         "Please analyze the experimental data in the plot to determine if there's a clear exponential"
         "decay pattern followed by stabilization. It is important that the decay is observable, as the "
         "absence of decay is considered a failure of the experiment. Check if the tail of the decay "
@@ -258,7 +256,8 @@ class SpinEchoMultiLevel(
 
         return self.plot_echo(fit=step_no[0] > 10, step_no=step_no)
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
 
         trace = self.trace
         args = self.get_run_args_dict()

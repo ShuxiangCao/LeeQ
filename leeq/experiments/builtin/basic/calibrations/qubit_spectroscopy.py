@@ -7,7 +7,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
-from k_agents.vlms import visual_analyze_prompt
+from k_agents.inspection.decorator import visual_inspection
 
 __all__ = ['QubitSpectroscopyFrequency', 'QubitSpectroscopyAmplitudeFrequency']
 
@@ -232,7 +232,7 @@ class QubitSpectroscopyFrequency(Experiment):
             np.argmax(abs(self.result['Magnitude'] - mean_level))]
 
     @register_browser_function(available_after=(run,))
-    @visual_analyze_prompt(
+    @visual_inspection(
         """
         Given a plot of the phase response of a resonator as a function of frequency, analyze the stability and 
         features of the phase curve. Identify any distinct and sharp deviations from the baseline phase level, 

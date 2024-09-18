@@ -2,6 +2,8 @@ from typing import List, Any, Union
 
 import numpy as np
 from labchronicle import log_and_record
+
+from k_agents.inspection.decorator import text_inspection
 from leeq.utils.compatibility import prims
 from .base import GeneralisedTomographyBase, GeneralisedSingleDutStateTomography, GeneralisedStateTomography, \
     GeneralisedProcessTomography
@@ -98,7 +100,8 @@ class MultiQubitsStateTomography(GeneralisedStateTomography, QubitTomographyBase
         super().run(duts, model, mprim_index, initial_lpb, extra_measurement_duts,
                     measurement_mitigation=measurement_mitigation)
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
         if self.state_vector_ideal is not None:
             fidelity = evaluate_fidelity_density_matrix_with_state_vector(self.dm, self.state_vector_ideal)
             fidelity = "Calculated fidelity {:.2f}%".format(fidelity * 100)
@@ -161,7 +164,8 @@ class MultiQubitsProcessTomography(GeneralisedProcessTomography, QubitTomography
         super().run(duts=duts, model=model, lpb=lpb, mprim_index=mprim_index,
                     extra_measurement_duts=extra_measurement_duts, measurement_mitigation=measurement_mitigation)
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
 
         if self.u_ideal is not None:
             fidelity = evaluate_fidelity_ptm_with_unitary(self.ptm, self.u_ideal, basis=self.model._basis)

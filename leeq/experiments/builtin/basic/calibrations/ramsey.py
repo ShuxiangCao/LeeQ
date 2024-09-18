@@ -7,10 +7,10 @@ from plotly.subplots import make_subplots
 
 from labchronicle import register_browser_function, log_and_record
 
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
 from leeq import Experiment
-from k_agents.vlms import visual_analyze_prompt
 from leeq.utils.compatibility import *
 from plotly import graph_objects as go
 
@@ -305,7 +305,7 @@ class SimpleRamseyMultilevel(Experiment):
         return self.frequency_guess, self.error_bar, self.trace, args, datetime.datetime.now()
 
     @register_browser_function(available_after=('run',))
-    @visual_analyze_prompt("""
+    @visual_inspection("""
         Here is a plot of data from a quantum mechanics experiment involving Ramsey oscillations. Can you analyze whether 
             this plot shows a successful experiment or a failed one? Please consider the following aspects in your analysis:
         1. Clarity of Oscillation: Describe if the data points show a clear, regular oscillatory pattern.
@@ -425,7 +425,8 @@ class SimpleRamseyMultilevel(Experiment):
                           plot_bgcolor="white")
         return fig
 
-    def get_analyzed_result_prompt(self) -> str:
+    @text_inspection
+    def fitting(self) -> str:
         """
         Get a prompt for the analyzed result of the Ramsey experiment.
 

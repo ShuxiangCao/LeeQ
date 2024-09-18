@@ -1,24 +1,22 @@
-import multiprocessing
-
 import numpy as np
 import pandas as pd
 from scipy import optimize as so
 from labchronicle import register_browser_function, log_and_record
-from matplotlib import pyplot as plt
 from typing import List, Optional, Any, Union
 from joblib import Parallel, delayed
 from tqdm.notebook import tqdm
 import multiprocessing
 import uncertainties as unc
 from uncertainties.umath import exp as uexp
-from k_agents.vlms import visual_analyze_prompt
+
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 
 import matplotlib.pyplot as plt
 
 from leeq import Sweeper, basic_run, Experiment
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel, \
     LogicalPrimitiveBlockSerial, LogicalPrimitiveBlock
-from leeq.theory.cliffords.two_qubit_cliffords import append_inverse_C2, NC2, NC2_lim
+from leeq.theory.cliffords.two_qubit_cliffords import append_inverse_C2, NC2
 from leeq.theory.utils import to_dense_probabilities
 
 
@@ -234,7 +232,8 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         p_i = uexp(unc.ufloat(interleaved_rb.popt[1], interleaved_rb.perr[1]))
         self.infidelity = (4 - 1) / 4 * (1 - (p_i / p_s))
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
         return f"""
         The standard randomized benchmarking reports infidelity pgc to be {self.fit_params['standard']['infidelity']}.
         The interleaved randomized benchmarking reports infidelity pgc to be {self.fit_params['interleaved']['infidelity']}.
@@ -242,7 +241,7 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         """
 
     @register_browser_function()
-    @visual_analyze_prompt("""
+    @visual_inspection("""
     This is the analysis of the randomized benchmarking experiment. The experiment is considered successful two clear 
     exponential decays are observed. if the decay is too fast, the experiment is failed reduce the sequence length.
     If the decay is too slow, the experiment is failed and increase the sequence length. If the decay rate is proper,

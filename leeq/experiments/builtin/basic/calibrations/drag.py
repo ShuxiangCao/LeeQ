@@ -1,10 +1,10 @@
 from labchronicle import log_and_record, register_browser_function
 import leeq
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, basic_run, setup
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils.compatibility import prims
-from k_agents.vlms import visual_analyze_prompt
 
 from typing import Optional, Union
 import numpy as np
@@ -229,7 +229,7 @@ If success cannot be determined, consider the experiment failed.
             (self.result[:, 1] - (self.fit_xm[0] * self.sweep_values + self.fit_xm[1])) ** 2)
 
     @register_browser_function()
-    @visual_analyze_prompt(
+    @visual_inspection(
         """Analyze the scatter plot with blue and red data points and trend lines:
             1.Compare the slopes of the trend lines.
             2.Assess how well data points fit their trend lines, noting outliers or patterns.
@@ -281,7 +281,8 @@ If success cannot be determined, consider the experiment failed.
         # plt.legend()
         return fig
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
 
         args = self.get_run_args_dict()
 

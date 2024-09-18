@@ -141,7 +141,7 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
             self.bare_run), "experiment_arguments": kwargs, }
 
     def show_plots(self):
-        for name, func in self.get_plot_functions():
+        for name, func in self._get_plot_functions():
             if not func.__dict__.get('_browser_function', False):
                 continue
             try:

@@ -1,9 +1,9 @@
 # Conditional AC stark shift induced CZ gate
 import inspect
 
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq.utils import setup_logging
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
-from k_agents.vlms import visual_analyze_prompt
 from k_agents.notebook_utils import dict_to_html, display_chat
 from leeq.theory import fits
 from leeq.theory.fits.fit_exp import fit_2d_freq_with_cov
@@ -21,7 +21,7 @@ from leeq.utils.compatibility import *
 import matplotlib.pyplot as plt
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial
 from leeq.utils.compatibility import prims
-from typing import List, Optional, Union, Type
+from typing import Optional, Union, Type
 from typing import List, Dict, Any, Tuple
 import numpy as np
 from uncertainties import ufloat
@@ -331,7 +331,7 @@ class ConditionalStarkShiftContinuousPhaseSweep(Experiment):
                                  line=dict(color=color), visible='legendonly'))
 
     @register_browser_function()
-    @visual_analyze_prompt(_v_prompt)
+    @visual_inspection(_v_prompt)
     def plot_X_axis(self):
         self.analyze_results_with_errs()
 
@@ -351,7 +351,7 @@ class ConditionalStarkShiftContinuousPhaseSweep(Experiment):
         return fig
 
     @register_browser_function()
-    @visual_analyze_prompt(_v_prompt)
+    @visual_inspection(_v_prompt)
     def plot_Y_axis(self):
         self.analyze_results_with_errs()
 
@@ -370,7 +370,8 @@ class ConditionalStarkShiftContinuousPhaseSweep(Experiment):
 
         return fig
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
 
         self.analyze_results_with_errs()
 
@@ -774,7 +775,7 @@ class ConditionalStarkShiftContinuous(Experiment):
         return fig
 
     @register_browser_function()
-    @visual_analyze_prompt("""
+    @visual_inspection("""
 I have a plot showing ZZ interaction Hamiltonian tomography in the Fourier space. The X-axis represents 
 the frequency, and the Y-axis shows the amplitude of the fourier transformed value.
 My objective is to determine if the experiment is a success.
@@ -832,7 +833,7 @@ Image("ref_images/failure_ConditionalStarkShiftContinuous.plot_fourier.png")
         return fig
 
     @register_browser_function()
-    @visual_analyze_prompt("""
+    @visual_inspection("""
 I have a plot showing status of a qubit over an experiment.
 My objective is to determine if the experiment is a success. The success of the experiment should see the state
 of the qubits remains stable in the Y axis throughout the experiment.
@@ -861,7 +862,8 @@ Image("ref_images/failure_ConditionalStarkShiftContinuous.plot_control_populatio
 
         return fig
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
 
         result = self.analyze_results_with_errs()
 
@@ -1161,7 +1163,7 @@ class ConditionalStarkShiftRepeatedGate(Experiment):
         return fig
 
     @register_browser_function()
-    @visual_analyze_prompt("""
+    @visual_inspection("""
 I have a plot showing ZZ interaction Hamiltonian tomography in the Fourier space. The X-axis represents 
 the frequency, and the Y-axis shows the amplitude of the fourier transformed value.
 My objective is to determine if the experiment is a success.
@@ -1217,7 +1219,7 @@ Image("ref_images/failure_3_ConditionalStarkShiftRepeatedGate.plot_fourier.png")
         return fig
 
     @register_browser_function()
-    @visual_analyze_prompt("""
+    @visual_inspection("""
 I have a plot showing status of a qubit over an experiment.
 My objective is to determine if the experiment is a success. The success of the experiment should see the state
 of the qubits remains stable in the Y axis throughout the experiment.
@@ -1330,7 +1332,8 @@ Image("ref_images/failure_ConditionalStarkShiftRepeatedGate.plot_control_populat
 
         return inspection_results
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
         """
         Returns the analyzed result prompt for the experiment.
         """
@@ -1484,7 +1487,8 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
                                                       'analysis': f'Exception occurred: {e}'
                                                       }
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
         prompt = f"""
         Inspection results of Hamiltonian tomography:{self._xy_hamiltonian_tomography_inspection_results} 
         
@@ -2030,7 +2034,8 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
 
         return True
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
         return self._analyze_histroy[-1]['analysis']
 
 
@@ -2170,7 +2175,8 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
         self._analyze_histroy.append(res)
         return res['status']
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
         # return self._analyze_histroy[-1]['analysis']
         return self._experiment_history_to_prompt()
 

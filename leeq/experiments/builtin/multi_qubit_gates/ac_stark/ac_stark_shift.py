@@ -1,9 +1,7 @@
 # Conditional AC stark shift induced CZ gate
 
 from datetime import datetime
-
-import numpy as np
-
+from k_agents.inspection.decorator import text_inspection
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockSweep
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
@@ -17,7 +15,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from labchronicle import log_and_record, register_browser_function
-from leeq import Experiment, Sweeper, basic_run, SweepParametersSideEffectFactory
+from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.utils.compatibility import *
 
@@ -29,12 +27,7 @@ from leeq.theory.fits import *
 
 from scipy.optimize import curve_fit, OptimizeWarning
 
-from qutip import Bloch
-
 from typing import List, Any
-
-import pandas as pd
-from IPython.display import display
 
 
 # from ..characterization import *
@@ -782,7 +775,8 @@ class StarkRamseyMultilevel(Experiment):
                           plot_bgcolor="white")
         return fig
 
-    def get_analyzed_result_prompt(self) -> str:
+    @text_inspection
+    def fitting(self) -> str:
         """
         Get a prompt for the analyzed result of the Ramsey experiment.
 
@@ -975,7 +969,8 @@ class StarkDriveRamseyTwoQubits(experiment):
         )
         return fig
 
-    def get_analyzed_result_prompt(self) -> str:
+    @text_inspection
+    def fitting(self) -> str:
         self.analyze_data()
 
         if all(err == np.inf for err in self.error_bar):
@@ -1174,7 +1169,8 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
         )
         return fig
 
-    def get_analyzed_result_prompt(self) -> str:
+    @text_inspection
+    def fitting(self) -> str:
         self.analyze_data()
 
         if all(err == np.inf for err in self.error_bar):
@@ -1371,7 +1367,8 @@ class StarkDriveRamseyMultiQubits(experiment):
         )
         return fig
 
-    def get_analyzed_result_prompt(self) -> str:
+    @text_inspection
+    def fitting(self) -> str:
         self.analyze_data()
 
         if all(err == np.inf for err in self.error_bar):

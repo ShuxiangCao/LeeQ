@@ -5,6 +5,8 @@ from typing import Optional, Union
 from scipy import optimize as so
 import plotly
 from labchronicle import log_and_record, register_browser_function
+
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import SweepParametersSideEffectFactory
@@ -15,7 +17,6 @@ from typing import List, Tuple, Dict, Any
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
-from k_agents.vlms import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 
@@ -369,7 +370,7 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         return z, f0, Q, amp, baseline, direction
 
     @register_browser_function(available_after=(run,))
-    @visual_analyze_prompt("""
+    @visual_inspection("""
 Analyze a new resonator spectroscopy magnitude plot to determine if it shows evidence of a resonator. Focus on:
 1. Sharp dips or peaks at specific frequencies
 2. Signal stability
@@ -480,7 +481,8 @@ Provide a detailed analysis of the magnitude and frequency data. Identifying a r
 
         return fig
 
-    def get_analyzed_result_prompt(self) -> str:
+    @text_inspection
+    def fitting(self) -> str:
         """
         Get the analyzed result prompt.
 
