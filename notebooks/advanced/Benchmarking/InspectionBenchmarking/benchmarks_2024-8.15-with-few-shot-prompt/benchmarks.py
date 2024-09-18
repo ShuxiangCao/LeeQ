@@ -90,9 +90,9 @@ def run_benchmarks(save_path_prefix, num_samples, benchmark_func, config_key, ex
 
         for exp_type, exp in exps.items():
 
-            print('exp._browser_function_images.items()', exp._browser_function_images.items())
+            print('exp._plot_function_images.items()', exp._plot_function_images.items())
 
-            for key, image in exp._browser_function_images.items():
+            for key, image in exp._plot_function_images.items():
                 image.save(f"./images/{save_path_prefix}_{i}_{key}_{exp_type}.png")
                 print('image saved to ' + f"{save_path_prefix}_{i}_{key.split('.')[-1]}_{exp_type}.png")
 
