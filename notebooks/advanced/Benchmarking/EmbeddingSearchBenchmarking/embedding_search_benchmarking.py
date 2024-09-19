@@ -12,7 +12,7 @@ import json
 
 from mllm.cache.cache_service import caching
 
-from k_agents.codegen.codegen_rag import CodegenModelRAG
+from k_agents.translation.agent_rag import TranslationAgentRAG
 
 caching.cache_kv.inactive = True
 
@@ -170,7 +170,7 @@ def check_code(codes, exp_class):
 
 
 from k_agents.indexer.code_indexer import build_leeq_code_ltm
-from k_agents.codegen.codegen import CodegenModel, get_codegen_wm
+from k_agents.translation.agent import TranslationAgent, get_codegen_wm
 from k_agents.variable_table import VariableTable
 
 class TransmonElementFake:
@@ -200,9 +200,9 @@ def benchmark_single(key, exp_class, description, code_cog_model):
 def benchmark_all(rag, n_recall_items):
     leeq_code_ltm, exps_var_table = build_leeq_code_ltm(add_document_procedures=False)
     if rag:
-        code_cog_model = CodegenModelRAG()
+        code_cog_model = TranslationAgentRAG()
     else:
-        code_cog_model = CodegenModel()
+        code_cog_model = TranslationAgent()
     code_cog_model.n_recall_items = n_recall_items
     for idea in leeq_code_ltm.ideas:
         code_cog_model.lt_memory.add_idea(idea)
