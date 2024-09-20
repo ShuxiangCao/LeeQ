@@ -342,7 +342,7 @@ class AmpPingpongCalibrationSingleQubitMultilevel(Experiment):
 
     def run_simulated(self, *args, **kwargs):
         # This class does not directly deal with the hardware, so we forward the call to the run method.
-        return self.run(*args, **kwargs)
+        return self.bare_run(*args, **kwargs)
 
     @register_browser_function(available_after=(run,))
     @visual_inspection("""

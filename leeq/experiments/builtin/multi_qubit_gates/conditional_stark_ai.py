@@ -1583,16 +1583,6 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
                 - echo: True
             """
 
-            next_stage_guide = """Go to Complete if success. Otherwise Fail."""
-
-            """
-            ai_experiment = AIInstructionExperiment(
-                prompt,
-                next_stage_guide=next_stage_guide,
-                duts=self.duts,
-            )
-            sizzel_xy = ai_experiment.get_last_experiment()
-            """
 
             from k_agents.experiment.automation import execute_experiment_from_prompt
             from k_agents.staging import get_exp_from_var_table
@@ -1703,7 +1693,7 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
 
                     """
                     next_stage_guide = "Go to Complete if success. Otherwise Fail."
-                    ai_experiment = AIInstructionExperiment(
+                    ai_experiment = OneInstExecutionAgent(
                         prompt,
                         duts=self.duts,
                         next_stage_guide=next_stage_guide)

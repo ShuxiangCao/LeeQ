@@ -116,7 +116,7 @@ def test_ramsey(simulation_setup, qubit):
     manager = ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
     ramsey = SimpleRamseyMultilevel(
-        qubit=qubit,
+        dut=qubit,
     )
 
 
@@ -165,7 +165,7 @@ def test_drag_clibration(simulation_setup, qubit):
     )
 
 
-def test_pingpong_clibration(simulation_setup, qubit):
+def test_pingpong_calibration(simulation_setup, qubit):
     from leeq.experiments.builtin import AmpPingpongCalibrationSingleQubitMultilevel
     manager = ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
