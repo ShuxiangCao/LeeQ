@@ -169,7 +169,7 @@ def check_code(codes, exp_class):
     return True
 
 
-from k_agents.indexer.code_indexer import build_leeq_code_ltm
+from leeq.utils.ai.translation_agent import build_leeq_code_ltm
 from k_agents.translation.agent import TranslationAgent, get_codegen_wm
 from k_agents.variable_table import VariableTable
 
