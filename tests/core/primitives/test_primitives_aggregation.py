@@ -2,10 +2,11 @@ import uuid
 import pytest
 from pytest import fixture
 
-from leeq.core import LogicalPrimitive
+
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock, LogicalPrimitiveBlockParallel, \
-    LogicalPrimitiveBlockSerial
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock, \
+    LogicalPrimitiveBlockParallel, \
+    LogicalPrimitiveBlockSerial, LogicalPrimitive
 
 
 class MockLogicalPrimitive(LogicalPrimitive):

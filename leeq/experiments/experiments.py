@@ -42,6 +42,7 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
          allows the function to be executed later when data loaded from the log file.
     """
 
+    decorate_run = False
 
     def __init__(self, *args, **kwargs):
         """
@@ -53,8 +54,8 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
         self._llm_logger = mllm.chat.ChatLogger(show_table=False)
 
         # Check the input arguments
-        args, kwargs = self._check_arguments(self.bare_run, *args, **kwargs)
-        self.run(*args, **kwargs)
+        args, kwargs = self._check_arguments(self.run, *args, **kwargs)
+        self._run(*args, **kwargs)
 
     def _check_arguments(self, func, *args, **kwargs):
         """
@@ -80,7 +81,7 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
         except TypeError as e:
             msg = f"{e}\n\n"
             msg += f"Function signature: {sig}\n\n"
-            msg += f"Documents:\n\n {self.bare_run.__doc__}\n\n"
+            msg += f"Documents:\n\n {self.run.__doc__}\n\n"
 
         if msg is not None:
             raise TypeError(msg)
@@ -107,7 +108,7 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
         if Chronicle().is_recording():
             # Print the record details
             record_details = self.retrieve_latest_record_entry_details(
-                self.bare_run)
+                self.run)
             if record_details is not None:
                 record_details = record_details.copy()
                 record_details.update(
@@ -118,7 +119,7 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
                     root=self.__class__.__qualname__,
                     expanded=False)
             else:
-                msg = f"Failed to retrieve and save the record details for {self.bare_run.__qualname__}"
+                msg = f"Failed to retrieve and save the record details for {self.run.__qualname__}"
                 logger.warning(msg)
 
     def get_experiment_details(self):
@@ -130,15 +131,15 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
             dict: The experiment details.
         """
 
-        if self.bare_run.__qualname__ not in self._register_log_and_record_args_map:
+        if self.run.__qualname__ not in self._register_log_and_record_args_map:
             return {}
 
-        kwargs = self.retrieve_args(self.bare_run)
+        kwargs = self.retrieve_args(self.run)
         kwargs = {k: repr(v) for k, v in kwargs.items()}
         kwargs['name'] = self._name
 
         return {"record_details": self.retrieve_latest_record_entry_details(
-            self.bare_run), "experiment_arguments": kwargs, }
+            self.run), "experiment_arguments": kwargs, }
 
     def show_plots(self):
         for name, func in self._get_plot_functions():

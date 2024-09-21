@@ -1657,7 +1657,7 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
     """
 
     def run_simulated(self, *args, **kwargs):
-        return self.bare_run(*args, **kwargs)
+        return self.run(*args, **kwargs)
 
     @log_and_record
     def run(
@@ -2545,7 +2545,7 @@ Please format your response as a JSON dictionary using the following structure:
 """
 
     def run_simulated(self, *args, **kwargs):
-        return self.bare_run(*args, **kwargs)
+        return self.run(*args, **kwargs)
     @log_and_record
     def run(
             self,
@@ -2644,7 +2644,7 @@ If you have encountered an error, please set status to 'error'.
 """
 
     def run_simulated(self, *args, **kwargs):
-        return self.bare_run(*args, **kwargs)
+        return self.run(*args, **kwargs)
 
     @log_and_record
     def run(
