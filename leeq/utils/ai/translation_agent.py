@@ -1,7 +1,7 @@
 import os
 from typing import Tuple
 
-from k_agents.ideanet.lt_memory import LongTermMemory
+from k_agents.memory.lt_memory import LongTermMemory
 from k_agents.translation.agent import init_translation_agent, build_code_ltm
 from k_agents.variable_table import VariableTable
 

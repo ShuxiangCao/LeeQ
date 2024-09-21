@@ -1584,8 +1584,8 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
             """
 
 
-            from k_agents.experiment.automation import execute_experiment_from_prompt
-            from k_agents.staging import get_exp_from_var_table
+            from k_agents.execution.agent import execute_experiment_from_prompt
+            from k_agents.execution import get_exp_from_var_table
 
             ai_experiment_var_table = execute_experiment_from_prompt(
                 prompt=prompt, duts=self.duts,
@@ -1700,8 +1700,8 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
                     repeated_gate = ai_experiment.get_last_experiment()
                     """
 
-                    from k_agents.experiment.automation import execute_experiment_from_prompt
-                    from k_agents.staging import get_exp_from_var_table
+                    from k_agents.execution.agent import execute_experiment_from_prompt
+                    from k_agents.execution import get_exp_from_var_table
 
                     ai_experiment_var_table = execute_experiment_from_prompt(
                         prompt=prompt, duts=self.duts,
@@ -2036,7 +2036,6 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
             self,
             duts: List[TransmonElement],
             run_class: Type[Experiment],
-            ai_inspection: bool = False,
             maximum_experiments: int = 20,
             filter_parameters: bool = True,
             **kwargs
@@ -2048,8 +2047,6 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
         Parameters:
             duts: List[TransmonElement]: Devices under test.
             run_class: Type[Experiment]: The experiment class to run.
-            ai_inspection: bool: Flag for AI inspection. Defaults to False. Please set it to True if you
-                want to use the AI inspection feature, or you are an AI writing the code.
             maximum_experiments: int: The maximum number of experiments to run. Defaults to 20.
             filter_parameters: bool: Flag to filter the parameters. Defaults to True.
             **kwargs: Dict[str, Any]: Parameters for the experiment.
@@ -2160,7 +2157,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
                 updated_params = filtered_kwargs
 
             self._experiment_history.append(
-                run_class(duts=self.duts, ai_inspection=True, **updated_params))
+                run_class(duts=self.duts, **updated_params))
 
         self._analyze_histroy.append(res)
         return res['status']
@@ -2264,7 +2261,6 @@ Please format your response as a JSON dictionary using the following structure:
     def run(
             self,
             duts: List[TransmonElement],
-            ai_inspection: bool = False,
             maximum_experiments: int = 2,
             **kwargs
     ) -> None:
@@ -2274,8 +2270,6 @@ Please format your response as a JSON dictionary using the following structure:
 
         Parameters:
             duts: List[TransmonElement]: Devices under test.
-            ai_inspection: bool: Flag for AI inspection. Defaults to False. Please set it to True if you
-                want to use the AI inspection feature, or you are an AI writing the code.
             maximum_experiments: int: The maximum number of experiments to run. Defaults to 5.
             **kwargs: Dict[str, Any]: Parameters for the experiment.
 
@@ -2285,7 +2279,7 @@ Please format your response as a JSON dictionary using the following structure:
             >>>     duts=[dut1, dut2],
             >>> )
         """
-        super().run(duts=duts, run_class=ConditionalStarkEchoTuneUpAI, **kwargs, ai_inspection=ai_inspection,
+        super().run(duts=duts, run_class=ConditionalStarkEchoTuneUpAI, **kwargs,
                     maximum_experiments=maximum_experiments)
 
 
@@ -2365,7 +2359,6 @@ If you have encountered an error, please set status to 'error'.
             self,
             duts: List[TransmonElement],
             parameters: Dict[str, Any] = None,
-            ai_inspection: bool = False,
             maximum_experiments: int = 2,
     ) -> None:
         """
@@ -2386,5 +2379,4 @@ If you have encountered an error, please set status to 'error'.
             }
 
         super().run(duts=duts, run_class=ConditionalStarkTwoQubitGateAIParameterSearchAmplitude, **parameters,
-                    ai_inspection=ai_inspection,
                     maximum_experiments=maximum_experiments, filter_parameters=False)
