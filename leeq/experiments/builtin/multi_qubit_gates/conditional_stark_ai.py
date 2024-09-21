@@ -1647,6 +1647,9 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
     if this is a successful experiment. Make the analysis concise and clear in one short sentence describing the reason. 
     """
 
+    def run_simulated(self, *args, **kwargs):
+        return self.run(*args, **kwargs)
+
     @log_and_record
     def run(
             self,
@@ -2550,6 +2553,8 @@ Please format your response as a JSON dictionary using the following structure:
 </Guidelines>
 """
 
+    def run_simulated(self, *args, **kwargs):
+        return self.run(*args, **kwargs)
     @log_and_record
     def run(
             self,
@@ -2649,6 +2654,9 @@ return the set of parameters you believe to be optimal, please set status to 'fi
 Otherwise keeps state to 'searching' and trying new parameters. 
 If you have encountered an error, please set status to 'error'.
 """
+
+    def run_simulated(self, *args, **kwargs):
+        return self.run(*args, **kwargs)
 
     @log_and_record
     def run(
