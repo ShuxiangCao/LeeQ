@@ -6,7 +6,7 @@ import numpy
 import numpy as np
 from labchronicle import log_event
 
-from leeq.core import LeeQObject
+from leeq.core.base import LeeQObject
 from leeq.utils import ObjectFactory, setup_logging
 from leeq.utils import elementwise_update_dict
 from leeq.core.primitives.base import SharedParameterObject

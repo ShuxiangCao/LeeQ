@@ -3,7 +3,7 @@ import uuid
 import itertools
 from typing import Union, Iterable, Callable, Dict, Optional, List, Any
 
-from leeq.core import LeeQObject
+from leeq.core.base import LeeQObject
 from functools import partial
 
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep

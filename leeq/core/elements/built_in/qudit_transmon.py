@@ -2,10 +2,10 @@ from typing import Any
 
 import numpy as np
 
-from leeq import LogicalPrimitiveCollection
-from leeq.core import LogicalPrimitiveFactory
+
 from leeq.core.elements import Element
-from leeq.core.primitives import LogicalPrimitiveCollectionFactory
+from leeq.core.primitives import LogicalPrimitiveCollectionFactory, \
+    LogicalPrimitiveFactory, LogicalPrimitiveCollection
 
 
 class TransmonElement(Element):

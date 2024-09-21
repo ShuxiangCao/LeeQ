@@ -1,7 +1,7 @@
 from typing import Any
 
 from leeq.compiler.compiler_base import LPBCompiler
-from leeq.core import LeeQObject
+from leeq.core.base import LeeQObject
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import ExperimentalSetup

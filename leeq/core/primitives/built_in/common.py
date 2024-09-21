@@ -1,6 +1,6 @@
 import uuid
 
-from leeq.core import LogicalPrimitive
+from leeq.core.primitives import LogicalPrimitive
 
 
 class DelayPrimitive(LogicalPrimitive):

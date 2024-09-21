@@ -1,4 +1,4 @@
-from leeq.core import LeeQObject, LogicalPrimitive
+from leeq.core.base import LeeQObject
 
 
 class ExperimentContext(LeeQObject):

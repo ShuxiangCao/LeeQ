@@ -1,6 +1,8 @@
 # Conditional AC stark shift induced CZ gate
 import inspect
 
+from k_agents.execution.agent import execute_experiment_from_prompt
+from k_agents.execution.stage_execution import get_exp_from_var_table
 from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq.utils import setup_logging
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
@@ -1655,7 +1657,7 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
     """
 
     def run_simulated(self, *args, **kwargs):
-        return self.run(*args, **kwargs)
+        return self.bare_run(*args, **kwargs)
 
     @log_and_record
     def run(
@@ -1713,7 +1715,7 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
         self.iz_accuracy_threshold = iz_accuracy_threshold
         self.iz_uncertainty_threshold = iz_uncertainty_threshold
 
-        self.ai_inspection = ai_inspection
+        self.ai_inspection = True
 
         assert update_iz == False, "update_iz must be False."
 
@@ -1875,9 +1877,6 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
             """
 
 
-            from k_agents.execution.agent import execute_experiment_from_prompt
-            from k_agents.execution import get_exp_from_var_table
-
             ai_experiment_var_table = execute_experiment_from_prompt(
                 prompt=prompt, duts=self.duts,
             )
@@ -1990,9 +1989,6 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
                         next_stage_guide=next_stage_guide)
                     repeated_gate = ai_experiment.get_last_experiment()
                     """
-
-                    from k_agents.execution.agent import execute_experiment_from_prompt
-                    from k_agents.execution import get_exp_from_var_table
 
                     ai_experiment_var_table = execute_experiment_from_prompt(
                         prompt=prompt, duts=self.duts,
@@ -2549,7 +2545,7 @@ Please format your response as a JSON dictionary using the following structure:
 """
 
     def run_simulated(self, *args, **kwargs):
-        return self.run(*args, **kwargs)
+        return self.bare_run(*args, **kwargs)
     @log_and_record
     def run(
             self,
@@ -2648,7 +2644,7 @@ If you have encountered an error, please set status to 'error'.
 """
 
     def run_simulated(self, *args, **kwargs):
-        return self.run(*args, **kwargs)
+        return self.bare_run(*args, **kwargs)
 
     @log_and_record
     def run(

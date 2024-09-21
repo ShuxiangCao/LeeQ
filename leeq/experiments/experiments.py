@@ -8,7 +8,7 @@ import plotly
 from IPython.display import display
 from labchronicle import Chronicle
 from k_agents.experiment.experiment import Experiment as KExperiment
-from leeq.core import LeeQObject
+from leeq.core.base import LeeQObject
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import SetupStatusParameters

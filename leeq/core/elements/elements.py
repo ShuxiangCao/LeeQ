@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union, Optional
 
-from leeq.core import LeeQObject
+from leeq.core.base import LeeQObject
 from leeq.utils import get_calibration_log_path, display_json_dict
 from leeq.core.primitives import (
     LogicalPrimitiveCollectionFactory,
