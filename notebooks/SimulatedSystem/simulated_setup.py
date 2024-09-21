@@ -45,6 +45,10 @@ def simulation_setup():
         virtual_qubits={2: virtual_transmon_a,
                         4: virtual_transmon_b},
     )
+
+    setup.set_coupling_strength_by_qubit(
+        virtual_transmon_a, virtual_transmon_b, coupling_strength=1.5)
+
     
     manager.register_setup(setup)
     return manager

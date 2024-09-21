@@ -187,6 +187,7 @@ def test_run_stark_shift_gate_continuous(simulation_setup, qubit_1, qubit_2):
     manager = ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
     from leeq.experiments.builtin import ConditionalStarkShiftContinuous
+
     continious_exp = ConditionalStarkShiftContinuous(
         qubits=[qubit_1, qubit_2],
         amp_control=0.1,
