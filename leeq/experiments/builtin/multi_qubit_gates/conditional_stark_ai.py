@@ -411,6 +411,90 @@ class ConditionalStarkShiftContinuousPhaseSweep(Experiment):
         return prompt
 
 
+def _generate_zz_interaction_data_from_simulation(qubits,
+                                                  start,
+                                                  stop,
+                                                  sweep_points,
+                                                  zz_value,
+                                                  drive_frequency,
+                                                  amp_control
+                                                  ):
+    simulator_setup = setup().get_default_setup()
+    virtual_transmon_1 = simulator_setup.get_virtual_qubit(qubits[0])
+    virtual_transmon_2 = simulator_setup.get_virtual_qubit(qubits[1])
+
+    duts = qubits
+
+    c1_control = duts[0].get_default_c1()
+    c1_target = duts[1].get_default_c1()
+
+    # Evaluate the ZZ value
+
+    coupling = simulator_setup.get_coupling_strength_by_qubit(virtual_transmon_1, virtual_transmon_2)
+    drive_omega = simulator_setup.get_omega_per_amp(channel=c1_control.channel) * amp_control
+
+    delta = drive_frequency - virtual_transmon_1.qubit_frequency
+    freq_delta = virtual_transmon_2.qubit_frequency - virtual_transmon_1.qubit_frequency
+
+    step = (stop - start) / sweep_points
+    zz_oscillation_t = np.arange(start, stop, step)
+
+    zz_oscillation_ground_x = np.cos(2 * np.pi * zz_oscillation_t * zz_value)
+    zz_oscillation_excited_x = np.cos(2 * np.pi * zz_oscillation_t * -zz_value)
+
+    zz_oscillation_ground_y = np.sin(2 * np.pi * zz_oscillation_t * zz_value)
+    zz_oscillation_excited_y = np.sin(2 * np.pi * zz_oscillation_t * -zz_value)
+
+    # Evaluate the oscillation of the control qubit
+    control_qubit_oscillation = _qubit_z_expectation_value_off_resonance_drive(
+        f_qubit=virtual_transmon_1.qubit_frequency,
+        f_drive=drive_frequency,
+        t_start=start,
+        t_stop=stop,
+        t_step=(stop - start) / sweep_points,
+        drive_rate=drive_omega
+    )
+
+    # Evaluate the oscillation of the target qubit
+    target_qubit_oscillation = _qubit_z_expectation_value_off_resonance_drive(
+        f_qubit=virtual_transmon_2.qubit_frequency,
+        f_drive=drive_frequency,
+        t_start=start,
+        t_stop=stop,
+        t_step=(stop - start) / sweep_points,
+        drive_rate=drive_omega
+    )
+
+    zz_oscillation_ground_x *= np.abs(control_qubit_oscillation) * np.abs(target_qubit_oscillation)
+    zz_oscillation_excited_x *= np.abs(control_qubit_oscillation) * np.abs(target_qubit_oscillation)
+    zz_oscillation_ground_y *= np.abs(control_qubit_oscillation) * np.abs(target_qubit_oscillation)
+    zz_oscillation_excited_y *= np.abs(control_qubit_oscillation) * np.abs(target_qubit_oscillation)
+
+    #
+    # Add noise to the data
+    #
+
+    zz_oscillation_ground_x = apply_noise_to_data(virtual_transmon_2, zz_oscillation_ground_x)
+    zz_oscillation_excited_x = apply_noise_to_data(virtual_transmon_2, zz_oscillation_excited_x)
+    zz_oscillation_ground_y = apply_noise_to_data(virtual_transmon_2, zz_oscillation_ground_y)
+    zz_oscillation_excited_y = apply_noise_to_data(virtual_transmon_2, zz_oscillation_excited_y)
+
+    control_qubit_oscillation = apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation)
+    target_qubit_oscillation = apply_noise_to_data(virtual_transmon_2, target_qubit_oscillation)
+
+    result = np.array([[zz_oscillation_ground_x, zz_oscillation_excited_x],
+                       [zz_oscillation_ground_y, zz_oscillation_excited_y]]).transpose([2, 1, 0])
+
+    result_control = np.array([
+        [apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation),
+         apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation)],
+        [apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation),
+         apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation)]
+    ]).transpose([2, 0, 1])
+
+    return result, result_control
+
+
 class ConditionalStarkShiftContinuous(Experiment):
     """
     This class represents an experiment for tuning up a Rabi oscillation under a conditional Stark shift in a quantum
@@ -548,65 +632,15 @@ class ConditionalStarkShiftContinuous(Experiment):
             freq_delta=freq_delta
         )[0]  # Delta 11 is the ZZ value
 
-        print('Simulated ZZ value is ', zz_value)
-        print('the parameters are, ', virtual_transmon_1.anharmonicity, virtual_transmon_2.anharmonicity, coupling,
-              drive_omega, delta, freq_delta)
-
-        step = (stop - start) / sweep_points
-        zz_oscillation_t = np.arange(start, stop, step)
-
-        zz_oscillation_ground_x = np.cos(2 * np.pi * zz_oscillation_t * zz_value)
-        zz_oscillation_excited_x = np.cos(2 * np.pi * zz_oscillation_t * -zz_value)
-
-        zz_oscillation_ground_y = np.sin(2 * np.pi * zz_oscillation_t * zz_value)
-        zz_oscillation_excited_y = np.sin(2 * np.pi * zz_oscillation_t * -zz_value)
-
-        # Evaluate the oscillation of the control qubit
-        control_qubit_oscillation = _qubit_z_expectation_value_off_resonance_drive(
-            f_qubit=virtual_transmon_1.qubit_frequency,
-            f_drive=self.frequency,
-            t_start=start,
-            t_stop=stop,
-            t_step=(stop - start) / sweep_points,
-            drive_rate=drive_omega
-        )
-
-        # Evaluate the oscillation of the target qubit
-        target_qubit_oscillation = _qubit_z_expectation_value_off_resonance_drive(
-            f_qubit=virtual_transmon_2.qubit_frequency,
-            f_drive=self.frequency,
-            t_start=start,
-            t_stop=stop,
-            t_step=(stop - start) / sweep_points,
-            drive_rate=drive_omega
-        )
-
-        zz_oscillation_ground_x *= np.abs(control_qubit_oscillation) * np.abs(target_qubit_oscillation)
-        zz_oscillation_excited_x *= np.abs(control_qubit_oscillation) * np.abs(target_qubit_oscillation)
-        zz_oscillation_ground_y *= np.abs(control_qubit_oscillation) * np.abs(target_qubit_oscillation)
-        zz_oscillation_excited_y *= np.abs(control_qubit_oscillation) * np.abs(target_qubit_oscillation)
-
-        #
-        # Add noise to the data
-        #
-
-        zz_oscillation_ground_x = apply_noise_to_data(virtual_transmon_2, zz_oscillation_ground_x)
-        zz_oscillation_excited_x = apply_noise_to_data(virtual_transmon_2, zz_oscillation_excited_x)
-        zz_oscillation_ground_y = apply_noise_to_data(virtual_transmon_2, zz_oscillation_ground_y)
-        zz_oscillation_excited_y = apply_noise_to_data(virtual_transmon_2, zz_oscillation_excited_y)
-
-        control_qubit_oscillation = apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation)
-        target_qubit_oscillation = apply_noise_to_data(virtual_transmon_2, target_qubit_oscillation)
-
-        self.result = np.array([[zz_oscillation_ground_x, zz_oscillation_excited_x],
-                                [zz_oscillation_ground_y, zz_oscillation_excited_y]]).transpose([2, 1, 0])
-
-        self.result_control = np.array([
-            [apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation),
-             apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation)],
-            [apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation),
-             apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation)]
-        ]).transpose([2, 0, 1])
+        self.result, self.result_control = (
+            _generate_zz_interaction_data_from_simulation(qubits=qubits,
+                                                          start=start,
+                                                          stop=stop,
+                                                          sweep_points=sweep_points,
+                                                          zz_value=zz_value,
+                                                          drive_frequency=self.frequency,
+                                                          amp_control=amp_control
+                                                          ))
 
     @log_and_record
     def run(
@@ -1088,6 +1122,85 @@ class ConditionalStarkShiftRepeatedGate(Experiment):
 
         If the above check passes, the experiment is considered successful.
     """
+
+    @log_and_record(overwrite_func_name='ConditionalStarkShiftRepeatedGate.run')
+    def run_simulated(self, duts, amp_control, amp_target, frequency, phase_diff=0, rise=0.03,
+                      echo=True, iz_control=0, iz_target=0, width=0, start_gate_number=0, gate_count=40, zz_rate=None):
+        """
+        Runs the Repeated Gate Conditional Stark Tune-Up Rabi XY experiment for calibrating the IZ and ZZ interactions
+        between two qubits under microwave drives.
+
+        Parameters:
+        duts (List[Qubit]): The list of qubits to be used in the experiment.
+        amp_control (float): The amplitude applied to the control qubit (the first qubit in the list).
+        amp_target (float): The amplitude applied to the target qubit (the second qubit in the list).
+        frequency (float): The frequency of the stark drive pulse.
+        phase_diff (float): The phase difference between the stark drive pulse send to the control and target qubits.
+        rise (float): The rising and dropping edge time of the stark drive pulses.
+        echo (bool): Whether to include echo sequences.
+        iz_control (float): The active cancellation of the IZ rate applied to the control qubit.
+        iz_target (float): The active cancellation of the IZ rate applied to the target qubit.
+        width (float): The width of the stark drive pulses.
+        start_gate_number (int): The number of gates to start with.
+        gate_count (int): The maximum number of gates to apply in the sweep.
+        zz_rate (float): The ZZ rate of the interation measured from the conditional stark shift continious experiment.
+        """
+        self.duts = duts
+        self.frequency = frequency
+        self.amp_control = amp_control
+        self.amp_target = amp_target
+        self.phase_diff = phase_diff
+        self.width = width
+        self.iz_control = iz_control
+        self.iz_target = iz_target
+        self.rise = rise
+        self.start_gate_number = start_gate_number
+        self.gate_count = gate_count
+
+        if zz_rate is None:
+            zz_rate = 0.125 / 2 / self.width
+
+        self.zz_rate_continous = zz_rate
+
+        c1_control = self.duts[0].get_default_c1()
+        c1_target = self.duts[1].get_default_c1()
+
+        simulator_setup = setup().get_default_setup()
+        virtual_transmon_1 = simulator_setup.get_virtual_qubit(self.duts[0])
+        virtual_transmon_2 = simulator_setup.get_virtual_qubit(self.duts[1])
+
+        # Evaluate the ZZ value
+
+        from leeq.theory.sizzel_gate.sizzel_simulation import ret_zz
+
+        coupling = simulator_setup.get_coupling_strength_by_qubit(virtual_transmon_1, virtual_transmon_2)
+        drive_omega = simulator_setup.get_omega_per_amp(channel=c1_control.channel) * amp_control
+
+        delta = self.frequency - virtual_transmon_1.qubit_frequency
+        freq_delta = virtual_transmon_2.qubit_frequency - virtual_transmon_1.qubit_frequency
+
+        zz_value = ret_zz(
+            alpha1=virtual_transmon_1.anharmonicity,
+            alpha2=virtual_transmon_2.anharmonicity,
+            J=coupling,
+            eps=drive_omega,
+            delta=delta,
+            freq_delta=freq_delta
+        )[0]  # Delta 11 is the ZZ value
+
+        # assume we under shoot by 10%
+
+        zz_value = zz_value * 0.9 * width
+
+        self.result, self.result_control = (
+            _generate_zz_interaction_data_from_simulation(qubits=self.duts,
+                                                          start=start_gate_number,
+                                                          stop=start_gate_number + gate_count,
+                                                          sweep_points=gate_count,
+                                                          zz_value=zz_value,
+                                                          drive_frequency=self.frequency,
+                                                          amp_control=amp_control
+                                                          ))
 
     @log_and_record
     def run(self, duts, amp_control, amp_target, frequency, phase_diff=0, rise=0.03,
