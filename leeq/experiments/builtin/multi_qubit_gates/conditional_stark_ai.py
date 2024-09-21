@@ -550,7 +550,7 @@ class ConditionalStarkShiftContinuous(Experiment):
     @log_and_record(overwrite_func_name='ConditionalStarkShiftContinuous.run')
     def run_simulated(
             self,
-            qubits: List[TransmonElement],
+            duts: List[TransmonElement],
             amp_control: float,
             amp_target: float,
             frequency: Optional[float] = None,
@@ -584,6 +584,7 @@ class ConditionalStarkShiftContinuous(Experiment):
             iz_rise_drop (float): The iz rise drop value.
         """
 
+        qubits = duts
         self.duts = qubits
         self.frequency = frequency
         self.amp_control = amp_control
@@ -646,7 +647,7 @@ class ConditionalStarkShiftContinuous(Experiment):
     @log_and_record
     def run(
             self,
-            qubits: List[TransmonElement],
+            duts: List[TransmonElement],
             amp_control: float,
             amp_target: float,
             frequency: Optional[float] = None,
@@ -679,6 +680,7 @@ class ConditionalStarkShiftContinuous(Experiment):
             phase_diff (float): The phase difference value.
             iz_rise_drop (float): The iz rise drop value.
         """
+        qubits = duts
         self.duts = qubits
         self.frequency = frequency
         self.amp_control = amp_control
