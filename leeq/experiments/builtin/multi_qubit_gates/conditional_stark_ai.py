@@ -478,17 +478,19 @@ def _generate_zz_interaction_data_from_simulation(qubits,
     zz_oscillation_ground_y = apply_noise_to_data(virtual_transmon_2, zz_oscillation_ground_y)
     zz_oscillation_excited_y = apply_noise_to_data(virtual_transmon_2, zz_oscillation_excited_y)
 
-    control_qubit_oscillation = apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation)
+    control_qubit_oscillation_ground = apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation)
+    control_qubit_oscillation_excited = apply_noise_to_data(virtual_transmon_1, -control_qubit_oscillation)
+
     target_qubit_oscillation = apply_noise_to_data(virtual_transmon_2, target_qubit_oscillation)
 
     result = np.array([[zz_oscillation_ground_x, zz_oscillation_excited_x],
                        [zz_oscillation_ground_y, zz_oscillation_excited_y]]).transpose([2, 1, 0])
 
     result_control = np.array([
-        [apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation),
-         apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation)],
-        [apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation),
-         apply_noise_to_data(virtual_transmon_1, control_qubit_oscillation)]
+        [control_qubit_oscillation_ground,
+         control_qubit_oscillation_ground],
+        [control_qubit_oscillation_excited,
+         control_qubit_oscillation_excited]
     ]).transpose([2, 0, 1])
 
     return result, result_control
