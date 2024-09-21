@@ -116,7 +116,7 @@ def test_ramsey(simulation_setup, qubit):
     manager = ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
     ramsey = SimpleRamseyMultilevel(
-        qubit=qubit,
+        dut=qubit,
     )
 
 
