@@ -6,15 +6,16 @@ from k_agents.translation.agent import init_translation_agent, build_code_ltm
 from k_agents.variable_table import VariableTable
 
 
-def init_leeq_translation_agent():
+def init_leeq_translation_agent(document_root: str = None):
     from leeq.experiments import builtin
     from leeq.experiments import experiments as exp
     root = os.path.dirname(exp.__file__)
-    document_root = root + "/procedures"
+    document_root = document_root or root + "/procedures"
     init_translation_agent(builtin, document_root)
 
 
-def build_leeq_code_ltm(add_document_procedures=True) -> Tuple[LongTermMemory, VariableTable]:
+def build_leeq_code_ltm(add_document_procedures=True) -> Tuple[
+    LongTermMemory, VariableTable]:
     """
     Build the long term memory and variable table for leeq.
 

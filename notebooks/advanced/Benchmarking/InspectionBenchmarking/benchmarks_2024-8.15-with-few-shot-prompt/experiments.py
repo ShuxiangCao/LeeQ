@@ -1,13 +1,49 @@
+from k_agents.inspection.agents import VisualInspectionAgent
 from leeq.experiments.builtin import *
 from k_agents.inspection.decorator import visual_inspection
 from plotly import graph_objects as go
 
 
+def get_partial_ai_inspection_results(exp, inspection_method='full', ignore_cache=False):
+    ai_inspection_results = {}
+
+    assert inspection_method in ['full', 'visual_only', 'fitting_only'], \
+        f"inspection_method must be 'full', 'visual_only' or 'fitting_only', got {inspection_method}"
+
+    agents = exp._get_inspection_agents()
+    visual_agents = []
+    other_agents = []
+    for agent in agents:
+        if isinstance(agent, VisualInspectionAgent):
+            visual_agents.append(agent)
+        else:
+            other_agents.append(agent)
+
+    agents = []
+    # Add the visual inspection results to the AI inspection results.
+    if inspection_method != 'fitting_only':
+        agents = visual_agents
+
+    # Add the fitting results to the AI inspection results.
+    if inspection_method != 'visual_only':
+        agents += other_agents
+
+    if ignore_cache:
+        exp._ai_inspection_summary = None
+
+    summary = exp._get_ai_inspection_results_from_some_agents(agents)
+
+    if ignore_cache:
+        exp._ai_inspection_summary = None
+
+    return summary
+
+
 def extract_results_from_experiment(exp):
     analyze_results = {
-        'full': exp.get_ai_inspection_results(inspection_method='full', ignore_cache=True),
-        'fitting_only': exp.get_ai_inspection_results(inspection_method='fitting_only', ignore_cache=True),
-        'visual_only': exp.get_ai_inspection_results(inspection_method='visual_only', ignore_cache=True),
+        'full': get_partial_ai_inspection_results(exp, inspection_method='full', ignore_cache=True),
+        'fitting_only': get_partial_ai_inspection_results(exp, inspection_method='fitting_only', ignore_cache=True),
+        'visual_only': get_partial_ai_inspection_results(exp, inspection_method='visual_only', ignore_cache=True),
     }
     exp._execute_plot_functions(build_static_image=True)
     return analyze_results

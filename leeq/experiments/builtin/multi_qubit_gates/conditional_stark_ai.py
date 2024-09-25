@@ -979,7 +979,7 @@ If the any of above check fails, the experiment is considered failed.
         Returns the results of the AI inspection for the experiment.
         """
 
-        inspection_results = super().get_ai_inspection_results()
+        inspection_results = super().get_ai_inspection_summary()
 
         if self.fitting_2D is None:
             try:
@@ -1744,7 +1744,7 @@ Image("ref_images/failure_ConditionalStarkShiftRepeatedGate.plot_control_populat
         Returns the results of the AI inspection for the experiment.
         """
 
-        inspection_results = super().get_ai_inspection_results()
+        inspection_results = super().get_ai_inspection_summary()
         zz_pgc = self.zz_rate
         zz_rate = self.zz_rate_continous
         zz_rate = np.sign(zz_pgc) * np.abs(zz_rate)
@@ -1950,7 +1950,7 @@ if this is a successful experiment. Make the analysis concise and clear in one s
                 'success': True,
             }
 
-        inspection_results = experiment.get_ai_inspection_results()
+        inspection_results = experiment.get_ai_inspection_summary()
 
         prompt = f"""
         You are asked to read the report of the data inspection AI and look at the results reported from a fitting code.
@@ -2017,7 +2017,7 @@ if this is a successful experiment. Make the analysis concise and clear in one s
                                                             start=t_start, stop=t_stop, sweep_points=sweep_points,
                                                             phase_diff=self.current_params['phase_diff'], echo=True)
 
-            inspection_results = sizzel_xy.get_ai_inspection_results()
+            inspection_results = sizzel_xy.get_ai_inspection_summary()
         else:
             sizzel_xy = ConditionalStarkShiftContinuous(
                 qubits=self.duts,
@@ -2251,10 +2251,8 @@ if this is a successful experiment. Make the analysis concise and clear in one s
 
         return inspection_results
 
-    def get_ai_inspection_results(self, inspection_method='full', ignore_cache=False):
-        inspection_results = super().get_ai_inspection_results(
-            inspection_method=inspection_method,
-            ignore_cache=ignore_cache)
+    def get_ai_inspection_summary(self):
+        inspection_results = super().get_ai_inspection_summary()
         inspection_results['Calibrated parameters'] = self.current_params
 
         return inspection_results
@@ -2378,7 +2376,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
         prompt = f"Here is the history of the experiments you have run so far:"
 
         for i, exp in enumerate(self._experiment_history):
-            result = exp.get_ai_inspection_results()
+            result = exp.get_ai_inspection_summary()
             analyze_results = {k: v for k, v in result.items() if
                                k in ['success', 'Calibrated parameters',
                                      'analysis']}
@@ -2401,7 +2399,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
         html_dict = {}
 
         for i, exp in enumerate(self._experiment_history):
-            result = exp.get_ai_inspection_results()
+            result = exp.get_ai_inspection_summary()
             analyze_results = {k: v for k, v in result.items() if
                                k in ['success', 'Calibrated parameters',
                                      'analysis']}
@@ -2522,7 +2520,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
         html_dict = {}
 
         for i, exp in enumerate(self._experiment_history):
-            result = exp.get_ai_inspection_results()
+            result = exp.get_ai_inspection_summary()
             analyze_results = {k: v for k, v in result.items() if
                                k in ['success', 'Calibrated parameters',
                                      'analysis']}
@@ -2600,7 +2598,7 @@ Output a JSON dict with the following keys:
 "analysis" (string): a concise analysis of the experiment results.
 "success" (bool): whether the experiment was successful.
 "best_amplitude" (float): The best amplitude found in a successful experiment.
-"next_to_try" (float): The next amplitude to try.
+"new_amplitude_to_try" (float): The next amplitude to try.
 """
 
     @text_inspection
@@ -2637,7 +2635,7 @@ Please format your response as a JSON dictionary with the following keys:
 "finished" (bool): whether the experiment is finished.
 "analysis" (str): Explanation for choosing this set of parameters.
 "current_best" (float): The highest control amplitude from a succeeded experiment. The value can be None if no experiment is successful.
-"next_amp_control_to_try" (float): The new amplitude of the control qubit to try. If the experiment is finished, set this to the optimal amplitude.
+"new_amplitude_to_try" (float): The new amplitude of the control qubit to try. If the experiment is finished, set this to the optimal amplitude.
 </format>
 <requirement>
 """
@@ -2733,7 +2731,7 @@ analysis: {insp['analysis']}
 
         exp = ConditionalStarkEchoTuneUpAI(duts=self.duts, frequency=frequency,
                                            amplitude=amplitude, **kwargs)
-        inspection = exp.get_ai_inspection_results()
+        inspection = exp.get_ai_inspection_summary()
         tuning_env = TwoQubitTuningEnv()
         if frequency not in tuning_env.amplitude_tuning_results:
             tuning_env.amplitude_tuning_results[frequency] = []
@@ -2749,14 +2747,14 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFrequencyAmplitude(
 
     _rewrite_json_requirement = True
 
-    _experiment_result_analysis_instructions = """
+    __experiment_result_analysis_instructions = """
 You are required to analyze the if this is a successful experiment. The experiment is failed if we have not observed any successful experiment. Make the analysis concise and clear in one short sentence describing the reason. 
 
 Output a JSON dict with the following keys:
 "analysis" (string): a concise analysis of the experiment results.
 "success" (bool): whether the experiment was successful.
 "best_amplitude" (float): The best amplitude found in a successful experiment.
-"next_to_try" (float): The next frequency to try.
+"new_amplitude_to_try" (float): The next frequency to try.
 """
 
     @text_inspection
@@ -2868,7 +2866,7 @@ analysis: {insp['analysis']}
             frequency = duts[0].get_c1('f01').get_parameters()["freq"]
         self.frequency = frequency
         exp = ConditionalStarkTwoQubitGateAIParameterSearchAmplitude(duts, )
-        insp_results = exp.get_ai_inspection_results()
+        insp_results = exp.get_ai_inspection_summary()
 
         frequency_to_good_amplitude = TwoQubitTuningEnv().frequency_to_good_amplitude
         frequency_to_good_amplitude[self.frequency] = insp_results
