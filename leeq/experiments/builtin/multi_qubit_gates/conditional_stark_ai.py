@@ -2583,70 +2583,70 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
     #   # return self._analyze_histroy[-1]['analysis']
     #    return self._experiment_history_to_prompt()
 
-
-class ConditionalStarkTwoQubitGateAIParameterSearchAmplitude(
-    ConditionalStarkTwoQubitGateAIParameterSearchBase):
-
-    parameter_key = "amp_control"
-
+class ConditionalStarkTwoQubitGateAmplitudeAdvise(Experiment):
     _rewrite_json_requirement = True
 
     _experiment_result_analysis_instructions = """
-You are required to analyze the if this is a successful experiment. The experiment is failed if we have not observed any successful experiment. Make the analysis concise and clear in one short sentence describing the reason. 
+    You are required to analyze the if this is a successful experiment. The experiment is failed if we have not observed any successful experiment. Make the analysis concise and clear in one short sentence describing the reason. 
 
-Output a JSON dict with the following keys:
-"analysis" (string): a concise analysis of the experiment results.
-"success" (bool): whether the experiment was successful.
-"best_amplitude" (float): The best amplitude found in a successful experiment.
-"new_amplitude_to_try" (float): The next amplitude to try.
-"""
+    Output a JSON dict with the following keys:
+    "analysis" (string): a concise analysis of the experiment results.
+    "success" (bool): whether the experiment was successful.
+    "best_amplitude" (float): The best amplitude found in a successful experiment.
+    "new_amplitude_to_try" (float): The next amplitude to try.
+    """
+
+    def run_simulated(self, *args, **kwargs):
+        return self.run(*args, **kwargs)
+
+    @log_and_record
+    def run(self, duts: List[TransmonElement], frequency: float):
+        """
+        This experiment return a suggestion for the next amplitude to try for the conditional stark-shift gate.
+        The suggestion is based on the history of the experiments run so far.
+        duts: List[TransmonElement]: Devices under test.
+        frequency (float): Frequency for the experiment.
+        """
+        self.duts = duts
+        self.frequency = frequency
 
     @text_inspection
     def next_parameter(self):
         prompt = f"""
-Your objective is to find the optimal parameters for the conditional stark-shift gate that will allow you to entangle 
-two qubits. The parameters you need to find are 
-<parameters>
-'amp_control':  the amplitude of the control qubit (The first qubit), the required amplitude accuracy is 0.01. 
-</parameters>
-
-<single qubit amplitude>
-qubit 1: {self.duts[0].get_c1('f01').get_parameters()['amp']}
-qubit 2: {self.duts[1].get_c1('f01').get_parameters()['amp']}
-</single qubit amplitude>
-
-<Rules of parameter selection>
-You should try around the amplitude of single qubits. 
-The optimal parameters give the highest ZZ rate and the lowest width.
-The experiment may fail when select a amplitude too high, therefore you should start from a gentle value.
-The maximum amplitude value is 1. The minimum amplitude value is 0.  
-If an experiment succeeds, you can try to improve the results by increase the amplitude.
-If an experiment failed, you can try to recover by reduce the amplitude.
-</Rules of parameter selection>
-
-<Experiment history>
-{self._experiment_history_to_prompt()}
-</Experiment history>
-
-<requirement>
-Suggest the next experiment to determine parameters for the conditional stark-shift gate, incorporating insights from prior experiments. Implement Binary Search methodology where applicable.
-
-Please format your response as a JSON dictionary with the following keys:
-"finished" (bool): whether the experiment is finished.
-"analysis" (str): Explanation for choosing this set of parameters.
-"current_best" (float): The highest control amplitude from a succeeded experiment. The value can be None if no experiment is successful.
-"new_amplitude_to_try" (float): The new amplitude of the control qubit to try. If the experiment is finished, set this to the optimal amplitude.
-</format>
-<requirement>
-"""
-
-        """
-        <Guidelines>
-- If after 10 experiments there are no improvements, conclude the experimentation by returning the optimal parameters set and changing the status to 'finish'.
-- If the amplitude change is less than 0.01, set the status to 'finish'.
-- Continue with 'searching' status if further parameter adjustments are required.
-- Set the status to 'error' if any issues arise during the experiment process.
-</Guidelines>   
+        Your objective is to find the optimal parameters for the conditional stark-shift gate that will allow you to entangle 
+        two qubits. The parameters you need to find are 
+        <parameters>
+        'amp_control':  the amplitude of the control qubit (The first qubit), the required amplitude accuracy is 0.01. 
+        </parameters>
+        
+        <single qubit amplitude>
+        qubit 1: {self.duts[0].get_c1('f01').get_parameters()['amp']}
+        qubit 2: {self.duts[1].get_c1('f01').get_parameters()['amp']}
+        </single qubit amplitude>
+        
+        <Rules of parameter selection>
+        You should try around the amplitude of single qubits. 
+        The optimal parameters give the highest ZZ rate and the lowest width.
+        The experiment may fail when select a amplitude too high, therefore you should start from a gentle value.
+        The maximum amplitude value is 1. The minimum amplitude value is 0.  
+        If an experiment succeeds, you can try to improve the results by increase the amplitude.
+        If an experiment failed, you can try to recover by reduce the amplitude.
+        </Rules of parameter selection>
+        
+        <Experiment history>
+        {self._experiment_history_to_prompt()}
+        </Experiment history>
+        
+        <requirement>
+        Suggest the next experiment to determine parameters for the conditional stark-shift gate, incorporating insights from prior experiments. Implement Binary Search methodology where applicable.
+        
+        Please format your response as a JSON dictionary with the following keys:
+        "finished" (bool): whether the experiment is finished.
+        "analysis" (str): Explanation for choosing this set of parameters.
+        "current_best" (float): The highest control amplitude from a succeeded experiment. The value can be None if no experiment is successful.
+        "new_amplitude_to_try" (float): The new amplitude of the control qubit to try. If the experiment is finished, set this to the optimal amplitude.
+        </format>
+        <requirement>
         """
 
         chat = Chat(prompt,
@@ -2655,29 +2655,13 @@ Please format your response as a JSON dictionary with the following keys:
 
         return res
 
-    def _experiment_history_to_prompt(self):
-        tuning_env = TwoQubitTuningEnv()
-        if self.frequency not in tuning_env.amplitude_tuning_results:
-            return "You have not run any experiments yet."
-
-        results = tuning_env.amplitude_tuning_results[self.frequency]
-        prompt = f"Here is the history of the experiments you have run so far:\n"
-
-        for i, insp in enumerate(results):
-            section_prompt = f"""
-<experiment>
-amp_control: {insp['Calibrated parameters']['amp_control']}
-frequency: {insp['Calibrated parameters']['frequency']}
-success: {insp['success']}
-analysis: {insp['analysis']}
-</experiment>"""
-            prompt += section_prompt
-
-        return prompt
-
     @text_inspection
     def best_amplitude(self):
         tuning_env = TwoQubitTuningEnv()
+        if self.frequency not in tuning_env.amplitude_tuning_results:
+            return {
+                "best_amp": 'There is no successful experiment yet.'
+            }
         results = tuning_env.amplitude_tuning_results[self.frequency]
         amps = []
         for insp in results:
@@ -2693,7 +2677,31 @@ analysis: {insp['analysis']}
             "best_amp": best_amp
         }
 
+    def _experiment_history_to_prompt(self):
+        tuning_env = TwoQubitTuningEnv()
+        if self.frequency not in tuning_env.amplitude_tuning_results:
+            return "You have not run any experiments yet."
 
+        results = tuning_env.amplitude_tuning_results[self.frequency]
+        prompt = f"Here is the history of the experiments you have run so far:\n"
+
+        for i, insp in enumerate(results):
+            section_prompt = f"""
+            <experiment>
+            amp_control: {insp['Calibrated parameters']['amp_control']}
+            frequency: {insp['Calibrated parameters']['frequency']}
+            success: {insp['success']}
+            analysis: {insp['analysis']}
+            </experiment>"""
+            prompt += section_prompt
+
+        return prompt
+
+
+class ConditionalStarkTwoQubitGateAmplitudeAttempt(
+    ConditionalStarkTwoQubitGateAIParameterSearchBase):
+
+    _experiment_result_analysis_instructions = ""
 
     def run_simulated(self, *args, **kwargs):
         return self.run(*args, **kwargs)
@@ -2720,7 +2728,7 @@ analysis: {insp['analysis']}
 
         Example:
             >>> # Assume dut1 and dut2 are the devices under test.
-            >>> experiment_instance = ConditionalStarkTwoQubitGateAIParameterSearchAmplitude(
+            >>> experiment_instance = ConditionalStarkTwoQubitGateAmplitudeAttempt(
             >>>     duts=[dut1, dut2],
             >>> )
         """
@@ -2736,9 +2744,6 @@ analysis: {insp['analysis']}
         if frequency not in tuning_env.amplitude_tuning_results:
             tuning_env.amplitude_tuning_results[frequency] = []
         tuning_env.amplitude_tuning_results[frequency].append(inspection)
-
-
-
 
 
 
@@ -2865,7 +2870,7 @@ analysis: {insp['analysis']}
         if frequency is None:
             frequency = duts[0].get_c1('f01').get_parameters()["freq"]
         self.frequency = frequency
-        exp = ConditionalStarkTwoQubitGateAIParameterSearchAmplitude(duts, )
+        exp = ConditionalStarkTwoQubitGateAmplitudeAttempt(duts, )
         insp_results = exp.get_ai_inspection_summary()
 
         frequency_to_good_amplitude = TwoQubitTuningEnv().frequency_to_good_amplitude
