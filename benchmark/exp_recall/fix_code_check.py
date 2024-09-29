@@ -2,7 +2,7 @@
 
 import os, json
 
-from notebooks.advanced.Benchmarking.EmbeddingSearchBenchmarking.embedding_search_benchmarking import \
+from benchmark.exp_recall.embedding_search_benchmarking import \
     check_code, experiment_prompt
 
 
