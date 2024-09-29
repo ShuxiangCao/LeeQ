@@ -1,9 +1,9 @@
-
-# Two-qubit calibration on `duts`
+# Two level Two-qubit calibration on `duts`
 ## Background
 This procedure should not be used when only calibrate a specific aspect of the qubit, such as frequency or amplitude.
 ## Steps
-- Do an Iterative two-qubit amplitude test at `7000` on `duts`. Proceed to Completion no matter the experiment fails or succeeds.
+- Run ConditionalStarkTwoQubitGateFrequencyAdvise with `duts`. Proceed to the next stage whatever the result is.
+- Do an Iterative two-qubit amplitude test at the advised frequency on `duts`. If failed, go back the previous advising stage. If failed 5 times, proceed to the Fail stage. If succeeded, proceed to Complete.
 
 
 
@@ -11,7 +11,7 @@ This procedure should not be used when only calibrate a specific aspect of the q
 ## Background
 This experiment searches for the optimal amplitude for the two-qubit gate at `frequency` on `duts`. This is not a single step experiment, but an iterative one.
 ## Steps
-- Run ConditionalStarkTwoQubitGateAIParameterSearchAmplitude with duts=duts, frequency=`frequency`. Proceed to the next no matter the experiment fails or succeeds.
-- Run ConditionalStarkTwoQubitGateAIParameterSearchAmplitude with duts=duts, frequency=`frequency` and the amplitude equals the new_amplitude. If failed 5 times, the experiment is considered failed.
+- Run ConditionalStarkTwoQubitGateAmplitudeAdvise with `frequency` and `duts`. Proceed to the next stage whatever the result is.
+- Run ConditionalStarkTwoQubitGateAmplitudeAttempt with duts=`duts`, frequency=`frequency`, amplitude = new_amplitude_to_try. If failed, go back the previous advising stage. If failed 5 times, proceed to the Fail stage. If succeeded, proceed to Complete.
 ## Results
 Whether there is a success experiment or not. If so, what is the amplitude.
