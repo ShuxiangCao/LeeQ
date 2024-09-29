@@ -2707,7 +2707,6 @@ class ConditionalStarkTwoQubitGateAmplitudeAttempt(
             duts: List[TransmonElement],
             amplitude: float = None,
             frequency: float = None,
-            maximum_experiments: int = 2,
             **kwargs
     ) -> None:
         """
@@ -2718,7 +2717,6 @@ class ConditionalStarkTwoQubitGateAmplitudeAttempt(
             duts: List[TransmonElement]: Devices under test.
             amplitude: float: Amplitude control for the experiment.
             frequency (float, optional): Frequency for the experiment.
-            maximum_experiments: int: The maximum number of experiments to run.
             **kwargs: Dict[str, Any]: Parameters for the experiment.
 
         Example:
