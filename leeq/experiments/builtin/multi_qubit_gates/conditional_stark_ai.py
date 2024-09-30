@@ -2591,10 +2591,6 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
         self._analyze_histroy.append(res)
         return res['status']
 
-    #@text_inspection
-    #def experiment_history(self) -> Union[str, None]:
-    #   # return self._analyze_histroy[-1]['analysis']
-    #    return self._experiment_history_to_prompt()
 
 class ConditionalStarkTwoQubitGateAmplitudeAdvise(Experiment):
     _rewrite_json_requirement = True
@@ -2660,7 +2656,7 @@ class ConditionalStarkTwoQubitGateAmplitudeAdvise(Experiment):
         """
 
         chat = Chat(prompt,
-                    "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.")
+                    "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.", dedent=True)
         res = chat.complete(parse="dict", expensive=True, cache=True)
 
         return res
@@ -2708,8 +2704,7 @@ class ConditionalStarkTwoQubitGateAmplitudeAdvise(Experiment):
         return prompt
 
 
-class ConditionalStarkTwoQubitGateAmplitudeAttempt(
-    ConditionalStarkTwoQubitGateAIParameterSearchBase):
+class ConditionalStarkTwoQubitGateAmplitudeAttempt(Experiment):
 
     _experiment_result_analysis_instructions = ""
 
@@ -2837,7 +2832,7 @@ class ConditionalStarkTwoQubitGateFrequencyAdvise(Experiment):
         """
 
         chat = Chat(prompt,
-                    "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.")
+                    "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.", dedent=True)
         res = chat.complete(parse="dict", expensive=True, cache=True)
 
         return res

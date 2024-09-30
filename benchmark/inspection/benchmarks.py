@@ -18,7 +18,7 @@ from leeq.experiments.builtin import *
 from pprint import pprint
 from simulated_setup import *
 
-enable_few_shot = False
+enable_few_shot = True
 
 dut_dict = {
     'Q1': {'Active': True, 'Tuneup': False, 'FromLog': False, 'Params': configuration_a},
