@@ -5,7 +5,6 @@ from plotly import graph_objects as go
 
 
 def get_partial_ai_inspection_results(exp, inspection_method='full', ignore_cache=False):
-    ai_inspection_results = {}
 
     assert inspection_method in ['full', 'visual_only', 'fitting_only'], \
         f"inspection_method must be 'full', 'visual_only' or 'fitting_only', got {inspection_method}"
@@ -108,15 +107,15 @@ class NormalisedRabiDataValidityCheckRaw(NormalisedRabi):
 
         return fig
 
-    @visual_inspection("""
-    Analyze this quantum mechanics Rabi oscillation experiment plot. Determine if it shows a successful or failed experiment by evaluating:
-        1. Oscillation behaviour in the figure. It may not be perfect, but it needs to be distinguished from random noise data. 
-        2. Amplitude and frequency consistency. inconsistent oscillation is considered a failure.
-    For example, the following Image is a successful Rabi oscillation experiment plot:
-    Image("openai_rabi_success_cases_0_NormalisedRabiDataValidityCheck.plot.png")
-    the following Image is a failure case for the Rabi experiment: 
-    Image("openai_rabi_failure_cases_0_NormalisedRabiDataValidityCheck.plot.png")
-    """)
+    #@visual_inspection("""
+    #Analyze this quantum mechanics Rabi oscillation experiment plot. Determine if it shows a successful or failed experiment by evaluating:
+    #    1. Oscillation behaviour in the figure. It may not be perfect, but it needs to be distinguished from random noise data.
+    #    2. Amplitude and frequency consistency. inconsistent oscillation is considered a failure.
+    #For example, the following Image is a successful Rabi oscillation experiment plot:
+    #Image("openai_rabi_success_cases_0_NormalisedRabiDataValidityCheck.plot.png")
+    #the following Image is a failure case for the Rabi experiment:
+    #Image("openai_rabi_failure_cases_0_NormalisedRabiDataValidityCheck.plot.png")
+    #""")
     def plot(self) -> go.Figure:
         """
         Plots Rabi oscillations using data from an experiment run.
@@ -438,20 +437,6 @@ class DragCalibrationSingleQubitMultilevelImageFewShot(DragCalibrationSingleQubi
         Image("image_refs/drag_failure_DragCalibrationSingleQubitMultilevel.plot.png")
         """
     )
-    # @visual_analyze_prompt("Please carefully review the attached scatter plot, which features two sets of data points,"
-    #                       " one in blue and the other in red, each with a corresponding trend line. First, analyze the"
-    #                       " direction of the slopes for each trend line to understand the relationship between the DRAG"
-    #                       " coefficient (horizontal axis) and the Z expectation value (vertical axis). Examine how well"
-    #                       " the data points conform to their respective lines, noting any significant deviations, outliers,"
-    #                       "or consistent patterns in their distribution around the lines. Furthermore, evaluate the"
-    #                       " consistency in the distribution of data points along the DRAG coefficient range for both"
-    #                       " datasets. Based on your observations, determine whether each trend line accurately"
-    #                       " represents its dataset and if there are notable differences in the trends between the two"
-    #                       " sets of data. The analysis is deemed successful if the two differently colored lines exhibit"
-    #                       " distinct trends and the line fitting appears appropriate. For a successful experiment you should"
-    #                       " observe two lines cross roughly at the center region of the plot. If you have not observe it"
-    #                       " please mark the experiment as failed and provide the new range for the sweep."
-    #                       )
     def plot(self):
         self.linear_fit()
         fig = plt.figure()

@@ -6,6 +6,8 @@ from mllm.utils import p_map
 
 import argparse
 
+from mllm.utils.parser import parse_options
+
 from leeq.experiments.builtin import *
 import os
 import json
@@ -246,9 +248,9 @@ def main(model, shots, rag, n_recall_items):
 
     model_path_str = model.replace('/', '_')
     if not rag:
-        file_path = f'./recall_benchmark_{model_path_str}-{n_recall_items}-fixed.json'
+        file_path = f'./result/recall_benchmark_{model_path_str}-{n_recall_items}-fixed.json'
     else:
-        file_path = f'./recall_benchmark_{model_path_str}-rag-{n_recall_items}-fixed.json'
+        file_path = f'./result/recall_benchmark_{model_path_str}-rag-{n_recall_items}-fixed.json'
 
     if os.path.exists(file_path):
         with open(file_path, 'r') as f:
@@ -279,7 +281,7 @@ def main(model, shots, rag, n_recall_items):
 
 
 def entry():
-    from mllm.config import parse_options,default_options
+    from mllm.config import default_options
     #default_parallel_map_config["n_workers"] = 3
     default_options.timeout = 120
     # You have to enable this option before using the `correct_json_by_model` rule

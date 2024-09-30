@@ -1,6 +1,7 @@
-import sys
 import argparse
 from typing import Callable
+
+from mllm.utils.parser import parse_options
 
 # Importing necessary modules and functions from other files
 from benchmarks import *  # Make sure to import the new unified function
@@ -79,7 +80,6 @@ def main() -> None:
     # Set the model and run the benchmark
     model_name_to_func[args.model]()
 
-    from mllm.config import parse_options
     # You have to enable this option before using the `correct_json_by_model` rule
     parse_options.correct_json_by_model = True
 

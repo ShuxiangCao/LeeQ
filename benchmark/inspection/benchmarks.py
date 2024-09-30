@@ -97,7 +97,7 @@ def run_benchmarks(save_path_prefix, num_samples, benchmark_func, config_key, ex
                 print('image saved to ' + f"{save_path_prefix}_{i}_{key.split('.')[-1]}_{exp_type}.png")
 
         pprint(inspections[i])
-        save_results(f"{save_path_prefix}.json", inspections)
+        save_results(f"./result/{save_path_prefix}.json", inspections)
 
 
 # Benchmark functions
@@ -128,7 +128,7 @@ def run_benchmark_res_spec(index, config, inspections):
     exps = {}
 
     res_raw = ResonatorSweepTransmissionRaw(dut_qubit=dut, **scan_params)
-    inspections[index]['no_image_few_shot'] = extract_results_from_experiment(res_raw)
+    inspections[index]['image_zero_shot'] = extract_results_from_experiment(res_raw)
     exps['raw'] = res_raw
     if enable_few_shot:
         res_image_prompt = ResonatorSweepTransmissionImageFewShot(dut_qubit=dut, **scan_params)
@@ -151,7 +151,7 @@ def run_single_benchmark_gmm(index, config, inspections):
     exps = {}
 
     res_raw = MeasurementCalibrationMultilevelGMMRaw(dut=dut, **scan_params)
-    inspections[index]['no_image_few_shot'] = extract_results_from_experiment(res_raw)
+    inspections[index]['image_zero_shot'] = extract_results_from_experiment(res_raw)
     exps['raw'] = res_raw
     if enable_few_shot:
         res_image_prompt = MeasurementCalibrationMultilevelGMMImageFewShot(dut=dut, **scan_params)
@@ -175,7 +175,7 @@ def run_single_benchmark_rabi(index, config, inspections):
     inspections[index] = {}
     exps = {}
     res_raw = NormalisedRabiDataValidityCheckRaw(dut_qubit=dut, **scan_params)
-    inspections[index]['no_image_few_shot'] = extract_results_from_experiment(res_raw)
+    inspections[index]['image_zero_shot'] = extract_results_from_experiment(res_raw)
     exps['raw'] = res_raw
     if enable_few_shot:
         res_image_prompt = NormalisedRabiDataValidityCheckImageFewShot(dut_qubit=dut, **scan_params)
@@ -200,7 +200,7 @@ def run_single_benchmark_drag(index, config, inspections):
     inspections[index] = {}
     exps = {}
     res_raw = DragCalibrationSingleQubitMultilevelRaw(dut=dut, **scan_params)
-    inspections[index]['no_image_few_shot'] = extract_results_from_experiment(res_raw)
+    inspections[index]['image_zero_shot'] = extract_results_from_experiment(res_raw)
     exps['raw'] = res_raw
     if enable_few_shot:
         with display_chats(1):
