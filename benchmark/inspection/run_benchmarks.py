@@ -36,6 +36,7 @@ def set_default_to_anthropic_opus():
     default_models["embedding"] = "text-embedding-3-large"
 
 def set_default_to_llama_():
+    benchmark_config["enable_few_shot"] = False
     default_models["normal"] = "replicate/meta/meta-llama-3-70b-instruct"
     default_models["expensive"] = "replicate/meta/meta-llama-3-70b-instruct"
     default_models["vision"] = "replicate/yorickvp/llava-v1.6-34b:41ecfbfb261e6c1adf3ad896c9066ca98346996d7c4045c5bc944a79d430f174"

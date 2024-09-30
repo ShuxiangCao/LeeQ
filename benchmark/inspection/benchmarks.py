@@ -18,7 +18,10 @@ from leeq.experiments.builtin import *
 from pprint import pprint
 from simulated_setup import *
 
-enable_few_shot = True
+
+benchmark_config = {
+    "enable_few_shot": True
+}
 
 dut_dict = {
     'Q1': {'Active': True, 'Tuneup': False, 'FromLog': False, 'Params': configuration_a},
@@ -130,7 +133,7 @@ def run_benchmark_res_spec(index, config, inspections):
     res_raw = ResonatorSweepTransmissionRaw(dut_qubit=dut, **scan_params)
     inspections[index]['image_zero_shot'] = extract_results_from_experiment(res_raw)
     exps['raw'] = res_raw
-    if enable_few_shot:
+    if benchmark_config['enable_few_shot']:
         res_image_prompt = ResonatorSweepTransmissionImageFewShot(dut_qubit=dut, **scan_params)
         inspections[index]['image_few_shot'] = extract_results_from_experiment(res_image_prompt)
         exps['image_few_shot'] = res_image_prompt
@@ -153,7 +156,7 @@ def run_single_benchmark_gmm(index, config, inspections):
     res_raw = MeasurementCalibrationMultilevelGMMRaw(dut=dut, **scan_params)
     inspections[index]['image_zero_shot'] = extract_results_from_experiment(res_raw)
     exps['raw'] = res_raw
-    if enable_few_shot:
+    if benchmark_config['enable_few_shot']:
         res_image_prompt = MeasurementCalibrationMultilevelGMMImageFewShot(dut=dut, **scan_params)
         inspections[index]['image_few_shot'] = extract_results_from_experiment(res_image_prompt)
         exps['image_few_shot'] = res_image_prompt
@@ -177,7 +180,7 @@ def run_single_benchmark_rabi(index, config, inspections):
     res_raw = NormalisedRabiDataValidityCheckRaw(dut_qubit=dut, **scan_params)
     inspections[index]['image_zero_shot'] = extract_results_from_experiment(res_raw)
     exps['raw'] = res_raw
-    if enable_few_shot:
+    if benchmark_config['enable_few_shot']:
         res_image_prompt = NormalisedRabiDataValidityCheckImageFewShot(dut_qubit=dut, **scan_params)
         inspections[index]['image_few_shot'] = extract_results_from_experiment(res_image_prompt)
         exps['image_few_shot'] = res_image_prompt
@@ -202,7 +205,7 @@ def run_single_benchmark_drag(index, config, inspections):
     res_raw = DragCalibrationSingleQubitMultilevelRaw(dut=dut, **scan_params)
     inspections[index]['image_zero_shot'] = extract_results_from_experiment(res_raw)
     exps['raw'] = res_raw
-    if enable_few_shot:
+    if benchmark_config['enable_few_shot']:
         with display_chats(1):
             res_image_prompt = DragCalibrationSingleQubitMultilevelImageFewShot(dut=dut, **scan_params)
             inspections[index]['image_few_shot'] = extract_results_from_experiment(res_image_prompt)
