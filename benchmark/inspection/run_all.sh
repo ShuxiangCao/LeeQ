@@ -1,26 +1,27 @@
 #!/bin/bash
 
 # Array of benchmark names
-#benchmarks=('resonator_spec' 'gmm' 'rabi' 'drag')
-benchmarks=('resonator_spec' 'gmm' 'rabi')
-#benchmarks=('gmm' 'rabi')
-benchmarks=('rabi')
+benchmarks=('resonator_spec' 'gmm' 'rabi' 'drag')
+#benchmarks=('gmm')
+#benchmarks=('rabi')
 #benchmarks=('resonator_spec')
+#benchmark=('drag')
+
+# Array of config names
 #configs=('success')
-configs=('failure')
-#configs=('success' 'failure')
+#configs=('failure')
+configs=('success' 'failure')
+
 # Array of model names
 #models=('openai')
 #models=('llama')
-#models=('llama')
-models=('llama')
 #models=('anthropic')
 #models=('gemini')
-#models=('gemini' 'llama' 'openai')
-# models=('openai' 'anthropic' 'gemini' 'llama ')
-
+models=('openai' 'anthropic' 'gemini' 'llama')
 # Number of shots, you can adjust this value as needed
-shots=20
+shots=8
+max_jobs=8
+overwrite="false"
 
 # Create a directory for logs if it does not exist
 mkdir -p benchmark_logs
@@ -32,8 +33,11 @@ do
     do
         for config in "${configs[@]}"
         do
+            while [ $(jobs -r | wc -l) -ge $max_jobs ]; do
+              sleep 1  # Wait until there are fewer than max_jobs running
+            done
             echo "Running $benchmark $config with model $model"
-            python run_benchmarks.py $benchmark $model $config $shots > "benchmark_logs/${benchmark}_${model}_${config}.out" 2> "benchmark_logs/${benchmark}_${model}_${config}.err" &
+            python run_benchmarks.py $benchmark $model $config $shots $overwrite > "benchmark_logs/${benchmark}_${model}_${config}.out" 2> "benchmark_logs/${benchmark}_${model}_${config}.err" &
         done
     done
 done

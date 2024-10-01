@@ -61,6 +61,7 @@ def main() -> None:
     parser.add_argument('config', type=str, help="Configuration to use ('success', 'failure', etc.)")
     parser.add_argument('shots', type=int, nargs='?', default=20,
                         help="Number of shots (iterations) to run (default: 20).")
+    parser.add_argument('overwrite', type=str, default=True)
 
     args = parser.parse_args()
 
@@ -84,7 +85,12 @@ def main() -> None:
     # You have to enable this option before using the `correct_json_by_model` rule
     parse_options.correct_json_by_model = True
 
-    run_benchmarks(f'./{args.model}_{args.benchmark}_{config}_cases', args.shots, benchmark_func, config)
+    overwrite = False
+    if args.overwrite == "true":
+        print("Overwriting existing records.")
+        overwrite = True
+
+    run_benchmarks(f'./{args.model}_{args.benchmark}_{config}_cases', args.shots, benchmark_func, config, overwrite=overwrite)
 
 if __name__ == '__main__':
     main()

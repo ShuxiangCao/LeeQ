@@ -76,15 +76,19 @@ def save_results(file_path, data):
         json.dump(data, f)
 
 
-def run_benchmarks(save_path_prefix, num_samples, benchmark_func, config_key, extra_config={}):
+def run_benchmarks(save_path_prefix, num_samples, benchmark_func, config_key, extra_config={}, overwrite=True):
     print(num_samples)
     inspections = {}
     try:
-        with open(f"{save_path_prefix}.json", 'r') as f:
+        with open(f"./result/{save_path_prefix}.json", 'r') as f:
             inspections = json.load(f)
     except:
         pass
-    for i in range(len(inspections), num_samples):
+    for i in range(num_samples):
+        if not overwrite:
+            if str(i) in inspections:
+                print(f"Skipping {i} as it already exists")
+                continue
         np.random.seed(i)
         config = EXPERIMENT_CONFIGS[benchmark_func.__name__][config_key]
         config.update(extra_config)

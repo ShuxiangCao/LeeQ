@@ -371,12 +371,12 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
 
     @register_browser_function(available_after=(run,))
     @visual_inspection("""
-Analyze a new resonator spectroscopy magnitude plot to determine if it shows evidence of a resonator. Focus on:
-1. Sharp dips or peaks at specific frequencies
-2. Signal stability
-3. Noise levels
-4. Behavior around suspected resonant frequencies
-Provide a detailed analysis of the magnitude and frequency data. Identifying a resonator indicates a successful experiment.
+    Analyze a new resonator spectroscopy magnitude plot to determine if it shows evidence of a resonator. Focus on:
+    1. Sharp dips or peaks at specific frequencies
+    2. Signal stability
+    3. Noise levels
+    4. Behavior around suspected resonant frequencies
+    Provide a detailed analysis of the magnitude and frequency data. Identifying a resonator indicates a successful experiment.
     """)
     def plot_magnitude(self):
         args = self._get_run_args_dict()
