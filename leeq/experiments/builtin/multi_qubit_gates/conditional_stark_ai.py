@@ -530,23 +530,38 @@ def _generate_zz_interaction_data_from_simulation(qubits,
                                                    zz_oscillation_excited_y)
 
     control_qubit_oscillation_ground = apply_noise_to_data(virtual_transmon_1,
-                                                           control_qubit_oscillation)
+                                                           -control_qubit_oscillation)
     control_qubit_oscillation_excited = apply_noise_to_data(virtual_transmon_1,
-                                                            -control_qubit_oscillation)
+                                                            control_qubit_oscillation)
 
     target_qubit_oscillation = apply_noise_to_data(virtual_transmon_2,
                                                    target_qubit_oscillation)
+
 
     result = np.array([[zz_oscillation_ground_x, zz_oscillation_excited_x],
                        [zz_oscillation_ground_y, zz_oscillation_excited_y]]).transpose(
         [2, 1, 0])
 
+    result = np.zeros_like(result)
+    # Time index, ground/excited state, X/Y axis
+
+    result[:, 0, 0] = zz_oscillation_ground_x
+    result[:, 1, 0] = zz_oscillation_excited_x
+    result[:, 0, 1] = zz_oscillation_ground_y
+    result[:, 1, 1] = zz_oscillation_excited_y
+
     result_control = np.array([
         [control_qubit_oscillation_ground,
-         control_qubit_oscillation_ground],
-        [control_qubit_oscillation_excited,
+         control_qubit_oscillation_excited],
+        [control_qubit_oscillation_ground,
          control_qubit_oscillation_excited]
-    ]).transpose([2, 0, 1])
+    ]).transpose([2, 1, 0])
+
+    result_control = np.zeros_like(result_control)
+    result_control[:, 0, 0] = control_qubit_oscillation_ground
+    result_control[:, 1, 0] = control_qubit_oscillation_excited
+    result_control[:, 0, 1] = control_qubit_oscillation_ground
+    result_control[:, 1, 1] = control_qubit_oscillation_excited
 
     return result, result_control
 
@@ -1132,12 +1147,12 @@ Image("ref_images/failure_ConditionalStarkShiftContinuous.plot_fourier.png")
     @visual_inspection("""
 I have a plot showing status of a qubit over an experiment.
 My objective is to determine if the experiment is a success. The success of the experiment should see the state
-of the qubits remains stable in the Y axis throughout the experiment.
-If you observe oscillations in the Y axis, or the lines crosses each other, the experiment is considered failed.
+of the qubits remains stable throughout the experiment.
+If you observe oscillations, or the lines crosses each other, the experiment is considered failed.
 Otherwise, the experiment is considered successful.
 For example, the following Image is a successful experiment plot:
 Image("ref_images/success_ConditionalStarkShiftContinuous.plot_control_population.png")
-The following Image is a failure case for the experiment due to the presence of multiple peaks:
+The following Image is a failure case for the experiment:
 Image("ref_images/failure_ConditionalStarkShiftContinuous.plot_control_population.png")
     """)
     def plot_control_population(self):
