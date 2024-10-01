@@ -2704,7 +2704,7 @@ class ConditionalStarkTwoQubitGateAmplitudeAdvise(Experiment):
         return prompt
 
 
-class ConditionalStarkTwoQubitGateAmplitudeAttempt(Experiment):
+class ConditionalStarkTwoQubitGateAmplitudeAttempt(ConditionalStarkEchoTuneUpAI):
 
     _experiment_result_analysis_instructions = ""
 
@@ -2740,9 +2740,10 @@ class ConditionalStarkTwoQubitGateAmplitudeAttempt(Experiment):
         if amplitude is None:
             amplitude = duts[0].get_c1('f01').get_parameters()["amp"]
 
-        exp = ConditionalStarkEchoTuneUpAI(duts=self.duts, frequency=frequency,
+        super().run(self.duts, frequency=frequency,
                                            amplitude=amplitude, **kwargs)
-        inspection = exp.get_ai_inspection_summary()
+        inspection = self.get_ai_inspection_summary()
+        self.inspection_summary = inspection
         tuning_env = TwoQubitTuningEnv()
         if frequency not in tuning_env.amplitude_tuning_results:
             tuning_env.amplitude_tuning_results[frequency] = []
