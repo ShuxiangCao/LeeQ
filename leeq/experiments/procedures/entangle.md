@@ -1,18 +1,18 @@
-# Bell state preparation
+# Bell state preparation on `duts`
 
 ## Steps
-- Run Full calibration of Single Qubit `dut1`
-- Run Full calibration of Single Qubit `dut2`
-- Run Two level Two-qubit calibration on `[dut1, dut2]`
-- Prepare a Bell state on `[dut1, dut2]`
+- Run Full calibration of Single Qubit `duts[0]`
+- Run Full calibration of Single Qubit `duts[1]`
+- Run Two level Two-qubit calibration on `duts`
+- Implement Bell state Tomography on `duts`
+ 
 
-
-# GHZ state preparation
+# GHZ state preparation on `duts`
 
 ## Steps
-- Run Full calibration of Single Qubit `dut1`
-- Run Full calibration of Single Qubit `dut2`
-- Run Full calibration of Single Qubit `dut3`
-- Run Two level Two-qubit calibration on `[dut1, dut2]`
-- Run Two level Two-qubit calibration on `[dut2, dut3]`
-- Prepare a 3-qubit GHZ state on `[dut1, dut2, dut3]`
+- Run Full calibration of Single Qubit `duts[0]`
+- Run Full calibration of Single Qubit `duts[1]`
+- Run Full calibration of Single Qubit `duts[2]`
+- Run Two level Two-qubit calibration on `duts[0:1]`
+- Run Two level Two-qubit calibration on `duts[1:2]`
+- Implement three qubits GHZ state Tomography `duts` 
