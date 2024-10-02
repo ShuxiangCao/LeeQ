@@ -24,7 +24,8 @@ class DragCalibrationSingleQubitMultilevel(Experiment):
     Class for running a single AllXY drag experiment on a single qubit with a multilevel system.
     """
     _experiment_result_analysis_instructions = """
-Calibrate the DRAG coefficient (alpha) using an AllXY DRAG experiment. The experiment is successful if:
+This experiment calibrates the DRAG coefficient (alpha) using an AllXY DRAG experiment. 
+The experiment is successful if:
 1. Two differently colored lines show distinct trends
 2. Line fitting is appropriate, by checking the residuals of the data points.
 3. Predicted optimal DRAG coefficient is within the central half of the sweep
@@ -33,7 +34,7 @@ If any of these conditions are not met, the experiment fails. For failed experim
 - Adjust and repeat if condition 3 is not met, centering the sweep around the predicted optimal coefficient
 For successful experiments, recommend a new sweep range centered on the predicted optimal coefficient, maintaining the same span.
 If success cannot be determined, consider the experiment failed.
-    """
+"""
 
     @log_and_record
     def run(self,

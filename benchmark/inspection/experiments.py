@@ -40,19 +40,20 @@ def get_partial_ai_inspection_results(exp, inspection_method='full', ignore_cach
 
 def extract_results_from_experiment(exp):
     analyze_results = {
-        'full': get_partial_ai_inspection_results(exp, inspection_method='full', ignore_cache=True),
-        'fitting_only': get_partial_ai_inspection_results(exp, inspection_method='fitting_only', ignore_cache=True),
-        'visual_only': get_partial_ai_inspection_results(exp, inspection_method='visual_only', ignore_cache=True),
+        'full': get_partial_ai_inspection_results(exp, inspection_method='full',
+                                                  ignore_cache=True),
+        'fitting_only': get_partial_ai_inspection_results(exp,
+                                                          inspection_method='fitting_only',
+                                                          ignore_cache=True),
+        'visual_only': get_partial_ai_inspection_results(exp,
+                                                         inspection_method='visual_only',
+                                                         ignore_cache=True),
     }
     exp._execute_plot_functions(build_static_image=True)
     return analyze_results
 
 
 class NormalisedRabiDataValidityCheckRaw(NormalisedRabi):
-    _experiment_result_analysis_instructions = """
-    The Normalised Rabi experiment is a quantum mechanics experiment that involves the measurement of oscillations.
-    A successful Rabi experiment will show a clear, regular oscillatory pattern. 
-    """
 
     @register_browser_function()
     @visual_inspection("""
@@ -187,7 +188,7 @@ class NormalisedRabiDataValidityCheckRaw(NormalisedRabi):
         return fig
 
     @text_inspection
-    def fitting(self) -> str:
+    def fitting(self):
         """
         Get the prompt to analyze the result.
 
@@ -196,13 +197,16 @@ class NormalisedRabiDataValidityCheckRaw(NormalisedRabi):
         """
 
         oscillation_freq = self.fit_params['Frequency']
-        experiment_time_duration = self._get_run_args_dict()['stop'] - self._get_run_args_dict()['start']
+        experiment_time_duration = self._get_run_args_dict()['stop'] - \
+                                   self._get_run_args_dict()['start']
         oscillation_count = (experiment_time_duration * oscillation_freq)
 
-        return (f"The fitting result of the Rabi oscillation suggest the amplitude of {self.fit_params['Amplitude']}, "
-                f"the frequency of {self.fit_params['Frequency']}, the phase of {self.fit_params['Phase']}. The offset of"
-                f" {self.fit_params['Offset']}. The suggested new driving amplitude is {self.guess_amp}."
-                f"From the fitting results, the plot should exhibit {oscillation_count} oscillations.")
+        return {
+            "analysis": f"The fitting result of the Rabi oscillation suggest the amplitude of {self.fit_params['Amplitude']}, "
+                        f"the frequency of {self.fit_params['Frequency']}, the phase of {self.fit_params['Phase']}. The offset of"
+                        f" {self.fit_params['Offset']}. The suggested new driving amplitude is {self.guess_amp}."
+                        f"From the fitting results, the plot should exhibit {oscillation_count} oscillations.",
+        }
 
 
 class NormalisedRabiDataValidityCheckImageFewShot(NormalisedRabiDataValidityCheckRaw):
@@ -277,10 +281,9 @@ Inspect the plot to detect the resonator's presence. If present:
 2. If the step size is much larger than the linewidth:
    a. Focus on the expected resonator region.
    b. Reduce the step size for better accuracy.
-3. If linewidth < 0.1 MHz, it's likely not a resonator; move on.
+3. If linewidth < 0.1 MHz, it's likely not a resonator; the experiment fails.
 4. If there are reports from the inspection of the plot and it indicate there is no resonator, believe it and drop the fitting results.
-The experiment is considered successful if a resonator is detected. Otherwise, it is considered unsuccessful and suggest
-a new sweeping range and step size.
+The experiment is considered successful if a resonator is detected. Otherwise, it is considered unsuccessful and suggest a new sweeping range and step size.
 """
 
     @register_browser_function()
@@ -355,7 +358,8 @@ class MeasurementCalibrationMultilevelGMMRaw(MeasurementCalibrationMultilevelGMM
     pass
 
 
-class MeasurementCalibrationMultilevelGMMImageFewShot(MeasurementCalibrationMultilevelGMMRaw):
+class MeasurementCalibrationMultilevelGMMImageFewShot(
+    MeasurementCalibrationMultilevelGMMRaw):
     @register_browser_function()
     @visual_inspection("""
         Analyze a plot of collected signal data to determine experiment success:
@@ -414,7 +418,8 @@ class DragCalibrationSingleQubitMultilevelRaw(DragCalibrationSingleQubitMultilev
     pass
 
 
-class DragCalibrationSingleQubitMultilevelImageFewShot(DragCalibrationSingleQubitMultilevelRaw):
+class DragCalibrationSingleQubitMultilevelImageFewShot(
+    DragCalibrationSingleQubitMultilevelRaw):
     @register_browser_function()
     @visual_inspection(
         """

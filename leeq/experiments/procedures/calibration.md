@@ -14,17 +14,13 @@ This procedure should not be used when only calibrate a specific aspect of the q
 
 ## Background
 
-Gate frequency calibration is one of the essential steps when calibrating a qubit. This procedure is applicable to frequency
-calibration of single qubit gates only.
-
-This procedure is used to calibrate the frequency of the qubit gates. It should be used as a reference when the frequency calibration 
-parameters are not known or need to be recalibrated.
+This procedure is applicable to frequency calibration of single qubit gates only.
 
 ## Steps
 
-- Run simple Ramsey experiment on `dut`, with frequency offset 10 MHz, stop at 0.3us, step 0.005us.
-- Run Ramsey experiment on `dut`, with frequency offset 1 MHz, stop at 3us, step 0.05us
-- Run Ramsey experiment on `dut`, with frequency offset 0.1 MHz, stop at 30us, step 0.5us.
+- Run simple Ramsey experiment on `dut`, with frequency offset 10 MHz, stop at 0.3us, step 0.005us. Retry 3 times if failed.
+- Run Ramsey experiment on `dut`, with frequency offset 1 MHz, stop at 3us, step 0.05us. Retry 3 times if failed.
+- Run Ramsey experiment on `dut`, with frequency offset 0.1 MHz, stop at 30us, step 0.5us. Retry 3 times if failed.
 
 # Full Gate Amplitude Calibration on `dut`
 

@@ -22,9 +22,7 @@ class NormalisedRabi(Experiment):
     _experiment_result_analysis_instructions = """
     The Normalised Rabi experiment is a quantum mechanics experiment that involves the measurement of oscillations.
     A successful Rabi experiment will show a clear, regular oscillatory pattern with amplitude greater than 0.2.
-    If less than 3 oscillations are observed, the experiment is considered failed. If more than 10 oscillations are 
-    observed, the experiment is considered failed. The new suggested driving amplitude should allow the observation
-    of 5 oscillations, and can refer to the suggested amplitude in the analysis. 
+    If less than 3 oscillations are observed, the experiment is considered failed. If more than 10 oscillations are observed, the experiment is considered failed. The new suggested driving amplitude should allow the observation of 5 oscillations, and can refer to the suggested amplitude in the analysis. 
     """
 
     @log_and_record
