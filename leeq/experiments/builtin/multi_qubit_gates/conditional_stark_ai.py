@@ -3,7 +3,7 @@ import inspect
 
 from mllm import Chat
 
-from k_agents.execution.agent import execute_experiment_from_prompt
+from k_agents.execution.agent import execute_experiment_from_instruction
 from k_agents.execution.stage_execution import get_exp_from_var_table
 from k_agents.inspection.decorator import text_inspection, visual_inspection
 from k_agents.utils import Singleton
@@ -2138,7 +2138,7 @@ if this is a successful experiment. Make the analysis concise and clear in one s
                     repeated_gate = ai_experiment.get_last_experiment()
                     """
 
-                    ai_experiment_var_table = execute_experiment_from_prompt(
+                    ai_experiment_var_table = execute_experiment_from_instruction(
                         prompt=prompt, duts=self.duts,
                     )
                     repeated_gate = get_exp_from_var_table(ai_experiment_var_table)
