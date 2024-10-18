@@ -494,7 +494,7 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             z, f0, Q, amp, baseline, direction = self._fit_phase_gradient()
             fit_succeed = True
         except Exception as e:
-            return f"The experiment has an error fitting phase gradient: {e}"
+            return f"The experiment has an error fitting phase gradient, implying the experiment is failed."
 
         return ("The fitting suggest that the resonant frequency is at %f MHz, "
                 "with a quality factor of %f (resonator linewidth kappa of %f MHz), an amplitude of %f, and a baseline of %f.") % (

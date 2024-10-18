@@ -1,13 +1,8 @@
 import ast
 
-
-from mllm import display_chats
 from mllm.utils import p_map
-
-import argparse
-
+from mllm.utils.maps import default_parallel_map_config
 from mllm.utils.parser import parse_options
-
 from leeq.experiments.builtin import *
 import os
 import json
@@ -91,18 +86,18 @@ experiment_prompt = {
         'Iterative tuning of amplitude using pingpong experiment',
         'Calibrate amplitude settings using iterative pingpong method'
     ]),
-    'Resonator spectroscopy': (ResonatorSweepTransmissionWithExtraInitialLPB, [
-        'Run resonator spectroscopy to determine resonant frequencies',
-        'Implement spectroscopy on resonator',
-        'Calibrate resonator using spectroscopic techniques',
-        'Measure quality factor of resonators with spectroscopy',
-        'Determine resonator location via resonator spectroscopy',
-        'Do a spectroscopic analysis of resonator bandwidth using resonator spectroscopy',
-        'Run full spectroscopic scan on resonator',
-        'Discover resonators with spectroscopy',
-        'Resonator frequency mapping using spectroscopy',
-        'Measure resonator frequency response using spectroscopy'
-    ]),
+    # 'Resonator spectroscopy': (ResonatorSweepTransmissionWithExtraInitialLPB, [
+    #     'Run resonator spectroscopy to determine resonant frequencies',
+    #     'Implement spectroscopy on resonator',
+    #     'Calibrate resonator using spectroscopic techniques',
+    #     'Measure quality factor of resonators with spectroscopy',
+    #     'Determine resonator location via resonator spectroscopy',
+    #     'Do a spectroscopic analysis of resonator bandwidth using resonator spectroscopy',
+    #     'Run full spectroscopic scan on resonator',
+    #     'Discover resonators with spectroscopy',
+    #     'Resonator frequency mapping using spectroscopy',
+    #     'Measure resonator frequency response using spectroscopy'
+    # ]),
     'T1': (SimpleT1, [
         'Run T1 experiment to measure relaxation time',
         'Implement T1 relaxation time measurement',
@@ -130,6 +125,14 @@ experiment_prompt = {
     ])
 }
 
+
+def get_dataset_stats():
+    n_instructions = 0
+    n_exps = 0
+    for exp_name, exp_prompts in experiment_prompt.items():
+        n_exps += 1
+        n_instructions += len(exp_prompts[1])
+    return f"Number of experiments: {n_exps}, Number of instructions: {n_instructions}"
 
 def check_code(codes, exp_class):
     try:
@@ -194,6 +197,7 @@ def benchmark_single(key, exp_class, description, code_cog_model):
         success = False
         additional_info.append(codes)
         additional_info.append(str(e))
+        print(str(e))
     additional_info.append(codes)
 
     return success, additional_info
@@ -221,6 +225,7 @@ def benchmark_all(rag, n_recall_items):
             except Exception as e:
                 success = False
                 additional_info = str(e)
+                return success, additional_info
             return success, additional_info
 
         for prompt, (success, additional_info) in p_map(benchmark_one_prompt, exp_prompts):
@@ -229,7 +234,7 @@ def benchmark_all(rag, n_recall_items):
         return results
     #t = ["RB1Q"]
     t = list(experiment_prompt.keys())
-    for exp_name, res in p_map(benchmark_one_experiment, t, n_workers=1):
+    for exp_name, res in p_map(benchmark_one_experiment, t, n_workers=4):
         results_list[exp_name] = res
 
     return results_list
@@ -248,9 +253,9 @@ def main(model, shots, rag, n_recall_items):
 
     model_path_str = model.replace('/', '_')
     if not rag:
-        file_path = f'./result/recall_benchmark_{model_path_str}-{n_recall_items}-fixed.json'
+        file_path = f'./result/recall_benchmark_{model_path_str}-{n_recall_items}.json'
     else:
-        file_path = f'./result/recall_benchmark_{model_path_str}-rag-{n_recall_items}-fixed.json'
+        file_path = f'./result/recall_benchmark_{model_path_str}-rag-{n_recall_items}.json'
 
     if os.path.exists(file_path):
         with open(file_path, 'r') as f:
@@ -280,27 +285,28 @@ def main(model, shots, rag, n_recall_items):
             json.dump(results, f)
 
 
-def entry():
+def entry(model, rag):
     from mllm.config import default_options
-    #default_parallel_map_config["n_workers"] = 3
+    default_parallel_map_config["n_workers"] = 3
     default_options.timeout = 120
+
     # You have to enable this option before using the `correct_json_by_model` rule
     parse_options.correct_json_by_model = True
-    parser = argparse.ArgumentParser(description="Run benchmarks with specified models.")
-    parser.add_argument('model', type=str, nargs='?', help="Name of the model to use.",
-                        #default="claude-3-opus-20240229")
-                        #default="gpt-4-turbo")
-                        #default="gemini/gemini-1.5-pro-latest")
-                        #default="chatgpt-4o-latest")
-                        #default="gpt-4o-mini")
-                        default="replicate/meta/meta-llama-3-70b-instruct")
-    parser.add_argument('shots', type=int, nargs='?', default=3,
-                        help="Number of shots (iterations) to run (default: 3).")
+    n_recall_items = 2 if rag else 2
+    shots = 3
+    main(model, shots, rag, n_recall_items)
 
-    args = parser.parse_args()
-    main(args.model, args.shots, False, 2)
-
-
+if __name__ == '__main__1':
+    print(get_dataset_stats())
 if __name__ == '__main__':
-    with display_chats(1):
-        entry()
+    os.environ['LITELLM_LOG'] = 'DEBUG'
+    models = [
+        "gpt-4o-2024-08-06",
+        "gpt-4o-mini",
+        "replicate/meta/meta-llama-3-70b-instruct",
+        "claude-3-opus-20240229",
+        "gemini/gemini-1.5-pro-latest",
+    ]
+    for model in models[:]:
+        entry(model, False)
+        entry(model, True)
