@@ -86,18 +86,6 @@ experiment_prompt = {
         'Iterative tuning of amplitude using pingpong experiment',
         'Calibrate amplitude settings using iterative pingpong method'
     ]),
-    # 'Resonator spectroscopy': (ResonatorSweepTransmissionWithExtraInitialLPB, [
-    #     'Run resonator spectroscopy to determine resonant frequencies',
-    #     'Implement spectroscopy on resonator',
-    #     'Calibrate resonator using spectroscopic techniques',
-    #     'Measure quality factor of resonators with spectroscopy',
-    #     'Determine resonator location via resonator spectroscopy',
-    #     'Do a spectroscopic analysis of resonator bandwidth using resonator spectroscopy',
-    #     'Run full spectroscopic scan on resonator',
-    #     'Discover resonators with spectroscopy',
-    #     'Resonator frequency mapping using spectroscopy',
-    #     'Measure resonator frequency response using spectroscopy'
-    # ]),
     'T1': (SimpleT1, [
         'Run T1 experiment to measure relaxation time',
         'Implement T1 relaxation time measurement',

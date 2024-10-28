@@ -19,7 +19,7 @@ configs=('success' 'failure')
 #models=('gemini')
 models=('openai' 'anthropic' 'gemini' 'llama')
 # Number of shots, you can adjust this value as needed
-shots=8
+shots=20
 max_jobs=8
 overwrite="false"
 
