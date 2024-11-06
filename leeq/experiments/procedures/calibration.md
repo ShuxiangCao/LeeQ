@@ -6,9 +6,9 @@ This procedure should not be used when only calibrate a specific aspect of the q
 
 ## Steps
 
-- Do full gate frequency calibration on `dut`
-- Do full gate amplitude calibration on `dut`
-- Do DRAG Calibration on `dut`
+- Full gate frequency calibration on `dut`
+- Full gate amplitude calibration on `dut`
+- DRAG Calibration on `dut`
 
 # Full Gate frequency calibration on `dut`
 
@@ -31,5 +31,5 @@ need to be recalibrated. It is only applicable to single qubit gates amplitude.
 
 ## Steps
 
-- Conduct a Rabi experiment to determine the Rabi rate for rough amplitude calibration.
-- Upon the successful completion of the Rabi experiment, run Pingpong experiment to do fine calibration. If failed directly goto Failure.
+- Conduct a Rabi experiment with amp=1.0 to determine the Rabi rate for rough amplitude calibration. If failed, adjust the parameters and retry 3 times.
+- Run Pingpong experiment. If failed directly goto Failure.
