@@ -1,7 +1,7 @@
 import os
 from typing import Tuple
 
-from k_agents.memory.lt_memory import LongTermMemory
+from k_agents.agent_group.agent_group import AgentGroup
 from k_agents.translation.agent import init_translation_agent, build_code_ltm
 from k_agents.variable_table import VariableTable
 
@@ -15,7 +15,7 @@ def init_leeq_translation_agent(document_root: str = None):
 
 
 def build_leeq_code_ltm(add_document_procedures=True) -> Tuple[
-    LongTermMemory, VariableTable]:
+    AgentGroup, VariableTable]:
     """
     Build the long term memory and variable table for leeq.
 
@@ -23,7 +23,7 @@ def build_leeq_code_ltm(add_document_procedures=True) -> Tuple[
         add_document_procedures (bool): Whether to add document procedures to the long term memory.
 
     Returns:
-        Tuple[LongTermMemory, VariableTable]: The long term memory and variable table for leeq.
+        Tuple[AgentGroup, VariableTable]: The long term memory and variable table for leeq.
     """
     from leeq.experiments import builtin
     from leeq.experiments import experiments as exp
