@@ -162,7 +162,7 @@ def check_code(codes, exp_class):
     return True
 
 
-from leeq.utils.ai.translation_agent import build_leeq_code_ltm
+from leeq.utils.ai.translation_agent import build_leeq_translation_agent_group
 from k_agents.translation.agent import TranslationAgentGroup, get_codegen_wm
 from k_agents.variable_table import VariableTable
 
@@ -192,14 +192,14 @@ def benchmark_single(key, exp_class, description, code_cog_model):
 
 
 def benchmark_all(rag, n_recall_items):
-    leeq_code_ltm, exps_var_table = build_leeq_code_ltm(add_document_procedures=False)
+    leeq_code_ltm, exps_var_table = build_leeq_translation_agent_group(add_document_procedures=False)
     if rag:
         code_cog_model = TranslationAgentGroupRAG()
     else:
         code_cog_model = TranslationAgentGroup()
     code_cog_model.n_recall_items = n_recall_items
-    for idea in leeq_code_ltm.ideas:
-        code_cog_model.translation_agents.add_idea(idea)
+    for idea in leeq_code_ltm.agents:
+        code_cog_model.translation_agents.add_agent(idea)
 
     results_list = {}
 
@@ -280,14 +280,12 @@ def entry(model, rag):
 
     # You have to enable this option before using the `correct_json_by_model` rule
     parse_options.correct_json_by_model = True
-    n_recall_items = 2 if rag else 2
+    n_recall_items = 2
     shots = 3
     main(model, shots, rag, n_recall_items)
 
-if __name__ == '__main__1':
-    print(get_dataset_stats())
+
 if __name__ == '__main__':
-    os.environ['LITELLM_LOG'] = 'DEBUG'
     models = [
         "gpt-4o-2024-08-06",
         "gpt-4o-mini",
