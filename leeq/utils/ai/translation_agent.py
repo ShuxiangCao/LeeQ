@@ -1,7 +1,5 @@
 import os
-from typing import Tuple
-from k_agents.agent_group.agent_group import AgentGroup
-from k_agents.translation.agent import init_translation_agents, build_code_trans_agents
+from k_agents.translation.agent import init_translation_agents
 from k_agents.translation.env import TranslationAgentEnv
 from k_agents.variable_table import VariableTable
 
