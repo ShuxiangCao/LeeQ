@@ -3,6 +3,8 @@ import ast
 from mllm.utils import p_map
 from mllm.utils.maps import default_parallel_map_config
 from mllm.utils.parser import parse_options
+
+from k_agents.translation.env import TranslationAgentEnv
 from leeq.experiments.builtin import *
 import os
 import json
@@ -162,7 +164,7 @@ def check_code(codes, exp_class):
     return True
 
 
-from leeq.utils.ai.translation_agent import build_leeq_translation_agent_group
+from leeq.utils.ai.translation_agent import init_leeq_translation_agents
 from k_agents.translation.agent import TranslationAgentGroup, get_codegen_wm
 from k_agents.variable_table import VariableTable
 
@@ -192,13 +194,15 @@ def benchmark_single(key, exp_class, description, code_cog_model):
 
 
 def benchmark_all(rag, n_recall_items):
-    leeq_code_ltm, exps_var_table = build_leeq_translation_agent_group(add_document_procedures=False)
+    init_leeq_translation_agents()
+    env = TranslationAgentEnv()
+    translation_agents = env.translation_agents
     if rag:
         code_cog_model = TranslationAgentGroupRAG()
     else:
         code_cog_model = TranslationAgentGroup()
     code_cog_model.n_recall_items = n_recall_items
-    for idea in leeq_code_ltm.agents:
+    for idea in translation_agents.translation_agents:
         code_cog_model.translation_agents.add_agent(idea)
 
     results_list = {}

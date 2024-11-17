@@ -42,19 +42,13 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
          allows the function to be executed later when data loaded from the log file.
     """
 
-    decorate_run = False
-
     def __init__(self, *args, **kwargs):
         """
         Initialize the experiment.
         """
 
         LeeQObject.__init__(self, name=f"Experiment: {self.__class__.__name__}")
-        KExperiment.__init__(self, *args, **kwargs)
-        self._llm_logger = mllm.chat.ChatLogger(show_table=False)
-
-        # Check the input arguments
-        args, kwargs = self._check_arguments(self.run, *args, **kwargs)
+        KExperiment.__init__(self)
         self._run(*args, **kwargs)
 
     def _check_arguments(self, func, *args, **kwargs):
@@ -89,6 +83,10 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
         return bound.args, bound.kwargs
 
     def _before_run(self, args, kwargs):
+        self._llm_logger = mllm.chat.ChatLogger(show_table=False)
+        # Check the input arguments
+        args, kwargs = self._check_arguments(self.run, *args, **kwargs)
+
         KExperiment._before_run(self, args, kwargs)
         self._llm_logger.__enter__()
         # Register the active experiment instance
