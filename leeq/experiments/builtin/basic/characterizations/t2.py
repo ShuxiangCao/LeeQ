@@ -42,7 +42,7 @@ class SpinEchoMultiLevel(
     @log_and_record(overwrite_func_name='SpinEchoMultiLevel.run')
     def run_simulated(
             self,
-            qubit: Any,  # Replace 'Any' with the actual type of qubit
+            dut: Any,  # Replace 'Any' with the actual type of qubit
             collection_name: str = 'f01',
             mprim_index: int = 0,
             free_evolution_time: float = 100.0,
@@ -60,7 +60,7 @@ class SpinEchoMultiLevel(
 
         Parameters
         ----------
-        qubit : Any
+        dut : Any
             The qubit to be used in the experiment.
         collection_name : str
             The name of the pulse collection.
@@ -77,7 +77,7 @@ class SpinEchoMultiLevel(
         """
 
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
-        virtual_transmon = simulator_setup.get_virtual_qubit(qubit)
+        virtual_transmon = simulator_setup.get_virtual_qubit(dut)
         t2 = virtual_transmon.t2
 
         sweep_range = np.arange(0.0, free_evolution_time, time_resolution)
@@ -123,7 +123,7 @@ class SpinEchoMultiLevel(
 
         Parameters
         ----------
-        qubit : Any
+        dut : Any
             The qubit to be used in the experiment.
         collection_name : str
             The name of the pulse collection.
