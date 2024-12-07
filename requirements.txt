@@ -18,7 +18,7 @@ decorator
 h5py
 uncertainties
 labchronicle @ git+https://github.com/ShuxiangCao/LabChronicle
-k_agents @ https://github.com/EvoEvolver/k_agents
+k_agents @ git+https://github.com/EvoEvolver/k_agents
 MinimalLLM
 ipywidgets
 kaleido
