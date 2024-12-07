@@ -1,4 +1,3 @@
-import copy
 from typing import List, Union
 
 import numpy as np
@@ -7,12 +6,13 @@ import uncertainties.umath as umath
 from matplotlib import pyplot as plt
 
 from labchronicle import log_and_record, register_browser_function
+
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import Experiment, Sweeper, basic_run, setup
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.cliffords import get_clifford_from_id
 from leeq.utils.compatibility import prims
-from leeq.utils.ai.vlms import visual_analyze_prompt
 import scipy.optimize as so
 import uncertainties as unc
 
@@ -57,9 +57,9 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
             raise TypeError("collection_name must be a string")
         if cliff_set not in {'XY', 'VZX'}:
             raise ValueError("cliff_set must be either 'XY' or 'VZX'")
-        if collection_name not in {'f01', 'f12', 'f23', 'f02', 'f13'}:
-            raise ValueError(
-                "collection_name must be one of the specified collections")
+        # if collection_name not in {'f01', 'f12', 'f23', 'f02', 'f13'}:
+        #     raise ValueError(
+        #         "collection_name must be one of the specified collections")
 
         if cliff_set == 'VZX':
             raise NotImplementedError(
@@ -189,7 +189,7 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
             0], f"Unexpected qubit index {i}, maximum index {self.results.shape[0] - 1}"
 
         # Retrieving arguments and initializing variables
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         seq_length = self.seq_length
         kinds = args['kinds']
 
@@ -281,7 +281,7 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
             self.probs (List[np.ndarray]): List of the converted probabilities distribution of each qubit.
         """
         # Retrieving arguments and initializing variables
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         seq_length = self.seq_length
         kinds = args['kinds']
 
@@ -323,7 +323,7 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
             print(repr(e))
             analyze_success = False
 
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         x = self.seq_length
         kinds = args['kinds']
         xs = np.linspace(x[0], x[-1], 100)
@@ -479,7 +479,7 @@ class SingleQubitRandomizedBenchmarking(RandomizedBenchmarkingTwoLevelSubspaceMu
         return super().run([dut], collection_name, seq_length, kinds, cliff_set, pi_half_only, mprim_index, seed)
 
     @register_browser_function()
-    @visual_analyze_prompt("""
+    @visual_inspection("""
     This is the analysis of the randomized benchmarking experiment. The experiment is considered successful if 
     a clear exponential decay for the |0> state (blue) is observed, if the decay is too fast, the experiment 
     is failed reduce the sequence length. If the decay is too slow,  the experiment is failed and increase the sequence
@@ -492,7 +492,8 @@ class SingleQubitRandomizedBenchmarking(RandomizedBenchmarkingTwoLevelSubspaceMu
         self.analyze_decay()
         return self.plot_single_qubit_result(0)
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
         """
         Get the prompt for the analyzed result of the experiment.
 

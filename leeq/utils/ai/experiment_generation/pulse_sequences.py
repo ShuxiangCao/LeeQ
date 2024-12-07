@@ -45,7 +45,7 @@ def generate_pulse_sequences(overview: str, description: str):
     """
 
     import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.")
+    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.", dedent=True)
     res = chat.complete(parse="quotes", cache=True)
 
     return {'code': res}

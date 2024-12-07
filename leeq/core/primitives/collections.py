@@ -1,4 +1,4 @@
-from leeq.core import LeeQObject
+from leeq.core.base import LeeQObject
 from leeq.utils import ObjectFactory, setup_logging
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveFactory
 from leeq.core.primitives.base import SharedParameterObject

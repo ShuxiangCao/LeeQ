@@ -1,17 +1,15 @@
+from typing import Union
+from typing import Optional, Any
 import numpy as np
-from matplotlib import pyplot as plt
-from typing import Optional, Any, Dict, List, Union
-from typing import Optional, Any, Dict, List
-import numpy as np
-import uncertainties as unc
 from plotly import graph_objects as go
 
 from labchronicle import register_browser_function, log_and_record
-from leeq import Experiment, Sweeper
+
+from k_agents.inspection.decorator import text_inspection, visual_inspection
+from leeq import Experiment
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
-from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_exp_decay_with_cov
+from leeq.theory.fits import fit_exp_decay_with_cov
 from leeq.theory.utils import to_dense_probabilities
-from leeq.utils.ai import visual_analyze_prompt
 from leeq.utils.compatibility import *
 
 __all__ = [
@@ -23,7 +21,7 @@ __all__ = [
 class SpinEchoMultiLevel(
     Experiment):  # Class names should follow the CapWords convention
     """
-    A class used to represent the SimpleSpinEchoMultiLevel experiment.
+    A class used to represent the SpinEchoMultiLevel experiment.
 
     Methods
     -------
@@ -44,7 +42,7 @@ class SpinEchoMultiLevel(
     @log_and_record(overwrite_func_name='SpinEchoMultiLevel.run')
     def run_simulated(
             self,
-            qubit: Any,  # Replace 'Any' with the actual type of qubit
+            dut: Any,  # Replace 'Any' with the actual type of qubit
             collection_name: str = 'f01',
             mprim_index: int = 0,
             free_evolution_time: float = 100.0,
@@ -53,11 +51,16 @@ class SpinEchoMultiLevel(
             initial_lpb: Optional[Any] = None,
     ) -> None:
         """
-        Run the SimpleSpinEchoMultiLevel experiment for measuring the T2 echo coherence metric.
+        Run the SpinEchoMultiLevel experiment for measuring the T2 echo coherence value.
+
+        This experiment is implemented in the following way. A pi/2 pulse is applied to the qubit, followed by a delay
+        of free_evolution_time/2. Then a pi pulse is applied, followed by another delay of free_evolution_time/2. Finally,
+        a measurement primitive is applied to the qubit. The experiment is repeated for different values of the delay time
+        to obtain the T2 echo relaxation time.
 
         Parameters
         ----------
-        qubit : Any
+        dut : Any
             The qubit to be used in the experiment.
         collection_name : str
             The name of the pulse collection.
@@ -74,7 +77,7 @@ class SpinEchoMultiLevel(
         """
 
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
-        virtual_transmon = simulator_setup.get_virtual_qubit(qubit)
+        virtual_transmon = simulator_setup.get_virtual_qubit(dut)
         t2 = virtual_transmon.t2
 
         sweep_range = np.arange(0.0, free_evolution_time, time_resolution)
@@ -92,7 +95,7 @@ class SpinEchoMultiLevel(
                 shot_number, data) / shot_number
 
         quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
-        standard_deviation = np.sum(quiescent_state_distribution[1:])/5
+        standard_deviation = np.sum(quiescent_state_distribution[1:]) / 5
 
         random_noise_factor = 1 + np.random.normal(
             0, standard_deviation, data.shape)
@@ -102,7 +105,7 @@ class SpinEchoMultiLevel(
     @log_and_record
     def run(
             self,
-            qubit: Any,  # Replace 'Any' with the actual type of qubit
+            dut: Any,  # Replace 'Any' with the actual type of qubit
             collection_name: str = 'f01',
             mprim_index: int = 0,
             free_evolution_time: float = 100.0,
@@ -111,11 +114,16 @@ class SpinEchoMultiLevel(
             initial_lpb: Optional[Any] = None,
     ) -> None:
         """
-        Run the SimpleSpinEchoMultiLevel experiment for measuring the T2 echo coherence metric.
+        Run the SpinEchoMultiLevel experiment for measuring the T2 echo coherence value.
+
+        This experiment is implemented in the following way. A pi/2 pulse is applied to the qubit, followed by a delay
+        of free_evolution_time/2. Then a pi pulse is applied, followed by another delay of free_evolution_time/2. Finally,
+        a measurement primitive is applied to the qubit. The experiment is repeated for different values of the delay time
+        to obtain the T2 echo relaxation time.
 
         Parameters
         ----------
-        qubit : Any
+        dut : Any
             The qubit to be used in the experiment.
         collection_name : str
             The name of the pulse collection.
@@ -129,8 +137,16 @@ class SpinEchoMultiLevel(
             Start time of the sweep, by default 0.0.
         initial_lpb : Any, optional
             The initial local pulse builder, by default None.
+
+        Example:
+        --------
+        >>> # Assume 'dut' is the qubit object
+        >>> experiment = SpinEchoMultiLevel(
+        >>>     dut=dut, collection_name='f01', mprim_index=0, free_evolution_time=100.0, time_resolution=2.0, start=0.0
+        >>> )
         """
 
+        qubit = dut
         c1 = qubit.get_c1(collection_name)
         mp = qubit.get_measurement_prim_intlist(mprim_index)
         delay = prims.Delay(0)
@@ -159,7 +175,7 @@ class SpinEchoMultiLevel(
         self.trace = np.squeeze(mp.result())
 
     @register_browser_function(available_after=(run,))
-    @visual_analyze_prompt(
+    @visual_inspection(
         "Please analyze the experimental data in the plot to determine if there's a clear exponential"
         "decay pattern followed by stabilization. It is important that the decay is observable, as the "
         "absence of decay is considered a failure of the experiment. Check if the tail of the decay "
@@ -178,7 +194,7 @@ class SpinEchoMultiLevel(
         else:
             trace = self.trace
 
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         t = np.arange(0, args['free_evolution_time'], args['time_resolution'])
 
@@ -240,10 +256,11 @@ class SpinEchoMultiLevel(
 
         return self.plot_echo(fit=step_no[0] > 10, step_no=step_no)
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
 
         trace = self.trace
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         fit_params = fit_exp_decay_with_cov(trace, args['time_resolution'])
         self.fit_params = fit_params
@@ -256,7 +273,7 @@ class SpinEchoMultiLevel(
 class MultiQubitSpinEchoMultiLevel(
     Experiment):  # Class names should follow the CapWords convention
     """
-    A class used to represent the SimpleSpinEchoMultiLevel experiment.
+    A class used to represent the SpinEchoMultiLevel experiment.
 
     Methods
     -------
@@ -279,7 +296,7 @@ class MultiQubitSpinEchoMultiLevel(
             initial_lpb: Optional['LogicalPrimitiveBlock'] = None,
     ) -> None:
         """
-        Run the SimpleSpinEchoMultiLevel experiment.
+        Run the SpinEchoMultiLevel experiment.
 
         Parameters
         ----------
@@ -386,7 +403,7 @@ class MultiQubitSpinEchoMultiLevel(
         """
 
         trace = self.probs[index, :, :]
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         colors = ['red', 'blue', 'green', 'orange']
 

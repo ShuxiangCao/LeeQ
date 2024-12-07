@@ -11,14 +11,13 @@ import matplotlib.pyplot as plt
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlock
 
 import numpy as np
-from scipy.optimize import curve_fit
-from typing import List, Optional, Any, Tuple, Union
+from typing import List, Optional, Union
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils.compatibility import prims
 
 from leeq.utils import setup_logging
-from leeq.utils.ai.vlms import visual_analyze_prompt
+from k_agents.inspection.decorator import visual_inspection
 
 logger = setup_logging(__name__)
 
@@ -252,10 +251,12 @@ class AmpPingpongCalibrationSingleQubitMultilevel(Experiment):
             initial_lpb: Optional[LogicalPrimitiveBlock] = None,
             flip_other: bool = False) -> None:
         """
-        Run the experiment  for amplitude finetuning of single qubit pulses repeatedly using pingpong scheme.
+        Run the Pingpong experiment for amplitude fine calibration of single qubit pulses repeatedly using pingpong scheme.
+        Notice this experiment is only for fine calibration and requires a rough calibration in advance, and cannot
+        be used alone for full calibration.
 
         Parameters:
-            dut (object): The device under test.
+            dut (object): The device under test, refers to the target qubit object.
             name (str): The name of the experiment.
             mprim_index (int): The index of the mprim.
             initial_lpb (float): The initial length per block.
@@ -344,7 +345,7 @@ class AmpPingpongCalibrationSingleQubitMultilevel(Experiment):
         return self.run(*args, **kwargs)
 
     @register_browser_function(available_after=(run,))
-    @visual_analyze_prompt("""
+    @visual_inspection("""
     Please confirm if the amplitude converges through the iterations. If convergence is not achieved, the experiment
     is likely to be unsuccessful. Please check the amplitude plot to confirm the convergence.
     """)
@@ -482,7 +483,7 @@ class PingPongMultiQubitMultilevel(Experiment):
         Plots the results of the ping pong experiment.
         """
 
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         duts = args['duts']
 
         x = self.pulse_count + 0.5  # Adjusting pulse count for plotting
@@ -637,7 +638,7 @@ class AmpTuneUpMultiQubitMultilevel(Experiment):
         Return:
             None
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         duts = args['duts']
         plt.plot(range(self.iteration), [x[i] for x in self.amps])
         plt.xlabel('Iteration')

@@ -1,6 +1,6 @@
 import numpy as np
 
-from leeq.core import LeeQObject
+from leeq.core.base import LeeQObject
 
 
 class MeasurementResult(LeeQObject):

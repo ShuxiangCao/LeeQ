@@ -117,7 +117,7 @@ class NormalisedRabi(Experiment):
         experiment.
         """
 
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
         t = np.arange(args['start'], args['stop'], args['step'])
         t_interpolate = np.arange(
             args['start'],
@@ -297,7 +297,7 @@ class NormalisedRabi(Experiment):
 
         """
 
-        args = self.retrieve_args(self.run)
+        args = self.get_run_args_dict()
         t = np.arange(args['start'], args['stop'], args['step'])
         data = np.squeeze(self.mp.result())
 

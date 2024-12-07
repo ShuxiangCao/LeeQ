@@ -7,10 +7,10 @@ from plotly.subplots import make_subplots
 
 from labchronicle import register_browser_function, log_and_record
 
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
 from leeq import Experiment
-from leeq.utils.ai import visual_analyze_prompt
 from leeq.utils.compatibility import *
 from plotly import graph_objects as go
 
@@ -35,7 +35,7 @@ class SimpleRamseyMultilevel(Experiment):
 
     @log_and_record
     def run(self,
-            qubit: Any,  # Replace 'Any' with the actual type of qubit
+            dut: 'TransmonElement',
             collection_name: str = 'f01',
             mprim_index: int = 0,
             # Replace 'Any' with the actual type
@@ -46,17 +46,17 @@ class SimpleRamseyMultilevel(Experiment):
             set_offset: float = 10.0,
             update: bool = True) -> None:
         """
-        Ramsey experiment for estimating the qubit frequency or T2 ramsey.
+        Ramsey experiment for estimating the qubit frequency or T2 ramsey (not T2 echo).
 
         Parameters:
-            qubit: The qubit on which the experiment is performed.
+            dut: The qubit on which the experiment is performed.
             collection_name: The name of the frequency collection (e.g., 'f01').
             mprim_index: The index of the measurement primitive.
             initial_lpb: Initial set of commands, if any.
-            start: The start time for the sweep.
-            stop: The stop time for the sweep.
-            step: The step size for the frequency sweep.
-            set_offset: The frequency offset.
+            start: The start time for the sweep. Units are in microseconds.
+            stop: The stop time for the sweep. Units are in microseconds.
+            step: The step size for the frequency sweep. Units are in microseconds.
+            set_offset: The frequency offset. Units are in MHz.
             update: Whether to update parameters after the experiment.
 
         Returns:
@@ -70,7 +70,7 @@ class SimpleRamseyMultilevel(Experiment):
         end_level = int(collection_name[2])
         self.level_diff = end_level - start_level
 
-        c1q = qubit.get_c1(collection_name)  # Retrieve the gate collection object
+        c1q = dut.get_c1(collection_name)  # Retrieve the gate collection object
         # Save original frequency
         original_freq = c1q['Xp'].freq
         self.original_freq = original_freq
@@ -97,7 +97,7 @@ class SimpleRamseyMultilevel(Experiment):
                     'delay_time')])
 
         # Get the measurement primitive
-        mprim = qubit.get_measurement_prim_intlist(mprim_index)
+        mprim = dut.get_measurement_prim_intlist(mprim_index)
         self.mp = mprim
 
         # Construct the logic primitive block
@@ -121,7 +121,7 @@ class SimpleRamseyMultilevel(Experiment):
 
     @log_and_record(overwrite_func_name='SimpleRamseyMultilevel.run')
     def run_simulated(self,
-                      qubit: Any,  # Replace 'Any' with the actual type of qubit
+                      dut: 'TransmonElement',
                       collection_name: str = 'f01',
                       mprim_index: int = 0,
                       # Replace 'Any' with the actual type
@@ -135,7 +135,7 @@ class SimpleRamseyMultilevel(Experiment):
         Run the Ramsey experiment.
 
         Parameters:
-            qubit: The qubit on which the experiment is performed.
+            dut: The qubit on which the experiment is performed.
             collection_name: The name of the frequency collection (e.g., 'f01').
             mprim_index: The index of the measurement primitive.
             initial_lpb: Initial set of commands, if any.
@@ -150,9 +150,9 @@ class SimpleRamseyMultilevel(Experiment):
         """
 
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
-        virtual_transmon = simulator_setup.get_virtual_qubit(qubit)
+        virtual_transmon = simulator_setup.get_virtual_qubit(dut)
 
-        c1 = qubit.get_c1(collection_name)
+        c1 = dut.get_c1(collection_name)
 
         f_q = virtual_transmon.qubit_frequency
         f_d = c1['X'].freq
@@ -178,7 +178,7 @@ class SimpleRamseyMultilevel(Experiment):
         decay_rate = 1 / t1
 
         # If the offset is too large, we will not be able to excite the qubit so we check it here
-        c1 = qubit.get_c1(collection_name)
+        c1 = dut.get_c1(collection_name)
         amp = c1.get_parameters()['amp']
 
         # hard code a virtual dut here
@@ -235,7 +235,7 @@ class SimpleRamseyMultilevel(Experiment):
         Returns:
             A plotly graph object containing the live data.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         data = np.squeeze(self.mp.result())
         t = np.arange(args['start'], args['stop'], args['step'])
 
@@ -253,7 +253,7 @@ class SimpleRamseyMultilevel(Experiment):
                 mode='lines+markers',
                 name='data'))
         fig.update_layout(
-            title=f"Ramsey {args['qubit'].hrid} transition {args['collection_name']}",
+            title=f"Ramsey {args['dut'].hrid} transition {args['collection_name']}",
             xaxis_title="Time (us)",
             yaxis_title="<z>",
             legend_title="Legend",
@@ -271,7 +271,7 @@ class SimpleRamseyMultilevel(Experiment):
         Returns:
             None
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         try:
             # Fit the data to an exponential decay model to extract frequency
             # Fit the data using a predefined fitting function
@@ -297,15 +297,15 @@ class SimpleRamseyMultilevel(Experiment):
         Returns:
             A tuple containing the guessed frequency, error bar, trace, arguments, and current timestamp.
         """
-        args = copy.copy(self.retrieve_args(self.run))
+        args = copy.copy(self._get_run_args_dict())
         del args['initial_lpb']
-        args['drive_freq'] = args['qubit'].get_c1(
+        args['drive_freq'] = args['dut'].get_c1(
             args['collection_name'])['X'].freq
-        args['qubit'] = args['qubit'].hrid
+        args['dut'] = args['dut'].hrid
         return self.frequency_guess, self.error_bar, self.trace, args, datetime.datetime.now()
 
     @register_browser_function(available_after=('run',))
-    @visual_analyze_prompt("""
+    @visual_inspection("""
         Here is a plot of data from a quantum mechanics experiment involving Ramsey oscillations. Can you analyze whether 
             this plot shows a successful experiment or a failed one? Please consider the following aspects in your analysis:
         1. Clarity of Oscillation: Describe if the data points show a clear, regular oscillatory pattern.
@@ -325,7 +325,7 @@ class SimpleRamseyMultilevel(Experiment):
         curve fitting, and then plots the actual data along with the fitted curve.
         """
         self.analyze_data()
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         # Generate time points based on the experiment arguments
         time_points = np.arange(args['start'], args['stop'], args['step'])
@@ -367,7 +367,7 @@ class SimpleRamseyMultilevel(Experiment):
                 col=1)
 
             # Set plot layout details
-            title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
+            title_text = f"Ramsey decay {args['dut'].hrid} transition {args['collection_name']}: <br>" \
                          f"{self.fit_params['Decay']} us"
             fig.update_layout(
                 title_text=title_text,
@@ -377,7 +377,7 @@ class SimpleRamseyMultilevel(Experiment):
 
         else:
             # Set plot layout details
-            title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
+            title_text = f"Ramsey decay {args['dut'].hrid} transition {args['collection_name']}: <br>" \
                          f"Fit failed"
             fig.update_layout(title_text=title_text,
                               xaxis_title=f"Time (us)",
@@ -400,7 +400,7 @@ class SimpleRamseyMultilevel(Experiment):
         """
         self.analyze_data()
         data = self.data
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         time_step = args['step']
 
         # Compute the (real) FFT of the data
@@ -425,7 +425,8 @@ class SimpleRamseyMultilevel(Experiment):
                           plot_bgcolor="white")
         return fig
 
-    def get_analyzed_result_prompt(self) -> str:
+    @text_inspection
+    def fitting(self) -> str:
         """
         Get a prompt for the analyzed result of the Ramsey experiment.
 
@@ -435,14 +436,14 @@ class SimpleRamseyMultilevel(Experiment):
 
         self.analyze_data()
 
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         oscillation_count = (self.fit_params['Frequency']) * (args['stop'] - args['start'])
 
         if self.error_bar == np.inf:
             return "The Ramsey experiment failed to fit the data."
 
-        return (f"The Ramsey experiment for qubit {self.retrieve_args(self.run)['qubit'].hrid} has been analyzed. " \
+        return (f"The Ramsey experiment for qubit {self._get_run_args_dict()['dut'].hrid} has been analyzed. " \
                 f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured oscillation is "
                 f"{self.set_offset + self.fitted_freq_offset * self.level_diff:.3f} MHz. Oscillation"
                 f" amplitude is {self.fit_params['Amplitude']}."
@@ -579,7 +580,7 @@ class MultiQubitRamseyMultilevel(Experiment):
         Returns:
             A plotly graph object containing the live data.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         data = np.squeeze(self.mp.result())
         t = np.arange(args['start'], args['stop'], args['step'])
 
@@ -615,7 +616,7 @@ class MultiQubitRamseyMultilevel(Experiment):
         Returns:
             None
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         try:
             # Fit the data to an exponential decay model to extract frequency
             # Fit the data using a predefined fitting function
@@ -661,7 +662,7 @@ class MultiQubitRamseyMultilevel(Experiment):
         Parameters:
             i: The index of the qubit for which to plot the data.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         fit_params = self.fit_params[i]
 
         # Generate time points based on the experiment arguments

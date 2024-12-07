@@ -1,24 +1,22 @@
-import multiprocessing
-
 import numpy as np
 import pandas as pd
 from scipy import optimize as so
 from labchronicle import register_browser_function, log_and_record
-from matplotlib import pyplot as plt
 from typing import List, Optional, Any, Union
 from joblib import Parallel, delayed
 from tqdm.notebook import tqdm
 import multiprocessing
 import uncertainties as unc
 from uncertainties.umath import exp as uexp
-from leeq.utils.ai.vlms import visual_analyze_prompt
+
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 
 import matplotlib.pyplot as plt
 
 from leeq import Sweeper, basic_run, Experiment
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel, \
     LogicalPrimitiveBlockSerial, LogicalPrimitiveBlock
-from leeq.theory.cliffords.two_qubit_cliffords import append_inverse_C2, NC2, NC2_lim
+from leeq.theory.cliffords.two_qubit_cliffords import append_inverse_C2, NC2
 from leeq.theory.utils import to_dense_probabilities
 
 
@@ -77,9 +75,9 @@ class RandomizedBenchmarking2Qubits(Experiment):
         self.results = [mprim.result() for mprim in mprims]
 
     def analyze_result(self):
-        kinds = self.retrieve_args(self.run)['kinds']
-        seq_length = self.retrieve_args(self.run)['seq_length']
-        duts = self.retrieve_args(self.run)['duts']
+        kinds = self._get_run_args_dict()['kinds']
+        seq_length = self._get_run_args_dict()['seq_length']
+        duts = self._get_run_args_dict()['duts']
 
         data = np.squeeze(np.asarray(self.results)).transpose([0, 2, 1])
         data = to_dense_probabilities(data)
@@ -121,7 +119,7 @@ class RandomizedBenchmarking2Qubits(Experiment):
 
         self.analyze_result()
 
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         seq_length = args['seq_length']
 
         lseq = np.linspace(0, np.amax(seq_length) + 1, 1001)
@@ -234,7 +232,8 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         p_i = uexp(unc.ufloat(interleaved_rb.popt[1], interleaved_rb.perr[1]))
         self.infidelity = (4 - 1) / 4 * (1 - (p_i / p_s))
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
         return f"""
         The standard randomized benchmarking reports infidelity pgc to be {self.fit_params['standard']['infidelity']}.
         The interleaved randomized benchmarking reports infidelity pgc to be {self.fit_params['interleaved']['infidelity']}.
@@ -242,7 +241,7 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         """
 
     @register_browser_function()
-    @visual_analyze_prompt("""
+    @visual_inspection("""
     This is the analysis of the randomized benchmarking experiment. The experiment is considered successful two clear 
     exponential decays are observed. if the decay is too fast, the experiment is failed reduce the sequence length.
     If the decay is too slow, the experiment is failed and increase the sequence length. If the decay rate is proper,
@@ -265,7 +264,7 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         df['Value'] = df['Value'].apply(lambda x: f"{x:.3f}" if isinstance(x, float) else x)
         print(df)
 
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         seq_length = args['seq_length']
 
         lseq = np.linspace(0, np.amax(seq_length) + 1, 1001)

@@ -26,7 +26,7 @@ class SimpleDrive(LogicalPrimitive, PulseArgsUpdatable):
         factory = PulseShapeFactory()
         return factory.calculate_integrated_area(
             pulse_shape_name=self.shape,
-            sampling_rate=1e3,  # In Msps unit. Just an estimation
+            sampling_rate=2e3,  # In Msps unit. Just an estimation
             **self._parameters,
         )
 

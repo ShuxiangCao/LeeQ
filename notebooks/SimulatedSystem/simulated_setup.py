@@ -43,8 +43,13 @@ def simulation_setup():
     setup = HighLevelSimulationSetup(
         name='HighLevelSimulationSetup',
         virtual_qubits={2: virtual_transmon_a,
-                        4: virtual_transmon_b}
+                        4: virtual_transmon_b},
     )
+
+    setup.set_coupling_strength_by_qubit(
+        virtual_transmon_a, virtual_transmon_b, coupling_strength=1.5)
+
+    
     manager.register_setup(setup)
     return manager
 
@@ -57,7 +62,7 @@ configuration_a = {
             'freq': 5040.4,
             'channel': 2,
             'shape': 'blackman_drag',
-            'amp': 0.1 ,
+            'amp': 0.5487 ,
             'phase': 0.,
             'width': 0.05,
             'alpha': 500,
@@ -98,7 +103,7 @@ configuration_b = {
             'freq': 4855.3,
             'channel': 4,
             'shape': 'blackman_drag',
-            'amp': 0.1 ,
+            'amp': 0.5399696605966315 ,
             'phase': 0.,
             'width': 0.05,
             'alpha': 500,

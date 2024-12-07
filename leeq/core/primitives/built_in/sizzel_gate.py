@@ -1,8 +1,9 @@
 import uuid
 import numpy as np
 
-from leeq import LogicalPrimitiveFactory, LogicalPrimitive
+
 from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
+from leeq.core.primitives import LogicalPrimitiveFactory
 from leeq.core.primitives.built_in.compatibility import PulseArgsUpdatable
 from leeq.core.primitives.collections import LogicalPrimitiveCollection
 

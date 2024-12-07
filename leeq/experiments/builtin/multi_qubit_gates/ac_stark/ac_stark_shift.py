@@ -1,9 +1,7 @@
 # Conditional AC stark shift induced CZ gate
 
 from datetime import datetime
-
-import numpy as np
-
+from k_agents.inspection.decorator import text_inspection
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockSweep
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
@@ -17,7 +15,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from labchronicle import log_and_record, register_browser_function
-from leeq import Experiment, Sweeper, basic_run, SweepParametersSideEffectFactory
+from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.utils.compatibility import *
 
@@ -29,12 +27,7 @@ from leeq.theory.fits import *
 
 from scipy.optimize import curve_fit, OptimizeWarning
 
-from qutip import Bloch
-
 from typing import List, Any
-
-import pandas as pd
-from IPython.display import display
 
 
 # from ..characterization import *
@@ -104,7 +97,7 @@ class StarkSingleQubitT1(experiment):
         self.trace = None
         self.fit_params = {}  # Initialize as an empty dictionary or suitable default value
 
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         t = np.arange(0, args['stop'], args['step'])
         trace = np.squeeze(self.mp.result())
@@ -225,7 +218,7 @@ class StarkTwoQubitsSWAP(experiment):
 
     @register_browser_function(available_after=(run,))
     def plot_t1(self):
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         dark_navy = '#000080'
         dark_purple = '#800080'
@@ -352,7 +345,7 @@ class StarkTwoQubitsSWAPTwoDrives(experiment):
 
     @register_browser_function(available_after=(run,))
     def plot_t1(self):
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         dark_navy = '#000080'
         dark_purple = '#800080'
@@ -604,7 +597,7 @@ class StarkRamseyMultilevel(Experiment):
         Returns:
             A plotly graph object containing the live data.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         data = np.squeeze(self.mp.result())
         t = np.arange(args['start'], args['stop'], args['step'])
 
@@ -640,7 +633,7 @@ class StarkRamseyMultilevel(Experiment):
         Returns:
             None
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         try:
             # Fit the data to an exponential decay model to extract frequency
@@ -666,7 +659,7 @@ class StarkRamseyMultilevel(Experiment):
         Returns:
             A tuple containing the guessed frequency, error bar, trace, arguments, and current timestamp.
         """
-        args = copy.copy(self.retrieve_args(self.run))
+        args = copy.copy(self._get_run_args_dict())
         del args['initial_lpb']
         args['drive_freq'] = args['qubit'].get_c1(
             args['collection_name'])['X'].freq
@@ -682,7 +675,7 @@ class StarkRamseyMultilevel(Experiment):
         curve fitting, and then plots the actual data along with the fitted curve.
         """
         self.analyze_data()
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         # Generate time points based on the experiment arguments
         time_points = np.arange(args['start'], args['stop'], args['step'])
@@ -757,7 +750,7 @@ class StarkRamseyMultilevel(Experiment):
         """
         self.analyze_data()
         data = self.data
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         time_step = args['step']
 
         # Compute the (real) FFT of the data
@@ -782,7 +775,8 @@ class StarkRamseyMultilevel(Experiment):
                           plot_bgcolor="white")
         return fig
 
-    def get_analyzed_result_prompt(self) -> str:
+    @text_inspection
+    def fitting(self) -> str:
         """
         Get a prompt for the analyzed result of the Ramsey experiment.
 
@@ -795,7 +789,7 @@ class StarkRamseyMultilevel(Experiment):
         if self.error_bar == np.inf:
             return "The Ramsey experiment failed to fit the data."
 
-        return (f"The Ramsey experiment for qubit {self.retrieve_args(self.run)['qubit'].hrid} has been analyzed. " \
+        return (f"The Ramsey experiment for qubit {self._get_run_args_dict()['qubit'].hrid} has been analyzed. " \
                 f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured offset is "
                 f"{self.fitted_freq_offset:.3f}+- {self.error_bar:.3f} MHz.")
 
@@ -862,7 +856,7 @@ class StarkDriveRamseyTwoQubits(experiment):
         for i, c1 in enumerate(c1s): c1.update_parameters(freq=self.original_freqs[i])
 
     def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         data0 = np.squeeze(self.traces[0])
         data1 = np.squeeze(self.traces[1])
         t = np.arange(args['start'], args['stop'], args['step'])
@@ -886,7 +880,7 @@ class StarkDriveRamseyTwoQubits(experiment):
         return fig
 
     def analyze_data(self) -> None:
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         from leeq.theory.fits import fit_1d_freq_exp_with_cov
 
         self.frequency_shift = [[], []]
@@ -909,7 +903,7 @@ class StarkDriveRamseyTwoQubits(experiment):
 
     def dump_results_and_configuration(self) -> Tuple[
         float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
-        args = copy.copy(self.retrieve_args(self.run))
+        args = copy.copy(self._get_run_args_dict())
         del args['initial_lpb']
         args['drive_freq'] = args['qubits'][0].get_c1(args['collection_name'])['X'].freq
         args['qubits'] = [qubit.hrid for qubit in args['qubits']]
@@ -918,7 +912,7 @@ class StarkDriveRamseyTwoQubits(experiment):
     @register_browser_function(available_after=('run',))
     def plot(self) -> go.Figure:
         self.analyze_data()
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         time_points = np.arange(args['start'], args['stop'], args['step'])
         time_points_interpolate = np.arange(args['start'], args['stop'], args['step'] / 10)
@@ -957,7 +951,7 @@ class StarkDriveRamseyTwoQubits(experiment):
 
     def plot_fft(self, plot_range: Tuple[float, float] = (0.05, 1)) -> go.Figure:
         self.analyze_data()
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         time_step = args['step']
 
         fig = go.Figure()
@@ -975,7 +969,8 @@ class StarkDriveRamseyTwoQubits(experiment):
         )
         return fig
 
-    def get_analyzed_result_prompt(self) -> str:
+    @text_inspection
+    def fitting(self) -> str:
         self.analyze_data()
 
         if all(err == np.inf for err in self.error_bar):
@@ -985,7 +980,7 @@ class StarkDriveRamseyTwoQubits(experiment):
         for i in range(2):
             if self.error_bar[i] != np.inf:
                 result_str += (
-                    f"The Ramsey experiment for trace {i} of qubit {self.retrieve_args(self.run)['qubits'].hrid} "
+                    f"The Ramsey experiment for trace {i} of qubit {self._get_run_args_dict()['qubits'].hrid} "
                     f"has been analyzed. The expected offset was set to {self.set_offset:.3f} MHz, "
                     f"and the measured offset is {self.fitted_freq_offset[i]:.3f}±{self.error_bar[i]:.3f} MHz.\n")
             else:
@@ -1061,7 +1056,7 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
         for i, c1 in enumerate(c1s): c1.update_parameters(freq=self.original_freqs[i])
 
     def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         data0 = np.squeeze(self.traces[0])
         data1 = np.squeeze(self.traces[1])
         t = np.arange(args['start'], args['stop'], args['step'])
@@ -1085,7 +1080,7 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
         return fig
 
     def analyze_data(self) -> None:
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         from leeq.theory.fits import fit_1d_freq_exp_with_cov
 
         self.frequency_shift = [[], []]
@@ -1108,7 +1103,7 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
 
     def dump_results_and_configuration(self) -> Tuple[
         float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
-        args = copy.copy(self.retrieve_args(self.run))
+        args = copy.copy(self._get_run_args_dict())
         del args['initial_lpb']
         args['drive_freq'] = args['qubits'][0].get_c1(args['collection_name'])['X'].freq
         args['qubits'] = [qubit.hrid for qubit in args['qubits']]
@@ -1117,7 +1112,7 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
     @register_browser_function(available_after=('run',))
     def plot(self) -> go.Figure:
         self.analyze_data()
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         time_points = np.arange(args['start'], args['stop'], args['step'])
         time_points_interpolate = np.arange(args['start'], args['stop'], args['step'] / 10)
@@ -1156,7 +1151,7 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
 
     def plot_fft(self, plot_range: Tuple[float, float] = (0.05, 1)) -> go.Figure:
         self.analyze_data()
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         time_step = args['step']
 
         fig = go.Figure()
@@ -1174,7 +1169,8 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
         )
         return fig
 
-    def get_analyzed_result_prompt(self) -> str:
+    @text_inspection
+    def fitting(self) -> str:
         self.analyze_data()
 
         if all(err == np.inf for err in self.error_bar):
@@ -1184,7 +1180,7 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
         for i in range(2):
             if self.error_bar[i] != np.inf:
                 result_str += (
-                    f"The Ramsey experiment for trace {i} of qubit {self.retrieve_args(self.run)['qubits'].hrid} "
+                    f"The Ramsey experiment for trace {i} of qubit {self._get_run_args_dict()['qubits'].hrid} "
                     f"has been analyzed. The expected offset was set to {self.set_offset:.3f} MHz, "
                     f"and the measured offset is {self.fitted_freq_offset[i]:.3f}±{self.error_bar[i]:.3f} MHz.\n")
             else:
@@ -1255,7 +1251,7 @@ class StarkDriveRamseyMultiQubits(experiment):
         for i, c1 in enumerate(c1s): c1.update_parameters(freq=self.original_freqs[i])
 
     def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         t = np.arange(args['start'], args['stop'], args['step'])
 
         if step_no is not None:
@@ -1280,7 +1276,7 @@ class StarkDriveRamseyMultiQubits(experiment):
         return fig
 
     def analyze_data(self) -> None:
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         from leeq.theory.fits import fit_1d_freq_exp_with_cov
 
         N = len(self.traces)
@@ -1304,7 +1300,7 @@ class StarkDriveRamseyMultiQubits(experiment):
 
     def dump_results_and_configuration(self) -> Tuple[
         float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
-        args = copy.copy(self.retrieve_args(self.run))
+        args = copy.copy(self._get_run_args_dict())
         del args['initial_lpb']
         args['drive_freq'] = args['qubits'][0].get_c1(args['collection_name'])['X'].freq
         args['qubits'] = [qubit.hrid for qubit in args['qubits']]
@@ -1313,7 +1309,7 @@ class StarkDriveRamseyMultiQubits(experiment):
     @register_browser_function(available_after=('run',))
     def plot(self) -> go.Figure:
         self.analyze_data()
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         time_points = np.arange(args['start'], args['stop'], args['step'])
         time_points_interpolate = np.arange(args['start'], args['stop'], args['step'] / 10)
@@ -1353,7 +1349,7 @@ class StarkDriveRamseyMultiQubits(experiment):
 
     def plot_fft(self, plot_range: Tuple[float, float] = (0.05, 1)) -> go.Figure:
         self.analyze_data()
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         time_step = args['step']
 
         fig = go.Figure()
@@ -1371,7 +1367,8 @@ class StarkDriveRamseyMultiQubits(experiment):
         )
         return fig
 
-    def get_analyzed_result_prompt(self) -> str:
+    @text_inspection
+    def fitting(self) -> str:
         self.analyze_data()
 
         if all(err == np.inf for err in self.error_bar):
@@ -1550,7 +1547,7 @@ class StarkRepeatedGateRabi(Experiment):
         """
         Plot the results.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         t = np.arange(args['start_gate_number'], args['start_gate_number'] + args['gate_count'], 1)
 
@@ -1614,7 +1611,7 @@ class StarkContinuesRabi(Experiment):
         """
         Plot the results.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         t = np.arange(args['width_start'], args['width_stop'], args['width_step'])
 
@@ -1693,7 +1690,7 @@ class StarkRepeatedGateDRAGLeakageCalibration(Experiment):
         """
         Plot the results.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         inv_alpha = self.sweep_values
 

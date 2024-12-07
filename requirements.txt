@@ -18,12 +18,9 @@ decorator
 h5py
 uncertainties
 labchronicle @ git+https://github.com/ShuxiangCao/LabChronicle
-fibers @ git+https://github.com/EvoEvolver/FibersNext.git
+k_agents @ git+https://github.com/EvoEvolver/k_agents
 MinimalLLM
-markdownify
 ipywidgets
 kaleido
-markdownify
 pandas
 dill
-asteval

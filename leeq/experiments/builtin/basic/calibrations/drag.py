@@ -1,10 +1,10 @@
 from labchronicle import log_and_record, register_browser_function
 import leeq
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, basic_run, setup
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils.compatibility import prims
-from leeq.utils.ai.vlms import visual_analyze_prompt
 
 from typing import Optional, Union
 import numpy as np
@@ -24,7 +24,8 @@ class DragCalibrationSingleQubitMultilevel(Experiment):
     Class for running a single AllXY drag experiment on a single qubit with a multilevel system.
     """
     _experiment_result_analysis_instructions = """
-Calibrate the DRAG coefficient (alpha) using an AllXY DRAG experiment. The experiment is successful if:
+This experiment calibrates the DRAG coefficient (alpha) using an AllXY DRAG experiment. 
+The experiment is successful if:
 1. Two differently colored lines show distinct trends
 2. Line fitting is appropriate, by checking the residuals of the data points.
 3. Predicted optimal DRAG coefficient is within the central half of the sweep
@@ -33,7 +34,7 @@ If any of these conditions are not met, the experiment fails. For failed experim
 - Adjust and repeat if condition 3 is not met, centering the sweep around the predicted optimal coefficient
 For successful experiments, recommend a new sweep range centered on the predicted optimal coefficient, maintaining the same span.
 If success cannot be determined, consider the experiment failed.
-    """
+"""
 
     @log_and_record
     def run(self,
@@ -52,12 +53,12 @@ If success cannot be determined, consider the experiment failed.
 
         Parameters:
             dut (Any): The device under test.
-            collection_name (str): The name of the collection.
-            mprim_index (int): The index of the measurement primitive.
-            initial_lpb (LogicalPrimitiveBlock): The initial pulse sequence.
+            collection_name (str): The name of the collection. 'f01' for qubit calibration.
+            mprim_index (int): The index of the measurement primitive. 0 for qubit calibration.
+            initial_lpb (LogicalPrimitiveBlock): The initial pulse sequence. Always use None for qubit calibration.
             N (int): The number of repetitions for the All XY value.
-            inv_alpha_start (float): The start value of the 1/alpha parameter.
-            inv_alpha_stop (float): The stop value of the 1/alpha parameter.
+            inv_alpha_start (float, optional): The start value of the 1/alpha parameter. Default is None.
+            inv_alpha_stop (float, optional): The stop value of the 1/alpha parameter. Default is None.
             num (int): The number of points in the sweep.
         """
 
@@ -229,7 +230,7 @@ If success cannot be determined, consider the experiment failed.
             (self.result[:, 1] - (self.fit_xm[0] * self.sweep_values + self.fit_xm[1])) ** 2)
 
     @register_browser_function()
-    @visual_analyze_prompt(
+    @visual_inspection(
         """Analyze the scatter plot with blue and red data points and trend lines:
             1.Compare the slopes of the trend lines.
             2.Assess how well data points fit their trend lines, noting outliers or patterns.
@@ -281,9 +282,10 @@ If success cannot be determined, consider the experiment failed.
         # plt.legend()
         return fig
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
 
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         fitting_parameters = f"Sweep start: {self.inv_alpha_start}\n" \
                              f"Sweep stop: {self.inv_alpha_stop}\n"
@@ -377,6 +379,7 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
 
             # Update alpha estimate based on the inverse of the obtained value
             # from the experiment.
+            allxy.linear_fit()
             alpha_0 = allxy.optimum
 
             print('Guessed alpha:', alpha_0)

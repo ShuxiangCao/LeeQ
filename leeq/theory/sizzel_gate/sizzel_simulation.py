@@ -24,18 +24,16 @@ points_y = 401
 
 import qutip as qp
 
+a = qp.tensor(qp.destroy(N), qp.identity(N))
+ad = a.dag()
+b = qp.tensor(qp.identity(N), qp.destroy(N))
+bd = b.dag()
 
-class Simulator(object):
 
-    def __init__(self, virtual_qubits,coupling_strength, N=4):
-        a = qp.tensor(qp.destroy(N), qp.identity(N))
-        ad = a.dag()
-        b = qp.tensor(qp.identity(N), qp.destroy(N))
-        bd = b.dag()
-
-    def hamiltonian_nonlinear(self, J):
-        Hnonlin = -alpha1 / 2 * bd ** 2 * b ** 2 - alpha2 / 2 * ad ** 2 * a ** 2 - J * (ad * b + bd * a)
-        return Hnonlin
+def ret_Hnonlin(alpha1, alpha2, J):
+    # Hnonlin = -chi*(ad + a)**2 * (bd + b)**2
+    Hnonlin = -alpha1 / 2 * bd ** 2 * b ** 2 - alpha2 / 2 * ad ** 2 * a ** 2 - J * (ad * b + bd * a)
+    return Hnonlin
 
 
 def ret_Hdrive(eps):
@@ -288,21 +286,21 @@ def plot_time(file):
         data['alpha_2'] = data['alpha']
 
     fig, ax = plt.subplots()
-    # ax.set_title(
+    #ax.set_title(
     #    r"Time required to implement qutrit CZ" + rf'$\alpha={data["alpha_1"]},{data["alpha_2"]}$[MHz] $J={data["J"]}$[MHz] $\Delta={data["freq_delta"]}$[MHz] $N={data["N"]}$')
     norm = colors.SymLogNorm(linthresh=0.0003, vmin=-100, vmax=100)
 
-    norm = colors.LogNorm(vmin=1, vmax=np.max(t_map_plot))
-    # norm = colors.PowerNorm(0.5)
+    norm = colors.LogNorm(vmin=1,vmax=np.max(t_map_plot))
+    #norm = colors.PowerNorm(0.5)
     cmap = 'viridis_r'
-    # cmap = 'RdBu'
+    #cmap = 'RdBu'
     #
-    ax.pcolor(X, Y, t_map_plot, norm=norm, cmap=cmap)
+    ax.pcolor(X, Y, t_map_plot, norm=norm, cmap = cmap)
 
     fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax)
 
-    # cs = ax.contour(X, Y, np.abs(t_map_plot), levels=[1], colors=['Orange'])
-    # ax.clabel(cs, inline=True, fontsize=8)
+    #cs = ax.contour(X, Y, np.abs(t_map_plot), levels=[1], colors=['Orange'])
+    #ax.clabel(cs, inline=True, fontsize=8)
     ax.patch.set_facecolor('black')
 
     ax.set_xlabel(r"$Drive~detuning (MHz)$")
@@ -362,6 +360,6 @@ if __name__ == '__main__':
     # main(name_A2_B2_corrected)
 
     # solve_all_t_values(name_A2_B2_corrected)
-    # plot_data(name_70)
+    #plot_data(name_70)
     plot_time(name_70)
     # print(ret_zz(alpha, J, 10, -50, freq_delta))

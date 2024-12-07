@@ -1,18 +1,18 @@
-from typing import Optional, Any, Dict, List, Union
+from typing import Optional, Any, List, Union
 import numpy as np
 from plotly import graph_objects as go
-import uncertainties as unc
 
 from labchronicle import register_browser_function, log_and_record
+
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import Experiment, Sweeper
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
-from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_exp_decay_with_cov
+from leeq.theory.fits import fit_exp_decay_with_cov
 from leeq.theory.utils import to_dense_probabilities
 from leeq.utils import setup_logging
 from leeq.utils.compatibility import *
 from leeq.utils.compatibility.prims import SweepLPB
 from leeq.theory.fits.multilevel_decay import fit_decay as fit_multilevel_decay, plot
-from leeq.utils.ai.vlms import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 
@@ -135,14 +135,15 @@ class SimpleT1(Experiment):
         basic(lpb, swp, 'p(1)')
         self.trace = np.squeeze(mp.result())
 
-    def get_analyzed_result_prompt(self) -> Union[str, None]:
+    @text_inspection
+    def fitting(self) -> Union[str, None]:
         """
         Get the prompt to analyze the data.
 
         Returns:
         str: The prompt to analyze the data.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         t = np.arange(0, args['time_length'], args['time_resolution'])
         trace = self.trace
@@ -156,7 +157,7 @@ class SimpleT1(Experiment):
         return f"The sweep time length is {args['time_length']} us and " + "the fitted curve reports a T1 value of " + f"{t1} us."
 
     @register_browser_function(available_after=(run,))
-    @visual_analyze_prompt(
+    @visual_inspection(
         "Please analyze the experimental data in the plot to determine if there's a clear exponential"
         "decay pattern followed by stabilization. It is important that the decay is observable, as the "
         "absence of decay is considered a failure of the experiment. Check if the tail of the decay "
@@ -178,7 +179,7 @@ class SimpleT1(Experiment):
         """
         self.fit_params = {}  # Initialize as an empty dictionary or suitable default value
 
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         t = np.arange(0, args['time_length'], args['time_resolution'])
 
@@ -351,7 +352,7 @@ class MultiQubitT1(Experiment):
         go.Figure: The Plotly figure object.
         """
 
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         t = np.arange(0, args['time_length'], args['time_resolution'])
         trace = self.traces[i]

@@ -5,6 +5,8 @@ from typing import Optional, Union
 from scipy import optimize as so
 import plotly
 from labchronicle import log_and_record, register_browser_function
+
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import SweepParametersSideEffectFactory
@@ -15,7 +17,6 @@ from typing import List, Tuple, Dict, Any
 
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
-from leeq.utils.ai.vlms import visual_analyze_prompt
 
 logger = setup_logging(__name__)
 
@@ -33,17 +34,17 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
     Inherits from a generic "experiment" class.
     """
 
-    _experiment_result_analysis_instructions = """
-Inspect the plot to detect the resonator's presence. If present:
-1. Consider the resonator linewidth (typically sub-MHz to a few MHz).
-2. If the step size is much larger than the linewidth:
-   a. Focus on the expected resonator region.
-   b. Reduce the step size for better accuracy.
-3. If linewidth < 0.1 MHz, it's likely not a resonator; move on.
-The experiment is considered successful if a resonator is detected. Otherwise, it is considered unsuccessful and suggest
-a new sweeping range and step size.
-    """
-
+#     _experiment_result_analysis_instructions = """
+# Inspect the plot to detect the resonator's presence. If present:
+# 1. Consider the resonator linewidth (typically sub-MHz to a few MHz).
+# 2. If the step size is much larger than the linewidth:
+#    a. Focus on the expected resonator region.
+#    b. Reduce the step size for better accuracy.
+# 3. If linewidth < 0.1 MHz, it's likely not a resonator; move on.
+# The experiment is considered successful if a resonator is detected. Otherwise, it is considered unsuccessful and suggest
+# a new sweeping range and step size.
+#     """
+#
     @log_and_record
     def run(self,
             dut_qubit: TransmonElement,
@@ -223,7 +224,7 @@ a new sweeping range and step size.
         """
 
         # Get the sweep parameters
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
 
         # Get the data
         result = self.data
@@ -296,7 +297,7 @@ a new sweeping range and step size.
             z, f0, Q, amp, baseline, direction (tuple): The phase gradient, the resonant frequency, the quality factor,
             the amplitude, the baseline, and the direction of the Lorentzian peak.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         f = np.arange(args["start"], args["stop"], args["step"])
         phase_trace = self.result["Phase"]
         phase_unwrapped = np.unwrap(phase_trace)
@@ -369,16 +370,16 @@ a new sweeping range and step size.
         return z, f0, Q, amp, baseline, direction
 
     @register_browser_function(available_after=(run,))
-    @visual_analyze_prompt("""
-Analyze a new resonator spectroscopy magnitude plot to determine if it shows evidence of a resonator. Focus on:
-1. Sharp dips or peaks at specific frequencies
-2. Signal stability
-3. Noise levels
-4. Behavior around suspected resonant frequencies
-Provide a detailed analysis of the magnitude and frequency data. Identifying a resonator indicates a successful experiment.
+    @visual_inspection("""
+    Analyze a new resonator spectroscopy magnitude plot to determine if it shows evidence of a resonator. Focus on:
+    1. Sharp dips or peaks at specific frequencies
+    2. Signal stability
+    3. Noise levels
+    4. Behavior around suspected resonant frequencies
+    Provide a detailed analysis of the magnitude and frequency data. Identifying a resonator indicates a successful experiment.
     """)
     def plot_magnitude(self):
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         f = np.arange(args["start"], args["stop"], args["step"])
 
         fig = go.Figure()
@@ -428,13 +429,13 @@ Provide a detailed analysis of the magnitude and frequency data. Identifying a r
             fit_succeed = True
         except Exception as e:
             logger.error(f"Error fitting phase gradient: {e}")
-            args = self.retrieve_args(self.run)
+            args = self._get_run_args_dict()
             f = np.arange(args["start"], args["stop"], args["step"])
             phase_trace = self.result["Phase"]
             phase_unwrapped = np.unwrap(phase_trace)
             z = (phase_unwrapped[1:] - phase_unwrapped[:-1]) / args["step"]
 
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         f = np.arange(args["start"], args["stop"], args["step"])
         f_interpolate = np.arange(
             args["start"],
@@ -480,7 +481,8 @@ Provide a detailed analysis of the magnitude and frequency data. Identifying a r
 
         return fig
 
-    def get_analyzed_result_prompt(self) -> str:
+    @text_inspection
+    def fitting(self) -> str:
         """
         Get the analyzed result prompt.
 
@@ -492,7 +494,7 @@ Provide a detailed analysis of the magnitude and frequency data. Identifying a r
             z, f0, Q, amp, baseline, direction = self._fit_phase_gradient()
             fit_succeed = True
         except Exception as e:
-            return f"The experiment has an error fitting phase gradient: {e}"
+            return f"The experiment has an error fitting phase gradient, implying the experiment is failed."
 
         return ("The fitting suggest that the resonant frequency is at %f MHz, "
                 "with a quality factor of %f (resonator linewidth kappa of %f MHz), an amplitude of %f, and a baseline of %f.") % (
@@ -631,7 +633,7 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         Returns:
             plotly.graph_objects.Figure: The figure.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         trace = np.squeeze(self.mp.result()).transpose()
 
         return self._plot_data(
@@ -655,7 +657,7 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
             plotly.graph_objects.Figure: The figure.
         """
 
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         trace = np.squeeze(self.mp.result()).transpose()
 
         return self._plot_data(
@@ -679,7 +681,7 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         Returns:
             plotly.graph_objects.Figure: The figure.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         trace = np.squeeze(self.mp.result()).transpose()
 
         return self._plot_data(
@@ -705,7 +707,7 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         Returns:
             plotly.graph_objects.Figure: The figure.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         trace = np.squeeze(self.mp.result()).transpose()
         return self._plot_data(
             x=np.arange(
@@ -774,7 +776,7 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
         """
         Plots the magnitude of the resonator spectroscopy using Plotly.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         f = np.arange(args['start'], args['stop'], args['step'])
 
         fig = go.Figure()
@@ -800,7 +802,7 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
         """
         Plots the phase of the resonator spectroscopy using Plotly.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         f = np.arange(args['start'], args['stop'], args['step'])
 
         fig = go.Figure()
@@ -828,7 +830,7 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
         """
         Plots the differentiated phase and its Lorentzian fit using Plotly.
         """
-        args = self.retrieve_args(self.run)
+        args = self._get_run_args_dict()
         f = np.arange(args['start'], args['stop'], args['step'])
         f_interpolate = np.arange(
             args['start'],

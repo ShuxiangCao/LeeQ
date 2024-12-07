@@ -4,6 +4,85 @@ from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.colors import hsv_to_rgb
 from .gellman import generate_gellmann_basis
+import scipy as sp
+
+
+def cj_from_ptm(ptm: np.ndarray, basis_matrices: np.ndarray, dim: int) -> np.ndarray:
+    """
+    Converts a Pauli Transfer Matrix (PTM) to a Choi-Jamiolkowski (CJ) representation.
+
+    Args:
+        ptm (np.ndarray): The PTM to convert.
+        basis_matrices (np.ndarray): The basis matrices of the Hilbert space.
+        dim (int): The dimension of the Hilbert space.
+
+    Returns:
+        np.ndarray: The CJ representation of the PTM.
+    """
+
+    rho = np.zeros([dim, dim], dtype=complex)
+    for i in range(ptm.shape[0]):
+        for j in range(ptm.shape[1]):
+            rho += ptm[i, j] * np.kron(basis_matrices[:, :, j].T, basis_matrices[:, :, i])
+    rho /= dim
+    return rho
+
+
+def evaluate_average_fidelity_ptm(ptm_estimated: np.ndarray, ptm_ideal: np.ndarray, basis_matrices: np.ndarray,
+                                  dim: int) -> float:
+    """
+    Evaluates the average fidelity between the estimated and ideal CJ representations of a gate's PTM.
+
+    Args:
+        ptm_estimated (np.ndarray): The estimated PTM.
+        ptm_ideal (np.ndarray): The ideal PTM.
+        basis_matrices (np.ndarray): The basis matrices of the Hilbert space.
+        dim (int): The dimension of the Hilbert space.
+
+    Returns:
+        float: The average fidelity value, real part only.
+    """
+    cj_estimated = cj_from_ptm(ptm_estimated, basis_matrices, dim)
+    cj_ideal = cj_from_ptm(ptm_ideal, basis_matrices, dim)
+    sqrt_cj = sp.linalg.sqrtm(cj_estimated)
+    entanglement_fidelity = np.trace(sp.linalg.sqrtm(sqrt_cj @ cj_ideal @ sqrt_cj)) ** 2
+
+    hilbert_space_dimension = ptm_estimated.shape[0] ** (1 / 2)  # One sqrt to move ptm to unitary size
+
+    averaged_fidelity = (hilbert_space_dimension * entanglement_fidelity + 1) / (hilbert_space_dimension + 1)
+
+    return averaged_fidelity.real
+
+
+def evaluate_fidelity_density_matrix(rho_estimated: np.ndarray, rho_ideal: np.ndarray) -> float:
+    """
+    Evaluates the fidelity between the estimated and ideal density matrices.
+
+    Args:
+        rho_estimated (np.ndarray): The estimated density matrix.
+        rho_ideal (np.ndarray): The ideal density matrix.
+
+    Returns:
+        float: The fidelity value, real part only.
+    """
+    sqrt_rho = sp.linalg.sqrtm(rho_estimated)
+    fidelity = np.trace(sp.linalg.sqrtm(sqrt_rho @ rho_ideal @ sqrt_rho)) ** 2
+    return fidelity.real
+
+
+def evaluate_fidelity_density_matrix_with_state_vector(rho_estimated: np.ndarray, state_vec_ideal: np.ndarray) -> float:
+    """
+    Evaluates the fidelity between the estimated density matrix and an ideal state vector.
+
+    Args:
+        rho_estimated (np.ndarray): The estimated density matrix.
+        state_vec_ideal (np.ndarray): The ideal state vector.
+
+    Returns:
+        float: The fidelity value, real part only.
+    """
+    rho_ideal = np.outer(state_vec_ideal, state_vec_ideal.conj())
+    return evaluate_fidelity_density_matrix(rho_estimated, rho_ideal)
 
 
 class HilbertBasis(object):
@@ -249,17 +328,17 @@ class HilbertBasis(object):
         # labels_single = self.basis_name
 
         # Reverse order
-        new_shape = [base ** 2] * qubit_number * 2
-        m = m.reshape(new_shape)
-
-        transpose_order = [x for x in range(len(new_shape))]
-
-        input_order = transpose_order[: int(len(new_shape) / 2)][::-1]
-        output_order = transpose_order[int(len(new_shape) / 2):][::-1]
-
-        m = m.transpose(input_order + output_order)
-
-        m = m.reshape([nx, ny])
+        # new_shape = [base ** 2] * qubit_number * 2
+        # m = m.reshape(new_shape)
+        #
+        # transpose_order = [x for x in range(len(new_shape))]
+        #
+        # input_order = transpose_order[: int(len(new_shape) / 2)][::-1]
+        # output_order = transpose_order[int(len(new_shape) / 2):][::-1]
+        #
+        # m = m.transpose(input_order + output_order)
+        #
+        # m = m.reshape([nx, ny])
 
         pauli_labels = self.basis_name
 
@@ -473,12 +552,7 @@ class GateSet:
         basis_matrices = self.get_basis().get_basis_matrices()
         dim = self.dimension ** 2
 
-        rho = np.zeros([dim, dim], dtype=complex)
-        for i in range(ptm.shape[0]):
-            for j in range(ptm.shape[1]):
-                rho += ptm[i, j] * np.kron(basis_matrices[:, :, j].T, basis_matrices[:, :, i])
-        rho /= dim
-        return rho
+        return cj_from_ptm(ptm, basis_matrices, dim)
 
     def get_cj_from_ptm(self, name: str) -> np.ndarray:
         """
@@ -577,20 +651,12 @@ class GateSet:
         return self._ptms_ideal.shape[-1]
 
     def evaluate_average_fidelity(self, name: str) -> float:
-        """
-        Evaluates the average fidelity between the estimated and ideal CJ representations of a gate's PTM.
-
-        Args:
-            name (str): The name of the gate.
-
-        Returns:
-            float: The average fidelity value, real part only.
-        """
-        cj_estimated = self.get_cj_from_ptm(name)
-        cj_ideal = self.get_cj_from_ptm_ideal(name)
-        sqrt_cj = np.linalg.sqrtm(cj_estimated)
-        fidelity = np.trace(np.linalg.sqrtm(sqrt_cj @ cj_ideal @ sqrt_cj)) ** 2
-        return fidelity.real
+        ptm_estimated = self.get_ptm(name)
+        ptm_ideal = self.get_ptm_ideal(name)
+        basis_matrices = self.get_basis().get_basis_matrices()
+        dim = self.dimension ** 2
+        return evaluate_average_fidelity_ptm(ptm_estimated=ptm_estimated, ptm_ideal=ptm_ideal,
+                                             basis_matrices=basis_matrices, dim=dim)
 
     def dump_configuration(self) -> dict:
         """
@@ -621,3 +687,19 @@ class GateSet:
         configuration["basis"] = basis
         gateset = GateSet(**configuration)
         return gateset
+
+
+def evaluate_fidelity_ptm_with_unitary(ptm_estimated: np.ndarray, u_ideal: np.ndarray, basis: HilbertBasis) -> float:
+    """
+    Evaluates the fidelity between the estimated PTM and an ideal unitary matrix.
+
+    Args:
+        ptm_estimated (np.ndarray): The estimated PTM.
+        u_ideal (np.ndarray): The ideal unitary matrix.
+
+    Returns:
+        float: The fidelity value, real part only.
+    """
+    ptm_ideal = basis.unitary_to_ptm(u_ideal)
+    return evaluate_average_fidelity_ptm(ptm_estimated, ptm_ideal, basis_matrices=basis.get_basis_matrices(),
+                                         dim=ptm_estimated.shape[0])
