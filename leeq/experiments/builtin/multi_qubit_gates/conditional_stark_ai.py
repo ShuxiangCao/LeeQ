@@ -2619,8 +2619,7 @@ class ConditionalStarkTwoQubitGateAmplitudeAdvise(Experiment):
     @text_inspection
     def next_parameter(self):
         prompt = f"""
-        Your objective is to find the optimal parameters for the conditional stark-shift gate that will allow you to entangle 
-        two qubits. The parameters you need to find are 
+        Your objective is to find the optimal parameters for the conditional stark-shift gate that will allow you to entangle two qubits. The parameters you need to find are 
         <parameters>
         'amp_control':  the amplitude of the control qubit (The first qubit), the required amplitude accuracy is 0.01. 
         </parameters>
