@@ -2593,11 +2593,14 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
 
 
 class ConditionalStarkTwoQubitGateAmplitudeAdvise(Experiment):
+
+    n_points_to_try = 2 #5
     _rewrite_json_requirement = True
 
     _experiment_result_analysis_instructions = """
     Output a JSON dict with the following keys:
-    "success" (bool): true 
+    "exp_continue" (bool): whether exp_continue is true
+    "success" (bool): whether exp_continue is true
     "best_amplitude" (float): The best amplitude found in a successful experiment.
     "advised_amplitude" (float): The next amplitude to try.
     """
@@ -2658,6 +2661,13 @@ class ConditionalStarkTwoQubitGateAmplitudeAdvise(Experiment):
                     "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.", dedent=True)
         res = chat.complete(parse="dict", expensive=True, cache=True)
 
+        tuning_env = TwoQubitTuningEnv()
+        results = tuning_env.amplitude_tuning_results.get(self.frequency, [])
+        n_points_tried = len(results)
+        if n_points_tried >= self.n_points_to_try:
+            res["exp_continue"] = False
+        else:
+            res["exp_continue"] = True
         return res
 
     @text_inspection
@@ -2665,7 +2675,7 @@ class ConditionalStarkTwoQubitGateAmplitudeAdvise(Experiment):
         tuning_env = TwoQubitTuningEnv()
         if self.frequency not in tuning_env.amplitude_tuning_results:
             return {
-                "best_amp": 'There is no successful experiment yet.'
+                "best_amp": 'There is no successful experiment yet.',
             }
         results = tuning_env.amplitude_tuning_results[self.frequency]
         amps = []
@@ -2675,11 +2685,11 @@ class ConditionalStarkTwoQubitGateAmplitudeAdvise(Experiment):
         # the largest amp
         if len(amps) == 0:
             return {
-                "best_amp": 'There is no successful experiment yet.'
+                "best_amp": 'There is no successful experiment yet.',
             }
         best_amp = max(amps)
         return {
-            "best_amp": best_amp
+            "best_amp": best_amp,
         }
 
     def _experiment_history_to_prompt(self):
@@ -2765,11 +2775,14 @@ class ConditionalStarkTwoQubitGateAmplitudeAttempt(ConditionalStarkEchoTuneUpAI)
 
 
 class ConditionalStarkTwoQubitGateFrequencyAdvise(Experiment):
+    n_points_to_try = 2 #15
+
     _rewrite_json_requirement = True
 
     _experiment_result_analysis_instructions = """
     Output a JSON dict with the following keys:
-    "success" (bool): true
+    "success" (bool): if exp_continue is true
+    "exp_continue" (bool): if exp_continue is true
     "best_frequency" (float): The best frequency found in a successful experiment.
     "advised_frequency" (float): The next frequency to try.
     """
@@ -2826,7 +2839,7 @@ class ConditionalStarkTwoQubitGateFrequencyAdvise(Experiment):
         "analysis" (str): An analysis of the current situation.
         "finished" (bool): whether the experiment is finished.
         "current_best" (float): The highest control frequency from a succeeded experiment. The value can be None if no experiment is successful.
-        "new_frequency_to_try" (float): The new frequency of the control qubit to try. If the experiment is finished, set this to the optimal amplitude.
+        "new_frequency_to_try" (float): The new frequency of the control qubit to try. If the experiment is finished, set this to the optimal amplitude,
         </format>
         <requirement>
         """
@@ -2835,6 +2848,12 @@ class ConditionalStarkTwoQubitGateFrequencyAdvise(Experiment):
                     "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.", dedent=True)
         res = chat.complete(parse="dict", expensive=True, cache=True)
 
+        tuning_env = TwoQubitTuningEnv()
+        n_points_tried = len(tuning_env.frequency_to_good_amplitude.items())
+        if n_points_tried >= self.n_points_to_try:
+            res["exp_continue"] = False
+        else:
+            res["exp_continue"] = True
         return res
 
     @text_inspection
@@ -2851,7 +2870,7 @@ class ConditionalStarkTwoQubitGateFrequencyAdvise(Experiment):
         if best_freq is not None:
             return {
                 "best_freq": best_freq,
-                "best_amp": best_amp
+                "best_amp": best_amp,
             }
         else:
             return {
