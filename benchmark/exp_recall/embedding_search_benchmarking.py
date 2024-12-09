@@ -165,22 +165,24 @@ def check_code(codes, exp_class):
 
 
 from leeq.utils.ai.translation_agent import init_leeq_translation_agents
-from k_agents.translation.agent import TranslationAgentGroup, get_codegen_wm
+from k_agents.translation.agent import TranslationAgentGroup, get_codegen_wm, CodegenAgent
 from k_agents.variable_table import VariableTable
 
 class TransmonElementFake:
     def __repr__(self):
         return "TransmonElement"
-def benchmark_single(key, exp_class, description, code_cog_model):
+
+
+def benchmark_single(key, exp_class, description, code_gen_model):
     input_var_table = VariableTable()
     input_var_table.add_variable("dut", TransmonElementFake(), "device under test")
     print("Description:", description)
     codegen_wm = get_codegen_wm(description, input_var_table)
-    recall_res = code_cog_model.recall(codegen_wm)
+    recall_res = code_gen_model.recall(codegen_wm)
 
     additional_info = []
 
-    codes = code_cog_model.codegen(codegen_wm, recall_res)
+    codes = code_gen_model.codegen(codegen_wm, recall_res)
     try:
         success = check_code(codes, exp_class)
     except Exception as e:
@@ -198,12 +200,14 @@ def benchmark_all(rag, n_recall_items):
     env = TranslationAgentEnv()
     translation_agents = env.translation_agents
     if rag:
-        code_cog_model = TranslationAgentGroupRAG()
+        code_gen_model = TranslationAgentGroupRAG()
     else:
-        code_cog_model = TranslationAgentGroup()
-    code_cog_model.n_recall_items = n_recall_items
-    for idea in translation_agents.translation_agents:
-        code_cog_model.translation_agents.add_agent(idea)
+        code_gen_model = TranslationAgentGroup()
+        code_gen_model.codegen_agent = CodegenAgent()
+    code_gen_model.n_recall_items = n_recall_items
+
+    for agent in translation_agents.translation_agents.agents:
+        code_gen_model.translation_agents.add_agent(agent)
 
     results_list = {}
 
@@ -213,7 +217,7 @@ def benchmark_all(rag, n_recall_items):
         exp_prompts = experiment_prompt[_exp_name][1]
         def benchmark_one_prompt(_prompt):
             try:
-                success, additional_info = benchmark_single(_exp_name, exp_class, _prompt, code_cog_model)
+                success, additional_info = benchmark_single(_exp_name, exp_class, _prompt, code_gen_model)
             except Exception as e:
                 success = False
                 additional_info = str(e)
@@ -224,7 +228,6 @@ def benchmark_all(rag, n_recall_items):
             print(success, additional_info)
             results.append((prompt, success, additional_info))
         return results
-    #t = ["RB1Q"]
     t = list(experiment_prompt.keys())
     for exp_name, res in p_map(benchmark_one_experiment, t, n_workers=4):
         results_list[exp_name] = res
@@ -267,6 +270,7 @@ def main(model, shots, rag, n_recall_items):
             }
             results[i] = result
         except Exception as e:
+            print(str(e))
             result = {
                 'status': 'error',
                 'error': str(e)
@@ -281,18 +285,19 @@ def entry(model, rag):
     from mllm.config import default_options
     default_parallel_map_config["n_workers"] = 3
     default_options.timeout = 120
+    default_options.temperature = 0.2
 
     # You have to enable this option before using the `correct_json_by_model` rule
     parse_options.correct_json_by_model = True
     n_recall_items = 2
-    shots = 3
+    shots = 5
     main(model, shots, rag, n_recall_items)
 
 
 if __name__ == '__main__':
     models = [
-        "gpt-4o-2024-08-06",
         "gpt-4o-mini",
+        "gpt-4o-2024-08-06",
         "replicate/meta/meta-llama-3-70b-instruct",
         "claude-3-opus-20240229",
         "gemini/gemini-1.5-pro-latest",
