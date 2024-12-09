@@ -290,7 +290,7 @@ def entry(model, rag):
     # You have to enable this option before using the `correct_json_by_model` rule
     parse_options.correct_json_by_model = True
     n_recall_items = 2
-    shots = 5
+    shots = 4
     main(model, shots, rag, n_recall_items)
 
 
