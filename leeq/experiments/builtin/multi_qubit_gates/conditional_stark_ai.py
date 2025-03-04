@@ -9,7 +9,7 @@ from k_agents.inspection.decorator import text_inspection, visual_inspection
 from k_agents.utils import Singleton
 from leeq.utils import setup_logging
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
-from k_agents.notebook_utils import dict_to_html, display_chat
+from k_agents.io_interface import dict_to_html, display_chat
 from leeq.theory import fits
 from leeq.theory.fits.fit_exp import fit_2d_freq_with_cov
 
@@ -1996,8 +1996,7 @@ if this is a successful experiment. Make the analysis concise and clear in one s
         res = chat.complete(parse="dict", expensive=True, cache=True)
 
         html = dict_to_html(res)
-        display_chat(agent_name=f"Inspection AI",
-                     content='<br>' + html,
+        display_chat(agent_name=f"Inspection AI", content='<br>' + html,
                      background_color='#f0f8ff')
 
         return res
@@ -2420,8 +2419,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
 
         html = dict_to_html(html_dict)
 
-        display_chat(agent_name=f"Previous experiments",
-                     content='<br>' + html,
+        display_chat(agent_name=f"Previous experiments", content='<br>' + html,
                      background_color='#f0f8ff')
 
     def _run_next_experiment(self):
@@ -2439,11 +2437,10 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
 
         self._analyze_histroy.append(res)
 
-        from k_agents.notebook_utils import dict_to_html, display_chat
+        from k_agents.io_interface import dict_to_html, display_chat
 
         html = dict_to_html(res)
-        display_chat(agent_name=f"Parameter search AI",
-                     content='<br>' + html,
+        display_chat(agent_name=f"Parameter search AI", content='<br>' + html,
                      background_color='#f0f8ff')
 
         if res['status'] in ['finish', 'error']:
@@ -2541,8 +2538,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
 
         html = dict_to_html(html_dict)
 
-        display_chat(agent_name=f"Previous experiments",
-                     content='<br>' + html,
+        display_chat(agent_name=f"Previous experiments", content='<br>' + html,
                      background_color='#f0f8ff')
 
     def _run_next_experiment(self, run_class, params, filter_parameters=True):
@@ -2559,8 +2555,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
         # , model = 'claude-3-opus-20240229'
 
         html = dict_to_html(res)
-        display_chat(agent_name=f"Parameter search AI",
-                     content='<br>' + html,
+        display_chat(agent_name=f"Parameter search AI", content='<br>' + html,
                      background_color='#f0f8ff')
 
         if res['status'] not in ['finish', 'error']:

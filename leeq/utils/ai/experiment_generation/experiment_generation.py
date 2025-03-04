@@ -1,7 +1,7 @@
 from typing import List
 
 from tqdm.notebook import tqdm
-from k_agents.notebook_utils import display_chat, code_to_html
+from k_agents.io_interface import display_chat, code_to_html
 from leeq.utils.ai.experiment_generation.data_analysis import generate_data_analysis
 from leeq.utils.ai.experiment_generation.data_visualization import generate_data_visualization
 from leeq.utils.ai.experiment_generation.load_documents import load_document_file
@@ -208,5 +208,6 @@ def generate_experiment(description: str, display_progress=True):
         progress_bar.close()
 
     html = code_to_html(experiment_code)
-    display_chat(agent_name="Experiment generation agent", background_color='light_purple', content=html)
+    display_chat(agent_name="Experiment generation agent", content=html,
+                 background_color='light_purple')
     return experiment_code
