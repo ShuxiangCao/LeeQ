@@ -2701,7 +2701,7 @@ class ConditionalStarkTwoQubitGateAmplitudeAdvise(Experiment):
             amp_control: {insp['Calibrated parameters']['amp_control']}
             frequency: {insp['Calibrated parameters']['frequency']}
             success: {insp['success']}
-            analysis: {insp['analysis']}
+            analysis: {insp.get("analysis", None)}
             </experiment>"""
             prompt += section_prompt
 
