@@ -8,7 +8,7 @@ from leeq.utils.notebook import show_spinner, hide_spinner
 from leeq.utils.ai.staging.stage_execution import CodegenModel
 from leeq.utils.ai.staging.stage_generation import find_the_stage_label_based_on_description
 
-from IPython.core.display import display, HTML
+from IPython.display import display, HTML
 from leeq.experiments import Experiment
 
 logger = setup_logging(__name__)

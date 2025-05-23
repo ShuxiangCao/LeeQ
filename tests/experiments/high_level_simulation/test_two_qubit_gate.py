@@ -189,7 +189,7 @@ def test_run_stark_shift_gate_continuous(simulation_setup, qubit_1, qubit_2):
     from leeq.experiments.builtin import ConditionalStarkShiftContinuous
 
     continious_exp = ConditionalStarkShiftContinuous(
-        qubits=[qubit_1, qubit_2],
+        duts=[qubit_1, qubit_2],
         amp_control=0.1,
         amp_target=0.1,
         frequency=5040 - 60,
