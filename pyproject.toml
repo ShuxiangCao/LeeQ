@@ -13,7 +13,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.12"  # Adjust based on your Python version
+python = ">=3.10"  # Adjust based on your Python version
 scipy = "*"
 matplotlib = "*"
 matplotlib-inline = "*"
