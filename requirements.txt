@@ -19,7 +19,7 @@ h5py
 uncertainties
 labchronicle @ git+https://github.com/ShuxiangCao/LabChronicle
 k_agents @ git+https://github.com/EvoEvolver/k_agents
-MinimalLLM
+MinimalLLM @ git+https://github.com/EvoEvolver/MinimalLLM
 ipywidgets
 kaleido
 pandas
