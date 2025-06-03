@@ -213,7 +213,7 @@ class SpinEchoMultiLevel(
             name='Experiment data'
         )
 
-        title = f"T2 decay {args['qubit'].hrid} transition {args['collection_name']}"
+        title = f"T2 decay {args['dut'].hrid} transition {args['collection_name']}"
 
         data = [trace_scatter]
 
@@ -231,7 +231,7 @@ class SpinEchoMultiLevel(
                 visible='legendonly'
             )
             title = (
-                f"T2 echo {args['qubit'].hrid} transition {args['collection_name']}<br>"
+                f"T2 echo {args['dut'].hrid} transition {args['collection_name']}<br>"
                 f"T2={fit_params['Decay']} us")
 
             data = [trace_scatter, trace_line]

@@ -120,6 +120,7 @@ If success cannot be determined, consider the experiment failed.
         basic_run(lpb, swp, '<z>')
 
         self.result = np.squeeze(mp.result())
+        self.linear_fit()
 
     @log_and_record(overwrite_func_name='DragCalibrationSingleQubitMultilevel.run')
     def run_simulated(self,
@@ -218,6 +219,8 @@ If success cannot be determined, consider the experiment failed.
 
         self.result = np.clip(
             self.result * (0.5 - quiescent_state_distribution[0]) * 2 * random_noise_factor + random_noise_sum, -1, 1)
+
+        self.linear_fit()
 
     def linear_fit(self):
         self.fit_xp = np.polyfit(self.sweep_values, self.result[:, 0], deg=1)

@@ -12,11 +12,33 @@ packages = [
     { include = "leeq" },
 ]
 
-dynamic = ["dependencies"]
+[tool.poetry.dependencies]
+python = ">=3.10"  # Adjust based on your Python version
+scipy = "*"
+matplotlib = "*"
+matplotlib-inline = "*"
+numpy = "<2.0.0"
+plotly = "*"
+dash = "*"
+dash-bootstrap-components = "*"
+qutip = "*"
+scikit-learn = "*"
+tqdm = "*"
+h5py = "*"
+decorator = "*"
+pytest = "*"
+fsspec = "*"
+pyyaml = "*"
+uncertainties = "*"
+MinimalLLM = "*"
+ipywidgets = "*"
+kaleido = "*"
+pandas = "*"
+dill = "*"
 
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
-
+# Git-based dependencies
+labchronicle = {git = "https://github.com/ShuxiangCao/LabChronicle"}
+k_agents = {git = "https://github.com/EvoEvolver/k_agents"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2"
