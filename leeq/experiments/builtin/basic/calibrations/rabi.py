@@ -407,9 +407,8 @@ class PowerRabi(Experiment):
 
         Example:
             >>> # Run an experiment to calibrate the driving amplitude of a single qubit gate
-            >>> rabi_experiment = NormalisedRabi(
-            >>> dut_qubit=dut, amp=0.05, start=0.01, stop=0.3, step=0.002, fit=True,
-            >>> collection_name='f01', mprim_index=0, pulse_discretization=True, update=True)
+            >>> rabi_experiment = PowerRabi(setup)
+            >>> rabi_experiment.run(dut_qubit=dut, amp_start=0.01, amp_stop=0.4, amp_step=0.01)
         """
         # Get c1 from the DUT qubit
         c1 = dut_qubit.get_c1(collection_name)
@@ -580,6 +579,78 @@ class PowerRabi(Experiment):
         )
 
         return fig
+
+    @log_and_record(overwrite_func_name='PowerRabi.run')
+    def run_simulated(self, dut_qubit, width=None, amp_start=0.01, amp_stop=0.4, 
+                      amp_step=0.01, fit=True, collection_name='f01', update=True):
+        """
+        Simulate power Rabi oscillations by sweeping amplitude.
+        
+        The Rabi frequency is: Ω = amp * omega_per_amp
+        The population oscillates as: P = sin²(Ω * π_time / 2)
+        """
+        import numpy as np
+        
+        # Get setup and virtual qubit
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        virtual_qubit = simulator_setup.get_virtual_qubit(dut_qubit)
+        if virtual_qubit is None:
+            raise ValueError(f"No virtual qubit found for {dut_qubit}")
+        
+        # Get calibration parameters
+        c1 = dut_qubit.get_c1(collection_name)
+        pi_pulse = c1['X']
+        
+        # Use provided width or get from existing pulse
+        if width is not None:
+            pi_time = width
+        else:
+            pi_time = pi_pulse.width
+        
+        # Get omega per amp from setup
+        channel = c1.channel
+        omega_per_amp = simulator_setup.get_omega_per_amp(channel)
+        
+        # Calculate expected oscillations
+        amp_range = np.arange(amp_start, amp_stop, amp_step)
+        rabi_frequencies = amp_range * omega_per_amp  # MHz
+        
+        # Calculate rotation angle for each amplitude
+        # θ = Ω * t = (amp * omega_per_amp) * pi_time
+        rotation_angles = rabi_frequencies * pi_time * 2 * np.pi  # radians
+        
+        # Calculate excited state population
+        # P_e = sin²(θ/2) for starting from ground state
+        populations = np.sin(rotation_angles / 2) ** 2
+        
+        # Add noise if enabled
+        if setup().status().get_param('Sampling_Noise'):
+            # Use a default readout fidelity of 0.95 for noise modeling
+            readout_fidelity = 0.95
+            noise_level = (1 - readout_fidelity) / 2
+            noise = np.random.normal(0, noise_level, len(populations))
+            populations = np.clip(populations + noise, 0, 1)
+        
+        # Store data for plotting
+        self.data = populations
+        
+        if not fit:
+            return None
+        
+        # Fit data to extract parameters
+        self.fit_params = fits.fit_sinusoidal(populations, time_step=amp_step)
+        
+        # Find optimal amplitude for pi pulse
+        if update:
+            # The amplitude should give us a pi rotation (population = 1)
+            # This happens when rotation_angle = pi, so amp * omega_per_amp * pi_time = 1
+            self.optimal_amp = 1 / (omega_per_amp * pi_time)
+            
+            # Update the qubit parameters
+            c1.update_parameters(amp=self.optimal_amp)
+            print(f"Amplitude updated: {self.optimal_amp}")
+        
+        # Don't return anything to match the regular run() behavior
 
 
 

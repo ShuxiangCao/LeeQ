@@ -8,11 +8,12 @@ This document tracks the current implementation status of high-level simulation 
 
 ## Implementation Status
 
-### ✅ Fully Implemented (15 experiments)
+### ✅ Fully Implemented (16 experiments)
 
 | Experiment | Location | Test Coverage |
 |------------|----------|---------------|
 | NormalisedRabi | `leeq/experiments/builtin/basic/calibrations/rabi.py` | ✅ Tested |
+| PowerRabi | `leeq/experiments/builtin/basic/calibrations/rabi.py` | ✅ Tested |
 | SimpleRamseyMultilevel | `leeq/experiments/builtin/basic/calibrations/ramsey.py` | ✅ Tested |
 | QubitSpectroscopyFrequency | `leeq/experiments/builtin/basic/calibrations/spectroscopy.py` | ✅ Tested |
 | ResonatorSweepTransmissionWithExtraInitialLPB | `leeq/experiments/builtin/basic/calibrations/spectroscopy.py` | ✅ Tested |
@@ -28,36 +29,9 @@ This document tracks the current implementation status of high-level simulation 
 | AmpPingpongCalibrationSingleQubitMultilevel | `leeq/experiments/builtin/basic/calibrations/pingpong.py` | ⚠️ Placeholder |
 | ConditionalStarkEchoTuneUpAI | `leeq/experiments/builtin/multi_qubit_gates/conditional_stark.py` | ⚠️ Placeholder |
 
-### 🚧 Ready for Implementation (4 experiments)
+### 🚧 Ready for Implementation (3 experiments)
 
-#### 1. PowerRabi
-
-**Location**: `leeq/experiments/builtin/basic/calibrations/rabi.py:374`
-
-**Implementation Status**: Code provided in implementation plan
-
-**Test Cases Needed**:
-```python
-# tests/experiments/builtin/basic/calibrations/test_power_rabi_simulation.py
-
-def test_power_rabi_finds_pi_amplitude():
-    """Test that PowerRabi correctly identifies pi pulse amplitude."""
-    # Should find amplitude that gives maximum population transfer
-    
-def test_power_rabi_with_noise():
-    """Test PowerRabi simulation with readout noise enabled."""
-    # Verify noise is applied correctly
-    
-def test_power_rabi_off_resonance():
-    """Test PowerRabi with detuned frequency."""
-    # Should show reduced oscillation amplitude
-    
-def test_power_rabi_multiple_amplitudes():
-    """Test with fine and coarse amplitude sweeps."""
-    # Verify resolution affects accuracy
-```
-
-#### 2. MultiQubitT1
+#### 1. MultiQubitT1
 
 **Location**: `leeq/experiments/builtin/basic/characterizations/t1.py:258`
 
@@ -85,7 +59,7 @@ def test_multi_qubit_t1_delay_range_auto():
     # Should scale with average T1 time
 ```
 
-#### 3. MultiQubitRabi
+#### 2. MultiQubitRabi
 
 **Location**: `leeq/experiments/builtin/basic/calibrations/rabi.py`
 
@@ -112,7 +86,7 @@ def test_multi_qubit_rabi_time_resolution():
     # Finer resolution should capture oscillations better
 ```
 
-#### 4. MultiQubitRamseyMultilevel
+#### 3. MultiQubitRamseyMultilevel
 
 **Location**: `leeq/experiments/builtin/basic/calibrations/ramsey.py`
 
@@ -139,7 +113,7 @@ def test_multi_qubit_ramsey_different_t2():
     # Each qubit should decay at its own rate
 ```
 
-### ❌ Not Yet Implemented (38 experiments)
+### ❌ Not Yet Implemented (37 experiments)
 
 #### High Priority Candidates
 

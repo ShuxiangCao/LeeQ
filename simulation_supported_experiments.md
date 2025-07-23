@@ -23,6 +23,18 @@ This document provides a comprehensive overview of all experiments in the LeeQ p
   - `collection_name`: Pulse collection name (default: 'f01')
 - **Simulation**: Calculates Rabi oscillations using the generalized Rabi formula, accounting for detuning and Rabi rate. Adds sampling noise if enabled.
 
+### PowerRabi
+- **Location**: `leeq/experiments/builtin/basic/calibrations/rabi.py`
+- **Purpose**: Calibration of pi pulse amplitude by sweeping drive power instead of pulse duration
+- **Parameters**:
+  - `dut_qubit`: Device under test qubit
+  - `width`: Pulse width (optional, uses existing pi pulse width if not specified)
+  - `amp_start`: Start amplitude (default: 0.01)
+  - `amp_stop`: Stop amplitude (default: 0.4)
+  - `amp_step`: Amplitude step (default: 0.01)
+  - `collection_name`: Pulse collection name (default: 'f01')
+- **Simulation**: Calculates population transfer as a function of drive amplitude using P = sin²(Ω*t/2) where Ω = amp * omega_per_amp. Finds optimal amplitude for pi rotation.
+
 ### SimpleRamseyMultilevel
 - **Location**: `leeq/experiments/builtin/basic/calibrations/ramsey.py`
 - **Purpose**: Measures qubit detuning and dephasing time (T2*) through Ramsey interferometry
