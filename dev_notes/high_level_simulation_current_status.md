@@ -8,7 +8,7 @@ This document tracks the current implementation status of high-level simulation 
 
 ## Implementation Status
 
-### ✅ Fully Implemented (16 experiments)
+### ✅ Fully Implemented (18 experiments)
 
 | Experiment | Location | Test Coverage |
 |------------|----------|---------------|
@@ -21,6 +21,8 @@ This document tracks the current implementation status of high-level simulation 
 | PingPongSingleQubitMultilevel | `leeq/experiments/builtin/basic/calibrations/pingpong.py` | ✅ Tested |
 | MeasurementCalibrationMultilevelGMM | `leeq/experiments/builtin/basic/calibrations/calibrate_readout.py` | ✅ Tested |
 | SimpleT1 | `leeq/experiments/builtin/basic/characterizations/t1.py` | ✅ Tested |
+| MultiQubitT1 | `leeq/experiments/builtin/basic/characterizations/t1.py` | ✅ Tested |
+| MultiQubitRabi | `leeq/experiments/builtin/basic/calibrations/rabi.py` | ✅ Tested |
 | SimpleT2 | `leeq/experiments/builtin/basic/characterizations/t2_echo.py` | ✅ Tested |
 | StarkRamseyMultilevel | `leeq/experiments/builtin/multi_qubit_gates/stark_tuneup.py` | ✅ Tested |
 | ConditionalStarkShiftContinuous | `leeq/experiments/builtin/multi_qubit_gates/conditional_stark.py` | ✅ Tested |
@@ -29,64 +31,9 @@ This document tracks the current implementation status of high-level simulation 
 | AmpPingpongCalibrationSingleQubitMultilevel | `leeq/experiments/builtin/basic/calibrations/pingpong.py` | ⚠️ Placeholder |
 | ConditionalStarkEchoTuneUpAI | `leeq/experiments/builtin/multi_qubit_gates/conditional_stark.py` | ⚠️ Placeholder |
 
-### 🚧 Ready for Implementation (3 experiments)
+### 🚧 Ready for Implementation (1 experiment)
 
-#### 1. MultiQubitT1
-
-**Location**: `leeq/experiments/builtin/basic/characterizations/t1.py:258`
-
-**Implementation Status**: Code provided in implementation plan
-
-**Test Cases Needed**:
-```python
-# tests/experiments/builtin/basic/characterizations/test_multi_qubit_t1_simulation.py
-
-def test_multi_qubit_t1_independent_decay():
-    """Test that each qubit decays independently with its own T1."""
-    # Create qubits with different T1 values
-    # Verify each follows exponential decay
-    
-def test_multi_qubit_t1_parallel_execution():
-    """Test that all qubits are measured in parallel."""
-    # Results should have same time points for all qubits
-    
-def test_multi_qubit_t1_with_thermal_population():
-    """Test T1 measurement with non-zero thermal population."""
-    # Should decay to thermal equilibrium, not zero
-    
-def test_multi_qubit_t1_delay_range_auto():
-    """Test automatic delay range calculation."""
-    # Should scale with average T1 time
-```
-
-#### 2. MultiQubitRabi
-
-**Location**: `leeq/experiments/builtin/basic/calibrations/rabi.py`
-
-**Implementation Status**: Code provided in implementation plan
-
-**Test Cases Needed**:
-```python
-# tests/experiments/builtin/basic/calibrations/test_multi_qubit_rabi_simulation.py
-
-def test_multi_qubit_rabi_different_frequencies():
-    """Test Rabi oscillations with different frequencies per qubit."""
-    # Each qubit should oscillate at its own Rabi frequency
-    
-def test_multi_qubit_rabi_with_decoherence():
-    """Test that T1/T2 effects are included."""
-    # Oscillations should decay over time
-    
-def test_multi_qubit_rabi_phase_control():
-    """Test phase parameter affects oscillations correctly."""
-    # Phase should shift the oscillation pattern
-    
-def test_multi_qubit_rabi_time_resolution():
-    """Test effect of time resolution on results."""
-    # Finer resolution should capture oscillations better
-```
-
-#### 3. MultiQubitRamseyMultilevel
+#### 1. MultiQubitRamseyMultilevel
 
 **Location**: `leeq/experiments/builtin/basic/calibrations/ramsey.py`
 
@@ -113,7 +60,7 @@ def test_multi_qubit_ramsey_different_t2():
     # Each qubit should decay at its own rate
 ```
 
-### ❌ Not Yet Implemented (37 experiments)
+### ❌ Not Yet Implemented (35 experiments)
 
 #### High Priority Candidates
 

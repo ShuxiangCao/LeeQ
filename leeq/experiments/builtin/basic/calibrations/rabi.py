@@ -851,3 +851,106 @@ class MultiQubitRabi(Experiment):
         )
 
         return fig
+    
+    @log_and_record(overwrite_func_name='MultiQubitRabi.run')
+    def run_simulated(self,
+                      duts: list[Any],
+                      amps: Union[float, list[float]] = 0.05,
+                      start: float = 0.01,
+                      stop: float = 0.15,
+                      step: float = 0.001,
+                      fit: bool = True,
+                      collection_names: Union[str, list[str]] = 'f01',
+                      mprim_indexes: Union[int, list[int]] = 0,
+                      pulse_discretization: bool = True,
+                      update=False,
+                      initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+        """
+        Run simulated multi-qubit Rabi experiment.
+        
+        Parameters same as run() method.
+        """
+        # Convert scalar parameters to lists
+        if not isinstance(amps, list):
+            amps = [amps] * len(duts)
+        if not isinstance(collection_names, list):
+            collection_names = [collection_names] * len(duts)
+        if not isinstance(mprim_indexes, list):
+            mprim_indexes = [mprim_indexes] * len(duts)
+        
+        assert len(duts) == len(amps) == len(collection_names) == len(mprim_indexes), \
+            "Length of duts, amps, collection_names, and mprim_indexes must be the same."
+        
+        # Get simulation setup
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        
+        # Create time array
+        time_points = np.arange(start, stop, step)
+        
+        # Simulate for each qubit
+        self.data = []
+        
+        for i, dut in enumerate(duts):
+            # Get virtual qubit
+            virtual_qubit = simulator_setup.get_virtual_qubit(dut)
+            if virtual_qubit is None:
+                raise ValueError(f"No virtual qubit found for {dut}")
+            
+            # Get calibration info
+            c1 = dut.get_c1(collection_names[i])
+            channel = c1.channel
+            
+            # Calculate Rabi frequency
+            omega_per_amp = simulator_setup.get_omega_per_amp(channel)
+            omega = amps[i] * omega_per_amp  # MHz
+            
+            # Get detuning
+            delta = virtual_qubit.qubit_frequency - c1['X'].freq
+            
+            # Calculate effective Rabi frequency
+            omega_eff = np.sqrt(omega**2 + delta**2)
+            
+            # Calculate Rabi oscillations
+            populations = (omega / omega_eff)**2 * np.sin(0.5 * omega_eff * time_points * 2 * np.pi)**2
+            
+            # Convert to expectation value <z> = 1 - 2*P_e
+            z_expectation = 1 - 2 * populations
+            
+            # Apply T1/T2 decoherence if enabled
+            if hasattr(virtual_qubit, 't1') and hasattr(virtual_qubit, 't2'):
+                # Apply exponential decay from decoherence
+                t1_decay = np.exp(-time_points / virtual_qubit.t1)
+                t2_decay = np.exp(-time_points / virtual_qubit.t2)
+                
+                # Decoherence affects the oscillation amplitude
+                z_expectation = z_expectation * t2_decay + (1 - t1_decay)
+            
+            # Add sampling noise if enabled
+            if setup().status().get_param('Sampling_Noise'):
+                shot_number = setup().status().get_param('Shot_Number')
+                # Convert z expectation to probability
+                prob_excited = (1 - z_expectation) / 2
+                # Simulate binomial sampling
+                counts_excited = np.random.binomial(shot_number, prob_excited)
+                # Convert back to z expectation
+                z_expectation = 1 - 2 * counts_excited / shot_number
+            
+            self.data.append(z_expectation)
+        
+        if not fit:
+            return None
+        
+        # Fit data for each qubit
+        self.fit_params = [
+            fits.fit_sinusoidal(data, time_step=step) for data in self.data
+        ]
+        
+        if update:
+            for i in range(len(duts)):
+                # Update the qubit parameters
+                c1 = duts[i].get_c1(collection_names[i])
+                normalised_pulse_area = c1['X'].calculate_envelope_area() / c1['X'].amp
+                two_pi_area = amps[i] * (1 / self.fit_params[i]['Frequency'])
+                new_amp = two_pi_area / 2 / normalised_pulse_area
+                c1.update_parameters(amp=new_amp)
+                print(f"Amplitude updated: {duts[i].hrid} {new_amp}")
