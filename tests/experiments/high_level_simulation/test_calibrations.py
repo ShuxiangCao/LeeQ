@@ -120,6 +120,19 @@ def test_ramsey(simulation_setup, qubit):
     )
 
 
+def test_multi_qubit_ramsey(simulation_setup, qubit):
+    from leeq.experiments.builtin.basic.calibrations.ramsey import MultiQubitRamseyMultilevel
+    manager = ExperimentManager().get_default_setup(
+    ).status.set_parameter("Plot_Result_In_Jupyter", False)
+    ramsey = MultiQubitRamseyMultilevel(
+        duts=[qubit],
+        start=0.0,
+        stop=0.2,
+        step=0.01,
+        update=False
+    )
+
+
 def test_gmm_measurements(simulation_setup, qubit):
     from leeq.experiments.builtin import MeasurementCalibrationMultilevelGMM
     manager = ExperimentManager().get_default_setup(

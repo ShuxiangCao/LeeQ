@@ -16,7 +16,17 @@ from plotly import graph_objects as go
 
 logger = setup_logging(__name__)
 
-__all__ = ['SimpleRamseyMultilevel']  # , 'MultiQubitRamseyMultilevel'
+
+class MockMeasurementPrimitive:
+    """Mock measurement primitive for simulation compatibility."""
+    def __init__(self, data):
+        self._data = data
+    
+    def result(self):
+        return self._data
+
+
+__all__ = ['SimpleRamseyMultilevel', 'MultiQubitRamseyMultilevel']
 
 
 class SimpleRamseyMultilevel(Experiment):
@@ -673,7 +683,7 @@ class MultiQubitRamseyMultilevel(Experiment):
         # Extract fitting parameters
         frequency = fit_params['Frequency'].n
         amplitude = fit_params['Amplitude'].n
-        phase = fit_params['Phase'][0] - 2.0 * \
+        phase = fit_params['Phase'].n - 2.0 * \
                 np.pi * frequency * args['start']
         offset = fit_params['Offset'].n
         decay = fit_params['Decay'].n
@@ -710,3 +720,145 @@ class MultiQubitRamseyMultilevel(Experiment):
             yaxis_title="<z>",
             plot_bgcolor="white")
         return fig
+
+    @log_and_record(overwrite_func_name='MultiQubitRamseyMultilevel.run')
+    def run_simulated(self,
+                      duts: list[Any],
+                      collection_names: Union[list[str], str] = 'f01',
+                      mprim_indexes: Union[int, list[int]] = 0,
+                      initial_lpb: Optional[Any] = None,
+                      start: float = 0.0,
+                      stop: float = 1.0,
+                      step: float = 0.005,
+                      set_offset: float = 10.0,
+                      update: bool = True) -> None:
+        """
+        Run the simulated multi-qubit Ramsey experiment.
+
+        Parameters:
+            duts: The DUTs on which the experiment is performed.
+            collection_names: The name of the frequency collection (e.g., 'f01'). If a single string is provided,
+                it is used for all DUTs. If a list of strings is provided, it should have the same length as the DUTs.
+            mprim_indexes: The index of the measurement primitive.
+                If a single integer is provided, it is used for all DUTs. If a list of integers is provided,
+                it should have the same length as the DUTs.
+            initial_lpb: Initial set of commands, if any.
+            start: The start time for the sweep in microseconds.
+            stop: The stop time for the sweep in microseconds.
+            step: The step size for the time sweep in microseconds.
+            set_offset: The frequency offset in MHz.
+            update: Whether to update parameters after the experiment.
+
+        Returns:
+            None
+        """
+        if initial_lpb is not None:
+            logger.warning("initial_lpb is ignored in the simulated mode.")
+
+        # Normalize collection_names and mprim_indexes to lists
+        if isinstance(collection_names, str):
+            collection_names = [collection_names] * len(duts)
+        if isinstance(mprim_indexes, int):
+            mprim_indexes = [mprim_indexes] * len(duts)
+
+        self.collection_names = collection_names
+        assert len(duts) == len(collection_names) == len(mprim_indexes), \
+            "The number of DUTs, collection names, and mprim indexes must be the same."
+
+        # Get simulation setup
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        
+        # Store parameters for later use
+        self.set_offset = set_offset
+        self.step = step
+        self.update = update
+        
+        # Calculate level differences
+        self.level_diffs = []
+        for collection_name in collection_names:
+            start_level = int(collection_name[1])
+            end_level = int(collection_name[2])
+            self.level_diffs.append(end_level - start_level)
+        
+        # Save original frequencies and get control objects
+        c1s = [qubit.get_c1(collection_name) for qubit, collection_name in
+               zip(duts, collection_names)]
+        original_freqs = [c1['Xp'].freq for c1 in c1s]
+        self.original_freqs = original_freqs
+        
+        # Time array
+        t = np.arange(start, stop, step)
+        
+        # Simulate data for each qubit
+        self.data = []
+        self.mp = []  # For compatibility with live_plots
+        
+        for i, (dut, c1, collection_name) in enumerate(zip(duts, c1s, collection_names)):
+            # Get virtual qubit
+            virtual_transmon = simulator_setup.get_virtual_qubit(dut)
+            
+            # Get frequencies
+            f_q = virtual_transmon.qubit_frequency
+            f_d = c1['X'].freq
+            f_o = set_offset
+            
+            # Get T2 for Ramsey decay (T2* would be ideal but T2 is available)
+            if isinstance(virtual_transmon.t2, list):
+                t2 = virtual_transmon.t2[0]
+            else:
+                t2 = virtual_transmon.t2
+                
+            # Use T2 for Ramsey decay (approximates T2*)
+            decay_rate = 1 / t2
+            
+            # Get drive amplitude
+            amp = c1.get_parameters()['amp']
+            
+            # Calculate Rabi rate
+            rabi_rate_per_amp = simulator_setup.get_omega_per_amp(c1.channel)  # MHz
+            omega = rabi_rate_per_amp * amp
+            
+            # Calculate actual detuning
+            f_o_actual = f_q - (f_d + f_o / self.level_diffs[i])
+            delta = f_o_actual
+            
+            # Calculate Ramsey fringes with off-resonance effects
+            detuning_contribution = np.abs(delta) / (delta ** 2 + omega ** 2)**(1/2)
+            oscillation_amplitude = 1 - detuning_contribution
+            oscillation_baseline = detuning_contribution
+            
+            # Ramsey oscillations with T2* decay
+            ramsey_fringes = oscillation_amplitude * (np.cos(2 * np.pi * f_o_actual * t)
+                             * np.exp(-decay_rate * t)) + oscillation_baseline
+            
+            # Add realistic noise based on quiescent state distribution
+            quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+            standard_deviation = np.std(ramsey_fringes)
+            
+            random_noise_factor = 1 + np.random.normal(
+                0, standard_deviation / 2, ramsey_fringes.shape)
+            
+            # Apply noise and normalize
+            qubit_data = np.clip(ramsey_fringes * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
+            qubit_data = (1 + qubit_data) / 2
+            
+            # Apply sampling noise if enabled
+            if setup().status().get_param('Sampling_Noise'):
+                shot_number = setup().status().get_param('Shot_Number')
+                qubit_data = np.random.binomial(shot_number, qubit_data) / shot_number
+            
+            self.data.append(qubit_data)
+            
+            # Create a mock measurement primitive for compatibility
+            self.mp.append(MockMeasurementPrimitive(qubit_data))
+        
+        # Analyze data if update is true
+        if update:
+            self.analyze_data()
+            for i, c1 in enumerate(c1s):
+                c1.update_parameters(freq=self.frequency_guess[i])
+                print(
+                    f"Frequency updated: {duts[i].hrid} {self.frequency_guess[i]} MHz")
+        else:
+            for i, c1 in enumerate(c1s):
+                c1.update_parameters(freq=original_freqs[i])
