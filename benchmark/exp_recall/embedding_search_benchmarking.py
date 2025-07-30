@@ -1,19 +1,19 @@
 import ast
+import json
+import os
 
+from mllm.cache.cache_service import caching
 from mllm.utils import p_map
 from mllm.utils.maps import default_parallel_map_config
 from mllm.utils.parser import parse_options
+from mllm.utils.retry import standard_multi_attempts
 
+from k_agents.translation.agent_longcontext import TranslationAgentGroupLongContext
+from k_agents.translation.agent_rag import TranslationAgentGroupRAG
 from k_agents.translation.env import TranslationAgentEnv
 from leeq.experiments.builtin import *
-import os
-import json
 
-from mllm.cache.cache_service import caching
-
-from k_agents.translation.agent_rag import TranslationAgentGroupRAG
-
-caching.cache_kv.inactive = True
+caching._cache_kv.inactive = True
 
 experiment_prompt = {
     'T2': (SpinEchoMultiLevel, [
@@ -124,9 +124,10 @@ def get_dataset_stats():
         n_instructions += len(exp_prompts[1])
     return f"Number of experiments: {n_exps}, Number of instructions: {n_instructions}"
 
+
 def check_code(codes, exp_class):
     try:
-        tree = ast.parse(codes)
+        tree = ast.parse(codes.strip())
     except Exception as e:
         return False
     call_node = None
@@ -168,11 +169,13 @@ from leeq.utils.ai.translation_agent import init_leeq_translation_agents
 from k_agents.translation.agent import TranslationAgentGroup, get_codegen_wm, CodegenAgent
 from k_agents.variable_table import VariableTable
 
+
 class TransmonElementFake:
     def __repr__(self):
         return "TransmonElement"
 
 
+@standard_multi_attempts
 def benchmark_single(key, exp_class, description, code_gen_model):
     input_var_table = VariableTable()
     input_var_table.add_variable("dut", TransmonElementFake(), "device under test")
@@ -189,21 +192,28 @@ def benchmark_single(key, exp_class, description, code_gen_model):
         success = False
         additional_info.append(codes)
         additional_info.append(str(e))
-        print(str(e))
+        raise e
     additional_info.append(codes)
 
     return success, additional_info
 
 
-def benchmark_all(rag, n_recall_items):
-    init_leeq_translation_agents()
+def benchmark_all(method, n_recall_items):
+    init_leeq_translation_agents(
+        document_root="/")  # document_root="/" means not reading procedure agents
     env = TranslationAgentEnv()
     translation_agents = env.translation_agents
-    if rag:
+
+    if method == "rag":
         code_gen_model = TranslationAgentGroupRAG()
-    else:
+    if method == "agent":
         code_gen_model = TranslationAgentGroup()
         code_gen_model.codegen_agent = CodegenAgent()
+    if method == "longcontext":
+        code_gen_model = TranslationAgentGroupLongContext()
+        agents = env.translation_agents.translation_agents.agents
+        env.translation_agents.translation_agents.agents = agents + agents
+
     code_gen_model.n_recall_items = n_recall_items
 
     for agent in translation_agents.translation_agents.agents:
@@ -215,19 +225,23 @@ def benchmark_all(rag, n_recall_items):
         results = []
         exp_class = experiment_prompt[_exp_name][0]
         exp_prompts = experiment_prompt[_exp_name][1]
+
         def benchmark_one_prompt(_prompt):
             try:
-                success, additional_info = benchmark_single(_exp_name, exp_class, _prompt, code_gen_model)
+                success, additional_info = benchmark_single(_exp_name, exp_class, _prompt,
+                                                            code_gen_model)
             except Exception as e:
                 success = False
                 additional_info = str(e)
                 return success, additional_info
             return success, additional_info
 
-        for prompt, (success, additional_info) in p_map(benchmark_one_prompt, exp_prompts):
+        for prompt, (success, additional_info) in p_map(benchmark_one_prompt,
+                                                        exp_prompts):
             print(success, additional_info)
             results.append((prompt, success, additional_info))
         return results
+
     t = list(experiment_prompt.keys())
     for exp_name, res in p_map(benchmark_one_experiment, t, n_workers=4):
         results_list[exp_name] = res
@@ -235,7 +249,7 @@ def benchmark_all(rag, n_recall_items):
     return results_list
 
 
-def main(model, shots, rag, n_recall_items):
+def main(model, shots, method, n_recall_items):
     """
     Main function that runs benchmarks based on command line arguments.
     """
@@ -247,10 +261,12 @@ def main(model, shots, rag, n_recall_items):
     print("Running benchmarks with model:", model)
 
     model_path_str = model.replace('/', '_')
-    if not rag:
+    if method == "agent":
         file_path = f'./result/recall_benchmark_{model_path_str}-{n_recall_items}.json'
-    else:
+    if method == "rag":
         file_path = f'./result/recall_benchmark_{model_path_str}-rag-{n_recall_items}.json'
+    if method == "longcontext":
+        file_path = f'./result/recall_benchmark_{model_path_str}-longcontext-{n_recall_items}.json'
 
     if os.path.exists(file_path):
         with open(file_path, 'r') as f:
@@ -266,7 +282,7 @@ def main(model, shots, rag, n_recall_items):
         try:
             result = {
                 'status': 'success',
-                'results': benchmark_all(rag, n_recall_items)
+                'results': benchmark_all(method, n_recall_items)
             }
             results[i] = result
         except Exception as e:
@@ -281,17 +297,20 @@ def main(model, shots, rag, n_recall_items):
             json.dump(results, f)
 
 
-def entry(model, rag):
+def entry(model, method):
     from mllm.config import default_options
-    default_parallel_map_config["n_workers"] = 3
+    if "claude" in model:
+        default_parallel_map_config["n_workers"] = 2
+    else:
+        default_parallel_map_config["n_workers"] = 3
     default_options.timeout = 120
     default_options.temperature = 0.2
 
     # You have to enable this option before using the `correct_json_by_model` rule
     parse_options.correct_json_by_model = True
-    n_recall_items = 2
-    shots = 4
-    main(model, shots, rag, n_recall_items)
+    n_recall_items = 9
+    shots = 3
+    main(model, shots, method, n_recall_items)
 
 
 if __name__ == '__main__':
@@ -302,6 +321,9 @@ if __name__ == '__main__':
         "claude-3-opus-20240229",
         "gemini/gemini-1.5-pro-latest",
     ]
-    for model in models[:]:
-        entry(model, False)
-        entry(model, True)
+    methods = ["agent", "longcontext", "rag"]
+    for model in models:
+        for m in ["agent", "longcontext", "rag"]:
+            if m == "longcontext" and model == "replicate/meta/meta-llama-3-70b-instruct":
+                continue
+            entry(model, m)
