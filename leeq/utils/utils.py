@@ -29,19 +29,25 @@ def setup_logging(name, level=logging.INFO):
     logger = logging.getLogger(name)
     _existing_logger[name] = logger
 
-    logger.setLevel(level)
+    # Check if we should suppress logging output (for quiet mode)
+    if os.environ.get('LEEQ_SUPPRESS_LOGGING', '').lower() in ['true', '1', 'yes']:
+        # Set to CRITICAL to only show critical errors
+        logger.setLevel(logging.CRITICAL)
+        # Don't add any handlers in suppressed mode
+    else:
+        logger.setLevel(level)
 
-    # Create the console handler with a recommended format
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(level)
-    formatter = logging.Formatter(
-        "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    console_handler.setFormatter(formatter)
+        # Create the console handler with a recommended format
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(level)
+        formatter = logging.Formatter(
+            "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        console_handler.setFormatter(formatter)
 
-    # Add the console handler to the logger
-    logger.addHandler(console_handler)
+        # Add the console handler to the logger
+        logger.addHandler(console_handler)
 
     # Optionally, add a file handler as well
     # file_handler = logger.FileHandler('app.log')

@@ -8,6 +8,27 @@ LeeQ is a Python package for orchestrating quantum computing experiments with a 
 
 ## Development Commands
 
+### Environment Activation
+```bash
+# IMPORTANT: Always activate the Python environment before running LeeQ-related code
+# The environment is located in the LeeQ folder
+source /home/coxious/Projects/LeeQ/venv/bin/activate
+
+# Or if using the symlink from VILA_training folder:
+source /home/coxious/Projects/VILA_training/LeeQ/venv/bin/activate
+
+# Alternatively, use the Python binary directly:
+/home/coxious/Projects/VILA_training/LeeQ/venv/bin/python
+```
+
+### Working with Symlinks
+When working in the VILA_training folder, use the symlinks to access related projects:
+- `LeeQ` -> Links to ../LeeQ
+- `VILA-Internal` -> Links to ../VILA-Internal  
+- `leeq-nvidia-deployment` -> Links to ../leeq-nvidia-deployment
+
+These symlinks allow you to run code that depends on LeeQ without changing directories.
+
 ### Installation
 ```bash
 # Using Poetry (preferred)
