@@ -19,7 +19,7 @@ from leeq.utils.high_level_simulations.noise import apply_noise_to_data
 logger = setup_logging(__name__)
 
 import plotly.graph_objects as go
-from labchronicle import log_and_record, register_browser_function
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq import Experiment
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.utils.compatibility import *

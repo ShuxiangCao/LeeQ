@@ -111,7 +111,7 @@ configuration_q2 = {
 
 @pytest.fixture()
 def simulation_setup():
-    from labchronicle import Chronicle
+    from leeq.chronicle import Chronicle
     Chronicle().start_log()
     manager = ExperimentManager()
     manager.clear_setups()

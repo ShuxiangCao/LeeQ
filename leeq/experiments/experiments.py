@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib
 import plotly
 from IPython.display import display
-from labchronicle import Chronicle
+from leeq.chronicle import Chronicle
 from k_agents.experiment.experiment import Experiment as KExperiment
 from leeq.core.base import LeeQObject
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable
@@ -24,8 +24,8 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
     An experiment contains the script to execute the experiment, analyze the data and visualize the result.
 
     1. Scripts execution
-        To allow labchronicle to log the experiment, the main experiment script should be written in the `run` method.
-        The `run` method should be decorated with the `labchronicle.log_and_record` method to log the events in the
+        To allow leeq.chronicle to log the experiment, the main experiment script should be written in the `run` method.
+        The `run` method should be decorated with the `leeq.chronicle.log_and_record` method to log the events in the
          experiment. The decorator will save the arguments and return values of the `run` method and the entire object
           to the log.
         The `run` method will always be executed at the end of `__init__` to start the experiment.
@@ -34,10 +34,10 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
     2. Data analysis
         The data analysis can be written in any arbitrary method, and suggested to run in a separate method than `run`,
          ideally the first few lines of the visualization code. This is because if the data analysis failed, it may
-         crash the program before labchronicle can log the experiment data.
+         crash the program before leeq.chronicle can log the experiment data.
 
     3. Visualization
-        The visualization code should live in a separate function and decorated by `labchronicle.browser_function`, so
+        The visualization code should live in a separate function and decorated by `leeq.chronicle.browser_function`, so
          that the function will be executed when the experiment is finished execution in Jupyter notebook. It also
          allows the function to be executed later when data loaded from the log file.
     """
@@ -122,7 +122,7 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
 
     def get_experiment_details(self):
         """
-        Get the experiment details. It includes the labchronicle record details, experiment arguments, and the
+        Get the experiment details. It includes the leeq.chronicle record details, experiment arguments, and the
         experiment specific details.
 
         Returns:

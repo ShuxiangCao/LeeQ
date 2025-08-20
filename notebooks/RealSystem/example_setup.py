@@ -1,5 +1,5 @@
 from leeq.setups.qubic_lbnl_setups import QubiCSingleBoardRemoteRPCSetup
-from labchronicle import Chronicle
+from leeq.chronicle import Chronicle
 from leeq.experiments import setup
 
 # Start the logging

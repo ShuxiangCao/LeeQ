@@ -4,16 +4,17 @@ This guide is designed to walk you through the essential setup required to begin
 
 ## Installation Process
 
-LeeQ operates alongside LabChronicle for the retention of experiment data. To get started, you need to install [LabChronicle](https://github.com/ShuxiangCao/LabChronicle) followed by the installation of LeeQ.
+LeeQ includes an integrated chronicle module for the retention of experiment data. To get started, you simply need to install LeeQ.
 
-- To install LabChronicle: `pip install git+https://github.com/ShuxiangCao/LabChronicle`
 - To install LeeQ: `pip install git+https://github.com/ShuxiangCao/LeeQ`
+
+Note: The chronicle functionality (formerly LabChronicle) is now integrated within LeeQ as `leeq.chronicle`.
 
 ### Optional Configuration
 
 There are two optional environment variables that can be set for further customization. If these are not specified, the software defaults to creating a directory within the working folder for the storage of experiment and calibration logs.
 
-- `LAB_CHRONICLE_LOG_DIR`: Specifies the storage location for experiment log files.
+- `LAB_CHRONICLE_LOG_DIR`: Specifies the storage location for experiment log files (leeq.chronicle).
 - `LEEQ_CALIBRATION_LOG_PATH`: Determines the storage path for calibration logs, which include parameters like qubit frequency and pulse settings.
 
 ## Setting Up Your Experiment
@@ -23,7 +24,7 @@ Create a new file named `experiment_setup.py` in your working directory and incl
 ```python
 
 from leeq.setups.qubic_lbnl_setups import QubiCSingleBoardRemoteRPCSetup
-from labchronicle import Chronicle
+from leeq.chronicle import Chronicle
 from leeq.experiments import setup
 
 Chronicle().start_log()

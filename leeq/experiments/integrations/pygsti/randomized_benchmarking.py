@@ -1,5 +1,5 @@
 import numpy as np
-from labchronicle import register_browser_function, log_and_record
+from leeq.chronicle import register_browser_function, log_and_record
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockParallel
 from .base import PyGSTiRBExperiment
 

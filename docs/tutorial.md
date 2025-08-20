@@ -295,11 +295,11 @@ This command automatically runs the experiment and presents the results.
 
 ## Data Persistence
 
-LeeQ leverages LabChronicle for data persistence. To ensure proper data logging from the outset, initiate the logging process at the beginning of your notebook as shown below. Additionally, remember to annotate the `run` method of your experiment class with `@log_and_record` to enable experiment logging.
+LeeQ leverages the integrated leeq.chronicle module for data persistence. To ensure proper data logging from the outset, initiate the logging process at the beginning of your notebook as shown below. Additionally, remember to annotate the `run` method of your experiment class with `@log_and_record` to enable experiment logging.
 
 ```python
-from labchronicle import Chronicle
+from leeq.chronicle import Chronicle
 Chronicle().start_log()
 ```
 
-For each experiment, LabChronicle automatically generates a data path and experiment ID, which can be used to access the recorded data. For comprehensive information on data retrieval and additional functionalities, consult the LabChronicle documentation.
+For each experiment, leeq.chronicle automatically generates a data path and experiment ID, which can be used to access the recorded data. For comprehensive information on data retrieval and additional functionalities, consult the leeq.chronicle documentation.

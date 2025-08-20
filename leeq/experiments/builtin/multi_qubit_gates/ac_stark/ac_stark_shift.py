@@ -14,7 +14,7 @@ import copy
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from labchronicle import log_and_record, register_browser_function
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.utils.compatibility import *

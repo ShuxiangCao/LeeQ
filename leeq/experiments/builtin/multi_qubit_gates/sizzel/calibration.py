@@ -7,7 +7,7 @@ from leeq.theory.estimator.kalman import KalmanFilter1D
 
 logger = setup_logging(__name__)
 
-from labchronicle import log_and_record, register_browser_function
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq import Experiment, Sweeper, basic_run
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.utils.compatibility import *

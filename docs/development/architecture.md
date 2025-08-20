@@ -33,7 +33,7 @@ LeeQ follows a modular, layered architecture designed for flexibility and extens
 ### 1. Base Classes (`leeq.core.base`)
 
 All LeeQ objects inherit from `LeeQObject`, which provides:
-- Automatic persistence via labchronicle
+- Automatic persistence via leeq.chronicle (integrated module)
 - Parameter tracking and versioning
 - Serialization capabilities
 

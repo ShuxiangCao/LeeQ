@@ -1,7 +1,7 @@
 from typing import List, Any, Union
 
 import numpy as np
-from labchronicle import log_and_record
+from leeq.chronicle import log_and_record
 
 from k_agents.inspection.decorator import text_inspection
 from leeq.utils.compatibility import prims

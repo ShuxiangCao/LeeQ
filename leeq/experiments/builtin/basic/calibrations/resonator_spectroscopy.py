@@ -4,7 +4,7 @@ import numpy as np
 from typing import Optional, Union
 from scipy import optimize as so
 import plotly
-from labchronicle import log_and_record, register_browser_function
+from leeq.chronicle import log_and_record, register_browser_function
 
 from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement

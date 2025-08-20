@@ -1,7 +1,7 @@
 import contextlib
 from typing import Any, Optional, Dict
 
-from labchronicle import log_event
+from leeq.chronicle import log_event
 from leeq.core.base import LeeQObject
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import Sweeper

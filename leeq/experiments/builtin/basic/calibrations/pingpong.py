@@ -1,5 +1,5 @@
 import math
-from labchronicle import log_and_record, register_browser_function
+from leeq.chronicle import log_and_record, register_browser_function
 import uncertainties as unc
 import uncertainties.unumpy as unp
 

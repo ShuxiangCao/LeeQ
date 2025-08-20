@@ -1,7 +1,7 @@
 import numpy as np
 from plotly.subplots import make_subplots
 
-from labchronicle import log_and_record, register_browser_function
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq import Sweeper, Experiment
 from typing import List, Any
 from plotly import graph_objects as go

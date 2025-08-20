@@ -78,7 +78,7 @@ mkdocs serve
 ### Core Structure
 The codebase follows a modular architecture with clear separation of concerns:
 
-1. **Base Classes** (`leeq/core/base.py`): All LeeQ objects inherit from `LeeQObject`, which extends `LoggableObject` from labchronicle for persistence and tracking.
+1. **Base Classes** (`leeq/core/base.py`): All LeeQ objects inherit from `LeeQObject`, which extends `LoggableObject` from the integrated leeq.chronicle module for persistence and tracking.
 
 2. **Quantum Elements** (`leeq/core/elements/`):
    - `qubit.py`: Basic qubit implementations
@@ -108,13 +108,13 @@ The codebase follows a modular architecture with clear separation of concerns:
 
 ### Key Design Patterns
 
-1. **Dependency Management**: The project uses both Poetry and pip/requirements.txt. Git-based dependencies (labchronicle, k_agents, MinimalLLM) are managed through direct GitHub references.
+1. **Dependency Management**: The project uses both Poetry and pip/requirements.txt. Git-based dependencies (k_agents, MinimalLLM) are managed through direct GitHub references. The labchronicle functionality is now integrated as leeq.chronicle.
 
 2. **Hardware Abstraction**: The `setups` module provides a clean interface between experiments and hardware, allowing easy switching between simulation and real devices.
 
 3. **AI/ML Integration**: The `leeq/utils/ai/` module integrates LLMs for experiment generation and translation, using the k_agents framework.
 
-4. **Data Persistence**: Uses labchronicle for automatic logging and tracking of all experiments and results.
+4. **Data Persistence**: Uses the integrated leeq.chronicle module (formerly labchronicle) for automatic logging and tracking of all experiments and results.
 
 ### Testing Strategy
 
@@ -127,7 +127,7 @@ The codebase follows a modular architecture with clear separation of concerns:
 ### Important Dependencies
 
 - **numpy < 2.0.0**: Version constraint for compatibility
-- **labchronicle**: For experiment logging and persistence (GitHub dependency)
+- **leeq.chronicle**: Integrated experiment logging and persistence module (formerly labchronicle external dependency)
 - **k_agents**: For AI/ML experiment generation (GitHub dependency)
 - **MinimalLLM**: For LLM integration (GitHub dependency)
 - **qutip**: For quantum simulations

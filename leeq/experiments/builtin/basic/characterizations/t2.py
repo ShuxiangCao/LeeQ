@@ -3,7 +3,7 @@ from typing import Optional, Any
 import numpy as np
 from plotly import graph_objects as go
 
-from labchronicle import register_browser_function, log_and_record
+from leeq.chronicle import register_browser_function, log_and_record
 
 from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import Experiment

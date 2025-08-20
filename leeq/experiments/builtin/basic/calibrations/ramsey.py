@@ -5,7 +5,7 @@ import datetime
 
 from plotly.subplots import make_subplots
 
-from labchronicle import register_browser_function, log_and_record
+from leeq.chronicle import register_browser_function, log_and_record
 
 from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup

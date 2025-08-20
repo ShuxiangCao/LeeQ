@@ -1,4 +1,4 @@
-from labchronicle import log_and_record
+from leeq.chronicle import log_and_record
 
 from .base import GeneralisedTomographyBase, GeneralisedSingleDutStateTomography, GeneralisedStateTomography, \
     GeneralisedProcessTomography

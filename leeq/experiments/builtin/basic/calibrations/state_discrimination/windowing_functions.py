@@ -2,7 +2,7 @@ import itertools
 from typing import List
 
 import numpy as np
-from labchronicle import log_and_record, register_browser_function
+from leeq.chronicle import log_and_record, register_browser_function
 from matplotlib import pyplot as plt
 
 from leeq import Experiment, setup, Sweeper, ExperimentManager

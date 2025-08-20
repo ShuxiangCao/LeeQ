@@ -1,4 +1,4 @@
-from labchronicle import log_and_record, register_browser_function
+from leeq.chronicle import log_and_record, register_browser_function
 import leeq
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, basic_run, setup
 from leeq.core.primitives import LogicalPrimitiveCollectionFactory

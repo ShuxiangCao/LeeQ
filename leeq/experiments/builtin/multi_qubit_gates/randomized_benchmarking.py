@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy import optimize as so
-from labchronicle import register_browser_function, log_and_record
+from leeq.chronicle import register_browser_function, log_and_record
 from typing import List, Optional, Any, Union
 from joblib import Parallel, delayed
 from tqdm.notebook import tqdm

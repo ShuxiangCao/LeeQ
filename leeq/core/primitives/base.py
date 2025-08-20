@@ -3,7 +3,7 @@ import uuid
 
 from leeq.core.base import LeeQObject
 from leeq.utils import elementwise_update_dict
-from labchronicle import log_event
+from leeq.chronicle import log_event
 
 
 class SharedParameterObject(LeeQObject):

@@ -1,7 +1,7 @@
 from typing import List
 
 import numpy as np
-from labchronicle import register_browser_function
+from leeq.chronicle import register_browser_function
 
 import leeq.theory.utils
 from leeq import Experiment, Sweeper, basic_run

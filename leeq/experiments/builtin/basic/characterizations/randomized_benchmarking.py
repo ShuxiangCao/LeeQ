@@ -5,7 +5,7 @@ import scipy.linalg
 import uncertainties.umath as umath
 from matplotlib import pyplot as plt
 
-from labchronicle import log_and_record, register_browser_function
+from leeq.chronicle import log_and_record, register_browser_function
 
 from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import Experiment, Sweeper, basic_run, setup

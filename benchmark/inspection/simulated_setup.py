@@ -7,7 +7,7 @@ from leeq.experiments.experiments import ExperimentManager
 from leeq.theory.simulation.numpy.rotated_frame_simulator import VirtualTransmon
 
 def simulation_setup(qubit_frequency=5040.4,readout_frequency=9645.4,quiescent_state_distribution=None):
-    from labchronicle import Chronicle
+    from leeq.chronicle import Chronicle
     Chronicle(config={'handler':'memory'}).start_log()
     manager = ExperimentManager()
     manager.clear_setups()

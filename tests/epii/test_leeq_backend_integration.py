@@ -30,7 +30,7 @@ from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.experiments.experiments import ExperimentManager
 from leeq.theory.simulation.numpy.rotated_frame_simulator import VirtualTransmon
-from labchronicle import Chronicle
+from leeq.chronicle import Chronicle
 
 
 class TestLeeQBackendIntegration:

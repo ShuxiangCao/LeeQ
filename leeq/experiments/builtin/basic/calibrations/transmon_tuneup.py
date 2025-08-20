@@ -1,4 +1,4 @@
-from labchronicle import log_and_record
+from leeq.chronicle import log_and_record
 
 from leeq import Experiment
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockParallel

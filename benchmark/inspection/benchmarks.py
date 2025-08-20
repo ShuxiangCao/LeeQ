@@ -10,7 +10,7 @@ import numpy as np
 from scipy import optimize as so
 from leeq.experiments.builtin import *
 import plotly.graph_objects as go
-from labchronicle import log_and_record, register_browser_function
+from leeq.chronicle import log_and_record, register_browser_function
 
 from leeq.utils.compatibility import *
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement

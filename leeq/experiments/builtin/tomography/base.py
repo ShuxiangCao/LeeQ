@@ -1,5 +1,5 @@
 import numpy as np
-from labchronicle import register_browser_function, log_and_record
+from leeq.chronicle import register_browser_function, log_and_record
 from matplotlib import pyplot as plt
 
 from leeq import Experiment, Sweeper, basic_run

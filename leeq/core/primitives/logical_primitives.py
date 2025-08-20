@@ -4,7 +4,7 @@ from typing import Dict, Any, Union
 
 import numpy
 import numpy as np
-from labchronicle import log_event
+from leeq.chronicle import log_event
 
 from leeq.core.base import LeeQObject
 from leeq.utils import ObjectFactory, setup_logging

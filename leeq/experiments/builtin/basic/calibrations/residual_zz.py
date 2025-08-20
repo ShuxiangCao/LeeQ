@@ -1,5 +1,5 @@
 import numpy as np
-from labchronicle import log_and_record
+from leeq.chronicle import log_and_record
 from leeq import Experiment, setup
 from typing import List, Union
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
