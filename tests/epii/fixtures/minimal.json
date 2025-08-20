@@ -1,0 +1,7 @@
+{
+    "setup_type": "simulation",
+    "setup_name": "minimal_test_setup",
+    "num_qubits": 2,
+    "max_workers": 10,
+    "description": "Minimal configuration for EPII service testing"
+}

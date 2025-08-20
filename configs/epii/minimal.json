@@ -1,0 +1,19 @@
+{
+  "setup_type": "simulation",
+  "setup_class": "HighLevelSimulationSetup",
+  "config": {
+    "platform": "numpy",
+    "num_qubits": 1,
+    "qubits": {
+      "q0": {
+        "frequency": 5.0e9,
+        "anharmonicity": -250e6,
+        "t1": 50e-6,
+        "t2": 30e-6
+      }
+    }
+  },
+  "grpc": {
+    "port": 50051
+  }
+}
