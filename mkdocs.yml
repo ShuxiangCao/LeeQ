@@ -17,25 +17,6 @@ theme:
 
 plugins:
   - search
-  - mkdocstrings:
-      handlers:
-        python:
-          options:
-            docstring_style: numpy
-            show_source: true
-            show_signature_annotations: true
-            show_root_heading: true
-            show_root_full_path: false
-            separate_signature: true
-            unwrap_annotated: true
-            merge_init_into_class: true
-            show_submodules: false
-          import:
-            - https://docs.python.org/3/objects.inv
-            - https://numpy.org/doc/stable/objects.inv
-          setup_commands:
-            - import sys
-            - sys.path.insert(0, ".")
 
 nav:
   - Home: index.md
@@ -68,10 +49,10 @@ nav:
     - Contributing: development/contributing.md
     - Testing: development/testing.md
     - Architecture: development/architecture.md
-    - EPII:
-      - Deployment Guide: epii/deployment-guide.md
-      - Client Usage: epii/client-usage.md
-      - Operations Guide: epii-operations-guide.md
+  - EPII:
+    - Deployment Guide: epii/deployment-guide.md
+    - Client Usage: epii/client-usage.md
+    - Operations Guide: epii-operations-guide.md
 
 markdown_extensions:
   - pymdownx.highlight
