@@ -252,4 +252,4 @@ def display_json_dict(data: dict, root: str = None, expanded=False):
         display(JSON(data, root=root, expanded=expanded))
     else:
         import pprint
-        pprint.plogger.info(data)
+        logger.info(f"JSON data: {pprint.pformat(data)}")
