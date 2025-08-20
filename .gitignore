@@ -174,3 +174,7 @@ cython_debug/
 
 # Environment
 .env.local
+
+# Project specific
+PRPs/
+*.bak
