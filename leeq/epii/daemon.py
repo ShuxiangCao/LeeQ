@@ -362,17 +362,22 @@ class EPIIDaemon:
             # Cleanup is handled by atexit registration
             logger.info("EPII daemon stopped")
 
-    def _validate_startup(self):
+    def _validate_startup(self) -> bool:
         """
         Validate that the daemon started successfully.
+        
+        Returns:
+            bool: True if validation passes, False otherwise
         """
         # Check if server is actually listening
         import socket
+        server_listening = False
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 result = s.connect_ex(('localhost', self.port))
                 if result == 0:
                     logger.info(f"✓ Server successfully listening on port {self.port}")
+                    server_listening = True
                 else:
                     logger.warning(f"Server may not be listening on port {self.port}")
         except Exception as e:
@@ -381,6 +386,8 @@ class EPIIDaemon:
         # Log initial health status
         health_status = self.health_checker.check_runtime_health()
         logger.info(f"Initial health status: {health_status['status']}")
+        
+        return server_listening
 
     def get_health_status(self) -> Dict[str, Any]:
         """
