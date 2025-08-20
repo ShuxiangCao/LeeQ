@@ -12,6 +12,9 @@ from leeq.core.primitives import (
 )
 
 from leeq.utils import setup_logging
+from leeq.utils.utils import setup_logging
+logger = setup_logging(__name__)
+
 
 logger = setup_logging(__name__)
 
@@ -232,7 +235,7 @@ class Element(LeeQObject):
             try:
                 parsed_time = datetime.strptime(timestr, cls._time_format_str)
             except ValueError:
-                print(f"Invalid time format {timestr}.")
+                logger.info(f"Invalid time format {timestr}.")
 
             if latest_time is None or parsed_time > latest_time:
                 latest_time = parsed_time
@@ -286,7 +289,7 @@ class Element(LeeQObject):
         with open(path, "r") as f:
             calibration_log = json.load(f)
 
-        print(f'Calibration log loaded from {path}')
+        logger.info(f'Calibration log loaded from {path}')
 
         return cls(name, calibration_log)
 

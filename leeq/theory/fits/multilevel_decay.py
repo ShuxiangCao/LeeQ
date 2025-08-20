@@ -6,6 +6,9 @@ __all__ = ["simulate_decay", 'fit_decay', 'show_one_plot']
 
 from matplotlib import pyplot as plt
 from scipy.optimize import minimize
+from leeq.utils.utils import setup_logging
+
+logger = setup_logging(__name__)
 
 
 def normalize_gamma(gamma: np.ndarray) -> np.ndarray:
@@ -237,8 +240,8 @@ def fit_decay(probs: np.ndarray, time_length: float, time_resolution: float, ver
 
     # Display fitting results if verbose is True
     if verbose:
-        print("Fitted gamma0:", decay_rate)
-        print(gamma_0)
+        logger.info(f"Fitted gamma0: {decay_rate}")
+        logger.info(f"{gamma_0}")
 
     # Flatten and concatenate the initial state and gamma matrices for optimization
     x_guess = np.concatenate(

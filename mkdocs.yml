@@ -1,17 +1,83 @@
-site_name: LeeQ
+site_name: LeeQ Documentation
+site_description: Quantum computing experiment orchestration framework
+site_url: https://leeq.readthedocs.io
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - search.highlight
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+            show_source: true
+            show_signature_annotations: true
+            show_root_heading: true
+            show_root_full_path: false
+            separate_signature: true
+            unwrap_annotated: true
+            merge_init_into_class: true
+            show_submodules: false
+          import:
+            - https://docs.python.org/3/objects.inv
+            - https://numpy.org/doc/stable/objects.inv
+          setup_commands:
+            - import sys
+            - sys.path.insert(0, ".")
+
 nav:
   - Home: index.md
-  - 10 minutes quick start: quick_start.md
-  - Tutorial: tutorial.md
-theme:
-  name: readthedocs
-plugins:
-- search
-- mkdocstrings:
-    default_handler: python
-    handlers:
-      python:
-        options:
-          docstring_style: numpy
-        rendering:
-          show_source: true
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: quick_start.md
+    - Tutorial: tutorial.md
+  - User Guide:
+    - Core Concepts: guide/concepts.md
+    - Experiments: guide/experiments.md
+    - Calibrations: guide/calibrations.md
+  - API Reference:
+    - Core:
+      - Base: api/core/base.md
+      - Elements: api/core/elements.md
+      - Engine: api/core/engine.md
+      - Primitives: api/core/primitives.md
+    - Experiments:
+      - Builtin: api/experiments/builtin.md
+      - Custom: api/experiments/base.md
+    - Theory:
+      - Simulation: api/theory/simulation.md
+      - Tomography: api/theory/tomography.md
+      - Optimal Control: api/theory/fits.md
+      - Clifford Gates: api/theory/clifford.md
+    - Compiler:
+      - LBNL QubiC: api/compiler/lbnl_qubic.md
+      - Base Classes: api/compiler/base.md
+  - Development:
+    - Contributing: development/contributing.md
+    - Testing: development/testing.md
+    - Architecture: development/architecture.md
+    - EPII:
+      - Deployment Guide: epii/deployment-guide.md
+      - Client Usage: epii/client-usage.md
+      - Operations Guide: epii-operations-guide.md
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.arithmatex:
+      generic: true
+  - admonition
+  - toc:
+      permalink: true
