@@ -36,7 +36,7 @@ class GrapeParams:
 
 
 def run_grape(hamiltonian_params: HamiltonianParams, grape_params: GrapeParams, U_target: Qobj,
-              initial_guess: np.ndarray) -> tuple['GRAPEResult', float, np.ndarray]:
+              initial_guess: np.ndarray) -> tuple:  # Returns (result, overlap, times)
     H0 = make_Hamiltonian(hamiltonian_params)
     N = hamiltonian_params.num_levels_in_transmon
     times = np.linspace(0, grape_params.T, grape_params.n_ts)  # Time array

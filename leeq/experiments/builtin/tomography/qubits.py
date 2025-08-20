@@ -1,4 +1,4 @@
-from typing import List, Any, Union
+from typing import List, Any, Union, TYPE_CHECKING
 
 import numpy as np
 from leeq.chronicle import log_and_record
@@ -9,6 +9,10 @@ from .base import GeneralisedTomographyBase, GeneralisedSingleDutStateTomography
     GeneralisedProcessTomography
 from leeq.theory.tomography.utils import evaluate_fidelity_density_matrix_with_state_vector, \
     evaluate_fidelity_ptm_with_unitary
+
+if TYPE_CHECKING:
+    from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
+    from leeq.experiments.builtin.basic.calibrations.assignment import CalibrateFullAssignmentMatrices
 
 
 class QubitTomographyBase(GeneralisedTomographyBase):

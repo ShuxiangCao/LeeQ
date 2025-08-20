@@ -23,7 +23,7 @@ class PyGSTiExperiment(Experiment):
     data collection, and processing. Inherits from a generic Experiment class.
     """
 
-    def _pygsti_design_to_lpbs(self, exp_design: "pygsti design",
+    def _pygsti_design_to_lpbs(self, exp_design,  # pygsti design
                                duts: List['TransmonElements'],
                                mprim_indexes: List[int],
                                gate_name_to_lpb_func: Callable) -> Tuple[List[Any], List[Any]]:

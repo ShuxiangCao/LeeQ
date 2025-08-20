@@ -1,5 +1,5 @@
 import itertools
-from typing import List
+from typing import List, TYPE_CHECKING
 
 import numpy as np
 from leeq.chronicle import log_and_record, register_browser_function
@@ -7,6 +7,10 @@ from matplotlib import pyplot as plt
 
 from leeq import Experiment, setup, Sweeper, ExperimentManager
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel
+
+if TYPE_CHECKING:
+    from leeq.core.elements.built_in.qudit_transmon import TransmonElement
+    from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 
 colors = [
     '#1f77b4',

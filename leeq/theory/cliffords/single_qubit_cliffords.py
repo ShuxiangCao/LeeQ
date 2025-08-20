@@ -4,6 +4,10 @@ from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
 
+# Note: get_VZc1 is not yet implemented for single qubit Cliffords
+# It would need to be imported from two_qubit_cliffords if needed
+# from .two_qubit_cliffords import get_VZc1
+
 _single_qubit_clifford_map = {
     0: ['I'],
     1: ['X'],
@@ -181,11 +185,15 @@ def find_inverse_C1(a: CFloatArray, cliff_set: str) -> int:
         msg = "Clifford set 'VZX' not yet implemented."
         logger.error(msg)
         raise NotImplementedError(msg)
+    elif cliff_set != 'XY':
+        msg = f"Unknown Clifford set '{cliff_set}'. Only 'XY' is currently supported."
+        logger.error(msg)
+        raise ValueError(msg)
 
     min_diff = float('inf')
     for i in range(NC1):
-        # Select the appropriate set of gates
-        test = a.dot(get_c1(i) if cliff_set == 'XY' else get_VZc1(i))
+        # Select the appropriate set of gates (only XY is supported)
+        test = a.dot(get_c1(i))
 
         # Normalize if the first element is not zero to avoid division by zero
         if not np.isclose(test[0, 0], 0):
@@ -221,9 +229,14 @@ def append_inverse_C1(
     Returns:
     - list: The sequence with the appended index of the inverse gate.
     """
+    if clifford_set != 'XY':
+        msg = f"Clifford set '{clifford_set}' not yet implemented. Only 'XY' is supported."
+        logger.error(msg)
+        raise NotImplementedError(msg)
+    
     U = pI
     for index in c1_index_list:
-        U = (get_c1(index) if clifford_set == 'XY' else get_VZc1(index)).dot(U)
+        U = get_c1(index).dot(U)
 
     inverse_index = find_inverse_C1(U, cliff_set=clifford_set)
 
