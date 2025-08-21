@@ -365,7 +365,7 @@ class EPIIDaemon:
     def _validate_startup(self) -> bool:
         """
         Validate that the daemon started successfully.
-        
+
         Returns:
             bool: True if validation passes, False otherwise
         """
@@ -386,7 +386,7 @@ class EPIIDaemon:
         # Log initial health status
         health_status = self.health_checker.check_runtime_health()
         logger.info(f"Initial health status: {health_status['status']}")
-        
+
         return server_listening
 
     def get_health_status(self) -> Dict[str, Any]:
@@ -603,7 +603,7 @@ def main() -> None:
             sys.exit(1)
 
         if args.validate:
-            print("Configuration is valid")
+            print("Configuration is valid")  # noqa: T201
             sys.exit(0)
 
         # Handle health check mode
@@ -618,30 +618,30 @@ def main() -> None:
                 ("Memory availability", lambda: health_checker._check_memory()),
             ]
 
-            print("Performing health checks...")
+            print("Performing health checks...")  # noqa: T201
             all_passed = True
 
             for check_name, check_func in basic_checks:
                 try:
                     if check_func():
-                        print(f"✓ {check_name}: PASS")
+                        print(f"✓ {check_name}: PASS")  # noqa: T201
                     else:
-                        print(f"✗ {check_name}: FAIL")
+                        print(f"✗ {check_name}: FAIL")  # noqa: T201
                         all_passed = False
                 except Exception as e:
-                    print(f"✗ {check_name}: ERROR - {e}")
+                    print(f"✗ {check_name}: ERROR - {e}")  # noqa: T201
                     all_passed = False
 
             if all_passed:
-                print("All health checks passed")
+                print("All health checks passed")  # noqa: T201
                 sys.exit(0)
             else:
-                print("One or more health checks failed")
+                print("One or more health checks failed")  # noqa: T201
                 sys.exit(1)
 
         # Handle diagnostic report
         if args.diagnostic_report:
-            print("Generating diagnostic report...")
+            print("Generating diagnostic report...")  # noqa: T201
             try:
                 # Create temporary service instance for diagnostics
                 from .config import create_setup_from_config
@@ -649,7 +649,7 @@ def main() -> None:
                 service = ExperimentPlatformService(setup=setup, config=config)
 
                 report = format_diagnostic_report(service, config)
-                print(report)
+                print(report)  # noqa: T201
                 sys.exit(0)
             except Exception as e:
                 logger.error(f"Failed to generate diagnostic report: {e}", exc_info=True)
@@ -658,7 +658,7 @@ def main() -> None:
         # Handle test experiment
         if args.test_experiment is not None:
             experiment_name = args.test_experiment if args.test_experiment else "rabi"
-            print(f"Testing experiment: {experiment_name}")
+            print(f"Testing experiment: {experiment_name}")  # noqa: T201
             try:
                 # Create temporary service instance for testing
                 from .config import create_setup_from_config
@@ -668,10 +668,10 @@ def main() -> None:
                 diagnostic = DiagnosticTool(service)
                 result = diagnostic.test_experiment_execution(experiment_name)
 
-                print(f"Test status: {result['status'].upper()}")
-                print(f"Message: {result['message']}")
+                print(f"Test status: {result['status'].upper()}")  # noqa: T201
+                print(f"Message: {result['message']}")  # noqa: T201
                 if 'duration_ms' in result:
-                    print(f"Duration: {result['duration_ms']:.1f}ms")
+                    print(f"Duration: {result['duration_ms']:.1f}ms")  # noqa: T201
 
                 sys.exit(0 if result['status'] == 'ok' else 1)
             except Exception as e:

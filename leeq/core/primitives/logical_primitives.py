@@ -1,11 +1,8 @@
 import copy
 import uuid
-from typing import Any, Dict, Union
+from typing import Any, Union
 
-import numpy
 import numpy as np
-
-from leeq.chronicle import log_event
 from leeq.core.base import LeeQObject
 from leeq.core.primitives.base import SharedParameterObject
 from leeq.utils import ObjectFactory, elementwise_update_dict, setup_logging
@@ -351,7 +348,7 @@ class LogicalPrimitiveBlock(LeeQObject, LogicalPrimitiveCombinable):
         Returns:
             SharedParameterObject: The cloned object.
         """
-        clone_name = self._name + f"_clone"
+        clone_name = self._name + "_clone"
 
         # Clone the children
         cloned_children = []
@@ -834,9 +831,9 @@ class MeasurementPrimitive(LogicalPrimitive):
         else:
             if basis is not None:
                 msg = (
-                    f"The measurement basis is specified, but the measurement primitive does not have a transform "
-                    f"function. LeeQ does not know how to transform the raw experiment datapoints to the quantum "
-                    f"states. Please set the transform function by running a measurement calibration.")
+                    "The measurement basis is specified, but the measurement primitive does not have a transform "
+                    "function. LeeQ does not know how to transform the raw experiment datapoints to the quantum "
+                    "states. Please set the transform function by running a measurement calibration.")
                 logger.error(msg)
                 raise RuntimeError(msg)
 
