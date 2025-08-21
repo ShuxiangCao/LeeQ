@@ -1,0 +1,1984 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Quantum computing experiment orchestration framework">
+      
+      
+      
+        <link rel="canonical" href="https://leeq.readthedocs.io/epii/">
+      
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.17">
+    
+    
+      
+        <title>LeeQ EPII Documentation - LeeQ Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#leeq-epii-documentation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="LeeQ Documentation" class="md-header__button md-logo" aria-label="LeeQ Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            LeeQ Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              LeeQ EPII Documentation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../guide/concepts/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api/core/base/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../development/contributing/" class="md-tabs__link">
+          
+  
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="deployment-guide/" class="md-tabs__link">
+          
+  
+  
+  EPII
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="LeeQ Documentation" class="md-nav__button md-logo" aria-label="LeeQ Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    LeeQ Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quick_start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quick Start
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tutorial
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    User Guide
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            User Guide
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Core Concepts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/experiments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Experiments
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/calibrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Calibrations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    API Reference
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Core
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            Core
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/core/base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Base
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/core/elements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Elements
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/core/engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Engine
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/core/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Primitives
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Experiments
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            Experiments
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/experiments/builtin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Builtin
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/experiments/base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Custom
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Theory
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            Theory
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/theory/simulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Simulation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/theory/tomography/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tomography
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/theory/fits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Optimal Control
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/theory/clifford/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Clifford Gates
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Compiler
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4">
+            <span class="md-nav__icon md-icon"></span>
+            Compiler
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/compiler/lbnl_qubic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    LBNL QubiC
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/compiler/base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Base Classes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Development
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Development
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Testing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    EPII
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            EPII
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="deployment-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Deployment Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="client-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Client Usage
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../epii-operations-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Operations Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick Start
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick Start">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Basic Usage
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Documentation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Documentation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#deployment-administration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deployment &amp; Administration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#development-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Development &amp; Usage
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#operations-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      Operations &amp; Support
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration Templates
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration Templates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#available-configurations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Available Configurations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration Structure
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supported-experiments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Supported Experiments
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Supported Experiments">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#single-qubit-experiments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Single-Qubit Experiments
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advanced-experiments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Advanced Experiments
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-qubit-experiments-future" class="md-nav__link">
+    <span class="md-ellipsis">
+      Multi-Qubit Experiments (Future)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#service-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      Service Management
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Service Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#systemd-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Systemd Commands
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#health-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Health Checks
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#development-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Development Examples
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Development Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simple-experiment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Simple Experiment
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parameter-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parameter Management
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Architecture Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#support-community" class="md-nav__link">
+    <span class="md-ellipsis">
+      Support &amp; Community
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Support &amp; Community">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#getting-help" class="md-nav__link">
+    <span class="md-ellipsis">
+      Getting Help
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contributing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      License
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#version-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      Version Information
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-upgrades" class="md-nav__link">
+    <span class="md-ellipsis">
+      Migration &amp; Upgrades
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migration &amp; Upgrades">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#from-direct-leeq-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      From Direct LeeQ Usage
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#service-upgrades" class="md-nav__link">
+    <span class="md-ellipsis">
+      Service Upgrades
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="leeq-epii-documentation">LeeQ EPII Documentation<a class="headerlink" href="#leeq-epii-documentation" title="Permanent link">&para;</a></h1>
+<p>EPII (Experiment Platform Intelligence Interface) is a gRPC service that provides standardized access to LeeQ quantum experiment capabilities. This documentation covers deployment, usage, and troubleshooting of the EPII service.</p>
+<h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
+<h3 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Run the installation script</span>
+sudo<span class="w"> </span>./scripts/install-epii.sh<span class="w"> </span>--config<span class="w"> </span>simulation_2q
+
+<span class="c1"># Or manually deploy following the deployment guide</span>
+</code></pre></div>
+<h3 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">grpc</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">leeq.epii.proto</span><span class="w"> </span><span class="kn">import</span> <span class="n">epii_pb2</span><span class="p">,</span> <span class="n">epii_pb2_grpc</span>
+
+<span class="c1"># Connect and run experiment</span>
+<span class="n">channel</span> <span class="o">=</span> <span class="n">grpc</span><span class="o">.</span><span class="n">insecure_channel</span><span class="p">(</span><span class="s1">&#39;localhost:50051&#39;</span><span class="p">)</span>
+<span class="n">stub</span> <span class="o">=</span> <span class="n">epii_pb2_grpc</span><span class="o">.</span><span class="n">ExperimentPlatformServiceStub</span><span class="p">(</span><span class="n">channel</span><span class="p">)</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">stub</span><span class="o">.</span><span class="n">Ping</span><span class="p">(</span><span class="n">epii_pb2</span><span class="o">.</span><span class="n">PingRequest</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Service: </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
+<h3 id="deployment-administration">Deployment &amp; Administration<a class="headerlink" href="#deployment-administration" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><a href="deployment-guide/">Deployment Guide</a></strong> - Complete deployment instructions for production environments</li>
+<li><strong><a href="../epii-operations-guide/">Operations Guide</a></strong> - Comprehensive production operations and maintenance guide</li>
+<li><strong><a href="../epii-deployment-checklist/">Deployment Checklist</a></strong> - Step-by-step production deployment validation</li>
+<li><strong><a href="../configs/epii/">Configuration Examples</a></strong> - Ready-to-use configuration files for different setups</li>
+<li><strong><a href="../scripts/systemd/">Systemd Service</a></strong> - Service templates and installation scripts</li>
+</ul>
+<h3 id="development-usage">Development &amp; Usage<a class="headerlink" href="#development-usage" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><a href="client-usage/">Client Usage Guide</a></strong> - Comprehensive guide for gRPC client development</li>
+<li><strong><a href="../examples/epii/">Example Clients</a></strong> - Working example applications and usage patterns</li>
+<li><strong><a href="protocol/">API Reference</a></strong> - Complete gRPC protocol documentation (if available)</li>
+</ul>
+<h3 id="operations-support">Operations &amp; Support<a class="headerlink" href="#operations-support" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><a href="troubleshooting/">Troubleshooting Guide</a></strong> - Common issues and solutions</li>
+<li><strong><a href="deployment-guide/#monitoring-and-logging">Monitoring &amp; Logging</a></strong> - Service monitoring setup</li>
+<li><strong><a href="deployment-guide/#security-considerations">Security Considerations</a></strong> - Production security guidelines</li>
+</ul>
+<h2 id="configuration-templates">Configuration Templates<a class="headerlink" href="#configuration-templates" title="Permanent link">&para;</a></h2>
+<h3 id="available-configurations">Available Configurations<a class="headerlink" href="#available-configurations" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>simulation_2q.json</code></strong> - 2-qubit simulation setup for development and testing</li>
+<li><strong><code>hardware_lab1.json</code></strong> - Hardware setup template for production quantum devices  </li>
+<li><strong><code>minimal.json</code></strong> - Minimal configuration for basic testing</li>
+</ul>
+<h3 id="configuration-structure">Configuration Structure<a class="headerlink" href="#configuration-structure" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;setup_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;simulation|hardware&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;setup_class&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;HighLevelSimulationSetup|QubicLBNLSetup&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;config&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* Setup-specific configuration */</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;grpc&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;port&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50051</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;max_workers&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;max_message_length&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">104857600</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;logging&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;INFO&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;file&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/var/log/leeq/epii.log&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;experiment_timeout&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;parameter_validation&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="supported-experiments">Supported Experiments<a class="headerlink" href="#supported-experiments" title="Permanent link">&para;</a></h2>
+<p>EPII supports the following quantum experiments:</p>
+<h3 id="single-qubit-experiments">Single-Qubit Experiments<a class="headerlink" href="#single-qubit-experiments" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Rabi</strong> - Calibrate pulse amplitudes and measure Rabi frequency</li>
+<li><strong>T1</strong> - Measure qubit relaxation time</li>
+<li><strong>Ramsey</strong> - Measure dephasing time (T2*) and frequency detuning</li>
+<li><strong>Echo</strong> - Measure coherence time (T2) with echo sequences</li>
+</ul>
+<h3 id="advanced-experiments">Advanced Experiments<a class="headerlink" href="#advanced-experiments" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>DRAG</strong> - Optimize pulse shapes to reduce leakage</li>
+<li><strong>Randomized Benchmarking</strong> - Measure average gate fidelity</li>
+</ul>
+<h3 id="multi-qubit-experiments-future">Multi-Qubit Experiments (Future)<a class="headerlink" href="#multi-qubit-experiments-future" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Two-qubit gate calibration</li>
+<li>Process tomography</li>
+<li>Quantum error correction protocols</li>
+</ul>
+<h2 id="service-management">Service Management<a class="headerlink" href="#service-management" title="Permanent link">&para;</a></h2>
+<h3 id="systemd-commands">Systemd Commands<a class="headerlink" href="#systemd-commands" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Start service</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>leeq-epii@&lt;config&gt;
+
+<span class="c1"># Check status  </span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>status<span class="w"> </span>leeq-epii@&lt;config&gt;
+
+<span class="c1"># View logs</span>
+sudo<span class="w"> </span>journalctl<span class="w"> </span>-u<span class="w"> </span>leeq-epii@&lt;config&gt;<span class="w"> </span>-f
+
+<span class="c1"># Multiple configurations</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>leeq-epii@simulation_2q
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>leeq-epii@hardware_lab1
+</code></pre></div>
+<h3 id="health-checks">Health Checks<a class="headerlink" href="#health-checks" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Test gRPC endpoint</span>
+grpcurl<span class="w"> </span>-plaintext<span class="w"> </span>localhost:50051<span class="w"> </span>list
+grpcurl<span class="w"> </span>-plaintext<span class="w"> </span>localhost:50051<span class="w"> </span>ExperimentPlatformService/Ping
+
+<span class="c1"># Check process status</span>
+ps<span class="w"> </span>aux<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>leeq-epii
+</code></pre></div>
+<h2 id="development-examples">Development Examples<a class="headerlink" href="#development-examples" title="Permanent link">&para;</a></h2>
+<h3 id="simple-experiment">Simple Experiment<a class="headerlink" href="#simple-experiment" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Run a Rabi experiment</span>
+<span class="n">request</span> <span class="o">=</span> <span class="n">epii_pb2</span><span class="o">.</span><span class="n">ExperimentRequest</span><span class="p">(</span>
+    <span class="n">experiment_name</span><span class="o">=</span><span class="s2">&quot;rabi&quot;</span><span class="p">,</span>
+    <span class="n">parameters</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;qubit&quot;</span><span class="p">:</span> <span class="s2">&quot;q0&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;amplitudes&quot;</span><span class="p">:</span> <span class="n">serialize_array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">21</span><span class="p">)),</span>
+        <span class="s2">&quot;num_shots&quot;</span><span class="p">:</span> <span class="s2">&quot;1000&quot;</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">stub</span><span class="o">.</span><span class="n">RunExperiment</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">deserialize_array</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="parameter-management">Parameter Management<a class="headerlink" href="#parameter-management" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Get parameter</span>
+<span class="n">request</span> <span class="o">=</span> <span class="n">epii_pb2</span><span class="o">.</span><span class="n">ParameterRequest</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;q0.frequency&quot;</span><span class="p">)</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">stub</span><span class="o">.</span><span class="n">GetParameter</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+<span class="c1"># Set parameter</span>
+<span class="n">request</span> <span class="o">=</span> <span class="n">epii_pb2</span><span class="o">.</span><span class="n">SetParameterRequest</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;q0.frequency&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;5.1e9&quot;</span><span class="p">)</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">stub</span><span class="o">.</span><span class="n">SetParameter</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="architecture-overview">Architecture Overview<a class="headerlink" href="#architecture-overview" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>┌─────────────────┐    gRPC     ┌─────────────────┐
+│   Client Apps   │ ◄────────► │  EPII Service   │
+│                 │             │                 │
+│ - Lab Software  │             │ - Experiment    │
+│ - Jupyter       │             │   Router        │
+│ - Automation    │             │ - Parameter     │
+│ - External APIs │             │   Manager       │
+└─────────────────┘             │ - Serialization │
+                                └─────────────────┘
+                                         │
+                                         ▼
+                                ┌─────────────────┐
+                                │   LeeQ Core     │
+                                │                 │
+                                │ - Experiments   │
+                                │ - Setups        │
+                                │ - Hardware      │
+                                │ - Simulation    │
+                                └─────────────────┘
+</code></pre></div>
+<h2 id="support-community">Support &amp; Community<a class="headerlink" href="#support-community" title="Permanent link">&para;</a></h2>
+<h3 id="getting-help">Getting Help<a class="headerlink" href="#getting-help" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Issues</strong>: Report bugs and request features on <a href="https://github.com/ShuxiangCao/LeeQ/issues">GitHub Issues</a></li>
+<li><strong>Documentation</strong>: Check the troubleshooting guide for common problems</li>
+<li><strong>Support</strong>: Contact the development team for enterprise support</li>
+</ul>
+<h3 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Follow the contribution guidelines in the main LeeQ repository</li>
+<li>Add tests for new experiment types and features</li>
+<li>Update documentation for any API changes</li>
+</ul>
+<h3 id="license">License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h3>
+<p>LeeQ EPII is part of the LeeQ project and follows the same licensing terms.</p>
+<h2 id="version-information">Version Information<a class="headerlink" href="#version-information" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>EPII Protocol Version</strong>: 1.0</li>
+<li><strong>Supported LeeQ Version</strong>: Latest (check requirements.txt)</li>
+<li><strong>Python Version</strong>: 3.8+</li>
+<li><strong>gRPC Version</strong>: See requirements.txt</li>
+</ul>
+<h2 id="migration-upgrades">Migration &amp; Upgrades<a class="headerlink" href="#migration-upgrades" title="Permanent link">&para;</a></h2>
+<h3 id="from-direct-leeq-usage">From Direct LeeQ Usage<a class="headerlink" href="#from-direct-leeq-usage" title="Permanent link">&para;</a></h3>
+<p>If migrating from direct LeeQ experiment scripts:
+1. Review the <a href="client-usage/">Client Usage Guide</a> for equivalent patterns
+2. Use the example clients as templates
+3. Consider the standardized parameter naming in EPII</p>
+<h3 id="service-upgrades">Service Upgrades<a class="headerlink" href="#service-upgrades" title="Permanent link">&para;</a></h3>
+<p>Follow the upgrade procedures in the <a href="deployment-guide/#upgrades">Deployment Guide</a> for safe service updates.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.92b07e13.min.js"></script>
+      
+    
+  </body>
+</html>

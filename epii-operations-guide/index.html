@@ -1,0 +1,3431 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Quantum computing experiment orchestration framework">
+      
+      
+      
+        <link rel="canonical" href="https://leeq.readthedocs.io/epii-operations-guide/">
+      
+      
+        <link rel="prev" href="../epii/client-usage/">
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.17">
+    
+    
+      
+        <title>Operations Guide - LeeQ Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#leeq-epii-operations-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="LeeQ Documentation" class="md-header__button md-logo" aria-label="LeeQ Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            LeeQ Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Operations Guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../guide/concepts/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api/core/base/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../development/contributing/" class="md-tabs__link">
+          
+  
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../epii/deployment-guide/" class="md-tabs__link">
+          
+  
+  
+  EPII
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="LeeQ Documentation" class="md-nav__button md-logo" aria-label="LeeQ Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    LeeQ Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quick_start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quick Start
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tutorial
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    User Guide
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            User Guide
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Core Concepts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/experiments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Experiments
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/calibrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Calibrations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    API Reference
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Core
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            Core
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/core/base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Base
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/core/elements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Elements
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/core/engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Engine
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/core/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Primitives
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Experiments
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            Experiments
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/experiments/builtin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Builtin
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/experiments/base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Custom
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Theory
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            Theory
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/theory/simulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Simulation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/theory/tomography/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tomography
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/theory/fits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Optimal Control
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/theory/clifford/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Clifford Gates
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Compiler
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4">
+            <span class="md-nav__icon md-icon"></span>
+            Compiler
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/compiler/lbnl_qubic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    LBNL QubiC
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/compiler/base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Base Classes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Development
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Development
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Testing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    EPII
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            EPII
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../epii/deployment-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Deployment Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../epii/client-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Client Usage
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Operations Guide
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Operations Guide
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of Contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      System Requirements
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="System Requirements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hardware-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Hardware Requirements
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#software-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Software Requirements
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-automated-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Automated Installation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-manual-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Manual Installation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Verification
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-configuration-file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Configuration File Structure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-configuration-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Configuration Examples
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Configuration Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simulation-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Simulation Setup
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hardware-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Hardware Setup
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Environment Variables
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-port-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Port Management
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-configuration-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Configuration Validation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#service-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      Service Management
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Service Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-service-instances" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Service Instances
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-service-management-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Service Management Commands
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-service-management-script" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Service Management Script
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-health-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Health Checks
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-and-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      Monitoring and Logging
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Monitoring and Logging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-systemd-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Systemd Logs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-log-file-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Log File Management
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-monitoring-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Monitoring Metrics
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-monitoring-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Monitoring Integration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Monitoring Integration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prometheus-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prometheus Integration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grafana-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      Grafana Dashboard
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      Security
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-network-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Network Security
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-access-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Access Control
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Authentication
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-tuning" class="md-nav__link">
+    <span class="md-ellipsis">
+      Performance Tuning
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance Tuning">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-system-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. System Optimization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-grpc-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. gRPC Optimization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-hardware-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Hardware Optimization
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-common-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Common Issues
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-debug-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Debug Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-diagnostic-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Diagnostic Tools
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-recovery-procedures" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Recovery Procedures
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backup-and-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backup and Recovery
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backup and Recovery">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-backup-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Backup Strategy
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-recovery-procedures" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Recovery Procedures
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maintenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Maintenance
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Maintenance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-regular-maintenance-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Regular Maintenance Tasks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-updates-and-upgrades" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Updates and Upgrades
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-performance-monitoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Performance Monitoring
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-capacity-planning" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Capacity Planning
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick Reference
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#essential-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Essential Commands
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#important-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      Important Paths
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#support-and-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      Support and Resources
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of Contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      System Requirements
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="System Requirements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hardware-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Hardware Requirements
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#software-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Software Requirements
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-automated-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Automated Installation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-manual-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Manual Installation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Verification
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-configuration-file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Configuration File Structure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-configuration-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Configuration Examples
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Configuration Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simulation-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Simulation Setup
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hardware-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Hardware Setup
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Environment Variables
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-port-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Port Management
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-configuration-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Configuration Validation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#service-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      Service Management
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Service Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-service-instances" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Service Instances
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-service-management-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Service Management Commands
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-service-management-script" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Service Management Script
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-health-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Health Checks
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-and-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      Monitoring and Logging
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Monitoring and Logging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-systemd-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Systemd Logs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-log-file-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Log File Management
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-monitoring-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Monitoring Metrics
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-monitoring-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Monitoring Integration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Monitoring Integration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prometheus-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prometheus Integration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grafana-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      Grafana Dashboard
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      Security
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-network-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Network Security
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-access-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Access Control
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Authentication
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-tuning" class="md-nav__link">
+    <span class="md-ellipsis">
+      Performance Tuning
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance Tuning">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-system-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. System Optimization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-grpc-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. gRPC Optimization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-hardware-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Hardware Optimization
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-common-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Common Issues
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-debug-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Debug Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-diagnostic-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Diagnostic Tools
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-recovery-procedures" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Recovery Procedures
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backup-and-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backup and Recovery
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backup and Recovery">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-backup-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Backup Strategy
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-recovery-procedures" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Recovery Procedures
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maintenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Maintenance
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Maintenance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-regular-maintenance-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Regular Maintenance Tasks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-updates-and-upgrades" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Updates and Upgrades
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-performance-monitoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Performance Monitoring
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-capacity-planning" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Capacity Planning
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick Reference
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#essential-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Essential Commands
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#important-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      Important Paths
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#support-and-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      Support and Resources
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="leeq-epii-operations-guide">LeeQ EPII Operations Guide<a class="headerlink" href="#leeq-epii-operations-guide" title="Permanent link">&para;</a></h1>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>This guide provides comprehensive instructions for deploying, managing, and monitoring the LeeQ EPII (Experiment Platform Intelligence Interface) service in production environments. The EPII service exposes LeeQ's quantum experiments through a standardized gRPC interface for integration with external orchestration systems.</p>
+<h2 id="table-of-contents">Table of Contents<a class="headerlink" href="#table-of-contents" title="Permanent link">&para;</a></h2>
+<ol>
+<li><a href="#system-requirements">System Requirements</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#configuration">Configuration</a></li>
+<li><a href="#service-management">Service Management</a></li>
+<li><a href="#monitoring-and-logging">Monitoring and Logging</a></li>
+<li><a href="#security">Security</a></li>
+<li><a href="#performance-tuning">Performance Tuning</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#backup-and-recovery">Backup and Recovery</a></li>
+<li><a href="#maintenance">Maintenance</a></li>
+</ol>
+<h2 id="system-requirements">System Requirements<a class="headerlink" href="#system-requirements" title="Permanent link">&para;</a></h2>
+<h3 id="hardware-requirements">Hardware Requirements<a class="headerlink" href="#hardware-requirements" title="Permanent link">&para;</a></h3>
+<p><strong>Minimum Requirements:</strong>
+- CPU: 2 cores
+- RAM: 4 GB
+- Storage: 20 GB free space
+- Network: 100 Mbps</p>
+<p><strong>Recommended for Production:</strong>
+- CPU: 4+ cores
+- RAM: 8+ GB
+- Storage: 100+ GB SSD
+- Network: 1 Gbps</p>
+<h3 id="software-requirements">Software Requirements<a class="headerlink" href="#software-requirements" title="Permanent link">&para;</a></h3>
+<p><strong>Operating System:</strong>
+- Ubuntu 20.04 LTS or later
+- RHEL/CentOS 8 or later
+- SUSE Linux Enterprise 15 or later</p>
+<p><strong>Dependencies:</strong>
+- Python 3.8 or later
+- systemd (for service management)
+- gRPC runtime libraries</p>
+<p><strong>Network Requirements:</strong>
+- Port 50051-50099 (configurable)
+- Firewall configured for gRPC traffic
+- DNS resolution for external dependencies</p>
+<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
+<h3 id="1-automated-installation">1. Automated Installation<a class="headerlink" href="#1-automated-installation" title="Permanent link">&para;</a></h3>
+<p>The recommended way to install LeeQ EPII in production is using the automated installer:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Clone the LeeQ repository</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/ShuxiangCao/LeeQ.git<span class="w"> </span>/opt/leeq-source
+<span class="nb">cd</span><span class="w"> </span>/opt/leeq-source
+
+<span class="c1"># Run the installation script as root</span>
+sudo<span class="w"> </span>./scripts/install-systemd-service.sh
+</code></pre></div>
+<p>This script will:
+- Create system user and group (<code>leeq</code>)
+- Install LeeQ to <code>/opt/leeq</code>
+- Create configuration directories
+- Install systemd service templates
+- Set up logging directories</p>
+<h3 id="2-manual-installation">2. Manual Installation<a class="headerlink" href="#2-manual-installation" title="Permanent link">&para;</a></h3>
+<p>For custom installations, follow these steps:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Create system user</span>
+sudo<span class="w"> </span>groupadd<span class="w"> </span>--system<span class="w"> </span>leeq
+sudo<span class="w"> </span>useradd<span class="w"> </span>--system<span class="w"> </span>--gid<span class="w"> </span>leeq<span class="w"> </span>--shell<span class="w"> </span>/bin/false<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--home-dir<span class="w"> </span>/opt/leeq<span class="w"> </span>--no-create-home<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--comment<span class="w"> </span><span class="s2">&quot;LeeQ EPII daemon user&quot;</span><span class="w"> </span>leeq
+
+<span class="c1"># Create directories</span>
+sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/opt/leeq<span class="w"> </span>/etc/leeq-epii<span class="w"> </span>/var/log/leeq-epii<span class="w"> </span>/var/run/leeq-epii
+sudo<span class="w"> </span>chown<span class="w"> </span>-R<span class="w"> </span>leeq:leeq<span class="w"> </span>/opt/leeq<span class="w"> </span>/etc/leeq-epii<span class="w"> </span>/var/log/leeq-epii<span class="w"> </span>/var/run/leeq-epii
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">755</span><span class="w"> </span>/etc/leeq-epii
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">750</span><span class="w"> </span>/var/log/leeq-epii<span class="w"> </span>/var/run/leeq-epii
+
+<span class="c1"># Install LeeQ</span>
+sudo<span class="w"> </span>cp<span class="w"> </span>-r<span class="w"> </span>leeq<span class="w"> </span>/opt/leeq/
+sudo<span class="w"> </span>cp<span class="w"> </span>-r<span class="w"> </span>venv<span class="w"> </span>/opt/leeq/<span class="w">  </span><span class="c1"># If using virtual environment</span>
+sudo<span class="w"> </span>chown<span class="w"> </span>-R<span class="w"> </span>leeq:leeq<span class="w"> </span>/opt/leeq
+
+<span class="c1"># Install systemd service</span>
+sudo<span class="w"> </span>cp<span class="w"> </span>scripts/systemd/leeq-epii@.service<span class="w"> </span>/etc/systemd/system/
+sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
+</code></pre></div>
+<h3 id="3-verification">3. Verification<a class="headerlink" href="#3-verification" title="Permanent link">&para;</a></h3>
+<p>Verify the installation:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check service template</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>list-unit-files<span class="w"> </span><span class="s2">&quot;leeq-epii@*.service&quot;</span>
+
+<span class="c1"># Validate sample configuration</span>
+sudo<span class="w"> </span>-u<span class="w"> </span>leeq<span class="w"> </span>/opt/leeq/venv/bin/python<span class="w"> </span>-m<span class="w"> </span>leeq.epii.daemon<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--config<span class="w"> </span>/etc/leeq-epii/simulation_2q.json<span class="w"> </span>--validate
+</code></pre></div>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<h3 id="1-configuration-file-structure">1. Configuration File Structure<a class="headerlink" href="#1-configuration-file-structure" title="Permanent link">&para;</a></h3>
+<p>Configuration files are stored in <code>/etc/leeq-epii/</code> and use JSON format:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;setup_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;simulation|hardware&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;setup_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unique_setup_identifier&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Human-readable description&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;port&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50051</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;max_workers&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;timeout&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;logging&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;INFO&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;format&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;%(asctime)s - %(name)s - %(levelname)s - %(message)s&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;simulation&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;backend&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;numpy|qutip&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;qubits&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;hardware&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;qubic_lbnl&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;config_file&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/etc/leeq-epii/hardware/setup_config.json&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="2-configuration-examples">2. Configuration Examples<a class="headerlink" href="#2-configuration-examples" title="Permanent link">&para;</a></h3>
+<h4 id="simulation-setup">Simulation Setup<a class="headerlink" href="#simulation-setup" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;setup_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;simulation&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;setup_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sim_2q_development&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2-qubit simulation for development and testing&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;port&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50051</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;max_workers&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;timeout&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;logging&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;INFO&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;simulation&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;backend&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;numpy&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;qubits&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="hardware-setup">Hardware Setup<a class="headerlink" href="#hardware-setup" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;setup_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;hardware&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;setup_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;lab1_quantum_device&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Lab 1 quantum device with 4 qubits&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;port&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50052</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;max_workers&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;timeout&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">600</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;logging&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;WARNING&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;hardware&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;qubic_lbnl&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;config_file&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/etc/leeq-epii/hardware/lab1_config.json&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="3-environment-variables">3. Environment Variables<a class="headerlink" href="#3-environment-variables" title="Permanent link">&para;</a></h3>
+<p>Configure system-wide settings using environment variables:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># /etc/environment or /etc/systemd/system/leeq-epii@.service</span>
+<span class="nv">LEEQ_EPII_CONFIG_DIR</span><span class="o">=</span>/etc/leeq-epii
+<span class="nv">LEEQ_EPII_LOG_LEVEL</span><span class="o">=</span>INFO
+<span class="nv">LEEQ_EPII_MAX_MESSAGE_SIZE</span><span class="o">=</span><span class="m">104857600</span><span class="w">  </span><span class="c1"># 100MB</span>
+<span class="nv">PYTHONPATH</span><span class="o">=</span>/opt/leeq
+</code></pre></div>
+<h3 id="4-port-management">4. Port Management<a class="headerlink" href="#4-port-management" title="Permanent link">&para;</a></h3>
+<p>Configure ports to avoid conflicts:</p>
+<ul>
+<li><strong>50051</strong>: Default simulation setup</li>
+<li><strong>50052-50059</strong>: Additional simulation instances</li>
+<li><strong>50060-50069</strong>: Hardware setups</li>
+<li><strong>50070-50099</strong>: Development/testing</li>
+</ul>
+<h3 id="5-configuration-validation">5. Configuration Validation<a class="headerlink" href="#5-configuration-validation" title="Permanent link">&para;</a></h3>
+<p>Always validate configurations before deployment:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Validate specific configuration</span>
+sudo<span class="w"> </span>-u<span class="w"> </span>leeq<span class="w"> </span>/opt/leeq/venv/bin/python<span class="w"> </span>-m<span class="w"> </span>leeq.epii.daemon<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--config<span class="w"> </span>/etc/leeq-epii/your_setup.json<span class="w"> </span>--validate
+
+<span class="c1"># Validate all configurations</span>
+<span class="k">for</span><span class="w"> </span>config<span class="w"> </span><span class="k">in</span><span class="w"> </span>/etc/leeq-epii/*.json<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Validating </span><span class="nv">$config</span><span class="s2">...&quot;</span>
+<span class="w">    </span>sudo<span class="w"> </span>-u<span class="w"> </span>leeq<span class="w"> </span>/opt/leeq/venv/bin/python<span class="w"> </span>-m<span class="w"> </span>leeq.epii.daemon<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--config<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$config</span><span class="s2">&quot;</span><span class="w"> </span>--validate
+<span class="k">done</span>
+</code></pre></div>
+<h2 id="service-management">Service Management<a class="headerlink" href="#service-management" title="Permanent link">&para;</a></h2>
+<h3 id="1-service-instances">1. Service Instances<a class="headerlink" href="#1-service-instances" title="Permanent link">&para;</a></h3>
+<p>Each configuration file creates a service instance:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Enable and start simulation setup</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>leeq-epii@simulation_2q.service
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>leeq-epii@simulation_2q.service
+
+<span class="c1"># Enable and start hardware setup</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>leeq-epii@hardware_lab1.service
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>leeq-epii@hardware_lab1.service
+</code></pre></div>
+<h3 id="2-service-management-commands">2. Service Management Commands<a class="headerlink" href="#2-service-management-commands" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Start service</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>leeq-epii@&lt;setup_name&gt;.service
+
+<span class="c1"># Stop service</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>stop<span class="w"> </span>leeq-epii@&lt;setup_name&gt;.service
+
+<span class="c1"># Restart service</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>leeq-epii@&lt;setup_name&gt;.service
+
+<span class="c1"># Check status</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>status<span class="w"> </span>leeq-epii@&lt;setup_name&gt;.service
+
+<span class="c1"># Enable auto-start on boot</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>leeq-epii@&lt;setup_name&gt;.service
+
+<span class="c1"># Disable auto-start</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>disable<span class="w"> </span>leeq-epii@&lt;setup_name&gt;.service
+
+<span class="c1"># Reload configuration (after config changes)</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>reload-or-restart<span class="w"> </span>leeq-epii@&lt;setup_name&gt;.service
+</code></pre></div>
+<h3 id="3-service-management-script">3. Service Management Script<a class="headerlink" href="#3-service-management-script" title="Permanent link">&para;</a></h3>
+<p>Use the included management script for easier operations:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># List all configured services</span>
+sudo<span class="w"> </span>/opt/leeq-source/scripts/leeq-epii-service.sh<span class="w"> </span>list
+
+<span class="c1"># Start a service</span>
+sudo<span class="w"> </span>/opt/leeq-source/scripts/leeq-epii-service.sh<span class="w"> </span>start<span class="w"> </span>simulation_2q
+
+<span class="c1"># Check status</span>
+sudo<span class="w"> </span>/opt/leeq-source/scripts/leeq-epii-service.sh<span class="w"> </span>status<span class="w"> </span>simulation_2q
+
+<span class="c1"># View logs</span>
+sudo<span class="w"> </span>/opt/leeq-source/scripts/leeq-epii-service.sh<span class="w"> </span>logs<span class="w"> </span>simulation_2q
+
+<span class="c1"># Validate configuration</span>
+sudo<span class="w"> </span>/opt/leeq-source/scripts/leeq-epii-service.sh<span class="w"> </span>validate<span class="w"> </span>simulation_2q
+</code></pre></div>
+<h3 id="4-health-checks">4. Health Checks<a class="headerlink" href="#4-health-checks" title="Permanent link">&para;</a></h3>
+<p>Monitor service health:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Built-in health check</span>
+sudo<span class="w"> </span>-u<span class="w"> </span>leeq<span class="w"> </span>/opt/leeq/venv/bin/python<span class="w"> </span>-m<span class="w"> </span>leeq.epii.daemon<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--config<span class="w"> </span>/etc/leeq-epii/simulation_2q.json<span class="w"> </span>--health-check
+
+<span class="c1"># Check if service is listening</span>
+sudo<span class="w"> </span>ss<span class="w"> </span>-tlnp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>:50051
+
+<span class="c1"># Test gRPC connectivity</span>
+grpcurl<span class="w"> </span>-plaintext<span class="w"> </span>localhost:50051<span class="w"> </span>epii.v1.ExperimentPlatformService/Ping
+</code></pre></div>
+<h2 id="monitoring-and-logging">Monitoring and Logging<a class="headerlink" href="#monitoring-and-logging" title="Permanent link">&para;</a></h2>
+<h3 id="1-systemd-logs">1. Systemd Logs<a class="headerlink" href="#1-systemd-logs" title="Permanent link">&para;</a></h3>
+<p>View service logs using journalctl:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># View recent logs</span>
+sudo<span class="w"> </span>journalctl<span class="w"> </span>-u<span class="w"> </span>leeq-epii@simulation_2q.service
+
+<span class="c1"># Follow logs in real-time</span>
+sudo<span class="w"> </span>journalctl<span class="w"> </span>-u<span class="w"> </span>leeq-epii@simulation_2q.service<span class="w"> </span>-f
+
+<span class="c1"># View logs since last boot</span>
+sudo<span class="w"> </span>journalctl<span class="w"> </span>-u<span class="w"> </span>leeq-epii@simulation_2q.service<span class="w"> </span>-b
+
+<span class="c1"># View logs for specific time range</span>
+sudo<span class="w"> </span>journalctl<span class="w"> </span>-u<span class="w"> </span>leeq-epii@simulation_2q.service<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--since<span class="w"> </span><span class="s2">&quot;2024-01-01 00:00:00&quot;</span><span class="w"> </span>--until<span class="w"> </span><span class="s2">&quot;2024-01-02 00:00:00&quot;</span>
+
+<span class="c1"># Export logs to file</span>
+sudo<span class="w"> </span>journalctl<span class="w"> </span>-u<span class="w"> </span>leeq-epii@simulation_2q.service<span class="w"> </span>&gt;<span class="w"> </span>epii_logs.txt
+</code></pre></div>
+<h3 id="2-log-file-management">2. Log File Management<a class="headerlink" href="#2-log-file-management" title="Permanent link">&para;</a></h3>
+<p>Configure log rotation to prevent disk space issues:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Create logrotate configuration</span>
+sudo<span class="w"> </span>tee<span class="w"> </span>/etc/logrotate.d/leeq-epii<span class="w"> </span><span class="s">&lt;&lt; EOF</span>
+<span class="s">/var/log/leeq-epii/*.log {</span>
+<span class="s">    daily</span>
+<span class="s">    rotate 30</span>
+<span class="s">    compress</span>
+<span class="s">    delaycompress</span>
+<span class="s">    missingok</span>
+<span class="s">    notifempty</span>
+<span class="s">    create 640 leeq leeq</span>
+<span class="s">    postrotate</span>
+<span class="s">        systemctl reload leeq-epii@*.service</span>
+<span class="s">    endscript</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+</code></pre></div>
+<h3 id="3-monitoring-metrics">3. Monitoring Metrics<a class="headerlink" href="#3-monitoring-metrics" title="Permanent link">&para;</a></h3>
+<p>Key metrics to monitor:</p>
+<p><strong>Service Health:</strong>
+- Service uptime
+- Restart frequency
+- Memory usage
+- CPU usage</p>
+<p><strong>gRPC Metrics:</strong>
+- Request rate
+- Response time
+- Error rate
+- Active connections</p>
+<p><strong>Experiment Metrics:</strong>
+- Experiment success rate
+- Average execution time
+- Queue depth
+- Resource utilization</p>
+<h3 id="4-monitoring-integration">4. Monitoring Integration<a class="headerlink" href="#4-monitoring-integration" title="Permanent link">&para;</a></h3>
+<h4 id="prometheus-integration">Prometheus Integration<a class="headerlink" href="#prometheus-integration" title="Permanent link">&para;</a></h4>
+<p>Create a monitoring endpoint:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Add to service configuration for metrics export</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">prometheus_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">start_http_server</span><span class="p">,</span> <span class="n">Counter</span><span class="p">,</span> <span class="n">Histogram</span>
+
+<span class="c1"># Metrics</span>
+<span class="n">REQUEST_COUNT</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="s1">&#39;epii_requests_total&#39;</span><span class="p">,</span> <span class="s1">&#39;Total requests&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="s1">&#39;status&#39;</span><span class="p">])</span>
+<span class="n">REQUEST_DURATION</span> <span class="o">=</span> <span class="n">Histogram</span><span class="p">(</span><span class="s1">&#39;epii_request_duration_seconds&#39;</span><span class="p">,</span> <span class="s1">&#39;Request duration&#39;</span><span class="p">)</span>
+
+<span class="c1"># Start metrics server on different port</span>
+<span class="n">start_http_server</span><span class="p">(</span><span class="mi">8000</span><span class="p">)</span>
+</code></pre></div>
+<h4 id="grafana-dashboard">Grafana Dashboard<a class="headerlink" href="#grafana-dashboard" title="Permanent link">&para;</a></h4>
+<p>Monitor key metrics with these queries:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Request rate</span>
+<span class="kr">rate</span><span class="o">(</span><span class="nv">epii_requests_total</span><span class="p">[</span><span class="s">5m</span><span class="p">]</span><span class="o">)</span>
+
+<span class="c1"># Error rate</span>
+<span class="kr">rate</span><span class="o">(</span><span class="nv">epii_requests_total</span><span class="p">{</span><span class="nl">status</span><span class="o">=</span><span class="p">&quot;</span><span class="s">error</span><span class="p">&quot;}[</span><span class="s">5m</span><span class="p">]</span><span class="o">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="kr">rate</span><span class="o">(</span><span class="nv">epii_requests_total</span><span class="p">[</span><span class="s">5m</span><span class="p">]</span><span class="o">)</span>
+
+<span class="c1"># Average response time</span>
+<span class="kr">rate</span><span class="o">(</span><span class="nv">epii_request_duration_seconds_sum</span><span class="p">[</span><span class="s">5m</span><span class="p">]</span><span class="o">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="kr">rate</span><span class="o">(</span><span class="nv">epii_request_duration_seconds_count</span><span class="p">[</span><span class="s">5m</span><span class="p">]</span><span class="o">)</span>
+</code></pre></div>
+<h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h2>
+<h3 id="1-network-security">1. Network Security<a class="headerlink" href="#1-network-security" title="Permanent link">&para;</a></h3>
+<p><strong>Firewall Configuration:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Allow EPII ports</span>
+sudo<span class="w"> </span>ufw<span class="w"> </span>allow<span class="w"> </span><span class="m">50051</span>:50099/tcp<span class="w"> </span>comment<span class="w"> </span><span class="s2">&quot;LeeQ EPII services&quot;</span>
+
+<span class="c1"># Restrict to specific networks</span>
+sudo<span class="w"> </span>ufw<span class="w"> </span>allow<span class="w"> </span>from<span class="w"> </span><span class="m">192</span>.168.1.0/24<span class="w"> </span>to<span class="w"> </span>any<span class="w"> </span>port<span class="w"> </span><span class="m">50051</span>:50099<span class="w"> </span>proto<span class="w"> </span>tcp
+</code></pre></div>
+<p><strong>TLS/SSL Setup:</strong></p>
+<p>For production, enable TLS encryption:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Generate certificates</span>
+openssl<span class="w"> </span>req<span class="w"> </span>-x509<span class="w"> </span>-newkey<span class="w"> </span>rsa:4096<span class="w"> </span>-keyout<span class="w"> </span>server.key<span class="w"> </span>-out<span class="w"> </span>server.crt<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-days<span class="w"> </span><span class="m">365</span><span class="w"> </span>-nodes<span class="w"> </span>-subj<span class="w"> </span><span class="s2">&quot;/C=US/ST=CA/L=Berkeley/O=LeeQ/CN=epii-server&quot;</span>
+
+<span class="c1"># Update service configuration</span>
+<span class="o">{</span>
+<span class="w">    </span><span class="s2">&quot;tls&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">        </span><span class="s2">&quot;enabled&quot;</span>:<span class="w"> </span>true,
+<span class="w">        </span><span class="s2">&quot;cert_file&quot;</span>:<span class="w"> </span><span class="s2">&quot;/etc/leeq-epii/certs/server.crt&quot;</span>,
+<span class="w">        </span><span class="s2">&quot;key_file&quot;</span>:<span class="w"> </span><span class="s2">&quot;/etc/leeq-epii/certs/server.key&quot;</span>
+<span class="w">    </span><span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>
+<h3 id="2-access-control">2. Access Control<a class="headerlink" href="#2-access-control" title="Permanent link">&para;</a></h3>
+<p><strong>File Permissions:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Configuration files</span>
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">640</span><span class="w"> </span>/etc/leeq-epii/*.json
+sudo<span class="w"> </span>chown<span class="w"> </span>root:leeq<span class="w"> </span>/etc/leeq-epii/*.json
+
+<span class="c1"># Log files</span>
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">640</span><span class="w"> </span>/var/log/leeq-epii/*.log
+sudo<span class="w"> </span>chown<span class="w"> </span>leeq:leeq<span class="w"> </span>/var/log/leeq-epii/*.log
+
+<span class="c1"># Service files</span>
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">644</span><span class="w"> </span>/etc/systemd/system/leeq-epii@.service
+sudo<span class="w"> </span>chown<span class="w"> </span>root:root<span class="w"> </span>/etc/systemd/system/leeq-epii@.service
+</code></pre></div>
+<p><strong>User Isolation:</strong></p>
+<p>The service runs as the <code>leeq</code> user with minimal privileges:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Verify user configuration</span>
+id<span class="w"> </span>leeq
+<span class="c1"># Should show: uid=999(leeq) gid=999(leeq) groups=999(leeq)</span>
+
+<span class="c1"># Check service security</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>show<span class="w"> </span>leeq-epii@simulation_2q.service<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">&quot;User|Group|NoNewPrivileges|PrivateTmp&quot;</span>
+</code></pre></div>
+<h3 id="3-authentication">3. Authentication<a class="headerlink" href="#3-authentication" title="Permanent link">&para;</a></h3>
+<p>For production deployments, implement authentication:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Example gRPC interceptor for API key authentication</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AuthInterceptor</span><span class="p">(</span><span class="n">grpc</span><span class="o">.</span><span class="n">ServerInterceptor</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">intercept_service</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">continuation</span><span class="p">,</span> <span class="n">handler_call_details</span><span class="p">):</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">handler_call_details</span><span class="o">.</span><span class="n">invocation_metadata</span><span class="p">)</span>
+        <span class="n">api_key</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;x-api-key&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_api_key</span><span class="p">(</span><span class="n">api_key</span><span class="p">):</span>
+            <span class="n">context</span> <span class="o">=</span> <span class="n">grpc</span><span class="o">.</span><span class="n">ServicerContext</span><span class="p">()</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">abort</span><span class="p">(</span><span class="n">grpc</span><span class="o">.</span><span class="n">StatusCode</span><span class="o">.</span><span class="n">UNAUTHENTICATED</span><span class="p">,</span> <span class="s2">&quot;Invalid API key&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">continuation</span><span class="p">(</span><span class="n">handler_call_details</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="performance-tuning">Performance Tuning<a class="headerlink" href="#performance-tuning" title="Permanent link">&para;</a></h2>
+<h3 id="1-system-optimization">1. System Optimization<a class="headerlink" href="#1-system-optimization" title="Permanent link">&para;</a></h3>
+<p><strong>Memory Settings:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Increase shared memory for large experiments</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;kernel.shmmax = 134217728&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/sysctl.conf
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;kernel.shmall = 32768&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/sysctl.conf
+sudo<span class="w"> </span>sysctl<span class="w"> </span>-p
+</code></pre></div>
+<p><strong>File Descriptor Limits:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Increase file descriptor limits</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;leeq soft nofile 65536&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/security/limits.conf
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;leeq hard nofile 65536&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/security/limits.conf
+</code></pre></div>
+<h3 id="2-grpc-optimization">2. gRPC Optimization<a class="headerlink" href="#2-grpc-optimization" title="Permanent link">&para;</a></h3>
+<p><strong>Configuration Tuning:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;grpc&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;max_workers&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;max_message_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">104857600</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;keepalive_time_ms&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">30000</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;keepalive_timeout_ms&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5000</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;keepalive_permit_without_calls&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><strong>Connection Pooling:</strong></p>
+<p>For clients connecting to EPII:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Optimize client connections</span>
+<span class="n">channel</span> <span class="o">=</span> <span class="n">grpc</span><span class="o">.</span><span class="n">insecure_channel</span><span class="p">(</span>
+    <span class="s1">&#39;localhost:50051&#39;</span><span class="p">,</span>
+    <span class="n">options</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;grpc.keepalive_time_ms&#39;</span><span class="p">,</span> <span class="mi">30000</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;grpc.keepalive_timeout_ms&#39;</span><span class="p">,</span> <span class="mi">5000</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;grpc.keepalive_permit_without_calls&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;grpc.http2.max_pings_without_data&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;grpc.http2.min_time_between_pings_ms&#39;</span><span class="p">,</span> <span class="mi">10000</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;grpc.http2.min_ping_interval_without_data_ms&#39;</span><span class="p">,</span> <span class="mi">300000</span><span class="p">)</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+</code></pre></div>
+<h3 id="3-hardware-optimization">3. Hardware Optimization<a class="headerlink" href="#3-hardware-optimization" title="Permanent link">&para;</a></h3>
+<p><strong>CPU Affinity:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Pin service to specific CPUs</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>edit<span class="w"> </span>leeq-epii@simulation_2q.service
+
+<span class="c1"># Add in override file:</span>
+<span class="o">[</span>Service<span class="o">]</span>
+<span class="nv">ExecStart</span><span class="o">=</span>
+<span class="nv">ExecStart</span><span class="o">=</span>/usr/bin/taskset<span class="w"> </span>-c<span class="w"> </span><span class="m">0</span>,1<span class="w"> </span>/opt/leeq/venv/bin/python<span class="w"> </span>-m<span class="w"> </span>leeq.epii.daemon<span class="w"> </span>--config<span class="w"> </span>/etc/leeq-epii/simulation_2q.json
+</code></pre></div>
+<p><strong>NUMA Optimization:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check NUMA topology</span>
+numactl<span class="w"> </span>--hardware
+
+<span class="c1"># Run on specific NUMA node</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>edit<span class="w"> </span>leeq-epii@hardware_lab1.service
+
+<span class="c1"># Add in override file:</span>
+<span class="o">[</span>Service<span class="o">]</span>
+<span class="nv">ExecStart</span><span class="o">=</span>
+<span class="nv">ExecStart</span><span class="o">=</span>/usr/bin/numactl<span class="w"> </span>--cpunodebind<span class="o">=</span><span class="m">0</span><span class="w"> </span>--membind<span class="o">=</span><span class="m">0</span><span class="w"> </span>/opt/leeq/venv/bin/python<span class="w"> </span>-m<span class="w"> </span>leeq.epii.daemon<span class="w"> </span>--config<span class="w"> </span>/etc/leeq-epii/hardware_lab1.json
+</code></pre></div>
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="1-common-issues">1. Common Issues<a class="headerlink" href="#1-common-issues" title="Permanent link">&para;</a></h3>
+<p><strong>Service Won't Start:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check service status</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>status<span class="w"> </span>leeq-epii@simulation_2q.service
+
+<span class="c1"># Check detailed logs</span>
+sudo<span class="w"> </span>journalctl<span class="w"> </span>-u<span class="w"> </span>leeq-epii@simulation_2q.service<span class="w"> </span>-n<span class="w"> </span><span class="m">50</span>
+
+<span class="c1"># Validate configuration</span>
+sudo<span class="w"> </span>-u<span class="w"> </span>leeq<span class="w"> </span>/opt/leeq/venv/bin/python<span class="w"> </span>-m<span class="w"> </span>leeq.epii.daemon<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--config<span class="w"> </span>/etc/leeq-epii/simulation_2q.json<span class="w"> </span>--validate
+
+<span class="c1"># Check port availability</span>
+sudo<span class="w"> </span>ss<span class="w"> </span>-tlnp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>:50051
+</code></pre></div>
+<p><strong>Connection Refused:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check if service is listening</span>
+sudo<span class="w"> </span>netstat<span class="w"> </span>-tlnp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>:50051
+
+<span class="c1"># Test local connectivity</span>
+telnet<span class="w"> </span>localhost<span class="w"> </span><span class="m">50051</span>
+
+<span class="c1"># Check firewall</span>
+sudo<span class="w"> </span>ufw<span class="w"> </span>status
+</code></pre></div>
+<p><strong>High Memory Usage:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Monitor memory usage</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>status<span class="w"> </span>leeq-epii@simulation_2q.service<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>Memory
+
+<span class="c1"># Check process details</span>
+sudo<span class="w"> </span>ps<span class="w"> </span>aux<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>leeq
+
+<span class="c1"># Monitor in real-time</span>
+sudo<span class="w"> </span>htop<span class="w"> </span>-u<span class="w"> </span>leeq
+</code></pre></div>
+<h3 id="2-debug-mode">2. Debug Mode<a class="headerlink" href="#2-debug-mode" title="Permanent link">&para;</a></h3>
+<p>Enable debug logging for troubleshooting:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Temporary debug mode</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>edit<span class="w"> </span>leeq-epii@simulation_2q.service
+
+<span class="c1"># Add in override file:</span>
+<span class="o">[</span>Service<span class="o">]</span>
+<span class="nv">Environment</span><span class="o">=</span><span class="nv">LEEQ_EPII_LOG_LEVEL</span><span class="o">=</span>DEBUG
+</code></pre></div>
+<h3 id="3-diagnostic-tools">3. Diagnostic Tools<a class="headerlink" href="#3-diagnostic-tools" title="Permanent link">&para;</a></h3>
+<p><strong>Generate diagnostic report:</strong></p>
+<div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>-u<span class="w"> </span>leeq<span class="w"> </span>/opt/leeq/venv/bin/python<span class="w"> </span>-m<span class="w"> </span>leeq.epii.daemon<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--config<span class="w"> </span>/etc/leeq-epii/simulation_2q.json<span class="w"> </span>--diagnostic-report
+</code></pre></div>
+<p><strong>Performance profiling:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Profile service startup</span>
+sudo<span class="w"> </span>-u<span class="w"> </span>leeq<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>cProfile<span class="w"> </span>-o<span class="w"> </span>epii_profile.prof<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-m<span class="w"> </span>leeq.epii.daemon<span class="w"> </span>--config<span class="w"> </span>/etc/leeq-epii/simulation_2q.json
+
+<span class="c1"># Analyze profile</span>
+python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span>
+<span class="s2">import pstats</span>
+<span class="s2">p = pstats.Stats(&#39;epii_profile.prof&#39;)</span>
+<span class="s2">p.sort_stats(&#39;cumulative&#39;).print_stats(20)</span>
+<span class="s2">&quot;</span>
+</code></pre></div>
+<h3 id="4-recovery-procedures">4. Recovery Procedures<a class="headerlink" href="#4-recovery-procedures" title="Permanent link">&para;</a></h3>
+<p><strong>Service Recovery:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Stop all EPII services</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>stop<span class="w"> </span>leeq-epii@*.service
+
+<span class="c1"># Clear any stuck processes</span>
+sudo<span class="w"> </span>pkill<span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;leeq.epii.daemon&quot;</span>
+
+<span class="c1"># Remove stale PID files</span>
+sudo<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>/var/run/leeq-epii/*.pid
+
+<span class="c1"># Restart services</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>leeq-epii@simulation_2q.service
+</code></pre></div>
+<p><strong>Configuration Recovery:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Backup current config</span>
+sudo<span class="w"> </span>cp<span class="w"> </span>/etc/leeq-epii/simulation_2q.json<span class="w"> </span>/etc/leeq-epii/simulation_2q.json.backup
+
+<span class="c1"># Restore from backup</span>
+sudo<span class="w"> </span>cp<span class="w"> </span>/etc/leeq-epii/simulation_2q.json.backup<span class="w"> </span>/etc/leeq-epii/simulation_2q.json
+
+<span class="c1"># Regenerate default config</span>
+sudo<span class="w"> </span>/opt/leeq-source/scripts/install-systemd-service.sh
+</code></pre></div>
+<h2 id="backup-and-recovery">Backup and Recovery<a class="headerlink" href="#backup-and-recovery" title="Permanent link">&para;</a></h2>
+<h3 id="1-backup-strategy">1. Backup Strategy<a class="headerlink" href="#1-backup-strategy" title="Permanent link">&para;</a></h3>
+<p><strong>Configuration Backup:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
+<span class="c1"># /opt/leeq/scripts/backup-config.sh</span>
+
+<span class="nv">BACKUP_DIR</span><span class="o">=</span><span class="s2">&quot;/backup/leeq-epii/</span><span class="k">$(</span>date<span class="w"> </span>+%Y%m%d<span class="k">)</span><span class="s2">&quot;</span>
+mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BACKUP_DIR</span><span class="s2">&quot;</span>
+
+<span class="c1"># Backup configurations</span>
+cp<span class="w"> </span>-r<span class="w"> </span>/etc/leeq-epii<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BACKUP_DIR</span><span class="s2">/&quot;</span>
+
+<span class="c1"># Backup service files</span>
+cp<span class="w"> </span>/etc/systemd/system/leeq-epii@.service<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BACKUP_DIR</span><span class="s2">/&quot;</span>
+
+<span class="c1"># Backup logs (last 7 days)</span>
+journalctl<span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;leeq-epii@*.service&#39;</span><span class="w"> </span>--since<span class="w"> </span><span class="s2">&quot;7 days ago&quot;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BACKUP_DIR</span><span class="s2">/logs.txt&quot;</span>
+
+<span class="c1"># Create archive</span>
+tar<span class="w"> </span>-czf<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BACKUP_DIR</span><span class="s2">.tar.gz&quot;</span><span class="w"> </span>-C<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BACKUP_DIR</span><span class="s2">&quot;</span><span class="w"> </span>.
+rm<span class="w"> </span>-rf<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BACKUP_DIR</span><span class="s2">&quot;</span>
+</code></pre></div>
+<p><strong>Automated Backup:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Add to crontab</span>
+sudo<span class="w"> </span>crontab<span class="w"> </span>-e
+
+<span class="c1"># Daily backup at 2 AM</span>
+<span class="m">0</span><span class="w"> </span><span class="m">2</span><span class="w"> </span>*<span class="w"> </span>*<span class="w"> </span>*<span class="w"> </span>/opt/leeq/scripts/backup-config.sh
+</code></pre></div>
+<h3 id="2-recovery-procedures">2. Recovery Procedures<a class="headerlink" href="#2-recovery-procedures" title="Permanent link">&para;</a></h3>
+<p><strong>Configuration Recovery:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Extract backup</span>
+tar<span class="w"> </span>-xzf<span class="w"> </span>/backup/leeq-epii/20240101.tar.gz<span class="w"> </span>-C<span class="w"> </span>/tmp/restore
+
+<span class="c1"># Stop services</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>stop<span class="w"> </span>leeq-epii@*.service
+
+<span class="c1"># Restore configuration</span>
+sudo<span class="w"> </span>cp<span class="w"> </span>-r<span class="w"> </span>/tmp/restore/leeq-epii/*<span class="w"> </span>/etc/leeq-epii/
+sudo<span class="w"> </span>chown<span class="w"> </span>-R<span class="w"> </span>root:leeq<span class="w"> </span>/etc/leeq-epii
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">640</span><span class="w"> </span>/etc/leeq-epii/*.json
+
+<span class="c1"># Restore service file</span>
+sudo<span class="w"> </span>cp<span class="w"> </span>/tmp/restore/leeq-epii@.service<span class="w"> </span>/etc/systemd/system/
+sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
+
+<span class="c1"># Restart services</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>leeq-epii@*.service
+</code></pre></div>
+<p><strong>Disaster Recovery:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
+<span class="c1"># Complete system recovery script</span>
+
+<span class="c1"># 1. Reinstall LeeQ EPII</span>
+sudo<span class="w"> </span>/opt/leeq-source/scripts/install-systemd-service.sh
+
+<span class="c1"># 2. Restore configurations</span>
+sudo<span class="w"> </span>tar<span class="w"> </span>-xzf<span class="w"> </span>/backup/leeq-epii/latest.tar.gz<span class="w"> </span>-C<span class="w"> </span>/
+sudo<span class="w"> </span>chown<span class="w"> </span>-R<span class="w"> </span>root:leeq<span class="w"> </span>/etc/leeq-epii
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">640</span><span class="w"> </span>/etc/leeq-epii/*.json
+
+<span class="c1"># 3. Restart services</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>leeq-epii@*.service
+
+<span class="c1"># 4. Verify operation</span>
+<span class="k">for</span><span class="w"> </span>service<span class="w"> </span><span class="k">in</span><span class="w"> </span>/etc/leeq-epii/*.json<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span><span class="nv">setup_name</span><span class="o">=</span><span class="k">$(</span>basename<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$service</span><span class="s2">&quot;</span><span class="w"> </span>.json<span class="k">)</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Testing </span><span class="nv">$setup_name</span><span class="s2">...&quot;</span>
+<span class="w">    </span>sudo<span class="w"> </span>systemctl<span class="w"> </span>status<span class="w"> </span>leeq-epii@<span class="nv">$setup_name</span>.service
+<span class="k">done</span>
+</code></pre></div>
+<h2 id="maintenance">Maintenance<a class="headerlink" href="#maintenance" title="Permanent link">&para;</a></h2>
+<h3 id="1-regular-maintenance-tasks">1. Regular Maintenance Tasks<a class="headerlink" href="#1-regular-maintenance-tasks" title="Permanent link">&para;</a></h3>
+<p><strong>Weekly Tasks:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
+<span class="c1"># Weekly maintenance script</span>
+
+<span class="c1"># Check service health</span>
+systemctl<span class="w"> </span>status<span class="w"> </span>leeq-epii@*.service
+
+<span class="c1"># Check disk space</span>
+df<span class="w"> </span>-h<span class="w"> </span>/var/log/leeq-epii
+
+<span class="c1"># Rotate logs if needed</span>
+sudo<span class="w"> </span>logrotate<span class="w"> </span>-f<span class="w"> </span>/etc/logrotate.d/leeq-epii
+
+<span class="c1"># Check for configuration changes</span>
+sudo<span class="w"> </span>find<span class="w"> </span>/etc/leeq-epii<span class="w"> </span>-name<span class="w"> </span><span class="s2">&quot;*.json&quot;</span><span class="w"> </span>-mtime<span class="w"> </span>-7<span class="w"> </span>-ls
+</code></pre></div>
+<p><strong>Monthly Tasks:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
+<span class="c1"># Monthly maintenance script</span>
+
+<span class="c1"># Update LeeQ</span>
+<span class="nb">cd</span><span class="w"> </span>/opt/leeq-source
+sudo<span class="w"> </span>git<span class="w"> </span>pull<span class="w"> </span>origin<span class="w"> </span>main
+sudo<span class="w"> </span>/opt/leeq/venv/bin/pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+
+<span class="c1"># Restart services to pick up updates</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>leeq-epii@*.service
+
+<span class="c1"># Cleanup old logs</span>
+sudo<span class="w"> </span>find<span class="w"> </span>/var/log/leeq-epii<span class="w"> </span>-name<span class="w"> </span><span class="s2">&quot;*.gz&quot;</span><span class="w"> </span>-mtime<span class="w"> </span>+30<span class="w"> </span>-delete
+
+<span class="c1"># Performance review</span>
+sudo<span class="w"> </span>journalctl<span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;leeq-epii@*.service&#39;</span><span class="w"> </span>--since<span class="w"> </span><span class="s2">&quot;1 month ago&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">&quot;ERROR|WARNING&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l
+</code></pre></div>
+<h3 id="2-updates-and-upgrades">2. Updates and Upgrades<a class="headerlink" href="#2-updates-and-upgrades" title="Permanent link">&para;</a></h3>
+<p><strong>LeeQ Updates:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Stop all services</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>stop<span class="w"> </span>leeq-epii@*.service
+
+<span class="c1"># Backup current installation</span>
+sudo<span class="w"> </span>tar<span class="w"> </span>-czf<span class="w"> </span>/backup/leeq-<span class="k">$(</span>date<span class="w"> </span>+%Y%m%d<span class="k">)</span>.tar.gz<span class="w"> </span>-C<span class="w"> </span>/opt<span class="w"> </span>leeq
+
+<span class="c1"># Update LeeQ</span>
+<span class="nb">cd</span><span class="w"> </span>/opt/leeq-source
+sudo<span class="w"> </span>git<span class="w"> </span>pull<span class="w"> </span>origin<span class="w"> </span>main
+sudo<span class="w"> </span>cp<span class="w"> </span>-r<span class="w"> </span>leeq<span class="w"> </span>/opt/leeq/
+sudo<span class="w"> </span>chown<span class="w"> </span>-R<span class="w"> </span>leeq:leeq<span class="w"> </span>/opt/leeq
+
+<span class="c1"># Update Python dependencies</span>
+sudo<span class="w"> </span>-u<span class="w"> </span>leeq<span class="w"> </span>/opt/leeq/venv/bin/pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+
+<span class="c1"># Test configuration</span>
+sudo<span class="w"> </span>-u<span class="w"> </span>leeq<span class="w"> </span>/opt/leeq/venv/bin/python<span class="w"> </span>-m<span class="w"> </span>leeq.epii.daemon<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--config<span class="w"> </span>/etc/leeq-epii/simulation_2q.json<span class="w"> </span>--validate
+
+<span class="c1"># Restart services</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>leeq-epii@*.service
+</code></pre></div>
+<p><strong>System Updates:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Update system packages</span>
+sudo<span class="w"> </span>apt<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>apt<span class="w"> </span>upgrade<span class="w"> </span>-y
+
+<span class="c1"># Restart services if kernel was updated</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-f<span class="w"> </span>/var/run/reboot-required<span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;System restart required after kernel update&quot;</span>
+<span class="w">    </span><span class="c1"># Schedule restart during maintenance window</span>
+<span class="k">fi</span>
+</code></pre></div>
+<h3 id="3-performance-monitoring">3. Performance Monitoring<a class="headerlink" href="#3-performance-monitoring" title="Permanent link">&para;</a></h3>
+<p><strong>Resource Usage:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
+<span class="c1"># Monitor resource usage</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;=== LeeQ EPII Resource Usage ===&quot;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Memory Usage:&quot;</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>status<span class="w"> </span>leeq-epii@*.service<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>Memory
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;CPU Usage:&quot;</span>
+sudo<span class="w"> </span>ps<span class="w"> </span>-u<span class="w"> </span>leeq<span class="w"> </span>-o<span class="w"> </span>pid,pcpu,pmem,command
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Network Connections:&quot;</span>
+sudo<span class="w"> </span>ss<span class="w"> </span>-tlnp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">&quot;:5005[0-9]&quot;</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Disk Usage:&quot;</span>
+df<span class="w"> </span>-h<span class="w"> </span>/var/log/leeq-epii<span class="w"> </span>/etc/leeq-epii<span class="w"> </span>/opt/leeq
+</code></pre></div>
+<p><strong>Performance Baseline:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Establish performance baseline</span>
+<span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">{</span><span class="m">1</span>..10<span class="o">}</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span>grpcurl<span class="w"> </span>-plaintext<span class="w"> </span>localhost:50051<span class="w"> </span>epii.v1.ExperimentPlatformService/Ping<span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>jq<span class="w"> </span><span class="s1">&#39;.timestamp&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>-I<span class="w"> </span><span class="o">{}</span><span class="w"> </span>date<span class="w"> </span>-d<span class="w"> </span>@<span class="o">{}</span>
+<span class="w">    </span>sleep<span class="w"> </span><span class="m">1</span>
+<span class="k">done</span>
+</code></pre></div>
+<h3 id="4-capacity-planning">4. Capacity Planning<a class="headerlink" href="#4-capacity-planning" title="Permanent link">&para;</a></h3>
+<p>Monitor these metrics for capacity planning:</p>
+<ul>
+<li><strong>Concurrent experiments</strong>: Track number of simultaneous experiment executions</li>
+<li><strong>Memory per experiment</strong>: Monitor memory usage patterns</li>
+<li><strong>Experiment duration</strong>: Track typical execution times</li>
+<li><strong>Queue depth</strong>: Monitor experiment request queuing</li>
+<li><strong>Error rates</strong>: Track failure patterns and recovery times</li>
+</ul>
+<p><strong>Capacity Monitoring Script:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
+<span class="c1"># Capacity monitoring</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;=== Capacity Metrics </span><span class="k">$(</span>date<span class="k">)</span><span class="s2"> ===&quot;</span>
+
+<span class="c1"># Active connections</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Active gRPC connections:&quot;</span>
+sudo<span class="w"> </span>ss<span class="w"> </span>-tn<span class="w"> </span>state<span class="w"> </span>established<span class="w"> </span><span class="s1">&#39;( dport = :50051 or sport = :50051 )&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l
+
+<span class="c1"># Memory usage trend</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Memory usage (MB):&quot;</span>
+sudo<span class="w"> </span>ps<span class="w"> </span>-u<span class="w"> </span>leeq<span class="w"> </span>-o<span class="w"> </span><span class="nv">rss</span><span class="o">=</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{sum+=$1} END {print sum/1024}&#39;</span>
+
+<span class="c1"># Service uptime</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Service uptime:&quot;</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>show<span class="w"> </span>leeq-epii@simulation_2q.service<span class="w"> </span>--property<span class="o">=</span>ActiveEnterTimestamp
+
+<span class="c1"># Request rate (if metrics are available)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Request rate (last hour):&quot;</span>
+sudo<span class="w"> </span>journalctl<span class="w"> </span>-u<span class="w"> </span>leeq-epii@simulation_2q.service<span class="w"> </span>--since<span class="w"> </span><span class="s2">&quot;1 hour ago&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="se">\</span>
+grep<span class="w"> </span><span class="s2">&quot;Experiment request&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l
+</code></pre></div>
+<hr />
+<h2 id="quick-reference">Quick Reference<a class="headerlink" href="#quick-reference" title="Permanent link">&para;</a></h2>
+<h3 id="essential-commands">Essential Commands<a class="headerlink" href="#essential-commands" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Service Management</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="o">{</span>start<span class="p">|</span>stop<span class="p">|</span>restart<span class="p">|</span>status<span class="o">}</span><span class="w"> </span>leeq-epii@&lt;setup&gt;.service
+
+<span class="c1"># Configuration Validation</span>
+sudo<span class="w"> </span>-u<span class="w"> </span>leeq<span class="w"> </span>/opt/leeq/venv/bin/python<span class="w"> </span>-m<span class="w"> </span>leeq.epii.daemon<span class="w"> </span>--config<span class="w"> </span>/etc/leeq-epii/&lt;setup&gt;.json<span class="w"> </span>--validate
+
+<span class="c1"># Health Check</span>
+sudo<span class="w"> </span>-u<span class="w"> </span>leeq<span class="w"> </span>/opt/leeq/venv/bin/python<span class="w"> </span>-m<span class="w"> </span>leeq.epii.daemon<span class="w"> </span>--config<span class="w"> </span>/etc/leeq-epii/&lt;setup&gt;.json<span class="w"> </span>--health-check
+
+<span class="c1"># View Logs</span>
+sudo<span class="w"> </span>journalctl<span class="w"> </span>-u<span class="w"> </span>leeq-epii@&lt;setup&gt;.service<span class="w"> </span>-f
+
+<span class="c1"># Test Connectivity</span>
+grpcurl<span class="w"> </span>-plaintext<span class="w"> </span>localhost:&lt;port&gt;<span class="w"> </span>epii.v1.ExperimentPlatformService/Ping
+</code></pre></div>
+<h3 id="important-paths">Important Paths<a class="headerlink" href="#important-paths" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Configuration</strong>: <code>/etc/leeq-epii/</code></li>
+<li><strong>Installation</strong>: <code>/opt/leeq/</code></li>
+<li><strong>Logs</strong>: <code>/var/log/leeq-epii/</code> (systemd logs via journalctl)</li>
+<li><strong>Service Files</strong>: <code>/etc/systemd/system/leeq-epii@.service</code></li>
+<li><strong>Runtime</strong>: <code>/var/run/leeq-epii/</code></li>
+</ul>
+<h3 id="support-and-resources">Support and Resources<a class="headerlink" href="#support-and-resources" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Documentation</strong>: <code>/opt/leeq-source/docs/</code></li>
+<li><strong>Issue Tracking</strong>: GitHub Issues</li>
+<li><strong>Configuration Examples</strong>: <code>/opt/leeq-source/configs/epii/</code></li>
+<li><strong>Test Scripts</strong>: <code>/opt/leeq-source/scripts/</code></li>
+</ul>
+<hr />
+<p><em>This operations guide provides comprehensive coverage of LeeQ EPII deployment and management. For additional support, consult the development team or submit issues through the project's GitHub repository.</em></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.92b07e13.min.js"></script>
+      
+    
+  </body>
+</html>
