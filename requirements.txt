@@ -1,7 +1,7 @@
 scipy
 matplotlib
 matplotlib-inline
-numpy < 2.0.0
+numpy>=2.0.0
 plotly
 dash
 dash_bootstrap_components

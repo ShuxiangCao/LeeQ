@@ -17,7 +17,7 @@ python = ">=3.10"  # Adjust based on your Python version
 scipy = "*"
 matplotlib = "*"
 matplotlib-inline = "*"
-numpy = "<2.0.0"
+numpy = ">=2.0.0"
 plotly = "*"
 dash = "*"
 dash-bootstrap-components = "*"

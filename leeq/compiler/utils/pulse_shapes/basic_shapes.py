@@ -169,7 +169,7 @@ def gaussian_drag(
     t = get_t_list(sampling_rate, width * trunc)
 
     # Compute the real part of the pulse shape using a Gaussian function
-    shape = np.exp(-(((t - gauss_width) / gauss_width) ** 2), dtype="cfloat")
+    shape = np.exp(-(((t - gauss_width) / gauss_width) ** 2), dtype="complex128")
 
     # Compute the imaginary part using the derivative of the Gaussian
     shape.imag = shape.real * 2.0 * t / \
@@ -213,7 +213,7 @@ def blackman(
     offset = (len(x) - len(t)) // 2
 
     # Initialize a complex array for shape
-    shape = np.zeros(shape=x.shape, dtype="cfloat")
+    shape = np.zeros(shape=x.shape, dtype="complex128")
 
     # Create a midshape slice for modification
     midshape = shape[offset: offset + len(t)]
@@ -221,8 +221,8 @@ def blackman(
     # Update the real part of midshape based on the Blackman window formula
     midshape += 1 - (
         a0
-        - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
-        + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
+        - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="complex128")
+        + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="complex128")
     )
 
     # Return the scaled and phased shape
@@ -279,7 +279,7 @@ def blackman_drag(
     x = get_t_list(sampling_rate, width * trunc)
 
     # Prepare shape array of complex float type with zeroed elements
-    shape = np.zeros(shape=x.shape, dtype="cfloat")
+    shape = np.zeros(shape=x.shape, dtype="complex128")
 
     # Compute offset for positioning in the middle of shape array
     offset = (len(x) - len(t)) // 2
@@ -290,8 +290,8 @@ def blackman_drag(
     # Apply the Blackman function
     midshape += 1 - (
         a0
-        - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
-        + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
+        - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="complex128")
+        + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="complex128")
     )
 
     # Handle imaginary part with a DRAG correction term
@@ -345,7 +345,7 @@ def blackman_square(
     offset = (len(x_rise) - len(t_rise)) // 2
 
     # Initialize a complex array for shape
-    shape = np.zeros(shape=x_rise.shape, dtype="cfloat")
+    shape = np.zeros(shape=x_rise.shape, dtype="complex128")
 
     # Create a midshape slice for modification
     shape[offset: offset + len(t_rise)]
@@ -353,7 +353,7 @@ def blackman_square(
     shape[offset: offset + len(t_rise)] = blackman_drag(sampling_rate=sampling_rate, amp=1, phase=0, width=rise * 2,
                                                         alpha=alpha, trunc=trunc)
 
-    flat_top = np.ones(shape=t.shape, dtype="cfloat")
+    flat_top = np.ones(shape=t.shape, dtype="complex128")
 
     half_rise = int(len(shape) / 2)
     final_shape = np.concatenate([shape[:half_rise], flat_top, shape[half_rise:]])
@@ -443,7 +443,7 @@ def square(
     """
     delay += ex_delay
     x = get_t_list(sampling_rate, width + delay)
-    y = np.empty(shape=(len(x),), dtype="cfloat")
+    y = np.empty(shape=(len(x),), dtype="complex128")
     y.fill(amp * np.exp(1.0j * (phase + phase_shift)))
     y[x < (delay - width) / 2.0] = 0.0
     return y + dc_bias
@@ -499,7 +499,7 @@ def clear_square(
     x = get_t_list(sampling_rate, total_width)
     x += total_width / 2
 
-    y = np.empty(shape=(len(x),), dtype="cfloat")
+    y = np.empty(shape=(len(x),), dtype="complex128")
     y.fill(amp * np.exp(1.0j * (phase + phase_shift)))
 
     x_initial_top = delay
@@ -576,7 +576,7 @@ def clk(
     """
     delay += ex_delay
     x = get_t_list(sampling_rate, width + delay)
-    y = np.empty(shape=(len(x),), dtype="cfloat")
+    y = np.empty(shape=(len(x),), dtype="complex128")
     y.fill(amp * np.exp(1.0j * (phase + phase_shift)))
     y[x < (delay - width) / 2.0] = 0.0
     return y * np.exp(-kappa * x / 2) + dc_bias
