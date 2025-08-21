@@ -1,0 +1,117 @@
+# LeeQ Notebook Testing Configuration
+# This file defines testing requirements and expectations for different notebook types
+
+notebook_types:
+  tutorials:
+    path: notebooks/tutorials/
+    requirements:
+      chronicle_integration: warning  # Chronicle is recommended but not required
+      leeq_imports: required
+      outputs_required: true
+      min_output_ratio: 0.3  # At least 30% of code cells should have outputs
+      max_execution_time: 60  # Maximum 60 seconds per notebook
+      expected_patterns:
+        - "from leeq"
+        - "import leeq"
+    specific_notebooks:
+      01_basics.ipynb:
+        chronicle_integration: optional
+        max_execution_time: 30
+      02_single_qubit.ipynb:
+        requires_plots: true
+        expected_patterns:
+          - "TransmonElement"
+          - "VirtualTransmon"
+      03_multi_qubit.ipynb:
+        requires_plots: true
+        expected_patterns:
+          - "two_qubit"
+          - "entanglement"
+      04_calibration.ipynb:
+        expected_patterns:
+          - "calibration"
+          - "tune"
+      05_ai_integration.ipynb:
+        expected_patterns:
+          - "ai"
+          - "agent"
+          - "LLM"
+
+  examples:
+    path: notebooks/examples/
+    requirements:
+      chronicle_integration: required
+      leeq_imports: required
+      outputs_required: true
+      min_output_ratio: 0.5  # At least 50% of code cells should have outputs
+      max_execution_time: 120  # Maximum 2 minutes per notebook
+      requires_plots: true
+      expected_patterns:
+        - "Experiment"
+        - "analyze"
+        - "plot"
+
+  workflows:
+    path: notebooks/workflows/
+    requirements:
+      chronicle_integration: required
+      leeq_imports: required
+      outputs_required: true
+      min_output_ratio: 0.4  # At least 40% of code cells should have outputs
+      max_execution_time: 180  # Maximum 3 minutes per notebook
+      requires_plots: true
+      expected_patterns:
+        - "setup"
+        - "calibrate"
+        - "experiment"
+        - "analyze"
+
+testing:
+  nbval_options:
+    - "--nbval"
+    - "--nbval-lax"  # Relaxed mode for output comparison
+    - "--tb=short"    # Short traceback format
+    - "-v"            # Verbose output
+  
+  nbconvert_options:
+    - "--execute"
+    - "--to=notebook"
+    - "--ExecutePreprocessor.timeout=300"  # 5 minute timeout
+    - "--ExecutePreprocessor.kernel_name=python3"
+  
+  skip_patterns:
+    - ".*checkpoint.*"  # Skip checkpoint notebooks
+    - ".*backup.*"      # Skip backup notebooks
+    - ".*test.*"        # Skip test notebooks
+
+validation:
+  plot_mime_types:
+    - "image/png"
+    - "image/svg+xml"
+    - "application/vnd.plotly.v1+json"
+    - "text/html"  # For interactive plots
+  
+  error_tolerance:
+    tutorials: 0      # No errors allowed in tutorials
+    examples: 0        # No errors allowed in examples
+    workflows: 1       # Allow 1 error in workflows (for edge cases)
+  
+  warning_tolerance:
+    tutorials: 3       # Allow up to 3 warnings
+    examples: 2        # Allow up to 2 warnings
+    workflows: 5       # Allow up to 5 warnings in complex workflows
+
+reporting:
+  output_formats:
+    - markdown         # Human-readable report
+    - json            # Machine-readable results
+  
+  metrics_to_track:
+    - execution_time
+    - memory_usage
+    - output_count
+    - plot_count
+    - error_count
+    - warning_count
+    - cell_count
+    - chronicle_usage
