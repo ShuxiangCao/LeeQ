@@ -2,7 +2,7 @@
 import pathlib
 from typing import Any, Union
 
-from labchronicle.logger import setup_logging
+from ..logger import setup_logging
 
 
 class RecordHandlersBase(object):

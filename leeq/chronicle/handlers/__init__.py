@@ -1,4 +1,4 @@
-from labchronicle.logger import setup_logging
+from ..logger import setup_logging
 
 from .dummy import RecordHandlerDummy
 from .handlers import RecordHandlersBase
