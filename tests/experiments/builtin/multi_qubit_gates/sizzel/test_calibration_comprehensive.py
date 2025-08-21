@@ -338,16 +338,11 @@ class TestSizzelCalibrationIntegration:
         assert np.all(amp_grid >= 0)
         assert np.all(amp_grid <= 1.0)
     
-    @patch('leeq.experiments.builtin.multi_qubit_gates.sizzel.calibration.LogicalPrimitiveBlockSerial')
-    @patch('leeq.experiments.builtin.multi_qubit_gates.sizzel.calibration.LogicalPrimitiveBlockSweep')
-    def test_mock_lpb_creation(self, mock_sweep, mock_serial, calibration_parameters):
+    def test_mock_lpb_creation(self, calibration_parameters):
         """Test creation of logical primitive blocks with mocked dependencies."""
-        mock_serial.return_value = Mock()
-        mock_sweep.return_value = Mock()
-        
-        # Test that we can create mock LPBs
-        serial_lpb = mock_serial()
-        sweep_lpb = mock_sweep()
+        # Create mock LPB objects directly
+        serial_lpb = Mock()
+        sweep_lpb = Mock()
         
         assert serial_lpb is not None
         assert sweep_lpb is not None
