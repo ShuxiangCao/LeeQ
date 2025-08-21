@@ -2,6 +2,7 @@ import copy
 import uuid
 from typing import Any, Union
 
+import numpy
 import numpy as np
 from leeq.core.base import LeeQObject
 from leeq.core.primitives.base import SharedParameterObject

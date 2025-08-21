@@ -17,6 +17,7 @@ try:
 except ImportError:
     K_AGENTS_AVAILABLE = False
     # Create a minimal base class if k_agents is not available
+
     class KExperiment:
         def __init__(self):
             pass
