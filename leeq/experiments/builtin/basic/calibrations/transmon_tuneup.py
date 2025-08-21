@@ -1,12 +1,12 @@
-from leeq.chronicle import log_and_record
-
 from leeq import Experiment
+from leeq.chronicle import log_and_record
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockParallel
 from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
 
 __all__ = ['MultilevelTransmonTuneup']
+
 
 class MultilevelTransmonTuneup(Experiment):
     """
@@ -218,7 +218,7 @@ class MultilevelTransmonTuneup(Experiment):
 
         mprim_index = int(transition_name[1])
 
-        measurement_gmm = lambda: self.calibrate_measurement(
+        def measurement_gmm(): return self.calibrate_measurement(
             mprim_index) if self.measurement_calibration else None
 
         measurement_gmm()

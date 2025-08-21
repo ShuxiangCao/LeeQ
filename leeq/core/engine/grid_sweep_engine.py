@@ -1,15 +1,14 @@
+import itertools
 from functools import reduce
 from typing import Any, List
 
 import numpy as np
 
 from leeq.core.context import ExperimentContext
+from leeq.core.engine.engine_base import EngineBase
 from leeq.core.engine.measurement_result import MeasurementResult
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock, MeasurementPrimitive
 from leeq.experiments.sweeper import Sweeper
-from leeq.core.engine.engine_base import EngineBase
-import itertools
-
 from leeq.utils import is_running_in_jupyter
 
 _in_jupyter = is_running_in_jupyter()
@@ -175,8 +174,8 @@ class GridBatchSweepEngine(EngineBase):
 
         contexts = [
             ExperimentContext(
-                self._name +
-                f".context_{i}") for i in range(batch_size)]
+                self._name
+                + f".context_{i}") for i in range(batch_size)]
 
         self._context = contexts
 

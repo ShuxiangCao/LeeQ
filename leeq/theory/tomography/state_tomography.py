@@ -1,6 +1,8 @@
 import numpy as np
-from .utils import *
+
 from leeq.utils.utils import setup_logging
+
+from .utils import *
 
 logger = setup_logging(__name__)
 

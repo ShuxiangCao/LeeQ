@@ -1,22 +1,25 @@
-import numpy as np
-import pandas as pd
-from scipy import optimize as so
-from leeq.chronicle import register_browser_function, log_and_record
-from typing import List, Optional, Any, Union
-from joblib import Parallel, delayed
-from tqdm.notebook import tqdm
 import multiprocessing
-import uncertainties as unc
-from uncertainties.umath import exp as uexp
-
-from k_agents.inspection.decorator import text_inspection, visual_inspection
+from typing import Any, List, Optional, Union
 
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import uncertainties as unc
+from joblib import Parallel, delayed
+from k_agents.inspection.decorator import text_inspection, visual_inspection
+from scipy import optimize as so
+from tqdm.notebook import tqdm
+from uncertainties.umath import exp as uexp
 
-from leeq import Sweeper, basic_run, Experiment
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel, \
-    LogicalPrimitiveBlockSerial, LogicalPrimitiveBlock
-from leeq.theory.cliffords.two_qubit_cliffords import append_inverse_C2, NC2
+from leeq import Experiment, Sweeper, basic_run
+from leeq.chronicle import log_and_record, register_browser_function
+from leeq.core.primitives.logical_primitives import (
+    LogicalPrimitiveBlock,
+    LogicalPrimitiveBlockParallel,
+    LogicalPrimitiveBlockSerial,
+    LogicalPrimitiveBlockSweep
+)
+from leeq.theory.cliffords.two_qubit_cliffords import NC2, append_inverse_C2
 from leeq.theory.utils import to_dense_probabilities
 
 
@@ -143,6 +146,7 @@ class RandomizedBenchmarking2Qubits(Experiment):
 
         return fig
 
+
 class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
     """
     A class to compare standard and interleaved randomized benchmarking for two qubits.
@@ -189,7 +193,7 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         )
 
         # Compute interleaved sequence lengths
-        self.seq_length_interleaved = [i // 2 + 1 if i % 2 else i // 2 for i  in seq_length]
+        self.seq_length_interleaved = [i // 2 + 1 if i % 2 else i // 2 for i in seq_length]
 
         interleaved_rb = RandomizedBenchmarking2Qubits(
             duts=duts,

@@ -13,11 +13,11 @@ from typing import Optional
 class Config:
     """
     Centralized configuration management for LeeQ.
-    
+
     This class provides a single source of truth for all configuration settings
     in the LeeQ framework. Settings can be overridden using environment variables
     with the LEEQ_ prefix.
-    
+
     Attributes
     ----------
     LOG_LEVEL : str
@@ -35,7 +35,7 @@ class Config:
     DEBUG_MODE : bool
         Whether debug mode is enabled.
         Default: False, override with LEEQ_DEBUG.
-    
+
     Examples
     --------
     >>> from leeq.config import Config
@@ -46,37 +46,37 @@ class Config:
     >>> print(Config.CALIBRATION_LOG_PATH)
     ./calibration_logs
     """
-    
+
     # Logging configuration
     LOG_LEVEL = os.getenv('LEEQ_LOG_LEVEL', 'INFO')
     SUPPRESS_LOGGING = os.getenv('LEEQ_SUPPRESS_LOGGING', 'false').lower() == 'true'
-    
+
     # Path configuration
     CONFIG_PATH = Path(os.getenv('LEEQ_CONFIG_PATH', 'configs/default.json'))
     CALIBRATION_LOG_PATH = Path(os.getenv('LEEQ_CALIBRATION_LOG_PATH', './calibration_logs'))
-    
+
     # Development configuration
     DEBUG_MODE = os.getenv('LEEQ_DEBUG', 'false').lower() == 'true'
-    
+
     @classmethod
     def validate(cls) -> bool:
         """
         Validate configuration settings and create necessary directories.
-        
+
         This method checks that all configured paths are valid and creates
         any missing directories. It should be called during application
         initialization to ensure the environment is properly set up.
-        
+
         Returns
         -------
         bool
             True if validation succeeds, raises exception on failure.
-            
+
         Raises
         ------
         ValueError
             If LOG_LEVEL is not a valid logging level.
-            
+
         Examples
         --------
         >>> Config.validate()
@@ -89,30 +89,30 @@ class Config:
                 f"Invalid LOG_LEVEL: {cls.LOG_LEVEL}. "
                 f"Must be one of {valid_log_levels}"
             )
-        
+
         # Create config directory if it doesn't exist
         if not cls.CONFIG_PATH.parent.exists():
             cls.CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Create calibration log directory if it doesn't exist
         if not cls.CALIBRATION_LOG_PATH.exists():
             cls.CALIBRATION_LOG_PATH.mkdir(parents=True, exist_ok=True)
-        
+
         return True
-    
+
     @classmethod
     def get_config_dict(cls) -> dict:
         """
         Get all configuration values as a dictionary.
-        
+
         This method is useful for debugging and logging the current
         configuration state.
-        
+
         Returns
         -------
         dict
             Dictionary containing all configuration key-value pairs.
-            
+
         Examples
         --------
         >>> config_dict = Config.get_config_dict()
@@ -126,15 +126,15 @@ class Config:
             'CALIBRATION_LOG_PATH': str(cls.CALIBRATION_LOG_PATH),
             'DEBUG_MODE': cls.DEBUG_MODE,
         }
-    
+
     @classmethod
     def update_from_env(cls) -> None:
         """
         Re-read configuration from environment variables.
-        
+
         This method allows runtime updates of configuration values
         if environment variables have changed.
-        
+
         Examples
         --------
         >>> import os

@@ -1,12 +1,13 @@
+from typing import Any, List
+
+import numpy as np
+from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 
-from leeq.chronicle import log_and_record, register_browser_function
 from leeq import Experiment
-from plotly import graph_objects as go
-from typing import List, Any
-import numpy as np
-
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.utils.compatibility import *
+
 
 class ConditionalStarkFineFrequencyTuneUp(Experiment):
     @log_and_record
@@ -274,6 +275,7 @@ class ConditionalStarkFineFrequencyTuneUp(Experiment):
         fig_2d.update_yaxes(title_text="Width (us)", row=1, col=3)
 
         return fig_2d.show(), fig_3d_x.show(), fig_3d_y.show()
+
 
 class ConditionalStarkFineAmpTuneUp(Experiment):
     @log_and_record
@@ -546,6 +548,7 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
         # return fig_2d.show(), fig_3d_x.show(), fig_3d_y.show()
         return fig_2d.show()
 
+
 class ConditionalStarkFinePhaseTuneUp(Experiment):
     @log_and_record
     def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0, rise=0.0, trunc=1.0,
@@ -816,6 +819,7 @@ class ConditionalStarkFinePhaseTuneUp(Experiment):
         # return fig_2d.show(), fig_3d_x.show(), fig_3d_y.show()
         return fig_2d.show()
 
+
 class ConditionalStarkFineRiseTuneUp(Experiment):
     @log_and_record
     def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0, trunc=1.0,
@@ -1080,6 +1084,7 @@ class ConditionalStarkFineRiseTuneUp(Experiment):
         fig_2d.update_yaxes(title_text="Width (us)", row=1, col=3)
 
         return fig_2d.show(), fig_3d_x.show(), fig_3d_y.show()
+
 
 class ConditionalStarkFineTruncTuneUp(Experiment):
     @log_and_record

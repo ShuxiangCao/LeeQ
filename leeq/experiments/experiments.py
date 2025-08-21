@@ -1,21 +1,23 @@
 import datetime
 import inspect
 
+import matplotlib
 import mllm
 import numpy as np
-import matplotlib
 import plotly
 from IPython.display import display
-from leeq.chronicle import Chronicle
 from k_agents.experiment.experiment import Experiment as KExperiment
+
+import leeq.experiments.plots.live_dash_app as live_monitor
+from leeq.chronicle import Chronicle
 from leeq.core.base import LeeQObject
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import SetupStatusParameters
-from leeq.utils import Singleton, setup_logging, display_json_dict
-import leeq.experiments.plots.live_dash_app as live_monitor
+from leeq.utils import Singleton, display_json_dict, setup_logging
 
 logger = setup_logging(__name__)
+
 
 class LeeQAIExperiment(LeeQObject, KExperiment):
     """
@@ -91,7 +93,6 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
         self._llm_logger.__enter__()
         # Register the active experiment instance
         setup().register_active_experiment_instance(self)
-
 
     def _post_run(self, args, kwargs):
         KExperiment._post_run(self, args, kwargs)

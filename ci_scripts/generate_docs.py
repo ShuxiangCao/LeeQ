@@ -15,7 +15,7 @@ def generate_docs(package_path, docs_path):
 
             relative_path = os.path.relpath(module_path, package_path)
             module_name = relative_path.replace(os.path.sep, '.')[
-                          :-3]  # Remove '.py' and replace os separators with dots
+                :-3]  # Remove '.py' and replace os separators with dots
 
             if 'test_' in module_name:
                 continue

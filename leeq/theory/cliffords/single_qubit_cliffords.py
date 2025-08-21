@@ -1,5 +1,6 @@
-import scipy.linalg as sl
 import numpy as np
+import scipy.linalg as sl
+
 from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
@@ -233,7 +234,7 @@ def append_inverse_C1(
         msg = f"Clifford set '{clifford_set}' not yet implemented. Only 'XY' is supported."
         logger.error(msg)
         raise NotImplementedError(msg)
-    
+
     U = pI
     for index in c1_index_list:
         U = get_c1(index).dot(U)

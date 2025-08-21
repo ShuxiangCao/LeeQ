@@ -1,13 +1,14 @@
-import pickle
-from typing import Any, Union
-import h5py
-from contextlib import contextmanager
-import pathlib
 import numbers
+import pathlib
+import pickle
+from contextlib import contextmanager
+from typing import Any, Union
 
+import h5py
 import numpy as np
 
 from .handlers import RecordHandlersBase
+
 
 class RecordHandlerDummy(RecordHandlersBase):
     """
@@ -50,7 +51,6 @@ class RecordHandlerDummy(RecordHandlersBase):
         self._check_initiated()
 
         raise NotImplementedError("This handler does not save any records.")
-
 
     def list_records(self, record_path: Union[pathlib.Path, str]) -> list:
         """

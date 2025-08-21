@@ -1,17 +1,16 @@
-from typing import Optional, Dict, Any, Union
+from typing import Any, Dict, Optional, Union
+
 import numpy as np
-
-from leeq.chronicle import register_browser_function, log_and_record
-
 from k_agents.inspection.decorator import text_inspection, visual_inspection
-from leeq import Experiment, SweepParametersSideEffectFactory, Sweeper
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
-from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
-from leeq.utils.compatibility import *
-from leeq.theory import fits
 from plotly import graph_objects as go
 
+from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory
+from leeq.chronicle import log_and_record, register_browser_function
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+from leeq.theory import fits
 from leeq.utils import setup_logging
+from leeq.utils.compatibility import *
 
 logger = setup_logging(__name__)
 
@@ -181,7 +180,7 @@ class NormalisedRabi(Experiment):
 
         # Rabi oscillation formula
         self.data = (omega ** 2) / (delta ** 2 + omega ** 2) * \
-                    np.sin(0.5 * np.sqrt(delta ** 2 + omega ** 2) * t) ** 2
+            np.sin(0.5 * np.sqrt(delta ** 2 + omega ** 2) * t) ** 2
 
         # If sampling noise is enabled, simulate the noise
         if setup().status().get_param('Sampling_Noise'):
@@ -205,7 +204,7 @@ class NormalisedRabi(Experiment):
             0, standard_deviation, self.data.shape)
 
         random_noise_sum = np.random.normal(
-            0, standard_deviation/2, self.data.shape)
+            0, standard_deviation / 2, self.data.shape)
 
         self.data = np.clip(self.data * (0.5 - quiescent_state_distribution[0]) * 2 * random_noise_factor + random_noise_sum, -1, 1)
 
@@ -422,13 +421,13 @@ class PowerRabi(Experiment):
 
         # Set up sweep parameters
         swpparams = [SweepParametersSideEffectFactory.func(
-                rabi_pulse.update_pulse_args, {}, 'amp'
-            )]
+            rabi_pulse.update_pulse_args, {}, 'amp'
+        )]
         swp = Sweeper(
-                np.arange,
-                n_kwargs={'start': amp_start, 'stop': amp_stop, 'step': amp_step},
-                params=swpparams
-            )
+            np.arange,
+            n_kwargs={'start': amp_start, 'stop': amp_stop, 'step': amp_step},
+            params=swpparams
+        )
         pulse = rabi_pulse
 
         # Get the measurement primitive
@@ -581,48 +580,48 @@ class PowerRabi(Experiment):
         return fig
 
     @log_and_record(overwrite_func_name='PowerRabi.run')
-    def run_simulated(self, dut_qubit, width=None, amp_start=0.01, amp_stop=0.4, 
+    def run_simulated(self, dut_qubit, width=None, amp_start=0.01, amp_stop=0.4,
                       amp_step=0.01, fit=True, collection_name='f01', update=True):
         """
         Simulate power Rabi oscillations by sweeping amplitude.
-        
+
         The Rabi frequency is: Ω = amp * omega_per_amp
         The population oscillates as: P = sin²(Ω * π_time / 2)
         """
         import numpy as np
-        
+
         # Get setup and virtual qubit
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
         virtual_qubit = simulator_setup.get_virtual_qubit(dut_qubit)
         if virtual_qubit is None:
             raise ValueError(f"No virtual qubit found for {dut_qubit}")
-        
+
         # Get calibration parameters
         c1 = dut_qubit.get_c1(collection_name)
         pi_pulse = c1['X']
-        
+
         # Use provided width or get from existing pulse
         if width is not None:
             pi_time = width
         else:
             pi_time = pi_pulse.width
-        
+
         # Get omega per amp from setup
         channel = c1.channel
         omega_per_amp = simulator_setup.get_omega_per_amp(channel)
-        
+
         # Calculate expected oscillations
         amp_range = np.arange(amp_start, amp_stop, amp_step)
         rabi_frequencies = amp_range * omega_per_amp  # MHz
-        
+
         # Calculate rotation angle for each amplitude
         # θ = Ω * t = (amp * omega_per_amp) * pi_time
         rotation_angles = rabi_frequencies * pi_time * 2 * np.pi  # radians
-        
+
         # Calculate excited state population
         # P_e = sin²(θ/2) for starting from ground state
         populations = np.sin(rotation_angles / 2) ** 2
-        
+
         # Add noise if enabled
         if setup().status().get_param('Sampling_Noise'):
             # Use a default readout fidelity of 0.95 for noise modeling
@@ -630,28 +629,27 @@ class PowerRabi(Experiment):
             noise_level = (1 - readout_fidelity) / 2
             noise = np.random.normal(0, noise_level, len(populations))
             populations = np.clip(populations + noise, 0, 1)
-        
+
         # Store data for plotting
         self.data = populations
-        
+
         if not fit:
             return None
-        
+
         # Fit data to extract parameters
         self.fit_params = fits.fit_sinusoidal(populations, time_step=amp_step)
-        
+
         # Find optimal amplitude for pi pulse
         if update:
             # The amplitude should give us a pi rotation (population = 1)
             # This happens when rotation_angle = pi, so amp * omega_per_amp * pi_time = 1
             self.optimal_amp = 1 / (omega_per_amp * pi_time)
-            
+
             # Update the qubit parameters
             c1.update_parameters(amp=self.optimal_amp)
             print(f"Amplitude updated: {self.optimal_amp}")
-        
-        # Don't return anything to match the regular run() behavior
 
+        # Don't return anything to match the regular run() behavior
 
 
 class MultiQubitRabi(Experiment):
@@ -851,7 +849,7 @@ class MultiQubitRabi(Experiment):
         )
 
         return fig
-    
+
     @log_and_record(overwrite_func_name='MultiQubitRabi.run')
     def run_simulated(self,
                       duts: list[Any],
@@ -867,7 +865,7 @@ class MultiQubitRabi(Experiment):
                       initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         """
         Run simulated multi-qubit Rabi experiment.
-        
+
         Parameters same as run() method.
         """
         # Convert scalar parameters to lists
@@ -877,54 +875,54 @@ class MultiQubitRabi(Experiment):
             collection_names = [collection_names] * len(duts)
         if not isinstance(mprim_indexes, list):
             mprim_indexes = [mprim_indexes] * len(duts)
-        
+
         assert len(duts) == len(amps) == len(collection_names) == len(mprim_indexes), \
             "Length of duts, amps, collection_names, and mprim_indexes must be the same."
-        
+
         # Get simulation setup
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
-        
+
         # Create time array
         time_points = np.arange(start, stop, step)
-        
+
         # Simulate for each qubit
         self.data = []
-        
+
         for i, dut in enumerate(duts):
             # Get virtual qubit
             virtual_qubit = simulator_setup.get_virtual_qubit(dut)
             if virtual_qubit is None:
                 raise ValueError(f"No virtual qubit found for {dut}")
-            
+
             # Get calibration info
             c1 = dut.get_c1(collection_names[i])
             channel = c1.channel
-            
+
             # Calculate Rabi frequency
             omega_per_amp = simulator_setup.get_omega_per_amp(channel)
             omega = amps[i] * omega_per_amp  # MHz
-            
+
             # Get detuning
             delta = virtual_qubit.qubit_frequency - c1['X'].freq
-            
+
             # Calculate effective Rabi frequency
             omega_eff = np.sqrt(omega**2 + delta**2)
-            
+
             # Calculate Rabi oscillations
             populations = (omega / omega_eff)**2 * np.sin(0.5 * omega_eff * time_points * 2 * np.pi)**2
-            
+
             # Convert to expectation value <z> = 1 - 2*P_e
             z_expectation = 1 - 2 * populations
-            
+
             # Apply T1/T2 decoherence if enabled
             if hasattr(virtual_qubit, 't1') and hasattr(virtual_qubit, 't2'):
                 # Apply exponential decay from decoherence
                 t1_decay = np.exp(-time_points / virtual_qubit.t1)
                 t2_decay = np.exp(-time_points / virtual_qubit.t2)
-                
+
                 # Decoherence affects the oscillation amplitude
                 z_expectation = z_expectation * t2_decay + (1 - t1_decay)
-            
+
             # Add sampling noise if enabled
             if setup().status().get_param('Sampling_Noise'):
                 shot_number = setup().status().get_param('Shot_Number')
@@ -934,17 +932,17 @@ class MultiQubitRabi(Experiment):
                 counts_excited = np.random.binomial(shot_number, prob_excited)
                 # Convert back to z expectation
                 z_expectation = 1 - 2 * counts_excited / shot_number
-            
+
             self.data.append(z_expectation)
-        
+
         if not fit:
             return None
-        
+
         # Fit data for each qubit
         self.fit_params = [
             fits.fit_sinusoidal(data, time_step=step) for data in self.data
         ]
-        
+
         if update:
             for i in range(len(duts)):
                 # Update the qubit parameters

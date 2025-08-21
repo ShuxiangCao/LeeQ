@@ -1,5 +1,6 @@
 import itertools as it
 from typing import List, Tuple, Union
+
 import numpy as np
 
 

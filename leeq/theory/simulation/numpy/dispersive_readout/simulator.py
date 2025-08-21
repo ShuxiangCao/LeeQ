@@ -1,6 +1,8 @@
-from leeq.theory.simulation.numpy.dispersive_readout.utils import *
-import numpy as np
 from typing import List, Tuple, Union
+
+import numpy as np
+
+from leeq.theory.simulation.numpy.dispersive_readout.utils import *
 
 
 class DispersiveReadoutSimulator:
@@ -153,8 +155,8 @@ class DispersiveReadoutSimulatorSyntheticData(DispersiveReadoutSimulator):
         # Get the time list based on the sampling rate and the envelope width
         t_list = get_t_list(
             self.sampling_rate,
-            len(envelope) /
-            self.sampling_rate)
+            len(envelope)
+            / self.sampling_rate)
 
         assert len(t_list) == len(envelope)
 

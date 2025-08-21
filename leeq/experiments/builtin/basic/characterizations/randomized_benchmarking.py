@@ -2,19 +2,18 @@ from typing import List, Union
 
 import numpy as np
 import scipy.linalg
+import scipy.optimize as so
+import uncertainties as unc
 import uncertainties.umath as umath
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from matplotlib import pyplot as plt
 
-from leeq.chronicle import log_and_record, register_browser_function
-
-from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import Experiment, Sweeper, basic_run, setup
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.cliffords import get_clifford_from_id
 from leeq.utils.compatibility import prims
-import scipy.optimize as so
-import uncertainties as unc
 
 __all__ = ['RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem', 'SingleQubitRandomizedBenchmarking']
 
@@ -132,7 +131,7 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         m_prims = [dut.get_measurement_prim_intlist(
             mprim_index) for dut in dut_list]
         final_lpb = flip_up_lpb + sweep_lpb + \
-                    flip_down_lpb + prims.ParallelLPB(m_prims)
+            flip_down_lpb + prims.ParallelLPB(m_prims)
 
         # Execute the basic run
         basic_run(final_lpb, swp, '<zs>')

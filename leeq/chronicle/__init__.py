@@ -18,10 +18,10 @@ Key Components:
 Original LabChronicle repository: https://github.com/ShuxiangCao/LabChronicle
 """
 
-from .logger import setup_logging
-from .chronicle import Chronicle, load_object, load_attributes
+from .chronicle import Chronicle, load_attributes, load_object
 from .core import LoggableObject
 from .decorators import log_and_record, log_event, register_browser_function
+from .logger import setup_logging
 
 browser_function = register_browser_function  # Alias for backwards compatibility
 

@@ -1,7 +1,8 @@
 import inspect
+from typing import List, Optional, Tuple
 
 import numpy as np  # Assuming numpy is needed based on the provided function.
-from typing import Optional, Tuple, List
+
 from leeq.compiler.utils.time_base import get_t_list
 
 __all__ = [
@@ -124,9 +125,9 @@ def gaussian(
     # Generate and return the Gaussian wave packet.
     # You may extend the function to incorporate it in the future.
     return (
-            amp
-            * np.exp(1.0j * phase)
-            * np.exp(-(((t - gauss_width) / gauss_width) ** 2)).astype("complex64")
+        amp
+        * np.exp(1.0j * phase)
+        * np.exp(-(((t - gauss_width) / gauss_width) ** 2)).astype("complex64")
     )
 
 
@@ -175,7 +176,7 @@ def gaussian_drag(
 
     # Compute the imaginary part using the derivative of the Gaussian
     shape.imag = shape.real * 2.0 * t / \
-                 (2.0 * np.pi * alpha2) / gauss_width ** 2
+        (2.0 * np.pi * alpha2) / gauss_width ** 2
 
     # Return the pulse shape, with applied amplitude and phase modulation
     return amp * np.exp(1.0j * phase) * shape
@@ -222,9 +223,9 @@ def blackman(
 
     # Update the real part of midshape based on the Blackman window formula
     midshape += 1 - (
-            a0
-            - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
-            + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
+        a0
+        - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
+        + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
     )
 
     # Return the scaled and phased shape
@@ -291,16 +292,16 @@ def blackman_drag(
 
     # Apply the Blackman function
     midshape += 1 - (
-            a0
-            - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
-            + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
+        a0
+        - a1 * np.cos((2.0 * np.pi * (t + width / 2.0)) / width, dtype="cfloat")
+        + a2 * np.cos(4.0 * np.pi * (t + width / 2.0) / width, dtype="cfloat")
     )
 
     # Handle imaginary part with a DRAG correction term
     alpha2 = alpha * 2.0
     midshape.imag = -(
-            a1 * 2.0 * np.pi / width * np.sin((2.0 * np.pi * (t + width / 2.0)) / width)
-            - a2 * 4.0 * np.pi / width * np.sin(4.0 * np.pi * (t + width / 2.0) / width)
+        a1 * 2.0 * np.pi / width * np.sin((2.0 * np.pi * (t + width / 2.0)) / width)
+        - a2 * 4.0 * np.pi / width * np.sin(4.0 * np.pi * (t + width / 2.0) / width)
     ) / (2.0 * np.pi * alpha2)
 
     # Return the pulse shaped with phase and amplitude
@@ -525,13 +526,14 @@ def clear_square(
     y = y
     return y
 
+
 def arbitrary_pulse(
         sampling_rate: int,
         amp: float,
         pulse_window_array: List,
         phase: float = 0,
         width: Optional[float] = None,
-)-> np.ndarray:
+) -> np.ndarray:
     """
 Generate an arbitrary pulse shape using a window array.
 
@@ -548,6 +550,7 @@ Parameters:
     pulse_shape = pulse_shape[0, :] + 1.j * pulse_shape[1, :]
     pulse = amp * np.exp(1.0j * phase) * pulse_shape
     return pulse
+
 
 def clk(
         sampling_rate: int,
@@ -583,4 +586,3 @@ def clk(
     y.fill(amp * np.exp(1.0j * (phase + phase_shift)))
     y[x < (delay - width) / 2.0] = 0.0
     return y * np.exp(-kappa * x / 2) + dc_bias
-

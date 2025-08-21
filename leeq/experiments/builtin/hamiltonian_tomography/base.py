@@ -13,5 +13,3 @@ class HamiltonianTomographyBaseSingleQudit(Experiment):
         This method should be implemented by the child class.
         """
         raise NotImplementedError
-
-

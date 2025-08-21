@@ -1,14 +1,20 @@
-from sklearn.pipeline import Pipeline
-from typing import Union, Dict
+from typing import Dict, List, Optional, Union
+
+import matplotlib
+import numpy as np
+from k_agents.inspection.decorator import text_inspection, visual_inspection
+from matplotlib import pyplot as plt
 from plotly import graph_objects as go
 from plotly import subplots
-from matplotlib import pyplot as plt
-import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
 
-from k_agents.inspection.decorator import text_inspection, visual_inspection
-from leeq import *
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel
+from leeq import Experiment, ExperimentManager, Sweeper, setup
+from leeq.chronicle import log_and_record, register_browser_function
+from leeq.core.elements.built_in.qudit_transmon import TransmonElement
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
+from leeq.setups.setup_base import DeviceUnderTest
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockParallel, LogicalPrimitiveBlockSweep
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.simulation.numpy.dispersive_readout.simulator import DispersiveReadoutSimulatorSyntheticData
 from leeq.utils import setup_logging
@@ -304,8 +310,8 @@ def calculate_signal_to_noise_ratio(
         # Otherwise, calculate the SNR for each pair of components
         for i in range(n_components):
             for j in range(
-                    i +
-                    1,
+                    i
+                    + 1,
                     n_components):  # Start from i+1 to avoid self-comparison
 
                 # Calculate standard deviations and distances
@@ -690,8 +696,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
 
         Returns:
         """
-        from matplotlib import pyplot as plt
         import numpy as np
+        from matplotlib import pyplot as plt
 
         if result_data is None:
             result_data = self.result

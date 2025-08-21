@@ -1,12 +1,11 @@
-from typing import Union
-from typing import Optional, Any
+from typing import Any, Optional, Union
+
 import numpy as np
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from plotly import graph_objects as go
 
-from leeq.chronicle import register_browser_function, log_and_record
-
-from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import Experiment
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.fits import fit_exp_decay_with_cov
 from leeq.theory.utils import to_dense_probabilities
@@ -19,7 +18,7 @@ __all__ = [
 
 
 class SpinEchoMultiLevel(
-    Experiment):  # Class names should follow the CapWords convention
+        Experiment):  # Class names should follow the CapWords convention
     """
     A class used to represent the SpinEchoMultiLevel experiment.
 
@@ -271,7 +270,7 @@ class SpinEchoMultiLevel(
 
 
 class MultiQubitSpinEchoMultiLevel(
-    Experiment):  # Class names should follow the CapWords convention
+        Experiment):  # Class names should follow the CapWords convention
     """
     A class used to represent the SpinEchoMultiLevel experiment.
 

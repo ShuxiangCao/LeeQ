@@ -1,7 +1,8 @@
 from typing import List
 
+from k_agents.io_interface import code_to_html, display_chat
 from tqdm.notebook import tqdm
-from k_agents.io_interface import display_chat, code_to_html
+
 from leeq.utils.ai.experiment_generation.data_analysis import generate_data_analysis
 from leeq.utils.ai.experiment_generation.data_visualization import generate_data_visualization
 from leeq.utils.ai.experiment_generation.load_documents import load_document_file

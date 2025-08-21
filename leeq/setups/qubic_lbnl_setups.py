@@ -1,6 +1,8 @@
 import copy
 from http.client import CannotSendRequest
-from typing import List, Union, Dict, Any
+from pprint import pprint
+from typing import Any, Dict, List, Union
+from urllib.parse import urlparse
 from uuid import UUID
 
 import numpy as np
@@ -8,15 +10,12 @@ import numpy as np
 from leeq.compiler.lbnl_qubic.circuit_list_compiler import QubiCCircuitListLPBCompiler
 from leeq.compiler.lbnl_qubic.utils import register_leeq_pulse_shapes_to_qubic_pulse_shape_factory
 from leeq.core.context import ExperimentContext
-from leeq.core.engine.grid_sweep_engine import GridSerialSweepEngine, GridBatchSweepEngine
+from leeq.core.engine.grid_sweep_engine import GridBatchSweepEngine, GridSerialSweepEngine
 from leeq.core.engine.measurement_result import MeasurementResult
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import ExperimentalSetup
 from leeq.utils import setup_logging
-
-from urllib.parse import urlparse
-from pprint import pprint
 
 logger = setup_logging(__name__)
 
@@ -206,10 +205,9 @@ class QubiCCircuitSetup(ExperimentalSetup):
         try:
             # QubiC toolchain for compiling circuits
             import qubic.toolchain as tc
-
             # QubiC configuration management libraries
             import qubitconfig.qchip as qc
-            from distproc.hwconfig import FPGAConfig, load_channel_configs, ChannelConfig
+            from distproc.hwconfig import ChannelConfig, FPGAConfig, load_channel_configs
 
         except ImportError:
             raise ImportError(
@@ -574,7 +572,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
         else:
             for context in contexts:
                 combined_circuits += delay_between_shots + \
-                                     context.instructions["circuits"]
+                    context.instructions["circuits"]
 
         # The dirtiness is true when at least one of the circuits is dirty
         merged_dirtiness = {

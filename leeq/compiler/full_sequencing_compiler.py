@@ -1,11 +1,11 @@
+from typing import Dict
+
 import numpy as np
 
 from leeq.compiler.compiler_base import LPBCompiler
 from leeq.compiler.individual_lpb_compiler import IndividualLPBCompiler
 from leeq.core.context import ExperimentContext
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable
-
-from typing import Dict
 from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)

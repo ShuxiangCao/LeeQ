@@ -1,11 +1,12 @@
 import copy
+import datetime
 import os
 import pathlib
 import uuid
 from contextlib import contextmanager
-import datetime
-import yaml
 from typing import Optional, Union
+
+import yaml
 
 from .core import RecordBook, RecordEntry
 from .logger import setup_logging
@@ -53,7 +54,7 @@ class Chronicle(Singleton):
     It is used as a singleton.
     """
 
-    def __init__(self, config:dict=None, config_path: Optional[Union[pathlib.Path, str]] = None):
+    def __init__(self, config: dict = None, config_path: Optional[Union[pathlib.Path, str]] = None):
         """
         Initialize the Chronicle class.
 
@@ -65,14 +66,14 @@ class Chronicle(Singleton):
         if self._initialized:
             return
 
-        self._config = self.load_config(config=config,config_path=config_path)
+        self._config = self.load_config(config=config, config_path=config_path)
         self._active_record_book = None
         self._record_tracking_stack = None
         self._log_start_time = None
 
         super().__init__()
 
-    def load_config(self,config_path: Optional[str] = None,config:dict=None):
+    def load_config(self, config_path: Optional[str] = None, config: dict = None):
         """
         Load the configuration file. If the configuration file is not specified, load the configuration from
         environment variables. If environment variables are not specified, load the default configuration.
@@ -179,7 +180,7 @@ class Chronicle(Singleton):
             return
 
         record_timestamp = (
-                int(datetime.datetime.now().timestamp()) - self._log_start_time
+            int(datetime.datetime.now().timestamp()) - self._log_start_time
         )
 
         if len(self._record_tracking_stack) == 0:

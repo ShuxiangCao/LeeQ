@@ -2,9 +2,9 @@ import inspect
 
 import decorator
 
-from .logger import setup_logging
 from .chronicle import Chronicle
 from .core import LoggableObject
+from .logger import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -30,7 +30,7 @@ def log_and_record(func, overwrite_func_name=None, *args, **kwargs):
 
 
 @decorator.decorator
-def log_event(func,overwrite_func_name=None, *args, **kwargs):
+def log_event(func, overwrite_func_name=None, *args, **kwargs):
     """
     Decorator function for the functions that want to be logged. The function must be a method of a LoggableObject.
     Using this decorator will only record return values and arguments of the function.

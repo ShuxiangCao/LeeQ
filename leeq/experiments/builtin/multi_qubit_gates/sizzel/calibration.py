@@ -1,28 +1,26 @@
 # Conditional AC stark shift induced CZ gate
-from leeq.utils import setup_logging
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
-from leeq.theory import fits
-
-from leeq.theory.estimator.kalman import KalmanFilter1D
-
-logger = setup_logging(__name__)
-
-from leeq.chronicle import log_and_record, register_browser_function
-from leeq import Experiment, Sweeper, basic_run
-from leeq.core.elements.built_in.qudit_transmon import TransmonElement
-from leeq.utils.compatibility import *
 import matplotlib.pyplot as plt
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockParallel, \
-    LogicalPrimitiveBlock
-
-from leeq.utils.compatibility import prims
-
-from leeq.theory.fits import *
-
-from qutip import Bloch
-
 import pandas as pd
 from IPython.display import display
+from qutip import Bloch
+
+from leeq import Experiment, Sweeper, basic_run
+from leeq.chronicle import log_and_record, register_browser_function
+from leeq.core.elements.built_in.qudit_transmon import TransmonElement
+from leeq.core.primitives.logical_primitives import (
+    LogicalPrimitiveBlock,
+    LogicalPrimitiveBlockParallel,
+    LogicalPrimitiveBlockSerial,
+    LogicalPrimitiveBlockSweep
+)
+from leeq.theory import fits
+from leeq.theory.estimator.kalman import KalmanFilter1D
+from leeq.theory.fits import *
+from leeq.utils import setup_logging
+from leeq.utils.compatibility import *
+from leeq.utils.compatibility import prims
+
+logger = setup_logging(__name__)
 
 
 class ConditionalStarkTuneUpRabiXY(experiment):
@@ -90,7 +88,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         iz_gate_fix = c1_target.z(-iz_rise_drop)
 
         lpb = c1_target[
-                  'Ym'] * lpb_flip_control + lpb + iz_gate + iz_gate_fix + lpb_readout + mprim_target * mprim_control
+            'Ym'] * lpb_flip_control + lpb + iz_gate + iz_gate_fix + lpb_readout + mprim_target * mprim_control
 
         swpparams = [
             sparam.func(stark_drive_target_pulse.update_pulse_args, {}, 'width'),
@@ -360,6 +358,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
             plt.legend()
 
             from scipy.fft import fft, fftfreq
+
             # Compute the FFT of the data
             N = len(data1)
             T = t[1] - t[0]  # Sampling interval
@@ -603,7 +602,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
 class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
 
     @log_and_record
-    def run(self, duts, amp_control, amp_target, frequency, phase=0, rise=0.01, trunc =1.0, axis='Y',
+    def run(self, duts, amp_control, amp_target, frequency, phase=0, rise=0.01, trunc=1.0, axis='Y',
             echo=False, iz_control=0, iz_target=0, width=0, start_gate_number=0, gate_count=40):
         """
         Sweep time and find the initial guess of amplitude
@@ -1080,4 +1079,3 @@ class ConditionalStarkEchoTuneUp(Experiment):
 
         self.estimated_iz_list = estimated_iz_list
         self.estimated_zz_list = estimated_zz_list
-

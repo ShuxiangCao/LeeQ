@@ -1,6 +1,6 @@
-import numpy as np
 from typing import Optional, Tuple
 
+import numpy as np
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KernelDensity
 

@@ -1,11 +1,13 @@
+from typing import List, Optional, Tuple
+
 import numpy as np
 import scipy.linalg
-from typing import Optional, List, Tuple
 
 __all__ = ["simulate_decay", 'fit_decay', 'show_one_plot']
 
 from matplotlib import pyplot as plt
 from scipy.optimize import minimize
+
 from leeq.utils.utils import setup_logging
 
 logger = setup_logging(__name__)
@@ -207,7 +209,7 @@ def fit_single_decay(sequence: np.ndarray, time_length: float, time_resolution: 
 
 
 def fit_decay(probs: np.ndarray, time_length: float, time_resolution: float, verbose: bool = False) -> Tuple[
-    np.ndarray, np.ndarray]:
+        np.ndarray, np.ndarray]:
     """
     Fit decay models to multiple sequences of decay probabilities.
      probs : [time index, trace index, measured state index]

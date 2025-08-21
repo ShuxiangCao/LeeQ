@@ -1,9 +1,10 @@
-from typing import Union
-import matplotlib.pyplot as plt
-from PIL import Image
 import io
-import plotly.graph_objects as go
 import os
+from typing import Union
+
+import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from PIL import Image
 
 
 def matplotlib_plotly_to_pil(fig: Union[go.Figure, plt.Figure]):
@@ -25,7 +26,7 @@ def matplotlib_plotly_to_pil(fig: Union[go.Figure, plt.Figure]):
             engine = "orca"
         else:
             engine = "kaleido"
-        fig.write_image(buf,format='png',engine=engine)
+        fig.write_image(buf, format='png', engine=engine)
     elif isinstance(fig, plt.Figure):
         fig.savefig(buf, format='png')
     else:

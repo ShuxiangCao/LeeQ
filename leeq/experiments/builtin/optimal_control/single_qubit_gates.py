@@ -1,15 +1,16 @@
-from leeq.chronicle import log_and_record, register_browser_function
+from typing import Optional, Union
+
+import matplotlib.pyplot as plt
+import numpy as np
+
 import leeq
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, basic_run, setup
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.core.primitives import LogicalPrimitiveCollectionFactory
 from leeq.core.primitives.built_in.simple_drive import SimpleDriveCollection
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils.compatibility import prims
-
-from typing import Optional, Union
-import numpy as np
-import matplotlib.pyplot as plt
 
 __all__ = [
     'GRAPESingleQubitGate',
@@ -74,7 +75,7 @@ class GRAPESingleQubitGate(Experiment):
 
         amp_per_rabi_rate = 1 / self.rabi_rate_per_amp * 1000
 
-        pulse_shape = self.grape_result.u[-1, :, :]#*amp_per_rabi_rate*2
+        pulse_shape = self.grape_result.u[-1, :, :]  # *amp_per_rabi_rate*2
         pulse_shape = pulse_shape / np.max(np.abs(pulse_shape))
 
         amp = amp_per_rabi_rate * np.max(np.abs(pulse_shape))

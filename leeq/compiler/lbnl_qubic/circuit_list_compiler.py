@@ -7,19 +7,21 @@ import numpy as np
 
 from leeq import setup
 from leeq.compiler.compiler_base import LPBCompiler, MeasurementSequence
-from leeq.compiler.lbnl_qubic.utils import register_leeq_pulse_shapes_to_qubic_pulse_shape_factory, \
-    get_qubic_envelope_name_from_leeq_name
+from leeq.compiler.lbnl_qubic.utils import (
+    get_qubic_envelope_name_from_leeq_name,
+    register_leeq_pulse_shapes_to_qubic_pulse_shape_factory
+)
 from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
 from leeq.compiler.utils.time_base import get_t_list
 from leeq.core.context import ExperimentContext
 from leeq.core.primitives.built_in.common import DelayPrimitive, PhaseShift
 from leeq.core.primitives.logical_primitives import (
-    LogicalPrimitiveCombinable,
+    LogicalPrimitive,
     LogicalPrimitiveBlockParallel,
     LogicalPrimitiveBlockSerial,
     LogicalPrimitiveBlockSweep,
-    MeasurementPrimitive,
-    LogicalPrimitive,
+    LogicalPrimitiveCombinable,
+    MeasurementPrimitive
 )
 from leeq.experiments.experiments import ExperimentManager
 from leeq.utils import setup_logging
@@ -54,8 +56,8 @@ def compare_dicts(dict1, dict2, rtol=1e-05, atol=1e-08):
 
         # If values are both numbers, use np.allclose for comparison
         if isinstance(
-                value1, (int, float)) and isinstance(
-            value2, (int, float)):
+            value1, (int, float)) and isinstance(
+                value2, (int, float)):
             if not np.allclose(value1, value2, rtol=rtol, atol=atol):
                 return False
 
@@ -569,8 +571,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         required_parameters = inspect.signature(env_func).parameters
         parameters_keeping = {
             key: parameters[key] for key in required_parameters if (
-                                                                           key in parameters) and key not in [
-                                                                       'amp', 'freq', 'phase']}
+                key in parameters) and key not in [
+                'amp', 'freq', 'phase']}
 
         if parameters['width'] <= 0.1:  # The pulse width is too long, we need to split it
             env = {"env_func": get_qubic_envelope_name_from_leeq_name(parameters['shape']),
@@ -721,8 +723,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         required_parameters = inspect.signature(env_func).parameters
         parameters_keeping = {
             key: modified_parameters[key] for key in required_parameters if (
-                                                                                    key in modified_parameters) and key not in [
-                                                                                'amp', 'freq', 'phase']}
+                key in modified_parameters) and key not in [
+                'amp', 'freq', 'phase']}
 
         env = {"env_func": get_qubic_envelope_name_from_leeq_name(modified_parameters['shape']),
                "paradict": parameters_keeping}
@@ -770,7 +772,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         }
 
         if primitive_scope in self._qubic_channel_to_lpb_uuid and self._qubic_channel_to_lpb_uuid[
-            primitive_scope] != lpb.uuid:
+                primitive_scope] != lpb.uuid:
             msg = "Two measurement primitives exists for a same channel, which is not supported."
             logger.error(msg)
             raise NotImplementedError(msg)
@@ -928,8 +930,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
         self._check_parameter_if_dirty(lpb)
 
-        return [{"name": "delay", "t": lpb.get_delay_time() /
-                                       1e6}], set()  # In seconds
+        return [{"name": "delay", "t": lpb.get_delay_time()
+                 / 1e6}], set()  # In seconds
 
     @_compile_lpb.register
     def _(self, lpb: PhaseShift):
@@ -950,9 +952,9 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         for k, m in parameters["transition_multiplier"].items():
             if k not in self._phase_shift[lpb.channel]:
                 self._phase_shift[lpb.channel][k] = m * \
-                                                    parameters["phase_shift"]
+                    parameters["phase_shift"]
             else:
                 self._phase_shift[lpb.channel][k] += m * \
-                                                     parameters["phase_shift"]
+                    parameters["phase_shift"]
 
         return [], set()

@@ -150,14 +150,14 @@ class VirtualTransmon(object):
         # end_state) for the transitions
         single_photon_transition_frequencies_omega = [
             # empirical value
-            (self.qubit_frequency + i * self.anharmonicity * \
-             (1.1 ** (i - 1)), np.sqrt(i + 1), i, i + 1)
+            (self.qubit_frequency + i * self.anharmonicity
+             * (1.1 ** (i - 1)), np.sqrt(i + 1), i, i + 1)
             for i in range(self.truncate_level - 1)
         ]
 
         two_photon_transition_frequencies_omega = [
-            ((single_photon_transition_frequencies_omega[i][0] +
-              single_photon_transition_frequencies_omega[i + 1][0]) / 2, np.sqrt(i + 1) / np.sqrt(2), i, i + 2)
+            ((single_photon_transition_frequencies_omega[i][0]
+              + single_photon_transition_frequencies_omega[i + 1][0]) / 2, np.sqrt(i + 1) / np.sqrt(2), i, i + 2)
             for i in range(self.truncate_level - 2)
         ]
 
@@ -403,8 +403,8 @@ class VirtualTransmon(object):
             self._density_matrix).astype(
             np.float64)
         readout_response = self.get_resonator_response(readout_frequency)
-        return np.mean(population_distribution *
-                       readout_response) * readout_width
+        return np.mean(population_distribution
+                       * readout_response) * readout_width
 
     def _apply_readout_iq(
             self,

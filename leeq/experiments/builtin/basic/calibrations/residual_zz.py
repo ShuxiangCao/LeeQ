@@ -1,7 +1,9 @@
-import numpy as np
-from leeq.chronicle import log_and_record
-from leeq import Experiment, setup
 from typing import List, Union
+
+import numpy as np
+
+from leeq import Experiment, setup
+from leeq.chronicle import log_and_record
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.experiments.builtin.basic.calibrations.ramsey import SimpleRamseyMultilevel
 
@@ -9,6 +11,7 @@ __all__ = [
     'CalibrateOptimizedFrequencyWith2QZZShift',
     'ZZShiftTwoQubitMultilevel'
 ]
+
 
 class CalibrateOptimizedFrequencyWith2QZZShift(Experiment):
     """Class to calibrate optimized frequency with 2Q ZZ Shift."""
@@ -156,17 +159,17 @@ class ZZShiftTwoQubitMultilevel(Experiment):
             update=False)
 
         self.zz = [
-            self.q1_ramsey_q2_excited.frequency_guess -
-            self.q1_ramsey_q2_ground.frequency_guess,
-            self.q2_ramsey_q1_excited.frequency_guess -
-            self.q2_ramsey_q1_ground.frequency_guess,
+            self.q1_ramsey_q2_excited.frequency_guess
+            - self.q1_ramsey_q2_ground.frequency_guess,
+            self.q2_ramsey_q1_excited.frequency_guess
+            - self.q2_ramsey_q1_ground.frequency_guess,
         ]
 
         self.zz_error = [
-            self.q1_ramsey_q2_excited.error_bar -
-            self.q1_ramsey_q2_ground.error_bar,
-            self.q2_ramsey_q1_excited.error_bar -
-            self.q2_ramsey_q1_ground.error_bar,
+            self.q1_ramsey_q2_excited.error_bar
+            - self.q1_ramsey_q2_ground.error_bar,
+            self.q2_ramsey_q1_excited.error_bar
+            - self.q2_ramsey_q1_ground.error_bar,
         ]
 
         setup().status().set_param("Plot_Result_In_Jupyter", plot_result_in_jupyter)

@@ -1,27 +1,27 @@
 import copy
-import numpy as np
-from typing import Any, Optional, Tuple, Dict, Union
 import datetime
+from typing import Any, Dict, Optional, Tuple, Union
 
+import numpy as np
+from k_agents.inspection.decorator import text_inspection, visual_inspection
+from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 
-from leeq.chronicle import register_browser_function, log_and_record
-
-from k_agents.inspection.decorator import text_inspection, visual_inspection
+from leeq import Experiment
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
-from leeq import Experiment
 from leeq.utils.compatibility import *
-from plotly import graph_objects as go
 
 logger = setup_logging(__name__)
 
 
 class MockMeasurementPrimitive:
     """Mock measurement primitive for simulation compatibility."""
+
     def __init__(self, data):
         self._data = data
-    
+
     def result(self):
         return self._data
 
@@ -89,9 +89,9 @@ class SimpleRamseyMultilevel(Experiment):
 
         # Update the frequency with the calculated offset
         c1q.update_parameters(
-            freq=original_freq +
-                 set_offset /
-                 self.level_diff)
+            freq=original_freq
+            + set_offset
+            / self.level_diff)
 
         # Setup the sweeper for the Ramsey experiment
         swp = sweeper(
@@ -204,12 +204,12 @@ class SimpleRamseyMultilevel(Experiment):
         delta = f_o_actual
 
         # Work out where we are on the Bloch sphere
-        detuning_contribution = np.abs(delta) / (delta ** 2 + omega ** 2)**(1/2)
+        detuning_contribution = np.abs(delta) / (delta ** 2 + omega ** 2)**(1 / 2)
         oscillation_amplitude = 1 - detuning_contribution
         oscillation_baseline = detuning_contribution
 
-        ramsey_fringes = oscillation_amplitude*(np.cos(2 * np.pi * f_o_actual * t)
-                          * np.exp(-decay_rate * t)) + oscillation_baseline
+        ramsey_fringes = oscillation_amplitude * (np.cos(2 * np.pi * f_o_actual * t)
+                                                  * np.exp(-decay_rate * t)) + oscillation_baseline
 
         self.data = ramsey_fringes
 
@@ -221,7 +221,7 @@ class SimpleRamseyMultilevel(Experiment):
 
         self.data = np.clip(self.data * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
 
-        self.data = (1+self.data) / 2
+        self.data = (1 + self.data) / 2
 
         # If sampling noise is enabled, simulate the noise
         if setup().status().get_param('Sampling_Noise'):
@@ -233,7 +233,6 @@ class SimpleRamseyMultilevel(Experiment):
             # sampling noise
             self.data = np.random.binomial(
                 shot_number, self.data) / shot_number
-
 
     def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
         """
@@ -289,7 +288,7 @@ class SimpleRamseyMultilevel(Experiment):
             self.fit_params = fit_1d_freq_exp_with_cov(
                 self.data, dt=args['step'])
             fitted_freq_offset = (
-                                         self.fit_params['Frequency'] - self.set_offset) / self.level_diff
+                self.fit_params['Frequency'] - self.set_offset) / self.level_diff
             self.fitted_freq_offset = fitted_freq_offset
             self.frequency_guess = self.original_freq - fitted_freq_offset
             self.error_bar = self.fit_params['Frequency'].s
@@ -300,7 +299,7 @@ class SimpleRamseyMultilevel(Experiment):
             self.error_bar = np.inf
 
     def dump_results_and_configuration(self) -> Tuple[
-        float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
+            float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
         """
         Dump the results and configuration of the experiment.
 
@@ -359,13 +358,13 @@ class SimpleRamseyMultilevel(Experiment):
             frequency = self.fit_params['Frequency'].n
             amplitude = self.fit_params['Amplitude'].n
             phase = self.fit_params['Phase'].n - \
-                    2.0 * np.pi * frequency * args['start']
+                2.0 * np.pi * frequency * args['start']
             offset = self.fit_params['Offset'].n
             decay = self.fit_params['Decay'].n
 
             # Generate the fitted curve
             fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * \
-                           np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
+                np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
 
             fig.add_trace(
                 go.Scatter(
@@ -378,7 +377,7 @@ class SimpleRamseyMultilevel(Experiment):
 
             # Set plot layout details
             title_text = f"Ramsey decay {args['dut'].hrid} transition {args['collection_name']}: <br>" \
-                         f"{self.fit_params['Decay']} us"
+                f"{self.fit_params['Decay']} us"
             fig.update_layout(
                 title_text=title_text,
                 xaxis_title=f"Time (us) <br> Frequency: {self.fit_params['Frequency']} MHz",
@@ -388,7 +387,7 @@ class SimpleRamseyMultilevel(Experiment):
         else:
             # Set plot layout details
             title_text = f"Ramsey decay {args['dut'].hrid} transition {args['collection_name']}: <br>" \
-                         f"Fit failed"
+                f"Fit failed"
             fig.update_layout(title_text=title_text,
                               xaxis_title=f"Time (us)",
                               yaxis_title="<z>",
@@ -453,7 +452,7 @@ class SimpleRamseyMultilevel(Experiment):
         if self.error_bar == np.inf:
             return "The Ramsey experiment failed to fit the data."
 
-        return (f"The Ramsey experiment for qubit {self._get_run_args_dict()['dut'].hrid} has been analyzed. " \
+        return (f"The Ramsey experiment for qubit {self._get_run_args_dict()['dut'].hrid} has been analyzed. "
                 f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured oscillation is "
                 f"{self.set_offset + self.fitted_freq_offset * self.level_diff:.3f} MHz. Oscillation"
                 f" amplitude is {self.fit_params['Amplitude']}."
@@ -532,9 +531,9 @@ class MultiQubitRamseyMultilevel(Experiment):
         # Update the frequency with the calculated offset
         for i, c1 in enumerate(c1s):
             c1.update_parameters(
-                freq=original_freqs[i] +
-                     set_offset /
-                     self.level_diffs[i])
+                freq=original_freqs[i]
+                + set_offset
+                / self.level_diffs[i])
 
         # Setup the sweeper for the Ramsey experiment
         swp = sweeper(
@@ -559,7 +558,7 @@ class MultiQubitRamseyMultilevel(Experiment):
 
         # Construct the logic primitive block
         lpb = prims.ParallelLPB([c1['Xp'] for c1 in c1s]) + delay + \
-              prims.ParallelLPB([c1['Xm'] for c1 in c1s]) + prims.ParallelLPB(mprims)
+            prims.ParallelLPB([c1['Xm'] for c1 in c1s]) + prims.ParallelLPB(mprims)
 
         if initial_lpb is not None:
             lpb = initial_lpb + lpb
@@ -635,9 +634,9 @@ class MultiQubitRamseyMultilevel(Experiment):
                 fit_1d_freq_exp_with_cov(
                     data, dt=args['step']) for data in self.data]
             fitted_freq_offsets = [
-                (self.fit_params[i]['Frequency'].n -
-                 self.set_offset) /
-                self.level_diffs[i] for i in range(
+                (self.fit_params[i]['Frequency'].n
+                 - self.set_offset)
+                / self.level_diffs[i] for i in range(
                     len(
                         self.data))]
             self.fitted_freq_offsets = fitted_freq_offsets
@@ -684,7 +683,7 @@ class MultiQubitRamseyMultilevel(Experiment):
         frequency = fit_params['Frequency'].n
         amplitude = fit_params['Amplitude'].n
         phase = fit_params['Phase'].n - 2.0 * \
-                np.pi * frequency * args['start']
+            np.pi * frequency * args['start']
         offset = fit_params['Offset'].n
         decay = fit_params['Decay'].n
 
@@ -713,7 +712,7 @@ class MultiQubitRamseyMultilevel(Experiment):
 
         # Set plot layout details
         title_text = f"Ramsey decay {args['duts'][i].hrid} transition {self.collection_names[i]}: <br>" \
-                     f"{decay} us"
+            f"{decay} us"
         fig.update_layout(
             title_text=title_text,
             xaxis_title=f"Time (us) <br> Frequency: {frequency}",
@@ -767,91 +766,91 @@ class MultiQubitRamseyMultilevel(Experiment):
 
         # Get simulation setup
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
-        
+
         # Store parameters for later use
         self.set_offset = set_offset
         self.step = step
         self.update = update
-        
+
         # Calculate level differences
         self.level_diffs = []
         for collection_name in collection_names:
             start_level = int(collection_name[1])
             end_level = int(collection_name[2])
             self.level_diffs.append(end_level - start_level)
-        
+
         # Save original frequencies and get control objects
         c1s = [qubit.get_c1(collection_name) for qubit, collection_name in
                zip(duts, collection_names)]
         original_freqs = [c1['Xp'].freq for c1 in c1s]
         self.original_freqs = original_freqs
-        
+
         # Time array
         t = np.arange(start, stop, step)
-        
+
         # Simulate data for each qubit
         self.data = []
         self.mp = []  # For compatibility with live_plots
-        
+
         for i, (dut, c1, collection_name) in enumerate(zip(duts, c1s, collection_names)):
             # Get virtual qubit
             virtual_transmon = simulator_setup.get_virtual_qubit(dut)
-            
+
             # Get frequencies
             f_q = virtual_transmon.qubit_frequency
             f_d = c1['X'].freq
             f_o = set_offset
-            
+
             # Get T2 for Ramsey decay (T2* would be ideal but T2 is available)
             if isinstance(virtual_transmon.t2, list):
                 t2 = virtual_transmon.t2[0]
             else:
                 t2 = virtual_transmon.t2
-                
+
             # Use T2 for Ramsey decay (approximates T2*)
             decay_rate = 1 / t2
-            
+
             # Get drive amplitude
             amp = c1.get_parameters()['amp']
-            
+
             # Calculate Rabi rate
             rabi_rate_per_amp = simulator_setup.get_omega_per_amp(c1.channel)  # MHz
             omega = rabi_rate_per_amp * amp
-            
+
             # Calculate actual detuning
             f_o_actual = f_q - (f_d + f_o / self.level_diffs[i])
             delta = f_o_actual
-            
+
             # Calculate Ramsey fringes with off-resonance effects
-            detuning_contribution = np.abs(delta) / (delta ** 2 + omega ** 2)**(1/2)
+            detuning_contribution = np.abs(delta) / (delta ** 2 + omega ** 2)**(1 / 2)
             oscillation_amplitude = 1 - detuning_contribution
             oscillation_baseline = detuning_contribution
-            
+
             # Ramsey oscillations with T2* decay
             ramsey_fringes = oscillation_amplitude * (np.cos(2 * np.pi * f_o_actual * t)
-                             * np.exp(-decay_rate * t)) + oscillation_baseline
-            
+                                                      * np.exp(-decay_rate * t)) + oscillation_baseline
+
             # Add realistic noise based on quiescent state distribution
             quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
             standard_deviation = np.std(ramsey_fringes)
-            
+
             random_noise_factor = 1 + np.random.normal(
                 0, standard_deviation / 2, ramsey_fringes.shape)
-            
+
             # Apply noise and normalize
             qubit_data = np.clip(ramsey_fringes * quiescent_state_distribution[0] * random_noise_factor, -1, 1)
             qubit_data = (1 + qubit_data) / 2
-            
+
             # Apply sampling noise if enabled
             if setup().status().get_param('Sampling_Noise'):
                 shot_number = setup().status().get_param('Shot_Number')
                 qubit_data = np.random.binomial(shot_number, qubit_data) / shot_number
-            
+
             self.data.append(qubit_data)
-            
+
             # Create a mock measurement primitive for compatibility
             self.mp.append(MockMeasurementPrimitive(qubit_data))
-        
+
         # Analyze data if update is true
         if update:
             self.analyze_data()

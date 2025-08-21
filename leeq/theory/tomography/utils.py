@@ -1,10 +1,12 @@
-import numpy as np
-from typing import Optional, List, Tuple, Union
-from matplotlib import pyplot as plt
+from typing import List, Optional, Tuple, Union
+
 import matplotlib.patches as mpatches
-from matplotlib.colors import hsv_to_rgb
-from .gellman import generate_gellmann_basis
+import numpy as np
 import scipy as sp
+from matplotlib import pyplot as plt
+from matplotlib.colors import hsv_to_rgb
+
+from .gellman import generate_gellmann_basis
 
 
 def cj_from_ptm(ptm: np.ndarray, basis_matrices: np.ndarray, dim: int) -> np.ndarray:
@@ -191,9 +193,9 @@ class HilbertBasis(object):
             base_value (int): The base of the qudit space. Qubit is 2, qudit is 3, etc.
         """
 
+        import matplotlib.patches as mpatches
         from matplotlib import pyplot as plt
         from matplotlib.colors import hsv_to_rgb
-        import matplotlib.patches as mpatches
 
         nx = m.shape[0]
         ny = m.shape[1]
@@ -315,9 +317,9 @@ class HilbertBasis(object):
             base (int): The base of the qudit space. Qubit is 2, qudit is 3, etc.
         """
 
+        import matplotlib.patches as mpatches
         from matplotlib import pyplot as plt
         from matplotlib.colors import hsv_to_rgb
-        import matplotlib.patches as mpatches
 
         nx = m.shape[0]
         ny = m.shape[1]

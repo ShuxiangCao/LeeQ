@@ -1,6 +1,7 @@
 # This file contains the abstract definition of the handlers.
-from typing import Any, Union
 import pathlib
+from typing import Any, Union
+
 from labchronicle.logger import setup_logging
 
 

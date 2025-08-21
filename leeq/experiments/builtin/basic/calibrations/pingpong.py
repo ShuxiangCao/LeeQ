@@ -1,23 +1,19 @@
 import math
-from leeq.chronicle import log_and_record, register_browser_function
-import uncertainties as unc
-import uncertainties.unumpy as unp
-
-from leeq import Experiment, Sweeper, basic_run
-from leeq.core.elements.built_in.qudit_transmon import TransmonElement
-from leeq.utils.compatibility import *
-
-import matplotlib.pyplot as plt
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlock
-
-import numpy as np
 from typing import List, Optional, Union
 
-from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
-from leeq.utils.compatibility import prims
-
-from leeq.utils import setup_logging
+import matplotlib.pyplot as plt
+import numpy as np
+import uncertainties as unc
+import uncertainties.unumpy as unp
 from k_agents.inspection.decorator import visual_inspection
+
+from leeq import Experiment, Sweeper, basic_run
+from leeq.chronicle import log_and_record, register_browser_function
+from leeq.core.elements.built_in.qudit_transmon import TransmonElement
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock, LogicalPrimitiveBlockSerial
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+from leeq.utils import setup_logging
+from leeq.utils.compatibility import prims, setup, basic
 
 logger = setup_logging(__name__)
 
@@ -96,8 +92,8 @@ class PingPongSingleQubitMultilevel(Experiment):
         t_effective = area_per_pulse * pulse_count
 
         # Rabi oscillation formula
-        self.result = ((omega ** 2) / (delta ** 2 + omega ** 2) *
-                       np.sin(0.5 * np.sqrt(delta ** 2 + omega ** 2) * t_effective) ** 2)
+        self.result = ((omega ** 2) / (delta ** 2 + omega ** 2)
+                       * np.sin(0.5 * np.sqrt(delta ** 2 + omega ** 2) * t_effective) ** 2)
 
         # If sampling noise is enabled, simulate the noise
         if setup().status().get_param('Sampling_Noise'):
@@ -116,7 +112,7 @@ class PingPongSingleQubitMultilevel(Experiment):
             0, standard_deviation, self.result.shape)
 
         random_noise_offset = np.random.normal(
-            0, standard_deviation/2, self.result.shape)
+            0, standard_deviation / 2, self.result.shape)
 
         self.result = np.clip(self.result * quiescent_state_distribution[0] * random_noise_factor + random_noise_offset,
                               -1, 1)

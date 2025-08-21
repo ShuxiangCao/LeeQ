@@ -1,5 +1,5 @@
 import functools
-from typing import List, Union, Dict
+from typing import Dict, List, Union
 from uuid import UUID
 
 import numpy as np
@@ -7,13 +7,13 @@ import numpy as np
 from leeq.compiler.individual_lpb_compiler import IndividualLPBCompiler
 from leeq.core.context import ExperimentContext
 from leeq.core.engine.measurement_result import MeasurementResult
-from leeq.core.primitives.built_in.common import PhaseShift, DelayPrimitive
+from leeq.core.primitives.built_in.common import DelayPrimitive, PhaseShift
 from leeq.core.primitives.logical_primitives import (
     LogicalPrimitiveBlock,
+    LogicalPrimitiveBlockParallel,
     LogicalPrimitiveBlockSerial,
     LogicalPrimitiveBlockSweep,
-    LogicalPrimitiveBlockParallel,
-    MeasurementPrimitive,
+    MeasurementPrimitive
 )
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import ExperimentalSetup

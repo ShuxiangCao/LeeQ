@@ -143,14 +143,14 @@ class QuTip2QLocalSetup(ExperimentalSetup):
 
             pulse = (
                 np.exp(
-                    1j *
-                    2 *
-                    np.pi *
-                    freq *
-                    np.arange(
-                        len(buffer)) /
-                    self._sampling_rate) *
-                buffer)
+                    1j
+                    * 2
+                    * np.pi
+                    * freq
+                    * np.arange(
+                        len(buffer))
+                    / self._sampling_rate)
+                * buffer)
 
             self._simulator.set_drive_buffer(
                 qubit_name=self._channel_to_qubit[channel],

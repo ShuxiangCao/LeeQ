@@ -1,5 +1,5 @@
-from typing import Any
 from pprint import pprint
+from typing import Any
 
 
 def generate_data_visualization(description: str, context: dict[str, Any]):

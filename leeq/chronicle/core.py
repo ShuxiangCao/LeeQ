@@ -6,16 +6,16 @@
 # provides the interface for the handlers.
 import copy
 import inspect
+import json
 import pathlib
 import pickle
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
 
+from .handlers import RecordHandlersBase, get_handler
 from .logger import setup_logging
-from .handlers import get_handler, RecordHandlersBase
-from .utils import get_system_info, find_methods_with_tag
-import json
+from .utils import find_methods_with_tag, get_system_info
 
 logger = setup_logging(__name__)
 
@@ -162,7 +162,7 @@ class LoggableObject(metaclass=SetBrowserFunctionAttributeMeta):
             kwargs: dict,
             record_details: dict,
             deepcopy: bool = True,
-            overwrite_func_name = None
+            overwrite_func_name=None
     ):
         """
         Register the arguments of the function.
@@ -343,7 +343,7 @@ class RecordBook(object):
 
     def get_record_by_path(self,
                            path: Union[pathlib.Path,
-                           str]) -> "RecordEntry":
+                                       str]) -> "RecordEntry":
         """
         Get a record by its path.
 
@@ -478,7 +478,7 @@ class RecordEntry(object):
             self._base_path = pathlib.Path('\\'.join(path_name_split[:-1]))
         else:
             self._base_path = path.parent
-        path_name  = path_name_split[-1]
+        path_name = path_name_split[-1]
         splits = path_name.split("-", 1)
 
         if len(splits) != 2:
@@ -666,7 +666,7 @@ class RecordEntry(object):
             Any: The value of the attribute.
         """
         assert (
-                key in self._touched_attributes
+            key in self._touched_attributes
         ), f"Attribute {key} is not recorded. Please try access through the object."
         return self.load_attribute(key)
 

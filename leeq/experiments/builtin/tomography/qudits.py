@@ -1,10 +1,13 @@
 from leeq.chronicle import log_and_record
-
-from .base import GeneralisedTomographyBase, GeneralisedSingleDutStateTomography, GeneralisedStateTomography, \
-    GeneralisedProcessTomography
-
 from leeq.theory.tomography import MultiQuditModel
 from leeq.utils.compatibility import prims
+
+from .base import (
+    GeneralisedProcessTomography,
+    GeneralisedSingleDutStateTomography,
+    GeneralisedStateTomography,
+    GeneralisedTomographyBase
+)
 
 
 class QuditTomographyBase(GeneralisedTomographyBase):

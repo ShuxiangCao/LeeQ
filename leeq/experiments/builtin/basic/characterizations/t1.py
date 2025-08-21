@@ -1,18 +1,19 @@
-from typing import Optional, Any, List, Union
+from typing import Any, List, Optional, Union
+
 import numpy as np
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from plotly import graph_objects as go
 
-from leeq.chronicle import register_browser_function, log_and_record
-
-from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import Experiment, Sweeper
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.fits import fit_exp_decay_with_cov
+from leeq.theory.fits.multilevel_decay import fit_decay as fit_multilevel_decay
+from leeq.theory.fits.multilevel_decay import plot
 from leeq.theory.utils import to_dense_probabilities
 from leeq.utils import setup_logging
 from leeq.utils.compatibility import *
 from leeq.utils.compatibility.prims import SweepLPB
-from leeq.theory.fits.multilevel_decay import fit_decay as fit_multilevel_decay, plot
 
 logger = setup_logging(__name__)
 
@@ -51,14 +52,14 @@ class SimpleT1(Experiment):
 
     @log_and_record(overwrite_func_name='SimpleT1.run')
     def run_simulated(self,
-            qubit: Any,  # Add the expected type for 'qubit' instead of Any
-            collection_name: str = 'f01',
-            # Add the expected type for 'initial_lpb' instead of Any
-            initial_lpb: Optional[Any] = None,
-            mprim_index: int = 0,
-            time_length: float = 100.0,
-            time_resolution: float = 1.0
-            ) -> None:
+                      qubit: Any,  # Add the expected type for 'qubit' instead of Any
+                      collection_name: str = 'f01',
+                      # Add the expected type for 'initial_lpb' instead of Any
+                      initial_lpb: Optional[Any] = None,
+                      mprim_index: int = 0,
+                      time_length: float = 100.0,
+                      time_resolution: float = 1.0
+                      ) -> None:
         """Run the T1 experiment with the specified parameters.
 
         Parameters:
@@ -319,7 +320,7 @@ class MultiQubitT1(Experiment):
         delay = prims.Delay(0)
 
         lpb = prims.ParallelLPB([c1['X'] for c1 in c1s]) + \
-              delay + prims.ParallelLPB(mps)
+            delay + prims.ParallelLPB(mps)
 
         if initial_lpb:
             lpb = initial_lpb + lpb
@@ -330,7 +331,7 @@ class MultiQubitT1(Experiment):
 
         basic(lpb, swp, 'p(1)')
         self.traces = [np.squeeze(mp.result()) for mp in mps]
-    
+
     @log_and_record(overwrite_func_name='MultiQubitT1.run')
     def run_simulated(self,
                       duts: List[Any],
@@ -352,35 +353,35 @@ class MultiQubitT1(Experiment):
         """
         if isinstance(collection_names, str):
             collection_names = [collection_names] * len(duts)
-        
+
         self.collection_names = collection_names
-        
+
         # Get setup and virtual qubits
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
-        
+
         # Create time array
         sweep_range = np.arange(0.0, time_length, time_resolution)
-        
+
         # Simulate T1 decay for each qubit independently
         self.traces = []
         for dut in duts:
             virtual_qubit = simulator_setup.get_virtual_qubit(dut)
             if virtual_qubit is None:
                 raise ValueError(f"No virtual qubit found for {dut}")
-            
+
             # Get T1 value for this qubit
             t1 = virtual_qubit.t1  # in microseconds
-            
+
             # Calculate T1 decay
             data = np.exp(-sweep_range / t1)
-            
+
             # If sampling noise is enabled, simulate the noise
             if setup().status().get_param('Sampling_Noise'):
                 # Get the number of shots used in the simulation
                 shot_number = setup().status().get_param('Shot_Number')
                 # Generate binomial distribution to simulate sampling noise
                 data = np.random.binomial(shot_number, data) / shot_number
-            
+
             self.traces.append(data)
 
     @register_browser_function(available_after=(run,))

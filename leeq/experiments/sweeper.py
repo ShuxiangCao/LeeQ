@@ -1,11 +1,10 @@
 import copy
-import uuid
 import itertools
-from typing import Union, Iterable, Callable, Dict, Optional, List, Any
+import uuid
+from functools import partial
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from leeq.core.base import LeeQObject
-from functools import partial
-
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
 
 
@@ -79,8 +78,8 @@ class SweepParametersSideEffectFunction(SweepParametersSideEffect):
             # name = self._function_name + '(' + self._argument_name + ')'
             name = self._argument_name
         super().__init__(
-            name="SideEffectFunction: " +
-            function.__name__,
+            name="SideEffectFunction: "
+            + function.__name__,
             sweep_attribute_name=name)
 
         self._function = partial(function, **kwargs)

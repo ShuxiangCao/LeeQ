@@ -1,14 +1,15 @@
-from leeq.chronicle import log_and_record, register_browser_function
-import leeq
+from typing import Optional, Union
+
+import matplotlib.pyplot as plt
+import numpy as np
 from k_agents.inspection.decorator import text_inspection, visual_inspection
+
+import leeq
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, basic_run, setup
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils.compatibility import prims
-
-from typing import Optional, Union
-import numpy as np
-import matplotlib.pyplot as plt
 
 __all__ = [
     'DragCalibrationSingleQubitMultilevel',
@@ -83,7 +84,7 @@ If success cannot be determined, consider the experiment failed.
         vz_pi = c1.z(np.pi)
 
         pulse_train_block = c1['X'] + vz_pi + \
-                            c1['Y'] + vz_pi + c1['X'] + c1['Y']
+            c1['Y'] + vz_pi + c1['X'] + c1['Y']
 
         # Add additional pulses based on the value of N.
         pulse_train = prims.SerialLPB([pulse_train_block] * N)
@@ -269,16 +270,16 @@ If success cannot be determined, consider the experiment failed.
         plt.plot(self.sweep_values, self.result[:, 0], 'ro', alpha=0.5)
         plt.plot(
             self.sweep_values,
-            self.fit_xp[0] *
-            self.sweep_values +
-            self.fit_xp[1],
+            self.fit_xp[0]
+            * self.sweep_values
+            + self.fit_xp[1],
             'r-')
         plt.plot(self.sweep_values, self.result[:, 1], 'bo', alpha=0.5)
         plt.plot(
             self.sweep_values,
-            self.fit_xm[0] *
-            self.sweep_values +
-            self.fit_xm[1],
+            self.fit_xm[0]
+            * self.sweep_values
+            + self.fit_xm[1],
             'b-')
         plt.xlabel(u"DRAG coefficient")
         plt.ylabel(u"<z>")
@@ -291,7 +292,7 @@ If success cannot be determined, consider the experiment failed.
         args = self._get_run_args_dict()
 
         fitting_parameters = f"Sweep start: {self.inv_alpha_start}\n" \
-                             f"Sweep stop: {self.inv_alpha_stop}\n"
+            f"Sweep stop: {self.inv_alpha_stop}\n"
 
         estimated_coefficient = 1 / self.optimum
 
@@ -308,7 +309,7 @@ If success cannot be determined, consider the experiment failed.
             fitting_results += "The estimated optimal DRAG coefficient does not fall within the central half of the sweep.\n"
 
         fitting_results += f"Residual average for Xp: {self.residual_xp_avg}\n" \
-                           f"Residual average for Xm: {self.residual_xm_avg}\n"
+            f"Residual average for Xm: {self.residual_xm_avg}\n"
 
         return fitting_parameters + fitting_results
 

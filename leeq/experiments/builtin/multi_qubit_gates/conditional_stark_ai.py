@@ -1,36 +1,31 @@
 # Conditional AC stark shift induced CZ gate
 import inspect
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
-from mllm import Chat
-
+import matplotlib.pyplot as plt
+import numpy as np
+import plotly.graph_objects as go
 from k_agents.execution.agent import execute_experiment_from_instruction
 from k_agents.execution.stage_execution import get_exp_from_var_table
 from k_agents.inspection.decorator import text_inspection, visual_inspection
-from k_agents.utils import Singleton
-from leeq.utils import setup_logging
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
 from k_agents.io_interface import dict_to_html, display_chat
-from leeq.theory import fits
-from leeq.theory.fits.fit_exp import fit_2d_freq_with_cov
+from k_agents.utils import Singleton
+from mllm import Chat
+from uncertainties import ufloat
 
+from leeq import Experiment
+from leeq.chronicle import log_and_record, register_browser_function
+from leeq.core.elements.built_in.qudit_transmon import TransmonElement
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockSweep
+from leeq.theory import fits
 from leeq.theory.estimator.kalman import KalmanFilter1D
+from leeq.theory.fits.fit_exp import fit_2d_freq_with_cov
+from leeq.utils import setup_logging
+from leeq.utils.compatibility import *
+from leeq.utils.compatibility import prims
 from leeq.utils.high_level_simulations.noise import apply_noise_to_data
 
 logger = setup_logging(__name__)
-
-import plotly.graph_objects as go
-from leeq.chronicle import log_and_record, register_browser_function
-from leeq import Experiment
-from leeq.core.elements.built_in.qudit_transmon import TransmonElement
-from leeq.utils.compatibility import *
-
-import matplotlib.pyplot as plt
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial
-from leeq.utils.compatibility import prims
-from typing import Optional, Union, Type
-from typing import List, Dict, Any, Tuple
-import numpy as np
-from uncertainties import ufloat
 
 
 def _qubit_z_expectation_value_off_resonance_drive(f_qubit, f_drive, t_start, t_stop,
@@ -208,7 +203,7 @@ presence of sinusoidal oscillations?
         iz_gate_fix = c1_target.z(-iz_rise_drop)
 
         lpb = c1_target[
-                  'Ym'] * lpb_flip_control + lpb + iz_gate + iz_gate_fix + lpb_readout + mprim_target * mprim_control
+            'Ym'] * lpb_flip_control + lpb + iz_gate + iz_gate_fix + lpb_readout + mprim_target * mprim_control
 
         swp_params = [
             sparam.func(stark_drive_target_pulse.update_pulse_args, {}, 'phase'),
@@ -257,9 +252,9 @@ presence of sinusoidal oscillations?
                 'Frequency']) / 2
 
             self.iz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] + (
-            self.fitting_2D[1]['Phase'])) / 2
+                self.fitting_2D[1]['Phase'])) / 2
             self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (
-            self.fitting_2D[1]['Phase'])) / 2
+                self.fitting_2D[1]['Phase'])) / 2
 
             print(f"IZ: {self.iz_rate: 0.5f} MHz, ZZ: {self.zz_rate: 0.5f} MHz")
             print(
@@ -293,9 +288,9 @@ presence of sinusoidal oscillations?
             self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1][
                 'Frequency']) / 2
             self.iz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] + (
-            self.fitting_2D[1]['Phase'])) / 2
+                self.fitting_2D[1]['Phase'])) / 2
             self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (
-            self.fitting_2D[1]['Phase'])) / 2
+                self.fitting_2D[1]['Phase'])) / 2
 
             print(f"IZ: {self.iz_rate: 0.5f} MHz: {self.zz_rate: 0.5f} MHz")
             print(
@@ -383,7 +378,7 @@ presence of sinusoidal oscillations?
         o_imag = fit_params['Offset_imag'].nominal_value
 
         fit = a * np.exp(1j * (2.0 * np.pi * f * t_interpolate + p)) + (
-                    o_real + 1j * o_imag)
+            o_real + 1j * o_imag)
 
         fig.add_trace(go.Scatter(x=t_interpolate,
                                  y=np.real(fit) if not use_imaginary_part else np.imag(
@@ -536,7 +531,6 @@ def _generate_zz_interaction_data_from_simulation(qubits,
 
     target_qubit_oscillation = apply_noise_to_data(virtual_transmon_2,
                                                    target_qubit_oscillation)
-
 
     result = np.array([[zz_oscillation_ground_x, zz_oscillation_excited_x],
                        [zz_oscillation_ground_y, zz_oscillation_excited_y]]).transpose(
@@ -808,7 +802,7 @@ If the any of above check fails, the experiment is considered failed.
         iz_gate_fix = c1_target.z(-iz_rise_drop)
 
         lpb = c1_target[
-                  'Ym'] * lpb_flip_control + lpb + iz_gate + iz_gate_fix + lpb_readout + mprim_target * mprim_control
+            'Ym'] * lpb_flip_control + lpb + iz_gate + iz_gate_fix + lpb_readout + mprim_target * mprim_control
 
         swpparams = [
             sparam.func(stark_drive_target_pulse.update_pulse_args, {}, 'width'),
@@ -850,9 +844,9 @@ If the any of above check fails, the experiment is considered failed.
                 'Frequency']) / 2
 
             self.iz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] + (
-            self.fitting_2D[1]['Phase'])) / 2
+                self.fitting_2D[1]['Phase'])) / 2
             self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (
-            self.fitting_2D[1]['Phase'])) / 2
+                self.fitting_2D[1]['Phase'])) / 2
 
             print(f"IZ: {self.iz_rate: 0.5f} MHz, ZZ: {self.zz_rate: 0.5f} MHz")
             print(
@@ -887,9 +881,9 @@ If the any of above check fails, the experiment is considered failed.
             self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1][
                 'Frequency']) / 2
             self.iz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] + (
-            self.fitting_2D[1]['Phase'])) / 2
+                self.fitting_2D[1]['Phase'])) / 2
             self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (
-            self.fitting_2D[1]['Phase'])) / 2
+                self.fitting_2D[1]['Phase'])) / 2
 
             print(f"IZ: {self.iz_rate: 0.5f} MHz: {self.zz_rate: 0.5f} MHz")
             print(
@@ -982,12 +976,12 @@ If the any of above check fails, the experiment is considered failed.
             o_imag = fit_params['Offset_imag'].nominal_value
 
             fit = a * np.exp(1j * (2.0 * np.pi * f * t_interpolate + p)) + (
-                        o_real + 1j * o_imag)
+                o_real + 1j * o_imag)
 
             fig.add_trace(go.Scatter(x=t_interpolate, y=np.real(
                 fit) if not use_imaginary_part else np.imag(fit),
-                                     mode='lines', name=f'{label} Fit',
-                                     line=dict(color=color), visible='legendonly'))
+                mode='lines', name=f'{label} Fit',
+                line=dict(color=color), visible='legendonly'))
 
     def get_ai_inspection_results(self):
         """
@@ -1511,7 +1505,7 @@ If the above check passes, the experiment is considered successful.
             o_imag = fit_params['Offset_imag'].nominal_value
 
             fit = a * np.exp(1j * (2.0 * np.pi * f * t_interpolate + p)) + (
-                        o_real + 1j * o_imag)
+                o_real + 1j * o_imag)
             fit_values = np.real(fit) if not use_imaginary_part else np.imag(fit)
 
             fig.add_trace(
@@ -1956,7 +1950,7 @@ if this is a successful experiment. Make the analysis concise and clear in one s
 
     def _check_data_validity_using_ai(self, experiment: Experiment,
                                       additional_information: str, show=True) -> dict[
-        str, str]:
+            str, str]:
         if not self.ai_inspection:
             return {
                 'analysis': 'AI inspection is not enabled. Always assumes the data is valid.',
@@ -1991,8 +1985,8 @@ if this is a successful experiment. Make the analysis concise and clear in one s
 
         import mllm
         chat = mllm.Chat(prompt,
-                         "You are a very smart and helpful assistant who only reply in JSON dict. " +
-                         "Keep everything in a same line in the response.")
+                         "You are a very smart and helpful assistant who only reply in JSON dict. "
+                         + "Keep everything in a same line in the response.")
         res = chat.complete(parse="dict", expensive=True, cache=True)
 
         html = dict_to_html(res)
@@ -2023,11 +2017,11 @@ if this is a successful experiment. Make the analysis concise and clear in one s
         if self.ai_inspection:
 
             sizzel_xy = ConditionalStarkShiftContinuous(duts=self.duts, frequency=self.current_params['frequency'],
-                                                            amp_control=self.current_params['amp_control'],
-                                                            amp_target=self.current_params['amp_target'],
-                                                            rise=self.current_params['rise'],
-                                                            start=t_start, stop=t_stop, sweep_points=sweep_points,
-                                                            phase_diff=self.current_params['phase_diff'], echo=True)
+                                                        amp_control=self.current_params['amp_control'],
+                                                        amp_target=self.current_params['amp_target'],
+                                                        rise=self.current_params['rise'],
+                                                        start=t_start, stop=t_stop, sweep_points=sweep_points,
+                                                        phase_diff=self.current_params['phase_diff'], echo=True)
 
             inspection_results = sizzel_xy.get_ai_inspection_summary()
         else:
@@ -2507,7 +2501,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
 
         for i in range(maximum_experiments):
             if self._run_next_experiment(run_class=run_class, params=kwargs, filter_parameters=filter_parameters) in [
-                'finish', 'error']:
+                    'finish', 'error']:
                 break
 
     def _get_device_parameters_prompts(self):
@@ -2544,7 +2538,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
     def _run_next_experiment(self, run_class, params, filter_parameters=True):
 
         prompt = self._background_information + self._get_device_parameters_prompts() + \
-                 self._experiment_history_to_prompt() + self._objective_prompt
+            self._experiment_history_to_prompt() + self._objective_prompt
         # print(prompt)
 
         self._display_experiment_history()
@@ -2589,7 +2583,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
 
 class ConditionalStarkTwoQubitGateAmplitudeAdvise(Experiment):
 
-    n_points_to_try = 2 #5
+    n_points_to_try = 2  # 5
     _rewrite_json_requirement = True
 
     _experiment_result_analysis_instructions = """
@@ -2745,7 +2739,7 @@ class ConditionalStarkTwoQubitGateAmplitudeAttempt(ConditionalStarkEchoTuneUpAI)
             amplitude = duts[0].get_c1('f01').get_parameters()["amp"]
 
         super().run(self.duts, frequency=frequency,
-                                           amplitude=amplitude, **kwargs)
+                    amplitude=amplitude, **kwargs)
         inspection = self.get_ai_inspection_summary()
         self.inspection_summary = inspection
         tuning_env = TwoQubitTuningEnv()
@@ -2770,7 +2764,7 @@ class ConditionalStarkTwoQubitGateAmplitudeAttempt(ConditionalStarkEchoTuneUpAI)
 
 
 class ConditionalStarkTwoQubitGateFrequencyAdvise(Experiment):
-    n_points_to_try = 2 #15
+    n_points_to_try = 2  # 15
 
     _rewrite_json_requirement = True
 

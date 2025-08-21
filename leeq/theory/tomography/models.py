@@ -176,7 +176,7 @@ class MultiDutTomographyModels(StandardTomographyModels):
 
         # Find the sequence for multi-qubit system
         def _merge_sequence(x, y):
-            _get = lambda sequence, i: 'I' if i >= len(sequence) else sequence[i]
+            def _get(sequence, i): return 'I' if i >= len(sequence) else sequence[i]
             merged_sequence = []
             for i in range(max(len(x), len(y))):
                 merged_sequence.append((_get(x, i) + ':' + _get(y, i)))

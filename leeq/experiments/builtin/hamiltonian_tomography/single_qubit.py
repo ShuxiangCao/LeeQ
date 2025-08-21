@@ -1,15 +1,19 @@
-from typing import List, Union, Optional
+from typing import List, Optional, Union
 
 import numpy as np
-from leeq.chronicle import log_and_record, register_browser_function
-from plotly.subplots import make_subplots
 from plotly import graph_objects as go
+from plotly.subplots import make_subplots
 
-from leeq import Experiment, Sweeper, basic_run, SweepParametersSideEffectFactory
+from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, basic_run
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.core.primitives.built_in.common import Delay
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock, LogicalPrimitive, \
-    LogicalPrimitiveBlockParallel, LogicalPrimitiveBlockSweep
+from leeq.core.primitives.logical_primitives import (
+    LogicalPrimitive,
+    LogicalPrimitiveBlock,
+    LogicalPrimitiveBlockParallel,
+    LogicalPrimitiveBlockSweep
+)
 from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_2d_freq_with_cov
 from leeq.utils import setup_logging
 
@@ -200,12 +204,12 @@ class HamiltonianTomographySingleQubitXYBase(HamiltonianTomographySingleQubitBas
         frequency = fit_params['Frequency']
         amplitude = fit_params['Amplitude']
         phase = fit_params['Phase'] - 2.0 * \
-                np.pi * frequency * args['start_time']
+            np.pi * frequency * args['start_time']
         offset = fit_params['Offset']
 
         # Generate the fitted curve
         fitted_curve = amplitude * np.exp(1.j * (
-                2.0 * np.pi * frequency * time_points_interpolate + phase)) + offset
+            2.0 * np.pi * frequency * time_points_interpolate + phase)) + offset
 
         # Create a plot using Plotly
         fig = make_subplots(rows=1, cols=1)

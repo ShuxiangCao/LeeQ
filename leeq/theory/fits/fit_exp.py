@@ -1,8 +1,9 @@
-import uncertainties as unc
-from scipy.optimize import curve_fit
+from typing import Any, Dict, Optional, Tuple, Union
+
 import numpy as np
-from scipy.optimize import minimize
-from typing import Any, Dict, Optional, Union, Tuple
+import uncertainties as unc
+from scipy.optimize import curve_fit, minimize
+
 from leeq.utils.utils import setup_logging
 
 logger = setup_logging(__name__)
@@ -123,9 +124,9 @@ def fit_1d_freq(
 def _fit_exp_decay(z: np.ndarray,
                    dt: Optional[float] = None,
                    t: Optional[np.ndarray] = None) -> Dict[str,
-Union[float,
-Tuple[float,
-float]]]:
+                                                           Union[float,
+                                                                 Tuple[float,
+                                                                       float]]]:
     """
     Fits an exponential decay to the data points in z.
 

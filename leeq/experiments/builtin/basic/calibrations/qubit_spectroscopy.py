@@ -1,15 +1,16 @@
-from leeq.chronicle import log_and_record, register_browser_function
-from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, ExperimentManager
-from leeq.utils.compatibility import *
+from typing import Any, Dict, Optional, Union
 
-from typing import Dict, Any, Union, Optional
 import numpy as np
 import plotly.graph_objects as go
-
-from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from k_agents.inspection.decorator import visual_inspection
 
+from leeq import Experiment, ExperimentManager, Sweeper, SweepParametersSideEffectFactory
+from leeq.chronicle import log_and_record, register_browser_function
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+from leeq.utils.compatibility import setup
+
 __all__ = ['QubitSpectroscopyFrequency', 'QubitSpectroscopyAmplitudeFrequency']
+
 
 class QubitSpectroscopyFrequency(Experiment):
     """
@@ -215,8 +216,8 @@ class QubitSpectroscopyFrequency(Experiment):
 
         noise_scale = 100 / np.log(num_avs) / np.sqrt(width)
 
-        noise = (np.random.normal(0, noise_scale, response.shape) +
-                 1j * np.random.normal(0, noise_scale, response.shape))
+        noise = (np.random.normal(0, noise_scale, response.shape)
+                 + 1j * np.random.normal(0, noise_scale, response.shape))
 
         response = response + noise
 

@@ -1,7 +1,8 @@
-from .hdf5 import RecordHandlerHDF5
-from .dummy import RecordHandlerDummy
 from labchronicle.logger import setup_logging
+
+from .dummy import RecordHandlerDummy
 from .handlers import RecordHandlersBase
+from .hdf5 import RecordHandlerHDF5
 from .memory import RecordHandlerMemory
 
 logger = setup_logging(__name__)

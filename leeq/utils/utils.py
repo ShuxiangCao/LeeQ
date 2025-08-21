@@ -1,10 +1,9 @@
-import logging
-
 import getpass
 import inspect
+import logging
+import os
 import sys
 from pathlib import Path
-import os
 from typing import Any
 
 _existing_logger = {}
@@ -248,7 +247,7 @@ def display_json_dict(data: dict, root: str = None, expanded=False):
         root = 'root'
 
     if is_running_in_jupyter():
-        from IPython.display import display, JSON
+        from IPython.display import JSON, display
         display(JSON(data, root=root, expanded=expanded))
     else:
         import pprint

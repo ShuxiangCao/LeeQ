@@ -1,12 +1,12 @@
 import itertools
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 import numpy as np
-from leeq.chronicle import log_and_record, register_browser_function
 from matplotlib import pyplot as plt
 
-from leeq import Experiment, setup, Sweeper, ExperimentManager
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel
+from leeq import Experiment, ExperimentManager, Sweeper, setup
+from leeq.chronicle import log_and_record, register_browser_function
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockParallel, LogicalPrimitiveBlockSweep
 
 if TYPE_CHECKING:
     from leeq.core.elements.built_in.qudit_transmon import TransmonElement

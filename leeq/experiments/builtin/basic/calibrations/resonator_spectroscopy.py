@@ -1,20 +1,18 @@
 import pickle
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
-from typing import Optional, Union
-from scipy import optimize as so
 import plotly
-from leeq.chronicle import log_and_record, register_browser_function
-
+import plotly.graph_objects as go
 from k_agents.inspection.decorator import text_inspection, visual_inspection
+from scipy import optimize as so
+
+from leeq import Experiment, ExperimentManager, Sweeper, setup
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import SweepParametersSideEffectFactory
-from leeq import Experiment, Sweeper, ExperimentManager, setup
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
-from typing import List, Tuple, Dict, Any
-
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
 
@@ -169,8 +167,8 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
 
         noise_scale = 1 / num_avs
 
-        noise = (np.random.normal(0, noise_scale, response.shape) +
-                 1j * np.random.normal(0, noise_scale, response.shape))
+        noise = (np.random.normal(0, noise_scale, response.shape)
+                 + 1j * np.random.normal(0, noise_scale, response.shape))
 
         slope = np.random.normal(-0.1, 0.01)
 
@@ -453,8 +451,8 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
                         f0,
                         Q,
                         amp,
-                        baseline) *
-                      direction,
+                        baseline)
+                    * direction,
                     mode="lines",
                     name="Lorentzian fit",
                 ))
@@ -918,6 +916,7 @@ class MeasurementScanParams(Experiment):
             setup().status().set_param("Plot_Result_In_Jupyter", False)
 
         from leeq.experiments.builtin import MeasurementCalibrationMultilevelGMM
+
         # Perform measurement scan
         for freq in self.scanned_freqs:
             for amp in self.scanned_amps:

@@ -1,9 +1,9 @@
-import inspect
-import os
 import datetime
 import getpass
-from pathlib import Path
+import inspect
+import os
 import platform
+from pathlib import Path
 
 
 def get_system_info():

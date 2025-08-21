@@ -1,11 +1,11 @@
 import contextlib
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional
 
 from leeq.chronicle import log_event
 from leeq.core.base import LeeQObject
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import Sweeper
-from leeq.utils import setup_logging, is_running_in_jupyter
+from leeq.utils import is_running_in_jupyter, setup_logging
 
 logger = setup_logging(__name__)
 
@@ -292,10 +292,10 @@ class ExperimentalSetup(LeeQObject):
         Initialize the ExperimentalSetup class. Use init to define all the equipments in the setup.
         """
         assert (
-                "_compiler" in self.__dict__
+            "_compiler" in self.__dict__
         ), "The compiler is not defined in the setup, please define it in the __init__."
         assert (
-                "_engine" in self.__dict__
+            "_engine" in self.__dict__
         ), "The engine is not defined in the setup, please define it in the __init__."
         super().__init__(name)
         self._active = False

@@ -4,25 +4,21 @@ gRPC service implementation for EPII (Experiment Platform Intelligence Interface
 This module implements the ExperimentPlatformService defined in the EPII v1.0 standard.
 """
 
-import time
 import logging
+import time
 import traceback
-from typing import Dict, Any, Optional, List
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeoutError
+from typing import Any, Dict, List, Optional
 
 import grpc
 import numpy as np
 
-from .proto import epii_pb2
-from .proto import epii_pb2_grpc
 from .experiments import ExperimentRouter
 from .parameters import ParameterManager
-from .serialization import (
-    numpy_array_to_protobuf,
-    plotly_figure_to_protobuf,
-    deserialize_value
-)
-from .utils import RequestResponseLogger, PerformanceMonitor
+from .proto import epii_pb2, epii_pb2_grpc
+from .serialization import deserialize_value, numpy_array_to_protobuf, plotly_figure_to_protobuf
+from .utils import PerformanceMonitor, RequestResponseLogger
 
 logger = logging.getLogger(__name__)
 

@@ -1,13 +1,15 @@
 from typing import Any
-from fibers.tree.node_attr.code import get_type, get_obj
+
+from fibers.tree.node_attr.code import get_obj, get_type
 
 
 def _load_fitting_function_docstrings():
     """
     Load the docstrings of the fitting functions from the leeq package.
     """
-    from leeq.theory.fits import fit_exp
     from fibers.data_loader.module_to_tree import get_tree_for_module
+
+    from leeq.theory.fits import fit_exp
     module_root = get_tree_for_module(fit_exp)
 
     available_functions = {}

@@ -1,20 +1,21 @@
-from typing import List
+from typing import Any, Callable, List, Tuple
 
 import numpy as np
-from leeq.chronicle import register_browser_function
 
 import leeq.theory.utils
 from leeq import Experiment, Sweeper, basic_run
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockParallel, \
+from leeq.chronicle import register_browser_function
+from leeq.core.primitives.logical_primitives import (
+    LogicalPrimitiveBlockParallel,
+    LogicalPrimitiveBlockSerial,
     LogicalPrimitiveBlockSweep
+)
 from leeq.utils import setup_logging
 from leeq.utils.compatibility import *
 
 __all__ = ['PyGSTiExperiment', 'PyGSTiRBExperiment']
 
 logger = setup_logging(__name__)
-
-from typing import List, Any, Tuple, Callable
 
 
 class PyGSTiExperiment(Experiment):

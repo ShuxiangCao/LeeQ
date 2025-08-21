@@ -1,6 +1,7 @@
 import numpy as np
-from leeq.utils import setup_logging
 import scipy.linalg as sl
+
+from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
 

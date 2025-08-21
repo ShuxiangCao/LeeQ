@@ -2,10 +2,8 @@ from typing import Any
 
 import numpy as np
 
-
 from leeq.core.elements import Element
-from leeq.core.primitives import LogicalPrimitiveCollectionFactory, \
-    LogicalPrimitiveFactory, LogicalPrimitiveCollection
+from leeq.core.primitives import LogicalPrimitiveCollection, LogicalPrimitiveCollectionFactory, LogicalPrimitiveFactory
 
 
 class TransmonElement(Element):
@@ -19,10 +17,10 @@ class TransmonElement(Element):
         """
 
         # Register necessary factory classes
-        from leeq.core.primitives.built_in.simple_drive import SimpleDriveCollection
-        from leeq.core.primitives.built_in.simple_drive import QuditVirtualZCollection
         from leeq.core.primitives.built_in.simple_drive import (
+            QuditVirtualZCollection,
             SimpleDispersiveMeasurement,
+            SimpleDriveCollection
         )
 
         factory = LogicalPrimitiveCollectionFactory()
@@ -96,10 +94,7 @@ class TransmonElement(Element):
             parameters (dict): The parameters of the element.
         """
 
-        from leeq.core.primitives.built_in.simple_drive import (
-            SimpleDriveCollection,
-            SimpleDispersiveMeasurement,
-        )
+        from leeq.core.primitives.built_in.simple_drive import SimpleDispersiveMeasurement, SimpleDriveCollection
 
         for name, lpb_parameter in parameters["lpb_collections"].items():
             assert (

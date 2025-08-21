@@ -14,13 +14,13 @@ import sys
 import time
 from concurrent import futures
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 import grpc
 
 from .proto import epii_pb2_grpc
 from .service import ExperimentPlatformService
-from .utils import DiagnosticTool, format_diagnostic_report, create_debug_interceptor
+from .utils import DiagnosticTool, create_debug_interceptor, format_diagnostic_report
 
 logger = logging.getLogger(__name__)
 

@@ -8,6 +8,7 @@ LeeQ data types (numpy arrays, plotly figures) and EPII protobuf messages.
 import json
 import logging
 from typing import Any, Dict, Optional, Tuple
+
 import numpy as np
 
 try:
