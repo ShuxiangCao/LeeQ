@@ -1,7 +1,7 @@
 Here are paths to import and loading relevant modules and classes in LeeQ:
 
 ```python
-from labchronicle import log_and_record, register_browser_function
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, basic_run, setup
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup

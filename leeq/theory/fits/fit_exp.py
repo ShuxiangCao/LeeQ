@@ -1,8 +1,12 @@
-import uncertainties as unc
-from scipy.optimize import curve_fit
+from typing import Any, Dict, Optional, Tuple, Union
+
 import numpy as np
-from scipy.optimize import minimize
-from typing import Any, Dict, Optional, Union, Tuple
+import uncertainties as unc
+from scipy.optimize import curve_fit, minimize
+
+from leeq.utils.utils import setup_logging
+
+logger = setup_logging(__name__)
 
 
 def fit_1d_freq(
@@ -31,7 +35,7 @@ def fit_1d_freq(
     Example:
     >>> z = np.array([np.sin(2 * np.pi * 0.5 * t) for t in np.linspace(0, 10, 100)])
     >>> result = fit_1d_freq(z, 0.1)
-    >>> print(result)
+    >>> logger.info(result)
     {'Frequency': 0.5, 'Amplitude': 1.0, 'Phase': 0.0, 'Offset': 0.0, 'Residual': 0.0}
     """
     assert not fix_frequency or freq_guess is not None, "Frequency guess is required when fixing frequency."
@@ -51,8 +55,8 @@ def fit_1d_freq(
         min_omega, max_omega = omega * 0.5, omega * 1.5
 
     t = np.linspace(tstart, tstart + dt * (len(z) - 1), len(z))
-    cosz = z * np.cos(2.0 * np.pi * omega * t)
-    sinz = z * np.sin(2.0 * np.pi * omega * t)
+    z * np.cos(2.0 * np.pi * omega * t)
+    z * np.sin(2.0 * np.pi * omega * t)
     offset = np.mean(z)
     amp = 0.5 * (np.max(z) - np.min(z))
     phi = np.arcsin(np.clip((z[0] - offset) / amp, -1, 1))
@@ -120,9 +124,9 @@ def fit_1d_freq(
 def _fit_exp_decay(z: np.ndarray,
                    dt: Optional[float] = None,
                    t: Optional[np.ndarray] = None) -> Dict[str,
-Union[float,
-Tuple[float,
-float]]]:
+                                                           Union[float,
+                                                                 Tuple[float,
+                                                                       float]]]:
     """
     Fits an exponential decay to the data points in z.
 
@@ -170,7 +174,7 @@ def fit_exp_decay_with_cov(z: np.ndarray,
     Example:
     >>> z = np.array([np.exp(-t) for t in np.linspace(0, 10, 100)])
     >>> result = fit_exp_decay_with_cov(z, 0.1)
-    >>> print(result)
+    >>> logger.info(result)
     {'Amplitude': 1.0+/-0.01, 'Offset': 0.0+/-0.01, 'Decay': 1.0+/-0.01, 'Cov': array}
     """
     result = _fit_exp_decay(z, dt=dt, t=t)
@@ -214,7 +218,7 @@ def _fit_1d_freq_exp(z: np.ndarray, dt: float, use_freq_bound: bool = True) -> D
     Example:
     >>> z = np.array([np.exp(-t) * np.sin(2 * np.pi * 0.5 * t) for t in np.linspace(0, 10, 100)])
     >>> result = _fit_1d_freq_exp(z, 0.1)
-    >>> print(result)
+    >>> logger.info(result)
     {'Frequency': 0.5, 'Amplitude': 1.0, 'Phase': 0.0, 'Offset': 0.0, 'Decay': 1.0}
     """
     rfft = np.abs(np.fft.rfft(z))
@@ -233,8 +237,8 @@ def _fit_1d_freq_exp(z: np.ndarray, dt: float, use_freq_bound: bool = True) -> D
     max_omega = fmax + df
 
     # Pre-compute sine and cosine terms
-    cosz = z * np.cos(2.0 * np.pi * omega * t)
-    sinz = z * np.sin(2.0 * np.pi * omega * t)
+    z * np.cos(2.0 * np.pi * omega * t)
+    z * np.sin(2.0 * np.pi * omega * t)
 
     offset = np.mean(z)
     amp = 0.5 * (np.max(z) - np.min(z))
@@ -294,7 +298,7 @@ def fit_1d_freq_exp_with_cov(z: np.ndarray, dt: float, use_freq_bound: bool = Tr
     Example:
     >>> z = np.array([np.exp(-t) * np.sin(2 * np.pi * 0.5 * t) for t in np.linspace(0, 10, 100)])
     >>> result = fit_1d_freq_exp_with_cov(z, 0.1)
-    >>> print(result)
+    >>> logger.info(result)
     {'Frequency': 0.5+/-0.01, 'Amplitude': 1.0+/-0.01, 'Phase': 0.0+/-0.01, 'Offset': 0.0+/-0.01, 'Decay': 1.0+/-0.01, 'Cov': array}
     """
     result = _fit_1d_freq_exp(z=z, dt=dt, use_freq_bound=use_freq_bound)
@@ -341,8 +345,8 @@ def _fft_based_initial_estimation(z, dt):
 def _fit_2d_freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=None, t=None, **kwargs):
     # Initial frequency and amplitude estimation
     # estimated_frequency, estimated_amplitude = fft_based_initial_estimation(z, dt)
-    # print(f'Initial Frequency Estimate: {estimated_frequency}')
-    # print(f'Initial Amplitude Estimate: {estimated_amplitude}')
+    # logger.debug(f'Initial Frequency Estimate: {estimated_frequency}')
+    # logger.debug(f'Initial Amplitude Estimate: {estimated_amplitude}')
 
     if fix_frequency:
         assert freq_guess is not None
@@ -476,7 +480,7 @@ def fit_2d_freq_with_cov(z, dt, use_freq_bound=True, fix_frequency=False, freq_g
     >>> z = np.array([np.exp(-t) * np.exp(1.j * 2 * np.pi * 0.5 * t) for t in np.linspace(0, 10, 100)])
     >>> z = np.stack([z.real, z.imag], axis=-1)
     >>> result = fit_2d_freq_with_cov(z, 0.1)
-    >>> print(result)
+    >>> logger.info(result)
     {'Frequency': 0.5+/-0.01, 'Amplitude': 1.0+/-0.01, 'Phase': 0.0+/-0.01, 'Offset': 0.0+/-0.01, 'Decay': 1.0+/-0.01, 'Cov': array}
     """
     direct_estimation = _fit_2d_freq(z, dt, use_freq_bound=use_freq_bound, fix_frequency=fix_frequency,

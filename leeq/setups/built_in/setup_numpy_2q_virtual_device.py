@@ -1,5 +1,5 @@
 import functools
-from typing import List, Union, Dict
+from typing import Dict
 from uuid import UUID
 
 import numpy as np
@@ -7,12 +7,12 @@ import numpy as np
 from leeq.compiler.individual_lpb_compiler import IndividualLPBCompiler
 from leeq.core.context import ExperimentContext
 from leeq.core.engine.measurement_result import MeasurementResult
-from leeq.core.primitives.built_in.common import PhaseShift, DelayPrimitive
+from leeq.core.primitives.built_in.common import DelayPrimitive, PhaseShift
 from leeq.core.primitives.logical_primitives import (
     LogicalPrimitiveBlock,
+    LogicalPrimitiveBlockParallel,
     LogicalPrimitiveBlockSerial,
     LogicalPrimitiveBlockSweep,
-    LogicalPrimitiveBlockParallel,
     MeasurementPrimitive,
 )
 from leeq.experiments.sweeper import Sweeper
@@ -248,7 +248,7 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
 
         self._uuid_to_qubit_shape = {}
 
-        for (channel, freq), pos, shape_buffer, lp_uuid in context.instructions[
+        for (channel, _freq), _pos, shape_buffer, lp_uuid in context.instructions[
             "pulse_sequence"
         ]:
             if channel not in self._channel_to_qubit:
@@ -279,7 +279,6 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
         if context is not None:
             self._current_context = context
 
-        self._current_context.results = [
-            x for x in self._measurement_results.values()]
+        self._current_context.results = list(self._measurement_results.values())
 
         return context

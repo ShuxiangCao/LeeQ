@@ -1,0 +1,37 @@
+{
+  "setup_type": "simulation",
+  "setup_name": "simulation_2q_test",
+  "port": 50051,
+  "parameters": {
+    "num_qubits": 2,
+    "simulation_backend": "numpy",
+    "qubits": {
+      "q0": {
+        "f01": 5.0e9,
+        "anharmonicity": -0.33e9,
+        "t1": 20e-6,
+        "t2": 15e-6,
+        "pi_amp": 0.5,
+        "pi_len": 40
+      },
+      "q1": {
+        "f01": 5.1e9,
+        "anharmonicity": -0.32e9,
+        "t1": 25e-6,
+        "t2": 18e-6,
+        "pi_amp": 0.45,
+        "pi_len": 38
+      }
+    },
+    "couplings": {
+      "q0-q1": {
+        "strength": 5e6,
+        "type": "capacitive"
+      }
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "epii_test.log"
+  }
+}

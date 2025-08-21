@@ -2,7 +2,7 @@ import itertools
 
 import numpy as np
 import qutip
-from qutip import basis, destroy, qeye, tensor, mesolve
+from qutip import basis, destroy, mesolve, qeye, tensor
 
 
 class QutipPulsedSimulator(object):
@@ -35,20 +35,20 @@ class QutipPulsedSimulator(object):
             "g": basis(self._level_truncate, 0),  # ground state
             "e": basis(self._level_truncate, 1),  # excited state
             "X": basis(self._level_truncate, 0) * basis(self._level_truncate, 1).dag()
-            + basis(self._level_truncate, 1) * \
-            basis(self._level_truncate, 0).dag(),
+            + basis(self._level_truncate, 1)
+            * basis(self._level_truncate, 0).dag(),
             "Y": -1.0j
             * (
-                basis(self._level_truncate, 0) * \
-                basis(self._level_truncate, 1).dag()
-                - basis(self._level_truncate, 1) * \
-                basis(self._level_truncate, 0).dag()
+                basis(self._level_truncate, 0)
+                * basis(self._level_truncate, 1).dag()
+                - basis(self._level_truncate, 1)
+                * basis(self._level_truncate, 0).dag()
             ),
             "Z": -(
-                basis(self._level_truncate, 1) * \
-                basis(self._level_truncate, 1).dag()
-                - basis(self._level_truncate, 0) * \
-                basis(self._level_truncate, 0).dag()
+                basis(self._level_truncate, 1)
+                * basis(self._level_truncate, 1).dag()
+                - basis(self._level_truncate, 0)
+                * basis(self._level_truncate, 0).dag()
             ),
         }
         self._name_to_id = {}

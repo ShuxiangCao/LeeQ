@@ -1,15 +1,12 @@
+import itertools
 from functools import reduce
 from typing import Any, List
 
-import numpy as np
-
 from leeq.core.context import ExperimentContext
+from leeq.core.engine.engine_base import EngineBase
 from leeq.core.engine.measurement_result import MeasurementResult
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock, MeasurementPrimitive
 from leeq.experiments.sweeper import Sweeper
-from leeq.core.engine.engine_base import EngineBase
-import itertools
-
 from leeq.utils import is_running_in_jupyter
 
 _in_jupyter = is_running_in_jupyter()
@@ -115,7 +112,7 @@ class GridSerialSweepEngine(EngineBase):
 
             if not measurement_primitive.is_buffer_allocated():
                 # Allocate new buffer
-                buffer_shape = list(sweep_shape) + \
+                list(sweep_shape) + \
                     list(measurement_result.shape)
                 assert len(measurement_result.shape) > 1, (
                     f"The shape of the measurement result {measurement_result.shape} should be at least 2D,"
@@ -128,7 +125,6 @@ class GridSerialSweepEngine(EngineBase):
                     dtype=measurement_result.data.dtype)
 
             # Write to buffer
-            indices = self._context.step_no
             measurement_primitive.commit_measurement(
                 indices=self._context.step_no, data=measurement_result.data)
 
@@ -175,8 +171,8 @@ class GridBatchSweepEngine(EngineBase):
 
         contexts = [
             ExperimentContext(
-                self._name +
-                f".context_{i}") for i in range(batch_size)]
+                self._name
+                + f".context_{i}") for i in range(batch_size)]
 
         self._context = contexts
 
@@ -272,7 +268,7 @@ class GridBatchSweepEngine(EngineBase):
 
             if not measurement_primitive.is_buffer_allocated():
                 # Allocate new buffer
-                buffer_shape = list(sweep_shape) + \
+                list(sweep_shape) + \
                     list(measurement_result.shape)
                 assert len(measurement_result.shape) > 1, (
                     f"The shape of the measurement result {measurement_result.shape} should be at least 2D,"
@@ -285,7 +281,6 @@ class GridBatchSweepEngine(EngineBase):
                     dtype=measurement_result.data.dtype)
 
             # Write to buffer
-            indices = context.step_no
             measurement_primitive.commit_measurement(
                 indices=context.step_no, data=measurement_result.data)
 

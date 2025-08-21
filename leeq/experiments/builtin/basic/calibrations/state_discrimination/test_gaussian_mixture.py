@@ -1,13 +1,9 @@
+import numpy as np
 import pytest
 from sklearn.mixture import GaussianMixture
-import pytest
-import numpy as np
-from leeq.experiments.builtin import (
-    fit_gmm_model,
-    measurement_transform_gmm,
-    find_output_map,
-    calculate_signal_to_noise_ratio)
 from sklearn.pipeline import Pipeline
+
+from leeq.experiments.builtin import calculate_signal_to_noise_ratio, find_output_map, fit_gmm_model, measurement_transform_gmm
 
 
 @pytest.fixture
@@ -28,10 +24,10 @@ def sample_complex_data_simple(sample_data):
 def sample_complex_data():
     # Generating some random sample complex data for testing purposes
     np.random.seed(0)
-    data_1 = (np.random.standard_normal(100) + 1j *
-              np.random.standard_normal(100)) + (1 + 2.j)
-    data_2 = (np.random.standard_normal(100) + 1j *
-              np.random.standard_normal(100)) + (5 + 6.j)
+    data_1 = (np.random.standard_normal(100) + 1j
+              * np.random.standard_normal(100)) + (1 + 2.j)
+    data_2 = (np.random.standard_normal(100) + 1j
+              * np.random.standard_normal(100)) + (5 + 6.j)
 
     # draw a dataset that is 30% from data_1 and 70% from data_2
     data_a = np.random.choice([0, 1], size=100, p=[0.3, 0.7])

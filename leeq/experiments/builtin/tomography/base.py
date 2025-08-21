@@ -1,8 +1,8 @@
 import numpy as np
-from labchronicle import register_browser_function, log_and_record
 from matplotlib import pyplot as plt
 
 from leeq import Experiment, Sweeper, basic_run
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.theory.utils import to_dense_probabilities
 from leeq.utils.compatibility import prims
 

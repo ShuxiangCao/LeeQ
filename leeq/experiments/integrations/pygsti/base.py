@@ -1,20 +1,21 @@
-from typing import List
+from typing import Any, Callable, List, Tuple
 
 import numpy as np
-from labchronicle import register_browser_function
 
 import leeq.theory.utils
 from leeq import Experiment, Sweeper, basic_run
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockParallel, \
-    LogicalPrimitiveBlockSweep
+from leeq.chronicle import register_browser_function
+from leeq.core.primitives.logical_primitives import (
+    LogicalPrimitiveBlockParallel,
+    LogicalPrimitiveBlockSerial,
+    LogicalPrimitiveBlockSweep,
+)
 from leeq.utils import setup_logging
 from leeq.utils.compatibility import *
 
 __all__ = ['PyGSTiExperiment', 'PyGSTiRBExperiment']
 
 logger = setup_logging(__name__)
-
-from typing import List, Any, Tuple, Callable
 
 
 class PyGSTiExperiment(Experiment):
@@ -23,7 +24,7 @@ class PyGSTiExperiment(Experiment):
     data collection, and processing. Inherits from a generic Experiment class.
     """
 
-    def _pygsti_design_to_lpbs(self, exp_design: "pygsti design",
+    def _pygsti_design_to_lpbs(self, exp_design,  # pygsti design
                                duts: List['TransmonElements'],
                                mprim_indexes: List[int],
                                gate_name_to_lpb_func: Callable) -> Tuple[List[Any], List[Any]]:
@@ -46,7 +47,6 @@ class PyGSTiExperiment(Experiment):
         lpb_sequences = []
 
         for circuit in list_of_experiments:
-            depth = circuit.num_layers
             lpb = []
 
             layer = circuit.to_label()
@@ -106,7 +106,7 @@ class PyGSTiExperiment(Experiment):
         """
         self.outcome_labels = ['0', '1']
 
-        for i in range(duts_count - 1):
+        for _i in range(duts_count - 1):
             self.outcome_labels = [x + '0' for x in self.outcome_labels] + [x + '1' for x in self.outcome_labels]
 
     def run(self, design, duts: List['TransmonElements'], mprim_indexes: List[int]):

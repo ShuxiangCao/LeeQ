@@ -1,5 +1,10 @@
 import numpy as np
+
+from leeq.utils.utils import setup_logging
+
 from .utils import *
+
+logger = setup_logging(__name__)
 
 
 def simulate_ideal_state_tomography_distribution(rho0: np.ndarray,
@@ -83,7 +88,7 @@ class StandardStateTomography:
         expected_rank = self.dimension ** 2
 
         if rank != expected_rank:
-            print(f"Measurement basis is not complete. Expected rank: {expected_rank}, got rank: {rank}.")
+            logger.warning(f"Measurement basis is not complete. Expected rank: {expected_rank}, got rank: {rank}.")
 
         assert rank == expected_rank, \
             (f"Measurement basis is not complete. Expected rank: {expected_rank},"

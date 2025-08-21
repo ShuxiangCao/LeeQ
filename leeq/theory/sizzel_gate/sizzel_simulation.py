@@ -1,10 +1,11 @@
 import datetime
 import pickle
-import numpy as np
-import multiprocessing
+
 import matplotlib.colors as colors
-from matplotlib import pyplot as plt
+import numpy as np
+import qutip as qp
 from matplotlib import cm
+from matplotlib import pyplot as plt
 from tqdm.contrib.concurrent import process_map
 
 N = 4
@@ -22,7 +23,6 @@ freq_delta = freq_q2 - freq_q1  # -70
 points_x = 2001
 points_y = 401
 
-import qutip as qp
 
 a = qp.tensor(qp.destroy(N), qp.identity(N))
 ad = a.dag()
@@ -170,7 +170,7 @@ def solve_all_t_values(file, plot=False):
     zz_list = data['zz_list']
     delta_list = data['delta_list']
     eps_list = data['eps_list']
-    simulation_time = data['time']
+    data['time']
 
     def solve_t_wrapper(x):
         i, j = x
@@ -201,10 +201,8 @@ def solve_all_t_values(file, plot=False):
 
 def print_specific_configuration(drive_strength, detuning):
     zz = solve_zz((drive_strength, detuning))
-    ts = solve_t(zz)
+    solve_t(zz)
 
-    print(zz)
-    print(ts)
 
 
 def plot_data(data):
@@ -215,7 +213,7 @@ def plot_data(data):
     zz_list = data['zz_list']
     delta_list = data['delta_list']
     eps_list = data['eps_list']
-    simulation_time = data['time']
+    data['time']
 
     X, Y = np.meshgrid(delta_list, eps_list)
 
@@ -226,9 +224,7 @@ def plot_data(data):
         r'$\delta_{22}$'
     ]
 
-    print(data.keys())
 
-    print(data['alpha'])
 
     if alpha_1 not in data:
         data['alpha_1'] = data['alpha']
@@ -254,7 +250,6 @@ def plot_data(data):
         plt.xlabel(r"$Drive~detuning (MHz)$")
         plt.ylabel('Drive~strength (MHz)')
 
-    print(simulation_time)
     plt.show()
 
 
@@ -266,7 +261,7 @@ def plot_time(file):
     zz_list = data['zz_list']
     delta_list = data['delta_list']
     eps_list = data['eps_list']
-    simulation_time = data['time']
+    data['time']
     t_map = data['t_map']
 
     zz = solve_zz((0, 0))
@@ -286,21 +281,21 @@ def plot_time(file):
         data['alpha_2'] = data['alpha']
 
     fig, ax = plt.subplots()
-    #ax.set_title(
+    # ax.set_title(
     #    r"Time required to implement qutrit CZ" + rf'$\alpha={data["alpha_1"]},{data["alpha_2"]}$[MHz] $J={data["J"]}$[MHz] $\Delta={data["freq_delta"]}$[MHz] $N={data["N"]}$')
     norm = colors.SymLogNorm(linthresh=0.0003, vmin=-100, vmax=100)
 
-    norm = colors.LogNorm(vmin=1,vmax=np.max(t_map_plot))
-    #norm = colors.PowerNorm(0.5)
+    norm = colors.LogNorm(vmin=1, vmax=np.max(t_map_plot))
+    # norm = colors.PowerNorm(0.5)
     cmap = 'viridis_r'
-    #cmap = 'RdBu'
+    # cmap = 'RdBu'
     #
-    ax.pcolor(X, Y, t_map_plot, norm=norm, cmap = cmap)
+    ax.pcolor(X, Y, t_map_plot, norm=norm, cmap=cmap)
 
     fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax)
 
-    #cs = ax.contour(X, Y, np.abs(t_map_plot), levels=[1], colors=['Orange'])
-    #ax.clabel(cs, inline=True, fontsize=8)
+    # cs = ax.contour(X, Y, np.abs(t_map_plot), levels=[1], colors=['Orange'])
+    # ax.clabel(cs, inline=True, fontsize=8)
     ax.patch.set_facecolor('black')
 
     ax.set_xlabel(r"$Drive~detuning (MHz)$")
@@ -316,15 +311,15 @@ def print_exact_point(filename, x, y):
     zz_list = data['zz_list']
     delta_list = data['delta_list']
     eps_list = data['eps_list']
-    simulation_time = data['time']
+    data['time']
     t_map = data['t_map']
 
     X, Y = np.meshgrid(delta_list, eps_list)
 
-    x_index = np.argmin(np.abs(X - x))
-    y_index = np.argmin(np.abs(Y - y))
+    np.argmin(np.abs(X - x))
+    np.argmin(np.abs(Y - y))
 
-    t_map_print = np.asarray([x[0] for x in t_map]).reshape(zz_list.shape[:2])
+    np.asarray([x[0] for x in t_map]).reshape(zz_list.shape[:2])
 
     # print(f"[{x_index}:{y_index}]zz:{zz_list[:, x_index, y_index]},t:{t_map_print]}")
 
@@ -360,6 +355,6 @@ if __name__ == '__main__':
     # main(name_A2_B2_corrected)
 
     # solve_all_t_values(name_A2_B2_corrected)
-    #plot_data(name_70)
+    # plot_data(name_70)
     plot_time(name_70)
     # print(ret_zz(alpha, J, 10, -50, freq_delta))

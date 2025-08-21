@@ -1,22 +1,19 @@
 import copy
 from http.client import CannotSendRequest
-from typing import List, Union, Dict, Any
-from uuid import UUID
+from typing import Any, Dict, List
+from urllib.parse import urlparse
 
 import numpy as np
 
 from leeq.compiler.lbnl_qubic.circuit_list_compiler import QubiCCircuitListLPBCompiler
 from leeq.compiler.lbnl_qubic.utils import register_leeq_pulse_shapes_to_qubic_pulse_shape_factory
 from leeq.core.context import ExperimentContext
-from leeq.core.engine.grid_sweep_engine import GridSerialSweepEngine, GridBatchSweepEngine
+from leeq.core.engine.grid_sweep_engine import GridBatchSweepEngine, GridSerialSweepEngine
 from leeq.core.engine.measurement_result import MeasurementResult
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import ExperimentalSetup
 from leeq.utils import setup_logging
-
-from urllib.parse import urlparse
-from pprint import pprint
 
 logger = setup_logging(__name__)
 
@@ -209,7 +206,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
             # QubiC configuration management libraries
             import qubitconfig.qchip as qc
-            from distproc.hwconfig import FPGAConfig, load_channel_configs, ChannelConfig
+            from distproc.hwconfig import ChannelConfig, FPGAConfig, load_channel_configs
 
         except ImportError:
             raise ImportError(
@@ -275,7 +272,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
         measure_start_time = -1
         measurement_length = -1
         channel_demodulation_config = {}
-        for proc_group, instructions in compiled_instructions.program.items():
+        for _proc_group, instructions in compiled_instructions.program.items():
             for instruction in instructions:
                 if instruction['op'] == 'pulse' and 'rdlo' in instruction["dest"]:
 
@@ -354,7 +351,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
         tc, qc, FPGAConfig, load_channel_configs, ChannelConfig = self._load_qubic_package()
 
         if self._status.get_parameters("QubiC_Debug_Print_Circuits"):
-            pprint(circuits)
+            pass
 
         # Register leeq pulse shapes to QubiC
         register_leeq_pulse_shapes_to_qubic_pulse_shape_factory()
@@ -365,7 +362,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
         if self._status.get_parameters(
                 "QubiC_Debug_Print_Compiled_Instructions"):
-            pprint(compiled_instructions.program)
+            pass
 
         asm_prog = tc.run_assemble_stage(
             compiled_instructions, self._channel_configs)
@@ -454,7 +451,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
             # Demodulate the data
             demodulated_result = self._software_demodulation(data['0'], channel_demodulation_config)
 
-            qubic_channel_channel_to_core = dict([(val, key) for key, val in self._core_to_channel_map.items()])
+            qubic_channel_channel_to_core = {val: key for key, val in self._core_to_channel_map.items()}
 
             self._result = {qubic_channel_channel_to_core[channel]: demodulated_result[channel] for channel in
                             demodulated_result.keys()}
@@ -568,17 +565,17 @@ class QubiCCircuitSetup(ExperimentalSetup):
         # until the previous acquisition is returned to python, which is much longer than the shot interval.
         acquisition_type = self._status.get_parameters("Acquisition_Type")
         if acquisition_type == 'traces':
-            assert len(contexts) == 1, """Traces acquisition only supports batch size 1. Use 
+            assert len(contexts) == 1, """Traces acquisition only supports batch size 1. Use
                 setup().status().set_param('Engine_Batch_Size',1) to set the batch size to 1."""
             combined_circuits = contexts[0].instructions["circuits"]
         else:
             for context in contexts:
                 combined_circuits += delay_between_shots + \
-                                     context.instructions["circuits"]
+                    context.instructions["circuits"]
 
         # The dirtiness is true when at least one of the circuits is dirty
         merged_dirtiness = {
-            k: any([context.instructions["dirtiness"][k] for context in contexts]) for k in
+            k: any(context.instructions["dirtiness"][k] for context in contexts) for k in
             contexts[0].instructions["dirtiness"].keys()
         }
 

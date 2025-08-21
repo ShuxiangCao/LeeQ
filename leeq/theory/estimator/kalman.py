@@ -24,4 +24,3 @@ class KalmanFilter1D:
 
         # Update the error covariance
         self.P = (1 - K) * self.P
-

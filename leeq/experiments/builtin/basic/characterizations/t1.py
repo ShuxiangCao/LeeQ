@@ -1,18 +1,19 @@
-from typing import Optional, Any, List, Union
+from typing import Any, List, Optional, Union
+
 import numpy as np
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from plotly import graph_objects as go
 
-from labchronicle import register_browser_function, log_and_record
-
-from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import Experiment, Sweeper
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.fits import fit_exp_decay_with_cov
+from leeq.theory.fits.multilevel_decay import fit_decay as fit_multilevel_decay
+from leeq.theory.fits.multilevel_decay import plot
 from leeq.theory.utils import to_dense_probabilities
 from leeq.utils import setup_logging
 from leeq.utils.compatibility import *
 from leeq.utils.compatibility.prims import SweepLPB
-from leeq.theory.fits.multilevel_decay import fit_decay as fit_multilevel_decay, plot
 
 logger = setup_logging(__name__)
 
@@ -41,7 +42,7 @@ class SimpleT1(Experiment):
         Plots the T1 decay.
     """
 
-    _experiment_result_analysis_instructions = """The T1 experiment measures the relaxation time of a qubit. 
+    _experiment_result_analysis_instructions = """The T1 experiment measures the relaxation time of a qubit.
     Please analyze the fitted plots and the fitting model to verify the data's validity. Subsequently, determine
     if the experiment needs to be rerun and adjust the experimental parameters as necessary. The suggested time
     length should be approximately 5 times the T1 value. If there is a significant discrepancy, adjust the time
@@ -51,14 +52,14 @@ class SimpleT1(Experiment):
 
     @log_and_record(overwrite_func_name='SimpleT1.run')
     def run_simulated(self,
-            qubit: Any,  # Add the expected type for 'qubit' instead of Any
-            collection_name: str = 'f01',
-            # Add the expected type for 'initial_lpb' instead of Any
-            initial_lpb: Optional[Any] = None,
-            mprim_index: int = 0,
-            time_length: float = 100.0,
-            time_resolution: float = 1.0
-            ) -> None:
+                      qubit: Any,  # Add the expected type for 'qubit' instead of Any
+                      collection_name: str = 'f01',
+                      # Add the expected type for 'initial_lpb' instead of Any
+                      initial_lpb: Optional[Any] = None,
+                      mprim_index: int = 0,
+                      time_length: float = 100.0,
+                      time_resolution: float = 1.0
+                      ) -> None:
         """Run the T1 experiment with the specified parameters.
 
         Parameters:
@@ -145,7 +146,7 @@ class SimpleT1(Experiment):
         """
         args = self._get_run_args_dict()
 
-        t = np.arange(0, args['time_length'], args['time_resolution'])
+        np.arange(0, args['time_length'], args['time_resolution'])
         trace = self.trace
 
         fit_params = fit_exp_decay_with_cov(trace, args['time_resolution'])
@@ -196,11 +197,11 @@ class SimpleT1(Experiment):
         trace_scatter = go.Scatter(
             x=t, y=trace,
             mode='markers',
-            marker=dict(
+            marker={
                 # symbol='x',
-                size=5,
+                'size': 5,
                 # color='blue'
-            ),
+            },
             name='Experiment data'
         )
 
@@ -217,9 +218,9 @@ class SimpleT1(Experiment):
                 x=t,
                 y=fit_params['Amplitude'].n * np.exp(-t / fit_params['Decay'].n) + fit_params['Offset'].n,
                 mode='lines',
-                line=dict(
-                    color='blue'
-                ),
+                line={
+                    'color': 'blue'
+                },
                 visible='legendonly',
                 name='Decay fit'
             )
@@ -231,8 +232,8 @@ class SimpleT1(Experiment):
 
         layout = go.Layout(
             title=title,
-            xaxis=dict(title='Time (us)'),
-            yaxis=dict(title='P(1)'),
+            xaxis={'title': 'Time (us)'},
+            yaxis={'title': 'P(1)'},
             plot_bgcolor='white',
             showlegend=True
         )
@@ -309,17 +310,17 @@ class MultiQubitT1(Experiment):
             qubit.get_c1(collection_name) for qubit,
             collection_name in zip(
                 duts,
-                collection_names)]
+                collection_names, strict=False)]
         mps = [
             qubit.get_measurement_prim_intlist(mprim_index) for qubit,
             mprim_index in zip(
                 duts,
-                mprim_indexes)]
+                mprim_indexes, strict=False)]
         self.mps = mps
         delay = prims.Delay(0)
 
         lpb = prims.ParallelLPB([c1['X'] for c1 in c1s]) + \
-              delay + prims.ParallelLPB(mps)
+            delay + prims.ParallelLPB(mps)
 
         if initial_lpb:
             lpb = initial_lpb + lpb
@@ -330,6 +331,58 @@ class MultiQubitT1(Experiment):
 
         basic(lpb, swp, 'p(1)')
         self.traces = [np.squeeze(mp.result()) for mp in mps]
+
+    @log_and_record(overwrite_func_name='MultiQubitT1.run')
+    def run_simulated(self,
+                      duts: List[Any],
+                      collection_names: Union[str, List[str]] = 'f01',
+                      initial_lpb: Optional[Any] = None,
+                      mprim_indexes: int = 0,
+                      time_length: float = 100.0,
+                      time_resolution: float = 1.0
+                      ) -> None:
+        """Run simulated multi qubit T1 experiment.
+
+        Parameters:
+        duts (List[Any]): A list of qubit objects to be used in the experiment.
+        collection_names (Union[str,List[str]]): The collection name for the qubit transition.
+        initial_lpb (Optional[Any]): Initial list of pulse blocks (LPB).
+        mprim_indexes (int): Index of the measurement primitive.
+        time_length (float): Total time length of the experiment in microseconds.
+        time_resolution (float): Time resolution for the experiment in microseconds.
+        """
+        if isinstance(collection_names, str):
+            collection_names = [collection_names] * len(duts)
+
+        self.collection_names = collection_names
+
+        # Get setup and virtual qubits
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+
+        # Create time array
+        sweep_range = np.arange(0.0, time_length, time_resolution)
+
+        # Simulate T1 decay for each qubit independently
+        self.traces = []
+        for dut in duts:
+            virtual_qubit = simulator_setup.get_virtual_qubit(dut)
+            if virtual_qubit is None:
+                raise ValueError(f"No virtual qubit found for {dut}")
+
+            # Get T1 value for this qubit
+            t1 = virtual_qubit.t1  # in microseconds
+
+            # Calculate T1 decay
+            data = np.exp(-sweep_range / t1)
+
+            # If sampling noise is enabled, simulate the noise
+            if setup().status().get_param('Sampling_Noise'):
+                # Get the number of shots used in the simulation
+                shot_number = setup().status().get_param('Shot_Number')
+                # Generate binomial distribution to simulate sampling noise
+                data = np.random.binomial(shot_number, data) / shot_number
+
+            self.traces.append(data)
 
     @register_browser_function(available_after=(run,))
     def plot_all(self):
@@ -361,11 +414,11 @@ class MultiQubitT1(Experiment):
         trace_scatter = go.Scatter(
             x=t, y=trace,
             mode='markers',
-            marker=dict(
-                symbol='x',
-                size=10,
-                color='blue'
-            ),
+            marker={
+                'symbol': 'x',
+                'size': 10,
+                'color': 'blue'
+            },
             name='Experiment data'
         )
 
@@ -379,9 +432,9 @@ class MultiQubitT1(Experiment):
                 x=t,
                 y=fit_params['Amplitude'].n * np.exp(-t / fit_params['Decay'].n) + fit_params['Offset'].n,
                 mode='lines',
-                line=dict(
-                    color='blue'
-                ),
+                line={
+                    'color': 'blue'
+                },
                 name='Decay fit'
             )
             title = (
@@ -392,8 +445,8 @@ class MultiQubitT1(Experiment):
 
         layout = go.Layout(
             title=title,
-            xaxis=dict(title='Time (us)'),
-            yaxis=dict(title='P(1)'),
+            xaxis={'title': 'Time (us)'},
+            yaxis={'title': 'P(1)'},
             plot_bgcolor='white',
             showlegend=True
         )
@@ -481,7 +534,7 @@ class MultiQuditT1Decay(Experiment):
                     {},
                     'delay')])
 
-        mprims = [dut.get_measurement_prim_intlist(mprim_index) for mprim_index, dut in zip(mprim_indexes, duts)]
+        mprims = [dut.get_measurement_prim_intlist(mprim_index) for mprim_index, dut in zip(mprim_indexes, duts, strict=False)]
 
         lpb = lpb + prims.ParallelLPB(mprims)
 
@@ -508,7 +561,7 @@ class MultiQuditT1Decay(Experiment):
         self.fit_params = []
         self.t1_list = []
 
-        for i, prob in enumerate(self.probs):
+        for i, _prob in enumerate(self.probs):
             initial_state, gamma = self.analyze_single_dut(i)
             self.fit_params.append((initial_state, gamma))
 
@@ -543,9 +596,9 @@ class MultiQuditT1Decay(Experiment):
         for i in range(len(self.probs)):
             probs = self.probs[i].transpose([1, 2, 0])
             fit_param = self.fit_params[i]
-            t1s = self.t1_list[i]
+            self.t1_list[i]
             fig = plot(probs=probs, time_length=self.time_length, time_resolution=self.time_resolution,
                        initial_distribution=fit_param[0], gamma=fit_param[1])
             for i in range(self.max_level):
-                print(f"T1_{i + 1}{i} = {t1s[i]}")
+                pass
             fig.show()

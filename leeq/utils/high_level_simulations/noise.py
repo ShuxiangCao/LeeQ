@@ -20,7 +20,7 @@ def apply_noise_to_data(readout_qubit: VirtualTransmon, data: np.ndarray):
         The data with noise applied.
     """
 
-    data = (data + 1)/2
+    data = (data + 1) / 2
 
     # If sampling noise is enabled, simulate the noise
     if setup().status().get_param('Sampling_Noise'):

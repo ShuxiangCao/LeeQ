@@ -2,19 +2,18 @@ from typing import List, Union
 
 import numpy as np
 import scipy.linalg
+import scipy.optimize as so
+import uncertainties as unc
 import uncertainties.umath as umath
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from matplotlib import pyplot as plt
 
-from labchronicle import log_and_record, register_browser_function
-
-from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import Experiment, Sweeper, basic_run, setup
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.cliffords import get_clifford_from_id
 from leeq.utils.compatibility import prims
-import scipy.optimize as so
-import uncertainties as unc
 
 __all__ = ['RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem', 'SingleQubitRandomizedBenchmarking']
 
@@ -115,7 +114,7 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         lpbs = []
         for seq in seq_length:
             lpb_list_same_length = []
-            for k in range(kinds):
+            for _k in range(kinds):
                 lpb_for_different_duts_list = []
                 for j in range(len(dut_list)):
                     _, lpb = self.generate_sequence(length=seq, dut_id=j)
@@ -132,7 +131,7 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         m_prims = [dut.get_measurement_prim_intlist(
             mprim_index) for dut in dut_list]
         final_lpb = flip_up_lpb + sweep_lpb + \
-                    flip_down_lpb + prims.ParallelLPB(m_prims)
+            flip_down_lpb + prims.ParallelLPB(m_prims)
 
         # Execute the basic run
         basic_run(final_lpb, swp, '<zs>')
@@ -262,7 +261,6 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         """
         d = 2
         infidelity_per_clifford = (d - 1) / d * (1 - umath.exp(rb_parameters[1]))
-        N_g = 1.825
         infidelity_per_gate = 1 - (1 - infidelity_per_clifford) ** (1 / 1.825)
         return infidelity_per_clifford, infidelity_per_gate
 
@@ -282,8 +280,7 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         """
         # Retrieving arguments and initializing variables
         args = self._get_run_args_dict()
-        seq_length = self.seq_length
-        kinds = args['kinds']
+        args['kinds']
 
         # Initialize lists to store results
         self.mean: List[float] = []
@@ -319,13 +316,12 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         try:
             # self.analyze_decay()
             analyze_success = True
-        except Exception as e:
-            print(repr(e))
+        except Exception:
             analyze_success = False
 
         args = self._get_run_args_dict()
         x = self.seq_length
-        kinds = args['kinds']
+        args['kinds']
         xs = np.linspace(x[0], x[-1], 100)
 
         levels = len(self.rb_parameters[qubit_id])
@@ -372,10 +368,6 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
         plt.ylabel(r'Population')
         plt.legend()
 
-        print(f"Qubit {qubit_id}: Infidelity per clifford:", infidelity_per_clifford)
-        print(
-            f"Qubit {qubit_id}: Infidelity per physical gate",
-            infidelity_per_gate)
 
         if save_path is not None:
             plt.savefig(save_path)
@@ -448,42 +440,17 @@ class SingleQubitRandomizedBenchmarking(RandomizedBenchmarkingTwoLevelSubspaceMu
             rb_parameter = np.log(1 - (d / (d - 1)) * (1 - infidelity_per_clifford))
             return rb_parameter
 
-        rb_parameter = calculate_rb_parameter(2, 1 - fidelity)
+        calculate_rb_parameter(2, 1 - fidelity)
 
         raise NotImplementedError("This method is not yet implemented.")
 
-    @log_and_record
-    def run(self,
-            dut: TransmonElement,
-            collection_name: str = 'f01',
-            seq_length: Union[int, np.ndarray] = 1024,
-            kinds: int = 10,
-            cliff_set: str = 'XY',
-            pi_half_only: bool = False,
-            mprim_index: int = 0,
-            seed: int = 42
-            ):
-        """
-        Executes a randomized benchmarking run with a sequence of operations on a qubit.
-
-        Parameters:
-            dut: A list of device under test (DUT) instances.
-            collection_name: Name of the collection to use, with default 'f01'.
-            seq_length: Either an integer specifying the max length of the sequence, or an array of sequence lengths.
-            kinds: The number of kinds/types of sequences to generate.
-            cliff_set: The set of Clifford gates to use, either 'XY' or 'VZX'.
-            pi_half_only: If True, only pi/2 rotations are used in gate generation.
-            mprim_index: Index to select the measurement primitive.
-            seed: Seed for random number generation to ensure reproducibility.
-        """
-        return super().run([dut], collection_name, seq_length, kinds, cliff_set, pi_half_only, mprim_index, seed)
 
     @register_browser_function()
     @visual_inspection("""
-    This is the analysis of the randomized benchmarking experiment. The experiment is considered successful if 
-    a clear exponential decay for the |0> state (blue) is observed, if the decay is too fast, the experiment 
+    This is the analysis of the randomized benchmarking experiment. The experiment is considered successful if
+    a clear exponential decay for the |0> state (blue) is observed, if the decay is too fast, the experiment
     is failed reduce the sequence length. If the decay is too slow,  the experiment is failed and increase the sequence
-    length. If the decay rate is proper, the experiment is successful.  
+    length. If the decay rate is proper, the experiment is successful.
     """)
     def plot(self):
         """

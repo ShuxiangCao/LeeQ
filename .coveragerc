@@ -1,0 +1,29 @@
+[run]
+source = leeq
+omit = 
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */setup.py
+    */conftest.py
+    # Exclude simulators and AI components
+    */theory/simulation/*
+    */utils/ai/*
+    */agents/*
+    */theory/optimal_control/grape.py
+    
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstract
+    
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml

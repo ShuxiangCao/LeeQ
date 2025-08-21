@@ -1,0 +1,47 @@
+[Unit]
+Description=LeeQ EPII daemon for %i setup
+Documentation=https://github.com/ShuxiangCao/LeeQ
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=leeq
+Group=leeq
+Restart=always
+RestartSec=5
+TimeoutStartSec=30
+TimeoutStopSec=30
+
+# Environment configuration
+Environment=LEEQ_EPII_CONFIG_DIR=/etc/leeq-epii
+Environment=LEEQ_EPII_LOG_LEVEL=INFO
+Environment=PYTHONPATH=/opt/leeq
+
+# Working directory and executable
+WorkingDirectory=/opt/leeq
+ExecStart=/opt/leeq/venv/bin/python -m leeq.epii.daemon --config /etc/leeq-epii/%i.json --log-level ${LEEQ_EPII_LOG_LEVEL}
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/leeq-epii /var/run/leeq-epii /tmp
+
+# Logging configuration - output to journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=leeq-epii-%i
+
+# Process management
+KillMode=mixed
+KillSignal=SIGTERM
+FinalKillSignal=SIGKILL
+
+# Runtime directory for PID files
+RuntimeDirectory=leeq-epii
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target

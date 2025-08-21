@@ -1,9 +1,9 @@
-import numpy as np
-from labchronicle import register_browser_function, log_and_record
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockParallel
-from .base import PyGSTiRBExperiment
+from typing import List, Optional
 
-from typing import Optional, List
+from leeq.chronicle import log_and_record, register_browser_function
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockParallel
+
+from .base import PyGSTiRBExperiment
 
 
 class PyGSTiSingleQubitRB(PyGSTiRBExperiment):
@@ -29,8 +29,8 @@ class PyGSTiSingleQubitRB(PyGSTiRBExperiment):
         Imports pyGSTi related modules and sets up the processor and experiment design.
         """
         import pygsti
-        from pygsti.processors import QubitProcessorSpec as QPS
         from pygsti.processors import CliffordCompilationRules as CCR
+        from pygsti.processors import QubitProcessorSpec as QPS
 
         if depths is None:
             # depths = [1, 2, 4, 8, 16, 32, 64, 128, 256, 384, 512, 640, 768, 896, 1024, 1152, 1280, 1408, 1536, 1664,

@@ -12,12 +12,13 @@ h5py
 decorator
 dash
 pytest
+nbval
 fsspec
 pyyaml
 decorator
 h5py
 uncertainties
-labchronicle @ git+https://github.com/ShuxiangCao/LabChronicle
+markdownify
 k_agents @ git+https://github.com/EvoEvolver/k_agents
 MinimalLLM @ git+https://github.com/EvoEvolver/MinimalLLM
 ipywidgets

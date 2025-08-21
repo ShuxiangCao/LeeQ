@@ -1,10 +1,9 @@
-import logging
-
 import getpass
 import inspect
+import logging
+import os
 import sys
 from pathlib import Path
-import os
 from typing import Any
 
 _existing_logger = {}
@@ -29,19 +28,25 @@ def setup_logging(name, level=logging.INFO):
     logger = logging.getLogger(name)
     _existing_logger[name] = logger
 
-    logger.setLevel(level)
+    # Check if we should suppress logging output (for quiet mode)
+    if os.environ.get('LEEQ_SUPPRESS_LOGGING', '').lower() in ['true', '1', 'yes']:
+        # Set to CRITICAL to only show critical errors
+        logger.setLevel(logging.CRITICAL)
+        # Don't add any handlers in suppressed mode
+    else:
+        logger.setLevel(level)
 
-    # Create the console handler with a recommended format
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(level)
-    formatter = logging.Formatter(
-        "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    console_handler.setFormatter(formatter)
+        # Create the console handler with a recommended format
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(level)
+        formatter = logging.Formatter(
+            "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        console_handler.setFormatter(formatter)
 
-    # Add the console handler to the logger
-    logger.addHandler(console_handler)
+        # Add the console handler to the logger
+        logger.addHandler(console_handler)
 
     # Optionally, add a file handler as well
     # file_handler = logger.FileHandler('app.log')
@@ -154,10 +159,8 @@ class ObjectFactory(Singleton):
 
         # Check if collection class is at least one of the accepted types
         if not any(
-                [
-                    issubclass(collection_class, accepted_type)
-                    for accepted_type in self._accepted_template
-                ]
+                issubclass(collection_class, accepted_type)
+                for accepted_type in self._accepted_template
         ):
             msg = (
                 f"The collection class must be a subclass of at least one of the accepted types. Acceptable:"
@@ -223,6 +226,8 @@ def is_running_in_jupyter():
     """
 
     # Just a dirty hack, but works for most of the time
+    if not sys.argv:  # Handle empty argv
+        return False
     return sys.argv[-1].endswith("json")
 
 
@@ -242,8 +247,8 @@ def display_json_dict(data: dict, root: str = None, expanded=False):
         root = 'root'
 
     if is_running_in_jupyter():
-        from IPython.display import display, JSON
+        from IPython.display import JSON, display
         display(JSON(data, root=root, expanded=expanded))
     else:
         import pprint
-        pprint.pprint(data)
+        logger.info(f"JSON data: {pprint.pformat(data)}")

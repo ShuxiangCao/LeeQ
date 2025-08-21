@@ -1,14 +1,22 @@
-from sklearn.pipeline import Pipeline
-from typing import Union, Dict
+from typing import Dict, List, Optional, Union
+
+import matplotlib
+import numpy as np
+from k_agents.inspection.decorator import text_inspection, visual_inspection
+from matplotlib import pyplot as plt
 from plotly import graph_objects as go
 from plotly import subplots
-from matplotlib import pyplot as plt
-import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
 
-from k_agents.inspection.decorator import text_inspection, visual_inspection
-from leeq import *
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, LogicalPrimitiveBlockParallel
+from leeq import Experiment, ExperimentManager, Sweeper, setup
+from leeq.chronicle import log_and_record, register_browser_function
+from leeq.core.elements.built_in.qudit_transmon import TransmonElement
+from leeq.core.primitives.logical_primitives import (
+    LogicalPrimitiveBlock,
+    LogicalPrimitiveBlockParallel,
+    LogicalPrimitiveBlockSweep,
+)
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.simulation.numpy.dispersive_readout.simulator import DispersiveReadoutSimulatorSyntheticData
 from leeq.utils import setup_logging
@@ -304,8 +312,8 @@ def calculate_signal_to_noise_ratio(
         # Otherwise, calculate the SNR for each pair of components
         for i in range(n_components):
             for j in range(
-                    i +
-                    1,
+                    i
+                    + 1,
                     n_components):  # Start from i+1 to avoid self-comparison
 
                 # Calculate standard deviations and distances
@@ -343,7 +351,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
             freq: Optional[float] = None,
             amp: Optional[float] = None,
             update: bool = False,
-            extra_readout_duts: Optional[List['DeviceUnderTest']] = None,
+            extra_readout_duts: Optional[List['TransmonElement']] = None,
             z_threshold: Optional[int] = None, update_phase_for_two_level=False) -> None:
         """
         Run the measurement calibration using a GMM model on a transmon qubit, potentially
@@ -357,7 +365,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         freq (Optional[float]): New frequency to set, if any.
         amp (Optional[float]): New amplitude to set, if any.
         update (bool): Flag indicating if the original frequency/amplitude should be restored.
-        extra_readout_duts (Optional[List[DeviceUnderTest]]): Additional DUTs for readout.
+        extra_readout_duts (Optional[List[TransmonElement]]): Additional DUTs for readout.
         z_threshold (Optional[int]): Threshold for measurement, defaults to mprim_index + 1 or mprim_index.
         update_phase_for_two_level (bool): Flag to update the phase for two-level systems for further
             processing on FPGA mid-circuit measurement.
@@ -504,7 +512,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                       freq: Optional[float] = None,
                       amp: Optional[float] = None,
                       update: bool = False,
-                      extra_readout_duts: Optional[List['DeviceUnderTest']] = None,
+                      extra_readout_duts: Optional[List['TransmonElement']] = None,
                       z_threshold: Optional[int] = None, update_phase_for_two_level=False) -> None:
         """
         Run the measurement process on a transmon qubit, potentially altering frequency and amplitude,
@@ -675,8 +683,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
 
     # @register_browser_function(available_after=(run,))
     @visual_inspection("""
-        You are inspecting a plot of collected signal data and determine if the experiment is successful. 
-        You should observe a spherical distribution on each of the subplot on the left and right. They should be 
+        You are inspecting a plot of collected signal data and determine if the experiment is successful.
+        You should observe a spherical distribution on each of the subplot on the left and right. They should be
         positioned significantly differrently in the figure. There might be some small overlap between the two distributions.
         If they are distinguishable, then the experiment is considered success.
         Note that if you see non-spherical distributions. The experiment is considered failed.
@@ -690,8 +698,8 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
 
         Returns:
         """
-        from matplotlib import pyplot as plt
         import numpy as np
+        from matplotlib import pyplot as plt
 
         if result_data is None:
             result_data = self.result
@@ -731,8 +739,6 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         Returns:
         """
 
-        print({"Means": self.clf.named_steps['gmm'].means_,
-               "Cov": self.clf.named_steps['gmm'].covariances_})
 
         colors = [
             '#1f77b4',
@@ -775,7 +781,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                         x=data[:, 0][state_label == index],
                         y=data[:, 1][state_label == index],
                         mode='markers',
-                        marker=dict(color=colors[index], size=3, opacity=0.3),
+                        marker={"color": colors[index], "size": 3, "opacity": 0.3},
                         name=str(
                             self.output_map[index]) + ":" + f"{percentage * 100:.2f}%",
                         legendgroup=int(index),  # to tie legend items together
@@ -794,7 +800,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                         y=[mean[1]],
                         mode='markers',
                         marker_symbol='x',
-                        marker=dict(color=colors[index], size=10),
+                        marker={"color": colors[index], "size": 10},
                         legendgroup=int(index),
                         showlegend=False
                     ),
@@ -809,7 +815,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                         x=std * 3 * np.cos(x) + mean[0],
                         y=std * 3 * np.sin(x) + mean[1],
                         mode='lines',
-                        line=dict(color=colors[index]),
+                        line={"color": colors[index]},
                         legendgroup=int(index),
                         showlegend=False
                     ),
@@ -881,7 +887,7 @@ Analyze a plot of collected signal data to determine experiment success:
         ys = data.imag
 
         # Create a hexbin map
-        hb = ax.hexbin(xs, ys, gridsize=50, cmap='viridis', bins='log')
+        ax.hexbin(xs, ys, gridsize=50, cmap='viridis', bins='log')
 
         # Add a color bar
         # cb = plt.colorbar(hb)

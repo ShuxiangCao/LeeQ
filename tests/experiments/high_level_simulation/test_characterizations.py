@@ -9,7 +9,7 @@ from leeq.theory.simulation.numpy.rotated_frame_simulator import VirtualTransmon
 
 @pytest.fixture()
 def simulation_setup():
-    from labchronicle import Chronicle
+    from leeq.chronicle import Chronicle
     Chronicle().start_log()
     manager = ExperimentManager()
     manager.clear_setups()
@@ -100,16 +100,16 @@ def qubit():
 
 def test_t1(simulation_setup, qubit):
     from leeq.experiments.builtin import SimpleT1
-    manager = ExperimentManager().get_default_setup(
+    ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
-    sweep = SimpleT1(
+    SimpleT1(
         qubit=qubit,
     )
 
 def test_t2_echo(simulation_setup, qubit):
     from leeq.experiments.builtin import SpinEchoMultiLevel
-    manager = ExperimentManager().get_default_setup(
+    ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
-    sweep = SpinEchoMultiLevel(
+    SpinEchoMultiLevel(
         dut=qubit,
     )

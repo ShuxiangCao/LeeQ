@@ -1,15 +1,16 @@
-from labchronicle import log_and_record, register_browser_function
-from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, ExperimentManager
-from leeq.utils.compatibility import *
+from typing import Any, Optional, Union
 
-from typing import Dict, Any, Union, Optional
 import numpy as np
 import plotly.graph_objects as go
-
-from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from k_agents.inspection.decorator import visual_inspection
 
+from leeq import Experiment, ExperimentManager, Sweeper, SweepParametersSideEffectFactory
+from leeq.chronicle import log_and_record, register_browser_function
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+from leeq.utils.compatibility import setup
+
 __all__ = ['QubitSpectroscopyFrequency', 'QubitSpectroscopyAmplitudeFrequency']
+
 
 class QubitSpectroscopyFrequency(Experiment):
     """
@@ -215,8 +216,8 @@ class QubitSpectroscopyFrequency(Experiment):
 
         noise_scale = 100 / np.log(num_avs) / np.sqrt(width)
 
-        noise = (np.random.normal(0, noise_scale, response.shape) +
-                 1j * np.random.normal(0, noise_scale, response.shape))
+        noise = (np.random.normal(0, noise_scale, response.shape)
+                 + 1j * np.random.normal(0, noise_scale, response.shape))
 
         response = response + noise
 
@@ -234,10 +235,10 @@ class QubitSpectroscopyFrequency(Experiment):
     @register_browser_function(available_after=(run,))
     @visual_inspection(
         """
-        Given a plot of the phase response of a resonator as a function of frequency, analyze the stability and 
-        features of the phase curve. Identify any distinct and sharp deviations from the baseline phase level, 
+        Given a plot of the phase response of a resonator as a function of frequency, analyze the stability and
+        features of the phase curve. Identify any distinct and sharp deviations from the baseline phase level,
         such as steep dips or peaks. If such features are present at specific frequencies, indicating a significant
-        change in the phase response, conclude that a qubit has been detected at these frequencies. If the plot 
+        change in the phase response, conclude that a qubit has been detected at these frequencies. If the plot
         shows a noisy or relatively stable phase without any pronounced features across the frequency range, conclude
         that no qubit has been observed
         """

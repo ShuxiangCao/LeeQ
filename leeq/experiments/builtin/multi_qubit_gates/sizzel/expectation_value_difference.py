@@ -1,11 +1,11 @@
+from typing import Any, List
+
 import numpy as np
+from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 
-from labchronicle import log_and_record, register_browser_function
-from leeq import Sweeper, Experiment
-from typing import List, Any
-from plotly import graph_objects as go
-
+from leeq import Experiment, Sweeper
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.utils.compatibility import *
 
 
@@ -51,7 +51,7 @@ class ConditionalStarkSpectroscopyDiffAmpFreq(experiment):
         flip_both = prims.ParallelLPB([c1s[0]['X'], c1s[1]['X']])
 
         # Update the pulse parameters for all cloned pulses.
-        for i, cs_pulse in enumerate(cs_pulses):
+        for _i, cs_pulse in enumerate(cs_pulses):
             cs_pulse.update_pulse_args(shape='blackman_square', amp=0, phase=0, width=width if not echo else width / 2,
                                        rise=rise, trunc=trunc)
 
@@ -167,7 +167,7 @@ class ConditionalStarkSpectroscopyDiffAmpFreq(experiment):
             x=ys,
             y=xs,
             colorscale='RdBu',
-            colorbar=dict(title="", titleside="right", x=0.45),  # Adjust x to position the colorbar
+            colorbar={'title': "", 'titleside': "right", 'x': 0.45},  # Adjust x to position the colorbar
         )
 
         # Generate the heatmap for the control result
@@ -176,7 +176,7 @@ class ConditionalStarkSpectroscopyDiffAmpFreq(experiment):
             x=ys,
             y=xs,
             colorscale='RdBu',
-            colorbar=dict(title="Difference in Y axis", titleside="right", x=1.05),  # Adjust x to position the colorbar
+            colorbar={'title': "Difference in Y axis", 'titleside': "right", 'x': 1.05},  # Adjust x to position the colorbar
         )
 
         # Add heatmaps to the figure
@@ -187,9 +187,9 @@ class ConditionalStarkSpectroscopyDiffAmpFreq(experiment):
         fig.update_layout(
             xaxis_title="Frequency (MHz)",
             yaxis_title="Driving Amplitude (a.u)",
-            font=dict(family="Arial, sans-serif", size=14),
-            title_font=dict(size=18, family="Arial, sans-serif"),
-            margin=dict(l=80, r=20, t=40, b=80),  # Add margins to make space for titles
+            font={'family': "Arial, sans-serif", 'size': 14},
+            title_font={'size': 18, 'family': "Arial, sans-serif"},
+            margin={'l': 80, 'r': 20, 't': 40, 'b': 80},  # Add margins to make space for titles
             width=1600,  # Increase the width for better resolution
             height=600,  # Increase the height for better resolution
             paper_bgcolor='white',
@@ -263,7 +263,7 @@ class ConditionalStarkSpectroscopyDiffAmpTargetFreq(experiment):
         flip_both = prims.ParallelLPB([c1s[0]['X'], c1s[1]['X']])
 
         # Update the pulse parameters for all cloned pulses.
-        for i, cs_pulse in enumerate(cs_pulses):
+        for _i, cs_pulse in enumerate(cs_pulses):
             cs_pulse.update_pulse_args(shape='blackman_square', amp=self.amp_control_fixed, phase=0,
                                        width=width if not echo else width / 2,
                                        rise=rise, trunc=trunc)
@@ -385,7 +385,7 @@ class ConditionalStarkSpectroscopyDiffAmpTargetFreq(experiment):
             x=ys,
             y=xs,
             colorscale='RdBu',
-            colorbar=dict(title="", titleside="right", x=0.45),  # Adjust x to position the colorbar
+            colorbar={'title': "", 'titleside': "right", 'x': 0.45},  # Adjust x to position the colorbar
         )
 
         # Generate the heatmap for the control result
@@ -394,7 +394,7 @@ class ConditionalStarkSpectroscopyDiffAmpTargetFreq(experiment):
             x=ys,
             y=xs,
             colorscale='RdBu',
-            colorbar=dict(title="Difference in Y axis", titleside="right", x=1.05),  # Adjust x to position the colorbar
+            colorbar={'title': "Difference in Y axis", 'titleside': "right", 'x': 1.05},  # Adjust x to position the colorbar
         )
 
         # Add heatmaps to the figure
@@ -405,9 +405,9 @@ class ConditionalStarkSpectroscopyDiffAmpTargetFreq(experiment):
         fig.update_layout(
             xaxis_title="Frequency (MHz)",
             yaxis_title="Target Driving Amplitude (a.u)",
-            font=dict(family="Arial, sans-serif", size=14),
-            title_font=dict(size=18, family="Arial, sans-serif"),
-            margin=dict(l=80, r=20, t=40, b=80),  # Add margins to make space for titles
+            font={'family': "Arial, sans-serif", 'size': 14},
+            title_font={'size': 18, 'family': "Arial, sans-serif"},
+            margin={'l': 80, 'r': 20, 't': 40, 'b': 80},  # Add margins to make space for titles
             width=1600,  # Increase the width for better resolution
             height=600,  # Increase the height for better resolution
             paper_bgcolor='white',
@@ -481,7 +481,7 @@ class ConditionalStarkSpectroscopyDiffPhaseFreq(experiment):
         cs_pulses = [dut.get_c1('f01')['X'].clone() for dut in duts]
 
         # Update the pulse parameters for all cloned pulses.
-        for i, cs_pulse in enumerate(cs_pulses):
+        for _i, cs_pulse in enumerate(cs_pulses):
             cs_pulse.update_pulse_args(shape='blackman_square', amp=0, phase=phase_diff_start,
                                        width=width if not echo else width / 2,
                                        rise=rise, trunc=trunc)
@@ -586,7 +586,7 @@ class ConditionalStarkSpectroscopyDiffPhaseFreq(experiment):
             x=ys,
             y=xs,
             colorscale='RdBu',
-            colorbar=dict(title="", titleside="right", x=0.45),
+            colorbar={'title': "", 'titleside': "right", 'x': 0.45},
         )
 
         heatmap_control = go.Heatmap(
@@ -594,7 +594,7 @@ class ConditionalStarkSpectroscopyDiffPhaseFreq(experiment):
             x=ys,
             y=xs,
             colorscale='RdBu',
-            colorbar=dict(title="Difference in Y axis", titleside="right", x=1.05),
+            colorbar={'title': "Difference in Y axis", 'titleside': "right", 'x': 1.05},
         )
 
         fig.add_trace(heatmap_main, row=1, col=1)
@@ -603,9 +603,9 @@ class ConditionalStarkSpectroscopyDiffPhaseFreq(experiment):
         fig.update_layout(
             xaxis_title="Frequency (MHz)",
             yaxis_title="Phase Difference (radians)",
-            font=dict(family="Arial, sans-serif", size=14),
-            title_font=dict(size=18, family="Arial, sans-serif"),
-            margin=dict(l=80, r=20, t=40, b=80),
+            font={'family': "Arial, sans-serif", 'size': 14},
+            title_font={'size': 18, 'family': "Arial, sans-serif"},
+            margin={'l': 80, 'r': 20, 't': 40, 'b': 80},
             width=1600,
             height=600,
             paper_bgcolor='white',
@@ -669,7 +669,7 @@ class ConditionalStarkSpectroscopyDiffAmpPhase(experiment):
         cs_pulses = [dut.get_c1('f01')['X'].clone() for dut in duts]
 
         # Update the pulse parameters for all cloned pulses.
-        for i, cs_pulse in enumerate(cs_pulses):
+        for _i, cs_pulse in enumerate(cs_pulses):
             cs_pulse.update_pulse_args(shape='blackman_square', amp=0, phase=phase_diff_start,
                                        width=width if not echo else width / 2,
                                        rise=rise, trunc=trunc)
@@ -778,7 +778,7 @@ class ConditionalStarkSpectroscopyDiffAmpPhase(experiment):
             x=ys,
             y=xs,
             colorscale='RdBu',
-            colorbar=dict(title="", titleside="right", x=0.45),
+            colorbar={'title': "", 'titleside': "right", 'x': 0.45},
         )
 
         heatmap_control = go.Heatmap(
@@ -786,7 +786,7 @@ class ConditionalStarkSpectroscopyDiffAmpPhase(experiment):
             x=ys,
             y=xs,
             colorscale='RdBu',
-            colorbar=dict(title="Difference in Y axis", titleside="right", x=1.05),
+            colorbar={'title': "Difference in Y axis", 'titleside': "right", 'x': 1.05},
         )
 
         fig.add_trace(heatmap_main, row=1, col=1)
@@ -795,9 +795,9 @@ class ConditionalStarkSpectroscopyDiffAmpPhase(experiment):
         fig.update_layout(
             xaxis_title="Phase Difference (radians)",
             yaxis_title="Amplitude (a.u)",
-            font=dict(family="Arial, sans-serif", size=14),
-            title_font=dict(size=18, family="Arial, sans-serif"),
-            margin=dict(l=80, r=20, t=40, b=80),
+            font={'family': "Arial, sans-serif", 'size': 14},
+            title_font={'size': 18, 'family': "Arial, sans-serif"},
+            margin={'l': 80, 'r': 20, 't': 40, 'b': 80},
             width=1600,
             height=600,
             paper_bgcolor='white',
@@ -850,7 +850,7 @@ class ConsidtionalStarkSpectroscopyDifferenceBase(Experiment):
         flip_both = prims.ParallelLPB([c1s[0]['X'], c1s[1]['X']])
 
         # Update the pulse parameters for all cloned pulses.
-        for i, cs_pulse in enumerate(cs_pulses):
+        for _i, cs_pulse in enumerate(cs_pulses):
             cs_pulse.update_pulse_args(shape='blackman_square', amp=0, phase=0, width=width if not echo else width / 2,
                                        rise=rise, trunc=trunc)
 
@@ -946,7 +946,7 @@ class ConsidtionalStarkSpectroscopyDifferenceBase(Experiment):
             x=ys,
             y=xs,
             colorscale='RdBu',
-            colorbar=dict(title="", titleside="right", x=0.45),
+            colorbar={'title': "", 'titleside': "right", 'x': 0.45},
         )
 
         heatmap_control = go.Heatmap(
@@ -954,7 +954,7 @@ class ConsidtionalStarkSpectroscopyDifferenceBase(Experiment):
             x=ys,
             y=xs,
             colorscale='RdBu',
-            colorbar=dict(title="Difference in Y axis", titleside="right", x=1.05),
+            colorbar={'title': "Difference in Y axis", 'titleside': "right", 'x': 1.05},
         )
 
         fig.add_trace(heatmap_main, row=1, col=1)
@@ -963,9 +963,9 @@ class ConsidtionalStarkSpectroscopyDifferenceBase(Experiment):
         fig.update_layout(
             xaxis_title="Phase Difference (radians)",
             yaxis_title="Amplitude (a.u)",
-            font=dict(family="Arial, sans-serif", size=14),
-            title_font=dict(size=18, family="Arial, sans-serif"),
-            margin=dict(l=80, r=20, t=40, b=80),
+            font={'family': "Arial, sans-serif", 'size': 14},
+            title_font={'size': 18, 'family': "Arial, sans-serif"},
+            margin={'l': 80, 'r': 20, 't': 40, 'b': 80},
             width=1600,
             height=600,
             paper_bgcolor='white',

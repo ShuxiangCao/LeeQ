@@ -17,28 +17,28 @@ def generate_pulse_sequences(overview: str, description: str):
     knowledge = load_document_file('pulse_sequences.md')
 
     prompt = f"""
-    You are requested to write a run function that generates a pulse sequence for a quantum experiment based on the 
-    overview of the experiment and the given description of the pulse sequences. You also have access to the knowledge 
+    You are requested to write a run function that generates a pulse sequence for a quantum experiment based on the
+    overview of the experiment and the given description of the pulse sequences. You also have access to the knowledge
     of a software package LeeQ stated below.
-    
+
     <LeeQ Knowledge>
     {knowledge}
     </LeeQ Knowledge>
-    
+
     Your task:
     <overview>
     {overview}
     </overview>
-    
+
     Description of the pulse sequences:
     <description>
     {description}
     </description>
-    
+
     Please write the code implementing the "run" class function, store all your results inside the class attributes.
-    
+
     Reply in the following format:
-    
+
     ```python
         <The code implementing the "run" class function>
     ```

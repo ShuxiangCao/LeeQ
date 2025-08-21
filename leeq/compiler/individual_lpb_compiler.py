@@ -3,16 +3,14 @@ import functools
 from leeq.compiler.compiler_base import LPBCompiler, MeasurementSequence
 from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
 from leeq.core.context import ExperimentContext
-from leeq.core.primitives.built_in.common import PhaseShift, DelayPrimitive
+from leeq.core.primitives.built_in.common import DelayPrimitive, PhaseShift
 from leeq.core.primitives.logical_primitives import (
-    LogicalPrimitiveCombinable,
     LogicalPrimitiveBlockParallel,
     LogicalPrimitiveBlockSerial,
     LogicalPrimitiveBlockSweep,
+    LogicalPrimitiveCombinable,
     MeasurementPrimitive,
 )
-
-from typing import Dict
 from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)

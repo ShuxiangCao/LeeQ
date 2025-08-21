@@ -1,7 +1,9 @@
-from typing import List, Any, Tuple
+from typing import Any, List
+
 import numpy as np
-from .utils import *
+
 from .state_tomography import StandardStateTomography, simulate_ideal_state_tomography_distribution
+from .utils import *
 
 
 def simulate_ideal_process_tomography_distribution(unitary: np.ndarray,
@@ -104,7 +106,7 @@ class StandardProcessTomography(StandardStateTomography):
 
         pauli_vector_on_preparation = np.einsum("cab,abz->cz", inv_measurement_tensor, observed_distribution)
 
-        ## Add identity element to the Pauli vector
+        # Add identity element to the Pauli vector
         # pauli_vector_on_preparation = np.concatenate(
         #    [np.array([1] * pauli_vector_on_preparation.shape[0])[:, np.newaxis], pauli_vector_on_preparation], axis=1)
 

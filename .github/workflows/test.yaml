@@ -22,12 +22,12 @@ jobs:
           pip install git+https://github.com/ShuxiangCao/LabChronicle.git
           pip install -e .
 
-      - name: Lint with flake8
+      - name: Lint with flake8, ruff, and mypy
         run: |
-          pip install flake8
+          pip install flake8 ruff mypy
           bash ./ci_scripts/lint.sh
 
       - name: Test with pytest
         run: |
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov pytest-asyncio pytest-mock pytest-xdist nbval
           pytest --cov=. 

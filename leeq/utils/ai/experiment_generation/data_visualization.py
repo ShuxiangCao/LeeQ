@@ -1,5 +1,4 @@
 from typing import Any
-from pprint import pprint
 
 
 def generate_data_visualization(description: str, context: dict[str, Any]):
@@ -27,9 +26,9 @@ def generate_data_visualization(description: str, context: dict[str, Any]):
     {description}
     </description>
 
-    The code should be a class function called `data_visualization` that takes the data saved in the class attributes as 
+    The code should be a class function called `data_visualization` that takes the data saved in the class attributes as
     input. At the begining of the function, you should call the `data_analysis` function to make sure the data is analyzed.
-    
+
     Return a plotly figure or a matplotlib figure as the output, instead of show them directly.
 
     Return the `data_visualization` function only.

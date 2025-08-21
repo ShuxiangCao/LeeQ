@@ -1,14 +1,15 @@
-from labchronicle import log_and_record, register_browser_function
-import leeq
+from typing import Optional, Union
+
+import matplotlib.pyplot as plt
+import numpy as np
 from k_agents.inspection.decorator import text_inspection, visual_inspection
+
+import leeq
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, basic_run, setup
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils.compatibility import prims
-
-from typing import Optional, Union
-import numpy as np
-import matplotlib.pyplot as plt
 
 __all__ = [
     'DragCalibrationSingleQubitMultilevel',
@@ -24,7 +25,7 @@ class DragCalibrationSingleQubitMultilevel(Experiment):
     Class for running a single AllXY drag experiment on a single qubit with a multilevel system.
     """
     _experiment_result_analysis_instructions = """
-This experiment calibrates the DRAG coefficient (alpha) using an AllXY DRAG experiment. 
+This experiment calibrates the DRAG coefficient (alpha) using an AllXY DRAG experiment.
 The experiment is successful if:
 1. Two differently colored lines show distinct trends
 2. Line fitting is appropriate, by checking the residuals of the data points.
@@ -83,7 +84,7 @@ If success cannot be determined, consider the experiment failed.
         vz_pi = c1.z(np.pi)
 
         pulse_train_block = c1['X'] + vz_pi + \
-                            c1['Y'] + vz_pi + c1['X'] + c1['Y']
+            c1['Y'] + vz_pi + c1['X'] + c1['Y']
 
         # Add additional pulses based on the value of N.
         pulse_train = prims.SerialLPB([pulse_train_block] * N)
@@ -269,16 +270,16 @@ If success cannot be determined, consider the experiment failed.
         plt.plot(self.sweep_values, self.result[:, 0], 'ro', alpha=0.5)
         plt.plot(
             self.sweep_values,
-            self.fit_xp[0] *
-            self.sweep_values +
-            self.fit_xp[1],
+            self.fit_xp[0]
+            * self.sweep_values
+            + self.fit_xp[1],
             'r-')
         plt.plot(self.sweep_values, self.result[:, 1], 'bo', alpha=0.5)
         plt.plot(
             self.sweep_values,
-            self.fit_xm[0] *
-            self.sweep_values +
-            self.fit_xm[1],
+            self.fit_xm[0]
+            * self.sweep_values
+            + self.fit_xm[1],
             'b-')
         plt.xlabel(u"DRAG coefficient")
         plt.ylabel(u"<z>")
@@ -288,10 +289,10 @@ If success cannot be determined, consider the experiment failed.
     @text_inspection
     def fitting(self) -> Union[str, None]:
 
-        args = self._get_run_args_dict()
+        self._get_run_args_dict()
 
         fitting_parameters = f"Sweep start: {self.inv_alpha_start}\n" \
-                             f"Sweep stop: {self.inv_alpha_stop}\n"
+            f"Sweep stop: {self.inv_alpha_stop}\n"
 
         estimated_coefficient = 1 / self.optimum
 
@@ -308,7 +309,7 @@ If success cannot be determined, consider the experiment failed.
             fitting_results += "The estimated optimal DRAG coefficient does not fall within the central half of the sweep.\n"
 
         fitting_results += f"Residual average for Xp: {self.residual_xp_avg}\n" \
-                           f"Residual average for Xm: {self.residual_xm_avg}\n"
+            f"Residual average for Xm: {self.residual_xm_avg}\n"
 
         return fitting_parameters + fitting_results
 
@@ -339,7 +340,6 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
             update (bool): Whether to update the alpha parameter in the DUT.
             reset_alpha_before_calibration (bool): Whether to reset the alpha parameter before calibration.
         """
-        print(f'Calibrating alpha by all XY {collection_name}')
 
         self.alpha_calibration_results = {}
 
@@ -356,7 +356,7 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
         alpha_higher_bound: Optional[float] = None
 
         # Perform up to 10 iterations to find a trustable value for alpha.
-        for i in range(10):
+        for _i in range(10):
             # Define the search interval around the current 1/alpha estimate.
             start_point = 1 / alpha - 0.006
             stop_point = 1 / alpha + 0.006
@@ -385,7 +385,6 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
             allxy.linear_fit()
             alpha_0 = allxy.optimum
 
-            print('Guessed alpha:', alpha_0)
 
             # Check if the new alpha value is within the trustable range.
             middle_point = (start_point + stop_point) / 2
@@ -403,11 +402,6 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
                 if alpha_higher_bound is None or alpha < alpha_higher_bound:
                     alpha_higher_bound = alpha
 
-            print(
-                'alpha_lower:',
-                alpha_lower_bound,
-                'alpha_higher:',
-                alpha_higher_bound)
 
             # Update the alpha value for the next iteration.
             if alpha_higher_bound is None or alpha_lower_bound is None:

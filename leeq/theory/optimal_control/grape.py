@@ -1,14 +1,9 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from qutip import (
-    basis,
-    qzero,
-    Qobj,
-    destroy,
-)
-
-from qutip.control import cy_grape_unitary, plot_grape_control_fields, grape_unitary_adaptive
 from dataclasses import dataclass
+
+import matplotlib.pyplot as plt
+import numpy as np
+from qutip import Qobj, basis, destroy, qzero
+from qutip.control import grape_unitary_adaptive, plot_grape_control_fields
 
 
 @dataclass
@@ -36,7 +31,7 @@ class GrapeParams:
 
 
 def run_grape(hamiltonian_params: HamiltonianParams, grape_params: GrapeParams, U_target: Qobj,
-              initial_guess: np.ndarray) -> tuple['GRAPEResult', float, np.ndarray]:
+              initial_guess: np.ndarray) -> tuple:  # Returns (result, overlap, times)
     H0 = make_Hamiltonian(hamiltonian_params)
     N = hamiltonian_params.num_levels_in_transmon
     times = np.linspace(0, grape_params.T, grape_params.n_ts)  # Time array
@@ -80,7 +75,7 @@ def get_single_qubit_pulse_grape(qubit_frequency,
                                  num_levels_in_transmon=3,
                                  num_iterations=100):
 
-    params = HamiltonianParams( )
+    params = HamiltonianParams()
     params.num_levels_in_transmon = num_levels_in_transmon
     params.omega_01 = qubit_frequency / 1e3 * 2 * np.pi,  # Qubit transition frequency (GHz)
     params.anharmonicity = anharmonicity / 1e3 * 2 * np.pi  # Anharmonicity (GHz)
@@ -88,12 +83,11 @@ def get_single_qubit_pulse_grape(qubit_frequency,
     ham_params = params
     amplitude = max_amplitude / 2
     grape_params = GrapeParams()
-    grape_params.T=width * 1e3  # Total time for evolution (ns)
-    grape_params.n_ts=int(width*sampling_rate)  # Number of time steps
-    grape_params.num_iterations=num_iterations
-    grape_params.amplitude=max_amplitude / 2
-    grape_params.eps=0.05 * np.sqrt(np.pi * amplitude) # Scaled gradient step size for GRAPE
-
+    grape_params.T = width * 1e3  # Total time for evolution (ns)
+    grape_params.n_ts = int(width * sampling_rate)  # Number of time steps
+    grape_params.num_iterations = num_iterations
+    grape_params.amplitude = max_amplitude / 2
+    grape_params.eps = 0.05 * np.sqrt(np.pi * amplitude)  # Scaled gradient step size for GRAPE
 
     N = ham_params.num_levels_in_transmon
 
@@ -116,6 +110,7 @@ def get_single_qubit_pulse_grape(qubit_frequency,
 
     return result
 
+
 def example():
     result = get_single_qubit_pulse_grape(
         qubit_frequency=5000,
@@ -125,7 +120,6 @@ def example():
         initial_guess=None,
         max_amplitude=0.015,
     )
-    print(result.u.shape)
 
     times = np.arange(len(result.u))
 
@@ -133,6 +127,7 @@ def example():
     # Print results
     plt.grid()
     plt.show()
+
 
 def example_bak():
     ham_params = HamiltonianParams()
@@ -153,7 +148,6 @@ def example_bak():
 
     result, fidelity, times = run_grape(HamiltonianParams(), GrapeParams(), U_target, initial_guess)
 
-    print(np.abs(overlap(U_target, result.U_f)))
     # Plot optimized control fields
     plot_grape_control_fields(times, result.u, ['x', 'y'])
     # Print results

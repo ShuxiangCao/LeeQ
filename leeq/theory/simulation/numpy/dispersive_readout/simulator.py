@@ -1,6 +1,8 @@
-from leeq.theory.simulation.numpy.dispersive_readout.utils import *
-import numpy as np
 from typing import List, Tuple, Union
+
+import numpy as np
+
+from leeq.theory.simulation.numpy.dispersive_readout.utils import *
 
 
 class DispersiveReadoutSimulator:
@@ -153,8 +155,8 @@ class DispersiveReadoutSimulatorSyntheticData(DispersiveReadoutSimulator):
         # Get the time list based on the sampling rate and the envelope width
         t_list = get_t_list(
             self.sampling_rate,
-            len(envelope) /
-            self.sampling_rate)
+            len(envelope)
+            / self.sampling_rate)
 
         assert len(t_list) == len(envelope)
 
@@ -206,7 +208,7 @@ class DispersiveReadoutSimulatorRealData(DispersiveReadoutSimulator):
             self,
             data_traces: np.ndarray,
             sampling_rate: float = 1e3,
-            t1s: List[float] = ([100.0, 50.0, 100 / 3]),
+            t1s: List[float] = (None),
     ):
         """
         Data trace is complex and in the following shape: (qubit_state, num_traces, num_samples)
@@ -216,6 +218,8 @@ class DispersiveReadoutSimulatorRealData(DispersiveReadoutSimulator):
             sampling_rate: sampling rate of the data traces,
             t1s: t1s for different qubit states,
         """
+        if t1s is None:
+            t1s = [100.0, 50.0, 100 / 3]
         self.data_traces = data_traces
         self.data_traces_mean = np.mean(data_traces, axis=1)
         self.data_traces_std = np.std(data_traces, axis=1)

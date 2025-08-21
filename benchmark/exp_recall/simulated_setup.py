@@ -7,7 +7,7 @@ from leeq.experiments.experiments import ExperimentManager
 from leeq.theory.simulation.numpy.rotated_frame_simulator import VirtualTransmon
 
 def simulation_setup():
-    from labchronicle import Chronicle
+    from leeq.chronicle import Chronicle
     Chronicle(config={'handler':'dummy'}).start_log()
     manager = ExperimentManager()
     manager.clear_setups()

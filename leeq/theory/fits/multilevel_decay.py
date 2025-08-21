@@ -1,11 +1,16 @@
+from typing import Optional, Tuple
+
 import numpy as np
 import scipy.linalg
-from typing import Optional, List, Tuple
 
 __all__ = ["simulate_decay", 'fit_decay', 'show_one_plot']
 
 from matplotlib import pyplot as plt
 from scipy.optimize import minimize
+
+from leeq.utils.utils import setup_logging
+
+logger = setup_logging(__name__)
 
 
 def normalize_gamma(gamma: np.ndarray) -> np.ndarray:
@@ -107,7 +112,7 @@ def simulate_decay(initial_distribution: np.ndarray, gamma: np.ndarray, time_res
     size = time_length / time_resolution
 
     # Simulate the decay at each time step
-    for i in range(int(size)):
+    for _i in range(int(size)):
         records.append(current)
         current = decay_per_step @ current
 
@@ -204,7 +209,7 @@ def fit_single_decay(sequence: np.ndarray, time_length: float, time_resolution: 
 
 
 def fit_decay(probs: np.ndarray, time_length: float, time_resolution: float, verbose: bool = False) -> Tuple[
-    np.ndarray, np.ndarray]:
+        np.ndarray, np.ndarray]:
     """
     Fit decay models to multiple sequences of decay probabilities.
      probs : [time index, trace index, measured state index]
@@ -237,8 +242,8 @@ def fit_decay(probs: np.ndarray, time_length: float, time_resolution: float, ver
 
     # Display fitting results if verbose is True
     if verbose:
-        print("Fitted gamma0:", decay_rate)
-        print(gamma_0)
+        logger.info(f"Fitted gamma0: {decay_rate}")
+        logger.info(f"{gamma_0}")
 
     # Flatten and concatenate the initial state and gamma matrices for optimization
     x_guess = np.concatenate(
@@ -257,14 +262,14 @@ def fit_decay(probs: np.ndarray, time_length: float, time_resolution: float, ver
 
 
 title_dict = {
-    '00': rf"Qubit prepared to |0$\rangle$",
-    '01': rf"Qubit prepared to |1$\rangle$",
-    '12': rf"Qubit prepared to |2$\rangle$",
-    '23': rf"Qubit prepared to |3$\rangle$",
-    0: rf"Qubit prepared to |0$\rangle$",
-    1: rf"Qubit prepared to |1$\rangle$",
-    2: rf"Qubit prepared to |2$\rangle$",
-    3: rf"Qubit prepared to |3$\rangle$",
+    '00': r"Qubit prepared to |0$\rangle$",
+    '01': r"Qubit prepared to |1$\rangle$",
+    '12': r"Qubit prepared to |2$\rangle$",
+    '23': r"Qubit prepared to |3$\rangle$",
+    0: r"Qubit prepared to |0$\rangle$",
+    1: r"Qubit prepared to |1$\rangle$",
+    2: r"Qubit prepared to |2$\rangle$",
+    3: r"Qubit prepared to |3$\rangle$",
 }
 
 

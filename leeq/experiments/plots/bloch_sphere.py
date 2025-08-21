@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.patches import FancyArrowPatch, Circle
+from matplotlib.patches import Circle, FancyArrowPatch
 
 
 class Arrow3D(FancyArrowPatch):

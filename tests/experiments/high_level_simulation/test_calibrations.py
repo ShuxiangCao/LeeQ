@@ -9,7 +9,7 @@ from leeq.theory.simulation.numpy.rotated_frame_simulator import VirtualTransmon
 
 @pytest.fixture()
 def simulation_setup():
-    from labchronicle import Chronicle
+    from leeq.chronicle import Chronicle
     Chronicle().start_log()
     manager = ExperimentManager()
     manager.clear_setups()
@@ -100,9 +100,9 @@ def qubit():
 
 def test_normalised_rabi(simulation_setup, qubit):
     from leeq.experiments.builtin.basic.calibrations.rabi import NormalisedRabi
-    manager = ExperimentManager().get_default_setup(
+    ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
-    rabi = NormalisedRabi(
+    NormalisedRabi(
         dut_qubit=qubit,
         amp=0.51,
         start=0.00,
@@ -113,18 +113,31 @@ def test_normalised_rabi(simulation_setup, qubit):
 
 def test_ramsey(simulation_setup, qubit):
     from leeq.experiments.builtin.basic.calibrations.ramsey import SimpleRamseyMultilevel
-    manager = ExperimentManager().get_default_setup(
+    ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
-    ramsey = SimpleRamseyMultilevel(
+    SimpleRamseyMultilevel(
         dut=qubit,
+    )
+
+
+def test_multi_qubit_ramsey(simulation_setup, qubit):
+    from leeq.experiments.builtin.basic.calibrations.ramsey import MultiQubitRamseyMultilevel
+    ExperimentManager().get_default_setup(
+    ).status.set_parameter("Plot_Result_In_Jupyter", False)
+    MultiQubitRamseyMultilevel(
+        duts=[qubit],
+        start=0.0,
+        stop=0.2,
+        step=0.01,
+        update=False
     )
 
 
 def test_gmm_measurements(simulation_setup, qubit):
     from leeq.experiments.builtin import MeasurementCalibrationMultilevelGMM
-    manager = ExperimentManager().get_default_setup(
+    ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
-    cali = MeasurementCalibrationMultilevelGMM(
+    MeasurementCalibrationMultilevelGMM(
         dut=qubit,
         sweep_lpb_list=['0', '1'],
         mprim_index=0
@@ -133,9 +146,9 @@ def test_gmm_measurements(simulation_setup, qubit):
 
 def test_resonator_spectroscopy(simulation_setup, qubit):
     from leeq.experiments.builtin import ResonatorSweepTransmissionWithExtraInitialLPB
-    manager = ExperimentManager().get_default_setup(
+    ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
-    sweep = ResonatorSweepTransmissionWithExtraInitialLPB(
+    ResonatorSweepTransmissionWithExtraInitialLPB(
         qubit,
         start=9100,
         stop=9200,
@@ -146,9 +159,9 @@ def test_resonator_spectroscopy(simulation_setup, qubit):
 
 def test_qubit_spectroscopy(simulation_setup, qubit):
     from leeq.experiments.builtin import QubitSpectroscopyFrequency
-    manager = ExperimentManager().get_default_setup(
+    ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
-    sweep = QubitSpectroscopyFrequency(
+    QubitSpectroscopyFrequency(
         dut_qubit=qubit,
         res_freq=9141.21, start=3.e3, stop=5.e3,
         step=1., num_avs=1000,
@@ -158,17 +171,17 @@ def test_qubit_spectroscopy(simulation_setup, qubit):
 
 def test_drag_clibration(simulation_setup, qubit):
     from leeq.experiments.builtin import DragCalibrationSingleQubitMultilevel
-    manager = ExperimentManager().get_default_setup(
+    ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
-    sweep = DragCalibrationSingleQubitMultilevel(
+    DragCalibrationSingleQubitMultilevel(
         dut=qubit,
     )
 
 
 def test_pingpong_calibration(simulation_setup, qubit):
     from leeq.experiments.builtin import AmpPingpongCalibrationSingleQubitMultilevel
-    manager = ExperimentManager().get_default_setup(
+    ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
-    sweep = AmpPingpongCalibrationSingleQubitMultilevel(
+    AmpPingpongCalibrationSingleQubitMultilevel(
         dut=qubit,
     )

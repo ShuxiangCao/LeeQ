@@ -1,5 +1,6 @@
 import itertools as it
-from typing import List, Tuple, Union
+from typing import List
+
 import numpy as np
 
 
@@ -33,7 +34,7 @@ def generate_gellmann_matrix(j: int, k: int, dimension: int) -> np.ndarray:
         values = list(it.repeat(1 + 0j, dimension))  # Identity-like matrix
 
     matrix = np.zeros((dimension, dimension), dtype=np.complex128)
-    for value, row, col in zip(values, *coordinates):
+    for value, row, col in zip(values, *coordinates, strict=False):
         matrix[row][col] = value
 
     return matrix

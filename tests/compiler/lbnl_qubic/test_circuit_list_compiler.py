@@ -4,6 +4,9 @@ from leeq.compiler.lbnl_qubic.circuit_list_compiler import QubiCCircuitListLPBCo
 from leeq.core.context import ExperimentContext
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.core.primitives.built_in.common import Delay
+from leeq.experiments.experiments import ExperimentManager
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+from leeq.theory.simulation.numpy.rotated_frame_simulator import VirtualTransmon
 import numpy as np
 
 configuration_1 = {
@@ -101,7 +104,55 @@ leeq_channel_to_qubic_channel = {0: 'Q0', 1: 'Q0', 2: 'Q1', 3: 'Q1'}
 
 
 @fixture
-def qubit_1():
+def test_setup():
+    """Create a test setup using the high level simulation setup."""
+    from leeq.chronicle import Chronicle
+    Chronicle().start_log()
+    manager = ExperimentManager()
+    manager.clear_setups()
+
+    # Create virtual transmons for the channels used in tests
+    virtual_transmon_0 = VirtualTransmon(
+        name="VQubit0",
+        qubit_frequency=4144.417053428905,
+        anharmonicity=-425,
+        t1=70,
+        t2=35,
+        readout_frequency=9144.41,
+        quiescent_state_distribution=np.asarray([0.8, 0.15, 0.04, 0.01]))
+
+    virtual_transmon_2 = VirtualTransmon(
+        name="VQubit2",
+        qubit_frequency=4144.417053428905,
+        anharmonicity=-425,
+        t1=70,
+        t2=35,
+        readout_frequency=9144.41,
+        quiescent_state_distribution=np.asarray([0.8, 0.15, 0.04, 0.01]))
+
+    setup = HighLevelSimulationSetup(
+        name='TestSimulationSetup',
+        virtual_qubits={0: virtual_transmon_0, 2: virtual_transmon_2}
+    )
+
+    # Add all channels used in test configurations: 0, 1, 2, 3
+    # Channels 0 and 2 are drive channels (handled by virtual_qubits)
+    # Channels 1 and 3 are measurement channels (need to be added manually)
+    setup.status.add_channel(0)  # Drive channel for qubit 1
+    setup.status.add_channel(1)  # Measurement channel for qubit 1
+    setup.status.add_channel(2)  # Drive channel for qubit 2
+    setup.status.add_channel(3)  # Measurement channel for qubit 2
+
+    manager.register_setup(setup, set_as_default=True)
+
+    yield setup
+
+    # Cleanup
+    manager.clear_setups()
+
+
+@fixture
+def qubit_1(test_setup):
     dut = TransmonElement(
         name='test_qubit1',
         parameters=configuration_1
@@ -111,7 +162,7 @@ def qubit_1():
 
 
 @fixture
-def qubit_2():
+def qubit_2(test_setup):
     dut = TransmonElement(
         name='test_qubit2',
         parameters=configuration_2
@@ -203,15 +254,15 @@ def test_block_lpbs(qubit_1, qubit_2):
     ]
 
     for lpb in serial_lpbs:
-        instructions = compile_lpb(lpb)
+        compile_lpb(lpb)
 
     for lpb in parallel_lpbs:
-        instructions = compile_lpb(lpb)
+        compile_lpb(lpb)
 
     with pytest.raises(AssertionError):
         lpb = qubit_1.get_gate('qutrit_hadamard') * \
               qubit_1.get_gate('qutrit_hadamard')
-        instructions = compile_lpb(lpb)
+        compile_lpb(lpb)
 
 
 def test_measurement_like_pulse_experiment_circuit(qubit_1, qubit_2):

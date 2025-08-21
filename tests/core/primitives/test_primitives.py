@@ -59,7 +59,7 @@ def test_logical_primitive_block_parallel_clone():
     assert cloned_block._name != block_parallel._name
     assert cloned_block._children != block_parallel._children
     assert all(cloned_child._name != child._name for cloned_child, child in
-               zip(cloned_block._children, block_parallel._children))
+               zip(cloned_block._children, block_parallel._children, strict=False))
 
 
 def test_logical_primitive_block_serial_clone():
@@ -70,7 +70,7 @@ def test_logical_primitive_block_serial_clone():
     assert cloned_block._name != block_serial._name
     assert cloned_block._children != block_serial._children
     assert all(cloned_child._name != child._name for cloned_child, child in
-               zip(cloned_block._children, block_serial._children))
+               zip(cloned_block._children, block_serial._children, strict=False))
 
 
 def test_logical_primitive_add_assertion():

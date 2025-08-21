@@ -1,13 +1,9 @@
-import uuid
+
 import numpy as np
 
-
-from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
 from leeq.core.primitives import LogicalPrimitiveFactory
-from leeq.core.primitives.built_in.compatibility import PulseArgsUpdatable
-from leeq.core.primitives.collections import LogicalPrimitiveCollection
-
 from leeq.core.primitives.built_in.simple_drive import SimpleDrive
+from leeq.core.primitives.collections import LogicalPrimitiveCollection
 
 
 class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
@@ -21,7 +17,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         'rise': 0.01,
         'trunc': 1.0,
         'width': 0.1,
-        'alpha':-1/0.05,
+        'alpha': -1 / 0.05,
         'zz_interaction_positive': True
     }
 
@@ -55,7 +51,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
             "trunc": self._parameters['trunc'],
             "phase": 0,
         }
-                                                      )
+        )
         self['stark_drive_target'].update_parameters(**{
             "freq": self._parameters['freq'],
             "amp": self._parameters['amp_target'],
@@ -135,7 +131,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         """
         Get the z cancellation pulse. The z cancellation pulse is a pulse that cancels the iz rotation of both qubits.
         """
-        width = self.get_parameters()['width']
+        self.get_parameters()['width']
 
         z_control_cancel = self.iz_control
         z_target_cancel = self.iz_target
@@ -230,7 +226,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         control_c1, target_c1 = self.c1_control, self.c1_target
 
         return self.get_zxm(additional_echo) + (
-                control_c1['Ym'] * target_c1['Ym']) + self.get_zxm(additional_echo)
+            control_c1['Ym'] * target_c1['Ym']) + self.get_zxm(additional_echo)
 
     def get_swap_like(self, additional_echo=None):
         """
@@ -239,8 +235,8 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         control_c1, target_c1 = self.c1_control, self.c1_target
 
         return self.get_zxm(additional_echo) + (
-                control_c1['Ym'] * target_c1['Ym']) + self.get_zxm(additional_echo) + (
-                control_c1['Xp'] * (target_c1['Xp'] + target_c1['Ym'])) + self.get_zxm(additional_echo)
+            control_c1['Ym'] * target_c1['Ym']) + self.get_zxm(additional_echo) + (
+            control_c1['Xp'] * (target_c1['Xp'] + target_c1['Ym'])) + self.get_zxm(additional_echo)
 
     def get_clifford(
             self,

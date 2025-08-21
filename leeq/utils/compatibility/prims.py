@@ -1,8 +1,7 @@
 from leeq.core.primitives import *
-from leeq.core.primitives.built_in.common import Delay
 from leeq.core.primitives.built_in.sizzel_gate import SiZZelTwoQubitGateCollection
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep, \
-    LogicalPrimitiveBlockParallel as ParallelLPB, LogicalPrimitiveBlockSerial as SerialLPB
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial as SerialLPB
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
 
 SeriesLPB = SerialLPB
 

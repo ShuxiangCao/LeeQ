@@ -17,11 +17,30 @@ docker run -p 8888:8888 -p 8050:8050 -v /path/to/local/folder:/home/jovyan/work 
 Then, open the browser and go to `http://localhost:8888` to access the Jupyter notebook. The port `8050` is used for the
 live plotting server. To mount the local folder, replace `/path/to/local/folder` with the path to the local folder.
 
-### Tutorial
+## Documentation
 
-See the [Quick Start Guide](docs/quick_start.md) for a 10-minute guide to launch LeeQ. Or the [One-hour full tutorial tutorial](docs/tutorial.md).
+### Getting Started
+- **[Quick Start Guide](docs/quick_start.md)** - Get your first quantum experiment running in 10 minutes
+- **[Comprehensive Tutorial](docs/tutorial.md)** - In-depth tutorial covering all major LeeQ features
+- **[Installation Guide](docs/getting-started/installation.md)** - Detailed installation instructions
 
-Notebook and configuration examples are prepared in the [notebook](notebooks) folder.
+### User Guides
+- **[Core Concepts](docs/guide/concepts.md)** - Understand LeeQ's architecture and design principles
+- **[Experiments Guide](docs/guide/experiments.md)** - Learn about available experiment types
+- **[Calibrations Guide](docs/guide/calibrations.md)** - Master calibration procedures
+
+### API Documentation
+- **[Core API](docs/api/core/base.md)** - Base classes and core functionality
+- **[Experiments API](docs/api/experiments/builtin.md)** - Built-in experiment implementations
+- **[Theory API](docs/api/theory/simulation.md)** - Simulation and theory modules
+
+### Advanced Topics
+- **[EPII Service](docs/epii/deployment-guide.md)** - Deploy LeeQ as a gRPC service
+- **[Development Guide](docs/development/contributing.md)** - Contribute to LeeQ development
+- **[Architecture Overview](docs/development/architecture.md)** - Deep dive into LeeQ's design
+
+### Examples and Resources
+Configuration examples and sample experiments are available in the [notebooks](notebooks) folder.
 
 ## Contributing
 

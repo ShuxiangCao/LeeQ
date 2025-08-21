@@ -1,21 +1,51 @@
 import datetime
 import inspect
 
-import mllm
-import numpy as np
 import matplotlib
+import numpy as np
+
+try:
+    import mllm
+    MLLM_AVAILABLE = True
+except ImportError:
+    MLLM_AVAILABLE = False
+    mllm = None
+
+try:
+    from k_agents.experiment.experiment import Experiment as KExperiment
+    K_AGENTS_AVAILABLE = True
+except ImportError:
+    K_AGENTS_AVAILABLE = False
+    # Create a minimal base class if k_agents is not available
+
+    class KExperiment:
+        def __init__(self):
+            pass
+
+        def _before_run(self, args, kwargs):
+            pass
+
+        def _post_run(self, args, kwargs):
+            pass
+
 import plotly
 from IPython.display import display
-from labchronicle import Chronicle
-from k_agents.experiment.experiment import Experiment as KExperiment
+
+try:
+    import leeq.experiments.plots.live_dash_app as live_monitor
+    LIVE_MONITOR_AVAILABLE = True
+except ImportError:
+    LIVE_MONITOR_AVAILABLE = False
+    live_monitor = None
+from leeq.chronicle import Chronicle
 from leeq.core.base import LeeQObject
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import SetupStatusParameters
-from leeq.utils import Singleton, setup_logging, display_json_dict
-import leeq.experiments.plots.live_dash_app as live_monitor
+from leeq.utils import Singleton, display_json_dict, setup_logging
 
 logger = setup_logging(__name__)
+
 
 class LeeQAIExperiment(LeeQObject, KExperiment):
     """
@@ -24,8 +54,8 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
     An experiment contains the script to execute the experiment, analyze the data and visualize the result.
 
     1. Scripts execution
-        To allow labchronicle to log the experiment, the main experiment script should be written in the `run` method.
-        The `run` method should be decorated with the `labchronicle.log_and_record` method to log the events in the
+        To allow leeq.chronicle to log the experiment, the main experiment script should be written in the `run` method.
+        The `run` method should be decorated with the `leeq.chronicle.log_and_record` method to log the events in the
          experiment. The decorator will save the arguments and return values of the `run` method and the entire object
           to the log.
         The `run` method will always be executed at the end of `__init__` to start the experiment.
@@ -34,10 +64,10 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
     2. Data analysis
         The data analysis can be written in any arbitrary method, and suggested to run in a separate method than `run`,
          ideally the first few lines of the visualization code. This is because if the data analysis failed, it may
-         crash the program before labchronicle can log the experiment data.
+         crash the program before leeq.chronicle can log the experiment data.
 
     3. Visualization
-        The visualization code should live in a separate function and decorated by `labchronicle.browser_function`, so
+        The visualization code should live in a separate function and decorated by `leeq.chronicle.browser_function`, so
          that the function will be executed when the experiment is finished execution in Jupyter notebook. It also
          allows the function to be executed later when data loaded from the log file.
     """
@@ -83,22 +113,26 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
         return bound.args, bound.kwargs
 
     def _before_run(self, args, kwargs):
-        self._llm_logger = mllm.chat.ChatLogger(show_table=False)
+        if MLLM_AVAILABLE:
+            self._llm_logger = mllm.chat.ChatLogger(show_table=False)
+        else:
+            self._llm_logger = None
         # Check the input arguments
         args, kwargs = self._check_arguments(self.run, *args, **kwargs)
 
         KExperiment._before_run(self, args, kwargs)
-        self._llm_logger.__enter__()
+        if self._llm_logger is not None:
+            self._llm_logger.__enter__()
         # Register the active experiment instance
         setup().register_active_experiment_instance(self)
-
 
     def _post_run(self, args, kwargs):
         KExperiment._post_run(self, args, kwargs)
         if self.to_show_figure_in_notebook:
             self.show_plots()
         self.chronicle_log()
-        self._llm_logger.__exit__(None, None, None)
+        if self._llm_logger is not None:
+            self._llm_logger.__exit__(None, None, None)
 
     def chronicle_log(self):
         # Make sure we print the record details before throwing the
@@ -122,7 +156,7 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
 
     def get_experiment_details(self):
         """
-        Get the experiment details. It includes the labchronicle record details, experiment arguments, and the
+        Get the experiment details. It includes the leeq.chronicle record details, experiment arguments, and the
         experiment specific details.
 
         Returns:
@@ -150,7 +184,7 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
                 self.log_warning(
                     f"Error when executing the browsable plot function {name}:{e}."
                 )
-                self.log_warning(f"Ignore the error and continue.")
+                self.log_warning("Ignore the error and continue.")
                 self.log_warning(f"{e}")
                 continue
 
@@ -165,7 +199,7 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
                 self.log_warning(
                     f"Error when displaying experiment result of {func.__qualname__}: {e}"
                 )
-                self.log_warning(f"Ignore the error and continue.")
+                self.log_warning("Ignore the error and continue.")
                 self.log_warning(f"{e}")
 
     @property
@@ -208,14 +242,20 @@ class ExperimentManager(Singleton):
         """
         Start the live monitor.
         """
-        live_monitor.start_app(experiment_manager=self, **kwargs)
+        if LIVE_MONITOR_AVAILABLE:
+            live_monitor.start_app(experiment_manager=self, **kwargs)
+        else:
+            logger.warning("Live monitor is not available due to dependency issues")
 
     @staticmethod
     def stop_live_monitor():
         """
         Stop the live monitor.
         """
-        live_monitor.stop_app()
+        if LIVE_MONITOR_AVAILABLE:
+            live_monitor.stop_app()
+        else:
+            logger.warning("Live monitor is not available due to dependency issues")
 
     def get_live_status(self):
         """
@@ -265,9 +305,9 @@ class ExperimentManager(Singleton):
             return fig
 
         try:
-            args = self._active_experiment_instance.retrieve_args(
+            self._active_experiment_instance.retrieve_args(
                 self._active_experiment_instance.run)
-        except ValueError as e:
+        except ValueError:
             # The experiment has not been registered for plotting
             return fig
 

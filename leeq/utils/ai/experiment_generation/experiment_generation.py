@@ -1,7 +1,8 @@
 from typing import List
 
+from k_agents.io_interface import code_to_html, display_chat
 from tqdm.notebook import tqdm
-from k_agents.io_interface import display_chat, code_to_html
+
 from leeq.utils.ai.experiment_generation.data_analysis import generate_data_analysis
 from leeq.utils.ai.experiment_generation.data_visualization import generate_data_visualization
 from leeq.utils.ai.experiment_generation.load_documents import load_document_file
@@ -20,20 +21,20 @@ def summarize_experiment(experiment_summary: str, code_fragments: List[str]):
     """
 
     prompt = f"""
-    There are a few python code snippit that have been generated for the experiment. Please assemble them into a 
+    There are a few python code snippit that have been generated for the experiment. Please assemble them into a
     single working experiment class.
-    
+
     <experiment_summary>
     {experiment_summary}
     </experiment_summary>
-    
+
     The code fragments are:
     <code_fragments>
     {code_fragments}
     </code_fragments>
-    
+
     Please assemble the code fragments into a single working experiment class.
-    
+
     Return format:
     ```python
         <The experiment class code>
@@ -55,35 +56,35 @@ def add_comments_annotations_and_gagets(summary: str, code: str):
     leeq_loading = load_document_file('imports_and_loading.md')
 
     prompt = f"""
-    There is a code snippet that has been generated for implementing a quantum experiment. We wish to modify the code 
-    to make it compatible with the LeeQ package. The code syntax is correct, but it lacks comments, annotations, and 
-    decorators. It also may not inherent from the `Experiment` class from leeq.  
-    
+    There is a code snippet that has been generated for implementing a quantum experiment. We wish to modify the code
+    to make it compatible with the LeeQ package. The code syntax is correct, but it lacks comments, annotations, and
+    decorators. It also may not inherent from the `Experiment` class from leeq.
+
     <leeq_example>
     {leeq_example}
     </leeq_example>
-    
+
     <leeq_imports>
     {leeq_loading}
     </leeq_imports>
-    
-    <summary> 
+
+    <summary>
     {summary}
     </summary>
-    
+
     <code>
     {code}
     </code>
-    
-    - Please add decorators to the code to make it compatible with the LeeQ package. 
-    - Make it also inherent from the `Experiment` class from leeq. 
+
+    - Please add decorators to the code to make it compatible with the LeeQ package.
+    - Make it also inherent from the `Experiment` class from leeq.
     - Do not use the '__init__' function, instead use the 'run' function to initialize the class.
     - Add comments to the code to make it more readable.
     - Add type annotations to all class arguments to the code to make it more understandable.
     - Add docstrings to the class and all class functions to make it more understandable.
     - Do not change the structure of the code, add or remove class functions.
     - You have to the full code after modification and redy to be executed. Do not return the code in parts.
-    
+
     Return format:
     ```python
         <The experiment class code>
@@ -111,21 +112,21 @@ def break_down_description(description: str):
     <description>
     {description}
     </description>
-    
+
     Please extract the following information from the description and provide the following information in JSON format:
     1. Summary of the experiment
     2. The description of what pulse sequences should be used
     3. The description of how to implement data analysis
     4. The description of how to do data visualization
-    
-    If the information about certain quantities such as the sweep period is missing, consider it is an input parameter 
+
+    If the information about certain quantities such as the sweep period is missing, consider it is an input parameter
     in the later stage and do not consider it is missing.
     And reflect that in the description. The details about how to operate the experiment will be provided in in the later stage.
-    
+
     If the information is not provided in the description, please suggest the information is missing in the field.
-    
+
     Do not reply code snippets, only JSON dict.
-    
+
     Please provide the information in the following format:
     {{
         "summary": <The summary of the experiment>,

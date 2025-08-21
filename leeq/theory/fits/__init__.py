@@ -1,11 +1,9 @@
-import numpy as np
-from scipy.optimize import minimize
-from typing import List, Optional, Dict, Any
-from .fit_exp import *
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-from scipy.optimize import minimize, curve_fit
-from typing import Optional, Union, Tuple, Dict, List
+from scipy.optimize import curve_fit, minimize
+
+from .fit_exp import *
 
 
 def fit_sinusoidal(
@@ -56,8 +54,8 @@ def fit_sinusoidal(
         min_omega = omega * 0.5
 
     # Generate time data
-    time = np.linspace(start_time, start_time +
-                       time_step * (len(data) - 1), len(data))
+    time = np.linspace(start_time, start_time
+                       + time_step * (len(data) - 1), len(data))
 
     # Initial parameter guesses based on data properties
     offset = np.mean(data)
@@ -82,7 +80,7 @@ def fit_sinusoidal(
         return np.mean((fit - y) ** 2) * 1e5
 
     # Optimization process
-    optimization_args = dict()
+    optimization_args = {}
     optimization_args.update(kwargs)
 
     if not fix_frequency:
@@ -114,5 +112,3 @@ def fit_sinusoidal(
         'Phase': phase,
         'Offset': offset,
         'Residual': residual}
-
-

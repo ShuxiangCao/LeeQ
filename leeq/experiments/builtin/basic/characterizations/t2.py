@@ -1,12 +1,11 @@
-from typing import Union
-from typing import Optional, Any
+from typing import Any, Optional, Union
+
 import numpy as np
+from k_agents.inspection.decorator import text_inspection, visual_inspection
 from plotly import graph_objects as go
 
-from labchronicle import register_browser_function, log_and_record
-
-from k_agents.inspection.decorator import text_inspection, visual_inspection
 from leeq import Experiment
+from leeq.chronicle import log_and_record, register_browser_function
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.fits import fit_exp_decay_with_cov
 from leeq.theory.utils import to_dense_probabilities
@@ -19,7 +18,7 @@ __all__ = [
 
 
 class SpinEchoMultiLevel(
-    Experiment):  # Class names should follow the CapWords convention
+        Experiment):  # Class names should follow the CapWords convention
     """
     A class used to represent the SpinEchoMultiLevel experiment.
 
@@ -32,7 +31,7 @@ class SpinEchoMultiLevel(
         Plots the results of the echo experiment.
     """
 
-    _experiment_result_analysis_instructions = """The Spin echo experiment measures the T2 echo relaxation time of a qubit. 
+    _experiment_result_analysis_instructions = """The Spin echo experiment measures the T2 echo relaxation time of a qubit.
     Please analyze the fitted plots and the fitting model to verify the data's validity. Subsequently, determine
     if the experiment needs to be rerun and adjust the experimental parameters as necessary. The suggested time
     length should be approximately 5 times the T2 value. If there is a significant discrepancy, adjust the time
@@ -206,10 +205,10 @@ class SpinEchoMultiLevel(
         trace_scatter = go.Scatter(
             x=t, y=trace,
             mode='markers',
-            marker=dict(
-                size=5,
-                color='blue'
-            ),
+            marker={
+                'size': 5,
+                'color': 'blue'
+            },
             name='Experiment data'
         )
 
@@ -224,9 +223,9 @@ class SpinEchoMultiLevel(
                 x=t,
                 y=fit_params['Amplitude'].n * np.exp(-t / fit_params['Decay'].n) + fit_params['Offset'].n,
                 mode='lines',
-                line=dict(
-                    color='blue'
-                ),
+                line={
+                    'color': 'blue'
+                },
                 name='Decay fit',
                 visible='legendonly'
             )
@@ -238,8 +237,8 @@ class SpinEchoMultiLevel(
 
         layout = go.Layout(
             title=title,
-            xaxis=dict(title='Time (us)'),
-            yaxis=dict(title='P(0)'),
+            xaxis={'title': 'Time (us)'},
+            yaxis={'title': 'P(0)'},
             plot_bgcolor='white',
             showlegend=True
         )
@@ -271,7 +270,7 @@ class SpinEchoMultiLevel(
 
 
 class MultiQubitSpinEchoMultiLevel(
-    Experiment):  # Class names should follow the CapWords convention
+        Experiment):  # Class names should follow the CapWords convention
     """
     A class used to represent the SpinEchoMultiLevel experiment.
 
@@ -328,12 +327,12 @@ class MultiQubitSpinEchoMultiLevel(
             qubit.get_c1(collection_name) for qubit,
             collection_name in zip(
                 duts,
-                collection_names)]
+                collection_names, strict=False)]
         mprims = [
             qubit.get_measurement_prim_intlist(mprim_index) for qubit,
             mprim_index in zip(
                 duts,
-                mprim_indexes)]
+                mprim_indexes, strict=False)]
         delay = prims.Delay(0)
 
         self.mp = mprims
@@ -422,11 +421,11 @@ class MultiQubitSpinEchoMultiLevel(
             trace_scatter = go.Scatter(
                 x=t, y=trace[i, :],
                 mode='markers',
-                marker=dict(
-                    symbol="circle-open",
-                    size=5,
-                    color=colors[i]
-                ),
+                marker={
+                    'symbol': "circle-open",
+                    'size': 5,
+                    'color': colors[i]
+                },
                 name=f'State {i}'
             )
             data.append(trace_scatter)
@@ -435,11 +434,11 @@ class MultiQubitSpinEchoMultiLevel(
             trace_scatter = go.Scatter(
                 x=t, y=normalized_population,
                 mode='markers',
-                marker=dict(
-                    symbol="diamond-open",
-                    size=5,
-                    color='black'
-                ),
+                marker={
+                    'symbol': "diamond-open",
+                    'size': 5,
+                    'color': 'black'
+                },
                 name=f'Normalized State {trace.shape[0] - 1}'
             )
             data.append(trace_scatter)
@@ -447,15 +446,14 @@ class MultiQubitSpinEchoMultiLevel(
         title = f"T2 decay {args['duts'][index].hrid} transition {self.collection_names[index]}"
 
         if fit:
-            print(normalized_population.shape)
             fit_params = fit_exp_decay_with_cov(normalized_population, args['time_resolution'])
             trace_line = go.Scatter(
                 x=t,
                 y=fit_params['Amplitude'].n * np.exp(-t / fit_params['Decay'].n) + fit_params['Offset'].n,
                 mode='lines',
-                line=dict(
-                    color='black'
-                ),
+                line={
+                    'color': 'black'
+                },
                 name='Decay fit'
             )
             title = (
@@ -466,8 +464,8 @@ class MultiQubitSpinEchoMultiLevel(
 
         layout = go.Layout(
             title=title,
-            xaxis=dict(title='Time (us)'),
-            yaxis=dict(title='Population'),
+            xaxis={'title': 'Time (us)'},
+            yaxis={'title': 'Population'},
             plot_bgcolor='white',
             showlegend=True
         )

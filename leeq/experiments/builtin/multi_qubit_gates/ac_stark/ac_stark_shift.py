@@ -1,33 +1,26 @@
 # Conditional AC stark shift induced CZ gate
 
-from datetime import datetime
-from k_agents.inspection.decorator import text_inspection
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockSweep
-from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
-from leeq.utils import setup_logging
-
-logger = setup_logging(__name__)
-
-import datetime
 import copy
-
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-
-from labchronicle import log_and_record, register_browser_function
-from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory
-from leeq.core.elements.built_in.qudit_transmon import TransmonElement
-from leeq.utils.compatibility import *
+import datetime
+from typing import Any, List
 
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from k_agents.inspection.decorator import text_inspection
+from plotly.subplots import make_subplots
+from scipy.optimize import OptimizeWarning, curve_fit
 
+from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory
+from leeq.chronicle import log_and_record, register_browser_function
+from leeq.core.elements.built_in.qudit_transmon import TransmonElement
+from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockSweep
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+from leeq.theory.fits import *
+from leeq.utils import setup_logging
+from leeq.utils.compatibility import *
 from leeq.utils.compatibility import prims
 
-from leeq.theory.fits import *
-
-from scipy.optimize import curve_fit, OptimizeWarning
-
-from typing import List, Any
+logger = setup_logging(__name__)
 
 
 # from ..characterization import *
@@ -110,11 +103,11 @@ class StarkSingleQubitT1(experiment):
         trace_scatter = go.Scatter(
             x=t, y=trace,
             mode='markers',
-            marker=dict(
-                symbol='x',
-                size=10,
-                color='blue'
-            ),
+            marker={
+                'symbol': 'x',
+                'size': 10,
+                'color': 'blue'
+            },
             name='Experiment data'
         )
 
@@ -132,9 +125,9 @@ class StarkSingleQubitT1(experiment):
                 x=t,
                 y=fit_params['Amplitude'][0] * np.exp(-t / fit_params['Decay'][0]) + fit_params['Offset'][0],
                 mode='lines',
-                line=dict(
-                    color='blue'
-                ),
+                line={
+                    'color': 'blue'
+                },
                 name='Decay fit'
             )
             title = (f"T1 decay {args['qubit'].hrid} transition {args['collection_name']}<br>"
@@ -144,8 +137,8 @@ class StarkSingleQubitT1(experiment):
 
         layout = go.Layout(
             title=title,
-            xaxis=dict(title='Time (us)'),
-            yaxis=dict(title='P(1)'),
+            xaxis={'title': 'Time (us)'},
+            yaxis={'title': 'P(1)'},
             plot_bgcolor='white',
             showlegend=True
         )
@@ -165,8 +158,7 @@ class StarkSingleQubitT1(experiment):
             A, tau, C = popt
             perr = np.sqrt(np.diag(pcov))
             return {'Amplitude': (A, perr[0]), 'Decay': (tau, perr[1]), 'Offset': (C, perr[2])}
-        except (OptimizeWarning, RuntimeError) as e:
-            print(f"Optimization warning or error: {e}")
+        except (OptimizeWarning, RuntimeError):
             return {'Amplitude': (np.nan, np.nan), 'Decay': (np.nan, np.nan), 'Offset': (np.nan, np.nan)}
 
 
@@ -187,7 +179,7 @@ class StarkTwoQubitsSWAP(experiment):
         self.step = step
 
         c1_control = self.duts[0].get_default_c1()  # the qubit to be stark shifted and T1 performed on
-        c1_target = self.duts[1].get_default_c1()  # the qubit which will just be measured at the same time
+        self.duts[1].get_default_c1()  # the qubit which will just be measured at the same time
 
         self.original_freq = c1_control['Xp'].freq
         self.frequency = self.original_freq + self.stark_offset
@@ -280,8 +272,7 @@ class StarkTwoQubitsSWAP(experiment):
             A, tau, C = popt
             perr = np.sqrt(np.diag(pcov))
             return {'Amplitude': (A, perr[0]), 'Decay': (tau, perr[1]), 'Offset': (C, perr[2])}
-        except (OptimizeWarning, RuntimeError) as e:
-            print(f"Optimization warning or error: {e}")
+        except (OptimizeWarning, RuntimeError):
             return {'Amplitude': (np.nan, np.nan), 'Decay': (np.nan, np.nan), 'Offset': (np.nan, np.nan)}
 
 
@@ -304,7 +295,7 @@ class StarkTwoQubitsSWAPTwoDrives(experiment):
         self.phase_diff = phase_diff
 
         c1_control = self.duts[0].get_default_c1()  # the qubit to be stark shifted and T1 performed on
-        c1_target = self.duts[1].get_default_c1()  # the qubit which will just be measured at the same time
+        self.duts[1].get_default_c1()  # the qubit which will just be measured at the same time
 
         self.original_freq = c1_control['Xp'].freq
         self.frequency = self.original_freq + self.stark_offset
@@ -398,8 +389,7 @@ class StarkTwoQubitsSWAPTwoDrives(experiment):
             A, tau, C = popt
             perr = np.sqrt(np.diag(pcov))
             return {'Amplitude': (A, perr[0]), 'Decay': (tau, perr[1]), 'Offset': (C, perr[2])}
-        except (OptimizeWarning, RuntimeError) as e:
-            print(f"Optimization warning or error: {e}")
+        except (OptimizeWarning, RuntimeError):
             return {'Amplitude': (np.nan, np.nan), 'Decay': (np.nan, np.nan), 'Offset': (np.nan, np.nan)}
 
 
@@ -466,9 +456,9 @@ class StarkRamseyMultilevel(Experiment):
 
         # Update the frequency with the calculated offset
         c1q.update_parameters(
-            freq=original_freq +
-                 set_offset /
-                 self.level_diff)
+            freq=original_freq
+            + set_offset
+            / self.level_diff)
 
         # Get the measurement primitive
         mprim = qubit.get_measurement_prim_intlist(mprim_index)
@@ -497,7 +487,6 @@ class StarkRamseyMultilevel(Experiment):
         if update:
             self.analyze_data()
             c1q.update_parameters(freq=self.frequency_guess)
-            print(f"Frequency updated: {self.frequency_guess} MHz")
         else:
             c1q.update_parameters(freq=original_freq)
 
@@ -619,10 +608,10 @@ class StarkRamseyMultilevel(Experiment):
             xaxis_title="Time (us)",
             yaxis_title="<z>",
             legend_title="Legend",
-            font=dict(
-                family="Courier New, monospace",
-                size=12,
-                color="Black"),
+            font={
+                'family': "Courier New, monospace",
+                'size': 12,
+                'color': "Black"},
             plot_bgcolor="white")
         return fig
 
@@ -646,13 +635,13 @@ class StarkRamseyMultilevel(Experiment):
             self.frequency_guess = self.original_freq - fitted_freq_offset
             self.error_bar = self.fit_params['Frequency'].s
 
-        except Exception as e:
+        except Exception:
             # In case of fit failure, default the frequency guess and error
             self.frequency_guess = 0
             self.error_bar = np.inf
 
     def dump_results_and_configuration(self) -> Tuple[
-        float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
+            float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
         """
         Dump the results and configuration of the experiment.
 
@@ -699,13 +688,13 @@ class StarkRamseyMultilevel(Experiment):
             frequency = self.fit_params['Frequency'].n
             amplitude = self.fit_params['Amplitude'].n
             phase = self.fit_params['Phase'].n - \
-                    2.0 * np.pi * frequency * args['start']
+                2.0 * np.pi * frequency * args['start']
             offset = self.fit_params['Offset'].n
             decay = self.fit_params['Decay'].n
 
             # Generate the fitted curve
             fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * \
-                           np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
+                np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
 
             fig.add_trace(
                 go.Scatter(
@@ -718,7 +707,7 @@ class StarkRamseyMultilevel(Experiment):
 
             # Set plot layout details
             title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
-                         f"{decay} ± {self.fit_params['Decay'].n} us"
+                f"{decay} ± {self.fit_params['Decay'].n} us"
             fig.update_layout(
                 title_text=title_text,
                 xaxis_title=f"Time (us) <br> Frequency: {frequency} ± {self.fit_params['Frequency'].n}",
@@ -728,9 +717,9 @@ class StarkRamseyMultilevel(Experiment):
         else:
             # Set plot layout details
             title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
-                         f"Fit failed"
+                f"Fit failed"
             fig.update_layout(title_text=title_text,
-                              xaxis_title=f"Time (us)",
+                              xaxis_title="Time (us)",
                               yaxis_title="<z>",
                               plot_bgcolor="white")
 
@@ -789,7 +778,7 @@ class StarkRamseyMultilevel(Experiment):
         if self.error_bar == np.inf:
             return "The Ramsey experiment failed to fit the data."
 
-        return (f"The Ramsey experiment for qubit {self._get_run_args_dict()['qubit'].hrid} has been analyzed. " \
+        return (f"The Ramsey experiment for qubit {self._get_run_args_dict()['qubit'].hrid} has been analyzed. "
                 f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured offset is "
                 f"{self.fitted_freq_offset:.3f}+- {self.error_bar:.3f} MHz.")
 
@@ -824,7 +813,8 @@ class StarkDriveRamseyTwoQubits(experiment):
         self.level_diff = end_level - start_level
 
         self.original_freqs = [c1['Xp'].freq for c1 in c1s]
-        for c1 in c1s: c1.update_parameters(freq=c1['Xp'].freq + self.set_offset / self.level_diff)
+        for c1 in c1s:
+            c1.update_parameters(freq=c1['Xp'].freq + self.set_offset / self.level_diff)
 
         self.original_freq = c1s[0]['Xp'].freq
         self.frequency = self.original_freq + self.stark_offset
@@ -835,7 +825,7 @@ class StarkDriveRamseyTwoQubits(experiment):
 
         lpb = prims.ParallelLPB([c1['Xp'] for c1 in c1s]) + cs_pulse + prims.ParallelLPB(
             [c1['Xm'] for c1 in c1s]) + prims.ParallelLPB(
-            [mp for mp in mps])  # stark shift ramsey on first qubit, normal ramsey on second
+            list(mps))  # stark shift ramsey on first qubit, normal ramsey on second
 
         if initial_lpb is not None:
             lpb = initial_lpb + lpb
@@ -853,7 +843,8 @@ class StarkDriveRamseyTwoQubits(experiment):
         self.result = [np.squeeze(mp.result()) for mp in mps]
         self.traces = self.result
 
-        for i, c1 in enumerate(c1s): c1.update_parameters(freq=self.original_freqs[i])
+        for i, c1 in enumerate(c1s):
+            c1.update_parameters(freq=self.original_freqs[i])
 
     def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
         args = self._get_run_args_dict()
@@ -874,7 +865,7 @@ class StarkDriveRamseyTwoQubits(experiment):
             xaxis_title="Time (us)",
             yaxis_title="<z>",
             legend_title="Legend",
-            font=dict(family="Courier New, monospace", size=12, color="Black"),
+            font={'family': "Courier New, monospace", 'size': 12, 'color': "Black"},
             plot_bgcolor="white"
         )
         return fig
@@ -897,12 +888,12 @@ class StarkDriveRamseyTwoQubits(experiment):
                 self.frequency_guess[i] = self.original_freqs[i] - fitted_freq_offset
                 self.error_bar[i] = self.fit_params[i]['Frequency'].s
                 self.frequency_shift[i].append(self.frequency_guess[i] - self.original_freqs[i])
-            except Exception as e:
+            except Exception:
                 self.frequency_guess[i] = 0
                 self.error_bar[i] = np.inf
 
     def dump_results_and_configuration(self) -> Tuple[
-        float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
+            float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
         args = copy.copy(self._get_run_args_dict())
         del args['initial_lpb']
         args['drive_freq'] = args['qubits'][0].get_c1(args['collection_name'])['X'].freq
@@ -932,7 +923,7 @@ class StarkDriveRamseyTwoQubits(experiment):
                 decay = self.fit_params[i]['Decay'].n
 
                 fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * \
-                               np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
+                    np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
 
                 fig.add_trace(go.Scatter(x=time_points_interpolate, y=fitted_curve, mode='lines', name=f'Fit {i}'),
                               row=i + 1, col=1)
@@ -1019,7 +1010,8 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
         self.level_diff = end_level - start_level
 
         self.original_freqs = [c1['Xp'].freq for c1 in c1s]
-        for c1 in c1s: c1.update_parameters(freq=c1['Xp'].freq + self.set_offset / self.level_diff)
+        for c1 in c1s:
+            c1.update_parameters(freq=c1['Xp'].freq + self.set_offset / self.level_diff)
 
         self.original_freq = c1s[0]['Xp'].freq
         self.frequency = self.original_freq + self.stark_offset
@@ -1034,7 +1026,7 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
 
         lpb = prims.ParallelLPB([c1['Xp'] for c1 in c1s]) + cs_pulse_a * cs_pulse_b + prims.ParallelLPB(
             [c1['Xm'] for c1 in c1s]) + prims.ParallelLPB(
-            [mp for mp in mps])  # stark shift ramsey on first qubit, normal ramsey on second
+            list(mps))  # stark shift ramsey on first qubit, normal ramsey on second
 
         if initial_lpb is not None:
             lpb = initial_lpb + lpb
@@ -1053,7 +1045,8 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
         self.result = [np.squeeze(mp.result()) for mp in mps]
         self.traces = self.result
 
-        for i, c1 in enumerate(c1s): c1.update_parameters(freq=self.original_freqs[i])
+        for i, c1 in enumerate(c1s):
+            c1.update_parameters(freq=self.original_freqs[i])
 
     def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
         args = self._get_run_args_dict()
@@ -1074,7 +1067,7 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
             xaxis_title="Time (us)",
             yaxis_title="<z>",
             legend_title="Legend",
-            font=dict(family="Courier New, monospace", size=12, color="Black"),
+            font={'family': "Courier New, monospace", 'size': 12, 'color': "Black"},
             plot_bgcolor="white"
         )
         return fig
@@ -1097,12 +1090,12 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
                 self.frequency_guess[i] = self.original_freqs[i] - fitted_freq_offset
                 self.error_bar[i] = self.fit_params[i]['Frequency'].s
                 self.frequency_shift[i].append(self.frequency_guess[i] - self.original_freqs[i])
-            except Exception as e:
+            except Exception:
                 self.frequency_guess[i] = 0
                 self.error_bar[i] = np.inf
 
     def dump_results_and_configuration(self) -> Tuple[
-        float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
+            float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
         args = copy.copy(self._get_run_args_dict())
         del args['initial_lpb']
         args['drive_freq'] = args['qubits'][0].get_c1(args['collection_name'])['X'].freq
@@ -1132,7 +1125,7 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
                 decay = self.fit_params[i]['Decay'].n
 
                 fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * \
-                               np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
+                    np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
 
                 fig.add_trace(go.Scatter(x=time_points_interpolate, y=fitted_curve, mode='lines', name=f'Fit {i}'),
                               row=i + 1, col=1)
@@ -1219,7 +1212,8 @@ class StarkDriveRamseyMultiQubits(experiment):
         self.level_diff = end_level - start_level
 
         self.original_freqs = [c1['Xp'].freq for c1 in c1s]
-        for c1 in c1s: c1.update_parameters(freq=c1['Xp'].freq + self.set_offset / self.level_diff)
+        for c1 in c1s:
+            c1.update_parameters(freq=c1['Xp'].freq + self.set_offset / self.level_diff)
 
         self.original_freq = c1s[0]['Xp'].freq
         self.frequency = self.original_freq + self.stark_offset
@@ -1230,7 +1224,7 @@ class StarkDriveRamseyMultiQubits(experiment):
 
         lpb = prims.ParallelLPB([c1['Xp'] for c1 in c1s]) + cs_pulse + prims.ParallelLPB(
             [c1['Xm'] for c1 in c1s]) + prims.ParallelLPB(
-            [mp for mp in mps])  # stark shift ramsey on first qubit, normal ramsey on second
+            list(mps))  # stark shift ramsey on first qubit, normal ramsey on second
 
         if initial_lpb is not None:
             lpb = initial_lpb + lpb
@@ -1248,7 +1242,8 @@ class StarkDriveRamseyMultiQubits(experiment):
         self.result = [np.squeeze(mp.result()) for mp in mps]
         self.traces = self.result
 
-        for i, c1 in enumerate(c1s): c1.update_parameters(freq=self.original_freqs[i])
+        for i, c1 in enumerate(c1s):
+            c1.update_parameters(freq=self.original_freqs[i])
 
     def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
         args = self._get_run_args_dict()
@@ -1270,7 +1265,7 @@ class StarkDriveRamseyMultiQubits(experiment):
             xaxis_title="Time (us)",
             yaxis_title="<z>",
             legend_title="Legend",
-            font=dict(family="Courier New, monospace", size=12, color="Black"),
+            font={'family': "Courier New, monospace", 'size': 12, 'color': "Black"},
             plot_bgcolor="white"
         )
         return fig
@@ -1294,12 +1289,12 @@ class StarkDriveRamseyMultiQubits(experiment):
                 self.frequency_guess[i] = self.original_freqs[i] - fitted_freq_offset
                 self.error_bar[i] = self.fit_params[i]['Frequency'].s
                 self.frequency_shift[i].append(self.frequency_guess[i] - self.original_freqs[i])
-            except Exception as e:
+            except Exception:
                 self.frequency_guess[i] = 0
                 self.error_bar[i] = np.inf
 
     def dump_results_and_configuration(self) -> Tuple[
-        float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
+            float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
         args = copy.copy(self._get_run_args_dict())
         del args['initial_lpb']
         args['drive_freq'] = args['qubits'][0].get_c1(args['collection_name'])['X'].freq
@@ -1330,7 +1325,7 @@ class StarkDriveRamseyMultiQubits(experiment):
                 decay = self.fit_params[i]['Decay'].n
 
                 fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * \
-                               np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
+                    np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
 
                 fig.add_trace(go.Scatter(x=time_points_interpolate, y=fitted_curve, mode='lines', name=f'Fit {i}'),
                               row=i + 1, col=1)
@@ -1478,17 +1473,17 @@ class StarkZZShiftTwoQubitMultilevel(Experiment):
             update=False)
 
         self.zz = [
-            self.q1_ramsey_q2_excited.frequency_guess -
-            self.q1_ramsey_q2_ground.frequency_guess,
-            self.q2_ramsey_q1_excited.frequency_guess -
-            self.q2_ramsey_q1_ground.frequency_guess,
+            self.q1_ramsey_q2_excited.frequency_guess
+            - self.q1_ramsey_q2_ground.frequency_guess,
+            self.q2_ramsey_q1_excited.frequency_guess
+            - self.q2_ramsey_q1_ground.frequency_guess,
         ]
 
         self.zz_error = [
-            self.q1_ramsey_q2_excited.error_bar -
-            self.q1_ramsey_q2_ground.error_bar,
-            self.q2_ramsey_q1_excited.error_bar -
-            self.q2_ramsey_q1_ground.error_bar,
+            self.q1_ramsey_q2_excited.error_bar
+            - self.q1_ramsey_q2_ground.error_bar,
+            self.q2_ramsey_q1_excited.error_bar
+            - self.q2_ramsey_q1_ground.error_bar,
         ]
 
         setup().status().set_param("Plot_Result_In_Jupyter", plot_result_in_jupyter)
@@ -1600,7 +1595,7 @@ class StarkContinuesRabi(Experiment):
         )
 
         if initial_lpb is not None:
-            lpb = initial_lpb + pulse
+            initial_lpb + pulse
 
         basic(pulse + mprim, swp=swp, basis="<z>")
 
@@ -1648,7 +1643,6 @@ class StarkRepeatedGateDRAGLeakageCalibration(Experiment):
         pulse = c1['X'].clone()
 
         alpha = pulse.alpha
-        print('alpha', alpha)
 
         if inv_alpha_start is None:
             inv_alpha_start = 1 / alpha - 0.006
@@ -1690,7 +1684,7 @@ class StarkRepeatedGateDRAGLeakageCalibration(Experiment):
         """
         Plot the results.
         """
-        args = self._get_run_args_dict()
+        self._get_run_args_dict()
 
         inv_alpha = self.sweep_values
 

@@ -1,9 +1,12 @@
-from labchronicle import log_and_record
-
+from leeq.chronicle import log_and_record
 from leeq.theory.tomography import MultiQutritModel
 from leeq.utils.compatibility import prims
-from .base import GeneralisedTomographyBase, GeneralisedSingleDutStateTomography, GeneralisedStateTomography, \
-    GeneralisedProcessTomography
+
+from .base import (
+    GeneralisedProcessTomography,
+    GeneralisedStateTomography,
+    GeneralisedTomographyBase,
+)
 
 
 class QutritTomographyBase(GeneralisedTomographyBase):
@@ -24,7 +27,7 @@ class QutritTomographyBase(GeneralisedTomographyBase):
         full_gate_names = gate_names
 
         number_of_qubits = len(duts)
-        for i in range(number_of_qubits - 1):
+        for _i in range(number_of_qubits - 1):
             new_gate_names = []
             for gate_name in gate_names:
                 for full_gate_name in full_gate_names:
@@ -37,7 +40,7 @@ class QutritTomographyBase(GeneralisedTomographyBase):
                 [_gate_lpbs_func[gate_name](duts[i]) for i, gate_name in enumerate(gate_names)])
             return lpb
 
-        self._gate_lpbs = dict(zip(full_gate_names, [_get_multi_qubit_lpb_from_name(name) for name in full_gate_names]))
+        self._gate_lpbs = dict(zip(full_gate_names, [_get_multi_qubit_lpb_from_name(name) for name in full_gate_names], strict=False))
 
 
 class MultiQutritsStateTomography(GeneralisedStateTomography, QutritTomographyBase):

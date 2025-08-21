@@ -133,7 +133,6 @@ def test_integration_mock_resonator_spectroscopy(mock_qubit):
 
 def test_integration_mock_IQ_single_shot(mock_qubit):
     f = 8900
-    response = []
 
     result = mock_qubit.apply_readout(
         return_type='IQ',

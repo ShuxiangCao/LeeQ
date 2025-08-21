@@ -1,14 +1,22 @@
-from typing import List, Any, Union
+from typing import TYPE_CHECKING, Any, List, Union
 
 import numpy as np
-from labchronicle import log_and_record
-
 from k_agents.inspection.decorator import text_inspection
+
+from leeq.chronicle import log_and_record
+from leeq.theory.tomography.utils import evaluate_fidelity_density_matrix_with_state_vector, evaluate_fidelity_ptm_with_unitary
 from leeq.utils.compatibility import prims
-from .base import GeneralisedTomographyBase, GeneralisedSingleDutStateTomography, GeneralisedStateTomography, \
-    GeneralisedProcessTomography
-from leeq.theory.tomography.utils import evaluate_fidelity_density_matrix_with_state_vector, \
-    evaluate_fidelity_ptm_with_unitary
+
+from .base import (
+    GeneralisedProcessTomography,
+    GeneralisedSingleDutStateTomography,
+    GeneralisedStateTomography,
+    GeneralisedTomographyBase,
+)
+
+if TYPE_CHECKING:
+    from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
+    from leeq.experiments.builtin.basic.calibrations.assignment import CalibrateFullAssignmentMatrices
 
 
 class QubitTomographyBase(GeneralisedTomographyBase):
@@ -18,7 +26,7 @@ class QubitTomographyBase(GeneralisedTomographyBase):
         full_gate_names = gate_names
 
         number_of_qubits = len(duts)
-        for i in range(number_of_qubits - 1):
+        for _i in range(number_of_qubits - 1):
             new_gate_names = []
             for gate_name in gate_names:
                 for full_gate_name in full_gate_names:
@@ -31,7 +39,7 @@ class QubitTomographyBase(GeneralisedTomographyBase):
                 [duts[i].get_gate(gate_name, transition_name='f01') for i, gate_name in enumerate(gate_names)])
             return lpb
 
-        self._gate_lpbs = dict(zip(full_gate_names, [_get_multi_qubit_lpb_from_name(name) for name in full_gate_names]))
+        self._gate_lpbs = dict(zip(full_gate_names, [_get_multi_qubit_lpb_from_name(name) for name in full_gate_names], strict=False))
 
 
 class SingleQubitStateTomography(GeneralisedSingleDutStateTomography):
@@ -122,7 +130,7 @@ class MultiQubitsProcessTomography(GeneralisedProcessTomography, QubitTomography
     _experiment_result_analysis_instructions = """
     The result of the experiment is the Pauli transfer matrix of the quantum process. Check if the Pauli transfer matrix
     has been reported by data analysis, and the result is physically meaningful. Report the fidelity if applicable.
-    The fidelity is not the criterion for the success of the experiment, but it is a useful metric for the quality of 
+    The fidelity is not the criterion for the success of the experiment, but it is a useful metric for the quality of
     the quantum gate implementation.
     """
 

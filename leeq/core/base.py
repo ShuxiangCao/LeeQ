@@ -1,12 +1,12 @@
 import uuid
 
-from labchronicle import LoggableObject
+from leeq.chronicle import LoggableObject
 
 
 class LeeQObject(LoggableObject):
     """
     Base class for most of the LeeQ objects. It maps the name of the object to the human readable id,
-    for the persistance with labchronicle.
+    for the persistance with leeq.chronicle.
     """
 
     def __init__(self, name):

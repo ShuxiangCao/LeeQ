@@ -1,28 +1,23 @@
 # Conditional AC stark shift induced CZ gate
-from leeq.utils import setup_logging
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
-from leeq.theory import fits
-
-from leeq.theory.estimator.kalman import KalmanFilter1D
-
-logger = setup_logging(__name__)
-
-from labchronicle import log_and_record, register_browser_function
-from leeq import Experiment, Sweeper, basic_run
-from leeq.core.elements.built_in.qudit_transmon import TransmonElement
-from leeq.utils.compatibility import *
 import matplotlib.pyplot as plt
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial, LogicalPrimitiveBlockParallel, \
-    LogicalPrimitiveBlock
-
-from leeq.utils.compatibility import prims
-
-from leeq.theory.fits import *
-
-from qutip import Bloch
-
 import pandas as pd
 from IPython.display import display
+from qutip import Bloch
+
+from leeq import Experiment
+from leeq.chronicle import log_and_record, register_browser_function
+from leeq.core.primitives.logical_primitives import (
+    LogicalPrimitiveBlockSerial,
+    LogicalPrimitiveBlockSweep,
+)
+from leeq.theory import fits
+from leeq.theory.estimator.kalman import KalmanFilter1D
+from leeq.theory.fits import *
+from leeq.utils import setup_logging
+from leeq.utils.compatibility import *
+from leeq.utils.compatibility import prims
+
+logger = setup_logging(__name__)
 
 
 class ConditionalStarkTuneUpRabiXY(experiment):
@@ -50,7 +45,6 @@ class ConditionalStarkTuneUpRabiXY(experiment):
 
             anharmonicity = freq_01 - freq_12
             self.frequency = freq_01 - 0.3 * anharmonicity
-            print(f"Choosing frequency {self.frequency}")
         else:
             self.frequency = frequency
 
@@ -90,7 +84,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         iz_gate_fix = c1_target.z(-iz_rise_drop)
 
         lpb = c1_target[
-                  'Ym'] * lpb_flip_control + lpb + iz_gate + iz_gate_fix + lpb_readout + mprim_target * mprim_control
+            'Ym'] * lpb_flip_control + lpb + iz_gate + iz_gate_fix + lpb_readout + mprim_target * mprim_control
 
         swpparams = [
             sparam.func(stark_drive_target_pulse.update_pulse_args, {}, 'width'),
@@ -131,9 +125,6 @@ class ConditionalStarkTuneUpRabiXY(experiment):
             self.iz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] + (self.fitting_2D[1]['Phase'])) / 2
             self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (self.fitting_2D[1]['Phase'])) / 2
 
-            print(f"IZ: {self.iz_rate: 0.5f} MHz, ZZ: {self.zz_rate: 0.5f} MHz")
-            print(f"Phase IZ Contributions from Pulse Rise Drop: {self.iz_from_pulse_rise_drop: 0.5f} rad")
-            print(f"Phase ZZ Contributions from Pulse Rise Drop: {self.zz_from_pulse_rise_drop: 0.5f} rad")
 
         return {
             'fitting_2D': self.fitting_2D,
@@ -199,7 +190,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
             plt.plot(t_interpolate, np.real(fit) if not use_imaginary_part else np.imag(fit))
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction Hamiltonian tomography - X axis")
+        plt.title("ZZ interaction Hamiltonian tomography - X axis")
         plot_specific_axis(data=self.result[:, 0, 0], label="Ground", fit_params=self.fitting_2D[0],
                            use_imaginary_part=False)
 
@@ -212,7 +203,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         plt.show()
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction Hamiltonian tomography - Y axis")
+        plt.title("ZZ interaction Hamiltonian tomography - Y axis")
         plot_specific_axis(data=self.result[:, 0, 1], label="Ground", fit_params=self.fitting_2D[0],
                            use_imaginary_part=True)
         plot_specific_axis(data=self.result[:, 1, 1], label="Excited", fit_params=self.fitting_2D[1],
@@ -344,7 +335,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         args = {'start': self.start, 'stop': self.stop, 'step': self.step}
 
         t = np.arange(args['start'], args['stop'], args['step'])
-        t_interpolate = np.arange(args['start'], args['stop'], args['step'] / 5)
+        np.arange(args['start'], args['stop'], args['step'] / 5)
 
         def plot_axis(data1, data2, label1, label2, fit_params1, fit_params2, t, use_imaginary_part=False):
             plt.figure(figsize=(18, 9))
@@ -360,6 +351,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
             plt.legend()
 
             from scipy.fft import fft, fftfreq
+
             # Compute the FFT of the data
             N = len(data1)
             T = t[1] - t[0]  # Sampling interval
@@ -380,16 +372,14 @@ class ConditionalStarkTuneUpRabiXY(experiment):
 
             # Find the frequency with the highest amplitude for both datasets
             max_amplitude_index1 = np.argmax(amplitudes1)
-            max_frequency1 = xf[max_amplitude_index1]
-            max_amplitude1 = amplitudes1[max_amplitude_index1]
+            xf[max_amplitude_index1]
+            amplitudes1[max_amplitude_index1]
 
             max_amplitude_index2 = np.argmax(amplitudes2)
-            max_frequency2 = xf[max_amplitude_index2]
-            max_amplitude2 = amplitudes2[max_amplitude_index2]
+            xf[max_amplitude_index2]
+            amplitudes2[max_amplitude_index2]
 
             # Print the highest frequency component for both datasets
-            print(f"Highest frequency component for {label1}: {max_frequency1} MHz with amplitude {max_amplitude1}")
-            print(f"Highest frequency component for {label2}: {max_frequency2} MHz with amplitude {max_amplitude2}")
 
             plt.tight_layout()
             plt.show()
@@ -491,14 +481,14 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         args = {'start': self.start, 'stop': self.stop, 'step': self.step}
 
         t = np.arange(args['start'], args['stop'], args['step'])
-        t_interpolate = np.arange(args['start'], args['stop'], args['step'] / 5)
+        np.arange(args['start'], args['stop'], args['step'] / 5)
 
         def plot_specific_axis(data, label, color):
             plt.scatter(t, data, label=label, alpha=0.5, color=color)
             plt.plot(t, data, color=color)
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction Leakage to Control Hamiltonian tomography - target X axis")
+        plt.title("ZZ interaction Leakage to Control Hamiltonian tomography - target X axis")
         plot_specific_axis(data=self.result_control[:, 0, 0], label="Ground", color='#1f77b4')
         plot_specific_axis(data=self.result_control[:, 1, 0], label="Excited", color='#8B0000')
 
@@ -508,7 +498,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
         plt.show()
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction Leakage to Control Hamiltonian tomography - target Y axis")
+        plt.title("ZZ interaction Leakage to Control Hamiltonian tomography - target Y axis")
         plot_specific_axis(data=self.result_control[:, 0, 1], label="Ground", color='#1f77b4')
         plot_specific_axis(data=self.result_control[:, 1, 1], label="Excited", color='#8B0000')
 
@@ -603,7 +593,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
 class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
 
     @log_and_record
-    def run(self, duts, amp_control, amp_target, frequency, phase=0, rise=0.01, trunc =1.0, axis='Y',
+    def run(self, duts, amp_control, amp_target, frequency, phase=0, rise=0.01, trunc=1.0, axis='Y',
             echo=False, iz_control=0, iz_target=0, width=0, start_gate_number=0, gate_count=40):
         """
         Sweep time and find the initial guess of amplitude
@@ -679,7 +669,6 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
         mprim_target = self.duts[1].get_measurement_prim_intlist(0)
 
         sequence_lpb = []
-        results = []
 
         for n in pulse_count:
             sequence = LogicalPrimitiveBlockSerial(
@@ -706,13 +695,12 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
         return lpb, self.result
 
     def analyze_results(self):
-        print("Shape of result:", self.result.shape)
 
         t_start = self.start_gate_number
         t_stop = self.start_gate_number + self.gate_count
         t_step = 1
 
-        t = np.arange(t_start, t_stop, t_step)
+        np.arange(t_start, t_stop, t_step)
 
         self.fitting_2D = []
         for i in range(2):
@@ -728,7 +716,6 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
         self.iz_rate = (self.fitting_2D[0]['Frequency'] + self.fitting_2D[1]['Frequency']) / 2
         self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1]['Frequency']) / 2
 
-        print(f"IZ: {self.iz_rate: 0.5f} PGC, ZZ: {self.zz_rate: 0.5f} PGC (per gate count)")
 
         return {
             'fitting_2D': self.fitting_2D,
@@ -767,7 +754,7 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
         desired_num_ticks = 10  # Desired number of ticks
         step = max(1, len(t) // desired_num_ticks)
         xticks_subset = t[::step]
-        plt.title(f"ZZ interaction repeated gate tomography - X axis")
+        plt.title("ZZ interaction repeated gate tomography - X axis")
 
         plot_specific_axis(data=self.result[:, 0, 0], label="Ground", fit_params=self.fitting_2D[0],
                            use_imaginary_part=False)
@@ -780,7 +767,7 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
         plt.xticks(xticks_subset)
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction repeated gate tomography - Y axis")
+        plt.title("ZZ interaction repeated gate tomography - Y axis")
 
         plot_specific_axis(data=self.result[:, 0, 1], label="Ground", fit_params=self.fitting_2D[0],
                            use_imaginary_part=True)
@@ -833,7 +820,7 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
         desired_num_ticks = 10  # Desired number of ticks
         step = max(1, len(t) // desired_num_ticks)
         xticks_subset = t[::step]
-        plt.title(f"ZZ interaction rescaled repeated gate tomography - X axis")
+        plt.title("ZZ interaction rescaled repeated gate tomography - X axis")
 
         plot_specific_axis(data=self.result[:, 0, 0], label="Ground", fit_params=self.fitting_2D[0],
                            use_imaginary_part=False, color=dark_navy)
@@ -846,7 +833,7 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
         plt.xticks(xticks_subset)
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction rescaled repeated gate tomography - Y axis")
+        plt.title("ZZ interaction rescaled repeated gate tomography - Y axis")
 
         plot_specific_axis(data=self.result[:, 0, 1], label="Ground", fit_params=self.fitting_2D[0],
                            use_imaginary_part=True)
@@ -864,7 +851,7 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
             plt.plot(t, data, color=color)
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction Leakage to Control Hamiltonian tomography - target X axis")
+        plt.title("ZZ interaction Leakage to Control Hamiltonian tomography - target X axis")
         plot_specific_axis(data=self.result_control[:, 0, 0], label="Ground", color='#1f77b4')
         plot_specific_axis(data=self.result_control[:, 1, 0], label="Excited", color='#8B0000')
 
@@ -874,7 +861,7 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
         plt.show()
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction Leakage to Control Hamiltonian tomography - target Y axis")
+        plt.title("ZZ interaction Leakage to Control Hamiltonian tomography - target Y axis")
         plot_specific_axis(data=self.result_control[:, 0, 1], label="Ground", color='#1f77b4')
         plot_specific_axis(data=self.result_control[:, 1, 1], label="Excited", color='#8B0000')
 
@@ -894,7 +881,7 @@ class ConditionalStarkEchoTuneUp(Experiment):
         self.duts = duts
         self.n_max_iteration = n_max_iteration
 
-        assert update_iz == False
+        assert not update_iz
 
         if params is None:
             amp_rabi_control = duts[0].get_c1('f01')['X'].amp
@@ -924,7 +911,6 @@ class ConditionalStarkEchoTuneUp(Experiment):
         df['Value'] = df['Value'].apply(lambda x: f"{x:.3f}" if isinstance(x, float) else x)
 
         # Display the dataframe
-        print("\nsiZZle Parameters")
         display(df.style.set_properties(**{'text-align': 'center'}).set_table_styles([{
             'selector': 'th',
             'props': [('text-align', 'center')]
@@ -968,7 +954,6 @@ class ConditionalStarkEchoTuneUp(Experiment):
         new_params = self.current_params.copy()
         new_params['width'] = np.abs(0.125 / zz_rate.nominal_value) / 2
 
-        print(f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]: 0.5f} us')
 
         self.params_list.append(new_params)
         self.current_params = new_params
@@ -992,7 +977,7 @@ class ConditionalStarkEchoTuneUp(Experiment):
         kalman_iz = None
         kalman_zz = None
 
-        for i in range(self.n_max_iteration):
+        for _i in range(self.n_max_iteration):
             repeated_gate = ConditionalStarkTuneUpRepeatedGateXY(
                 duts=self.duts,
                 iz_control=0,
@@ -1026,8 +1011,6 @@ class ConditionalStarkEchoTuneUp(Experiment):
                 kalman_zz.update(measurement=zz_measured,
                                  measurement_variance=(repeated_gate.zz_rate.std_dev * np.pi * 2) ** 2)
 
-            print(f'Kalman estimated ZZ pgc after measurement = {kalman_zz.x}+-{np.sqrt(kalman_zz.P)}')
-            print(f'Kalman estimated IZ pgc after measurement = {kalman_iz.x}+-{np.sqrt(kalman_iz.P)}')
 
             if update_iz:
                 iz_target = kalman_iz.x
@@ -1046,7 +1029,6 @@ class ConditionalStarkEchoTuneUp(Experiment):
                 width += width_diff
                 iz_diff = 0
                 # iz_rate_tQ1_cQ2 * width_diff * np.pi * 2
-                print(f'Update width to {width} us')
                 kalman_zz.predict(movement=zz_diff,
                                   position_variance=(zz_rate.std_dev * width_diff * np.pi * 2) ** 2)
                 kalman_iz.predict(movement=iz_diff,
@@ -1059,11 +1041,7 @@ class ConditionalStarkEchoTuneUp(Experiment):
             zz_uncertainty_check = np.sqrt(kalman_zz.P) < 1e-3
             zz_check_pass = zz_accuracy_check and zz_uncertainty_check
 
-            print(f'Kalman estimated ZZ pgc after update = {kalman_zz.x}+-{np.sqrt(kalman_zz.P)}')
-            print(f'Kalman estimated IZ pgc after update = {kalman_iz.x}+-{np.sqrt(kalman_iz.P)}')
 
-            print(f'ZZ accuracy check pass: {zz_accuracy_check}, ZZ uncertainty check pass: {zz_uncertainty_check}')
-            print(f'IZ uncertainty check pass: {iz_check_pass} ')
 
             if (iz_check_pass or not update_iz) and (zz_check_pass or not update_zz):
                 break
@@ -1073,11 +1051,9 @@ class ConditionalStarkEchoTuneUp(Experiment):
         new_params['iz_target'] = iz_target
         new_params['width'] = width
 
-        print(f'Estimated IZ = {iz_target}, ZZ = {zz_pgc}, width = {width}')
 
         self.params_list.append(new_params)
         self.current_params = new_params
 
         self.estimated_iz_list = estimated_iz_list
         self.estimated_zz_list = estimated_zz_list
-

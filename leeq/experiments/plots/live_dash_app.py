@@ -1,9 +1,10 @@
-import dash
-from dash import html, dcc
-from dash.dependencies import Input, Output
-import dash_bootstrap_components as dbc
-from flask import request
 import json
+
+import dash
+import dash_bootstrap_components as dbc
+from dash import dcc, html
+from dash.dependencies import Input, Output
+from flask import request
 
 from leeq.utils import setup_logging
 
@@ -74,7 +75,7 @@ def _build_table(dict_data: dict):
         html.Tr([html.Td(key), html.Td(repr(val))]) for key, val in dict_data.items()
     ])]
 
-    table = dbc.Table(table_body, bordered=True)
+    dbc.Table(table_body, bordered=True)
 
 
 @app.callback(

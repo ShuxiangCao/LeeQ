@@ -1,0 +1,134 @@
+syntax = "proto3";
+package epii.v1;
+
+// Empty message for requests without parameters
+message Empty {}
+
+// Service metadata messages
+message PingResponse {
+    string message = 1;
+    double timestamp = 2;
+}
+
+message CapabilitiesResponse {
+    string framework_name = 1;           // "LeeQ", "Qiskit", "Cirq"
+    string framework_version = 2;        // Framework version
+    string epii_version = 3;             // EPII standard version
+    repeated string supported_backends = 4;    // "simulation", "hardware"
+    repeated ExperimentSpec experiment_types = 5;
+    map<string, string> extensions = 6;        // Framework-specific capabilities
+    repeated string data_formats = 7;          // "numpy", "json", "hdf5"
+}
+
+message ExperimentSpec {
+    string name = 1;                     // "rabi", "t1", "ramsey"
+    repeated ParameterSpec parameters = 2;
+    repeated string output_parameters = 3;
+    string description = 4;
+}
+
+message ParameterSpec {
+    string name = 1;
+    string type = 2;                     // "float", "int", "string", "array"
+    bool required = 3;
+    string default_value = 4;
+    string description = 5;
+    repeated string allowed_values = 6;  // For enum-like parameters
+}
+
+// Experiment execution messages
+message ExperimentRequest {
+    string experiment_type = 1;          // Must match ExperimentSpec.name
+    map<string, string> parameters = 2;  // String-serialized parameters
+    bool return_raw_data = 3;            // Include measurement arrays
+    bool return_plots = 4;               // Include plot data
+}
+
+message ExperimentResponse {
+    bool success = 1;
+    string error_message = 2;
+    
+    // Calibration results
+    map<string, double> calibration_results = 3;
+    
+    // Raw data (if requested)
+    repeated NumpyArray measurement_data = 4;
+    repeated PlotData plots = 5;
+    
+    // Metadata
+    double execution_time_seconds = 6;
+}
+
+message NumpyArray {
+    bytes data = 1;                      // Serialized numpy array
+    repeated int64 shape = 2;            // Array dimensions
+    string dtype = 3;                    // numpy dtype string
+    string name = 4;                     // "raw_data", "processed", etc.
+    map<string, string> metadata = 5;   // Array-specific metadata
+}
+
+message PlotData {
+    string plot_type = 1;                // "line", "scatter", "heatmap"
+    string title = 2;
+    repeated PlotTrace traces = 3;
+    map<string, string> layout = 4;     // JSON-serialized layout
+}
+
+message PlotTrace {
+    repeated double x = 1;
+    repeated double y = 2;
+    repeated double z = 3;               // For 3D plots
+    string name = 4;
+    string type = 5;                     // "scatter", "line", etc.
+}
+
+// List experiments messages
+message ExperimentsResponse {
+    repeated ExperimentSpec experiments = 1;
+}
+
+// Parameter management messages
+message ParametersListResponse {
+    repeated ParameterInfo parameters = 1;
+}
+
+message ParameterInfo {
+    string name = 1;                     // Parameter name
+    string type = 2;                     // "float", "int", "string", "bool"
+    string current_value = 3;            // Current value as string
+    string description = 4;              // Human-readable description
+    bool read_only = 5;                  // Whether parameter can be modified
+}
+
+message ParameterRequest {
+    repeated string parameter_names = 1; // Empty list = get all parameters
+}
+
+message ParametersResponse {
+    map<string, string> parameters = 1;  // Parameter name -> value (as string)
+}
+
+message SetParametersRequest {
+    map<string, string> parameters = 1;  // Parameter name -> new value (as string)
+}
+
+message StatusResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+// gRPC Service Definition
+service ExperimentPlatformService {
+    // Service metadata
+    rpc GetCapabilities(Empty) returns (CapabilitiesResponse);
+    rpc Ping(Empty) returns (PingResponse);
+    
+    // Experiment execution
+    rpc RunExperiment(ExperimentRequest) returns (ExperimentResponse);
+    rpc ListAvailableExperiments(Empty) returns (ExperimentsResponse);
+    
+    // Parameter management
+    rpc ListParameters(Empty) returns (ParametersListResponse);
+    rpc GetParameters(ParameterRequest) returns (ParametersResponse);
+    rpc SetParameters(SetParametersRequest) returns (StatusResponse);
+}

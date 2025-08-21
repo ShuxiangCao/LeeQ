@@ -1,5 +1,5 @@
 from pytest import fixture
-from labchronicle import log_and_record, register_browser_function
+from leeq.chronicle import log_and_record, register_browser_function
 
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.experiments.experiments import Experiment
@@ -102,7 +102,7 @@ def test_pulse_on_virtual_2q(qubit):
 
     assert mprim.uuid in lpb.nodes
 
-    result = SimpleSampleExperiment(qubit, lpb=lpb)
+    SimpleSampleExperiment(qubit, lpb=lpb)
 
     assert dummy_obj.result is not None
     assert dummy_obj.result_raw is not None
