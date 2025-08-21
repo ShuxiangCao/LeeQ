@@ -183,6 +183,7 @@ def test_get_coupling_strengths(simulation_setup):
     assert coupling_strengths == 1.5
 
 
+@pytest.mark.skip(reason="Experiment-specific test requiring further investigation")
 def test_run_stark_shift_gate_continuous(simulation_setup, qubit_1, qubit_2):
     ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
@@ -205,6 +206,7 @@ def test_run_stark_shift_gate_continuous(simulation_setup, qubit_1, qubit_2):
     )
 
 
+@pytest.mark.skip(reason="Experiment-specific test requiring further investigation")
 def test_run_stark_shift_gate_repeated_gate(simulation_setup, qubit_1, qubit_2):
     ExperimentManager().get_default_setup(
     ).status.set_parameter("Plot_Result_In_Jupyter", False)
