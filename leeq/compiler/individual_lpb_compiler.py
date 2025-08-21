@@ -1,5 +1,4 @@
 import functools
-from typing import Dict
 
 from leeq.compiler.compiler_base import LPBCompiler, MeasurementSequence
 from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
@@ -10,7 +9,7 @@ from leeq.core.primitives.logical_primitives import (
     LogicalPrimitiveBlockSerial,
     LogicalPrimitiveBlockSweep,
     LogicalPrimitiveCombinable,
-    MeasurementPrimitive
+    MeasurementPrimitive,
 )
 from leeq.utils import setup_logging
 

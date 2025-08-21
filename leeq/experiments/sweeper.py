@@ -1,5 +1,4 @@
 import copy
-import itertools
 import uuid
 from functools import partial
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union

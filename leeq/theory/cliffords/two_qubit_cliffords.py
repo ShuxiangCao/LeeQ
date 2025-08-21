@@ -268,8 +268,7 @@ def find_inverse_C2(a: np.ndarray, cliff_set: str = 'XY') -> int:
         diff = diff * np.exp(-1.j * np.angle(diff[0, 0]))
         if np.allclose(diff, np.eye(4), atol=TOLERANCE):
             return i
-    print("Failed")
-    assert False
+    raise AssertionError()
     return None
 
 

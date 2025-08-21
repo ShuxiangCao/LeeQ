@@ -8,7 +8,7 @@ from leeq.chronicle import register_browser_function
 from leeq.core.primitives.logical_primitives import (
     LogicalPrimitiveBlockParallel,
     LogicalPrimitiveBlockSerial,
-    LogicalPrimitiveBlockSweep
+    LogicalPrimitiveBlockSweep,
 )
 from leeq.utils import setup_logging
 from leeq.utils.compatibility import *
@@ -47,7 +47,6 @@ class PyGSTiExperiment(Experiment):
         lpb_sequences = []
 
         for circuit in list_of_experiments:
-            depth = circuit.num_layers
             lpb = []
 
             layer = circuit.to_label()
@@ -107,7 +106,7 @@ class PyGSTiExperiment(Experiment):
         """
         self.outcome_labels = ['0', '1']
 
-        for i in range(duts_count - 1):
+        for _i in range(duts_count - 1):
             self.outcome_labels = [x + '0' for x in self.outcome_labels] + [x + '1' for x in self.outcome_labels]
 
     def run(self, design, duts: List['TransmonElements'], mprim_indexes: List[int]):

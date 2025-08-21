@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 from sklearn.model_selection import GridSearchCV
@@ -119,7 +119,7 @@ def estimate_relative_entropy(
         dist_p,
         dist_q,
         kernel="gaussian",
-        search_params={}):
+        search_params=None):
     """
     Estimate the relative entropy between two distributions, using kernel density estimation and
     monte carlo integration.
@@ -134,6 +134,8 @@ def estimate_relative_entropy(
     - float: The relative entropy between the two distributions.
     """
 
+    if search_params is None:
+        search_params = {}
     params = {"bandwidth": np.logspace(-1, 2, 25)}
     params.update(search_params)
 
@@ -142,7 +144,6 @@ def estimate_relative_entropy(
         grid = GridSearchCV(KernelDensity(kernel=kernel), params)
         grid.fit(dist)
         kde = grid.best_estimator_
-        print("best bandwidth: {0}".format(kde.bandwidth))
         return kde
 
     kde_p = find_kde(dist_p)

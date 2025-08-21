@@ -1,4 +1,3 @@
-from typing import Any, List
 
 import numpy as np
 from plotly import graph_objects as go
@@ -18,7 +17,7 @@ class ConditionalStarkFineFrequencyTuneUp(Experiment):
             ):
         self.duts = duts
 
-        assert update_iz == False
+        assert not update_iz
 
         if params is None:
             amp_rabi_control = duts[0].get_c1('f01')['X'].amp
@@ -46,7 +45,6 @@ class ConditionalStarkFineFrequencyTuneUp(Experiment):
         self.results = []
 
         for frequency in np.arange(frequency_start, frequency_stop, frequency_step):
-            print(f"frequency: {frequency:.3f} MHz")
             self.current_params['frequency'] = frequency
             iz_rate, zz_rate, width, result, result_target, result_control = self.run_sizzel_xy_hamiltonian_tomography(
                 t_start=t_start, t_stop=t_stop, sweep_points=sweep_points
@@ -94,7 +92,6 @@ class ConditionalStarkFineFrequencyTuneUp(Experiment):
         new_params['width'] = np.abs(0.125 / zz_rate.nominal_value) / 2
         width = new_params['width']
 
-        print(f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]: 0.5f} us')
 
         self.params_list.append(new_params)
         self.current_params = new_params
@@ -137,37 +134,37 @@ class ConditionalStarkFineFrequencyTuneUp(Experiment):
         for i, frequency in enumerate(frequencies):
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[frequency] * len(times[i]), y=times[i], z=results_ground_x[i], mode='lines',
-                             name='Ground X', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='Ground X', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=1)
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[frequency] * len(times[i]), y=times[i], z=results_excited_x[i], mode='lines',
-                             name='Excited X', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='Excited X', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=1)
 
         # Plot 3D frequency vs time vs result control X for ground and excited states
         for i, frequency in enumerate(frequencies):
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[frequency] * len(times[i]), y=times[i], z=results_control_ground_x[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=2)
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[frequency] * len(times[i]), y=times[i], z=results_control_excited_x[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=2)
 
         # Update layout for 3D X figure
         fig_3d_x.update_layout(
             height=plot_size_3d[0], width=plot_size_3d[1],
-            scene=dict(
-                xaxis=dict(title='Frequency (MHz)', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Target X', backgroundcolor='white', gridcolor=light_black)
-            ),
-            scene2=dict(
-                xaxis=dict(title='Frequency (MHz)', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Control X', backgroundcolor='white', gridcolor=light_black)
-            )
+            scene={
+                'xaxis': {'title': 'Frequency (MHz)', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Target X', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            },
+            scene2={
+                'xaxis': {'title': 'Frequency (MHz)', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Control X', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            }
         )
 
         # Create the figure with 3D plots for y data
@@ -179,37 +176,37 @@ class ConditionalStarkFineFrequencyTuneUp(Experiment):
         for i, frequency in enumerate(frequencies):
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[frequency] * len(times[i]), y=times[i], z=results_ground_y[i], mode='lines',
-                             name='Ground Y', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='Ground Y', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=1)
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[frequency] * len(times[i]), y=times[i], z=results_excited_y[i], mode='lines',
-                             name='Excited Y', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='Excited Y', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=1)
 
         # Plot 3D frequency vs time vs result control Y for ground and excited states
         for i, frequency in enumerate(frequencies):
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[frequency] * len(times[i]), y=times[i], z=results_control_ground_y[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=2)
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[frequency] * len(times[i]), y=times[i], z=results_control_excited_y[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=2)
 
         # Update layout for 3D Y figure
         fig_3d_y.update_layout(
             height=plot_size_3d[0], width=plot_size_3d[1],
-            scene=dict(
-                xaxis=dict(title='Frequency (MHz)', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Target Y', backgroundcolor='white', gridcolor=light_black)
-            ),
-            scene2=dict(
-                xaxis=dict(title='Frequency (MHz)', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Control Y', backgroundcolor='white', gridcolor=light_black)
-            )
+            scene={
+                'xaxis': {'title': 'Frequency (MHz)', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Target Y', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            },
+            scene2={
+                'xaxis': {'title': 'Frequency (MHz)', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Control Y', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            }
         )
 
         # Extract nominal values and uncertainties
@@ -231,16 +228,16 @@ class ConditionalStarkFineFrequencyTuneUp(Experiment):
         fig_2d.update_layout(
             height=fig_size[0], width=fig_size[1],
             plot_bgcolor='white',
-            xaxis=dict(gridcolor=light_black),
-            yaxis=dict(gridcolor=light_black)
+            xaxis={'gridcolor': light_black},
+            yaxis={'gridcolor': light_black}
         )
 
         # Plot 2D zz vs frequency
         fig_2d.add_trace(
             go.Scatter(
                 x=self.frequencies, y=self.zz_rates, mode='lines+markers', name='ZZ vs Frequency',
-                line=dict(color=dark_navy),
-                error_y=dict(type='data', array=self.zz_uncertainties, visible=True)
+                line={'color': dark_navy},
+                error_y={'type': 'data', 'array': self.zz_uncertainties, 'visible': True}
             ),
             row=1, col=1
         )
@@ -249,8 +246,8 @@ class ConditionalStarkFineFrequencyTuneUp(Experiment):
         fig_2d.add_trace(
             go.Scatter(
                 x=self.frequencies, y=self.iz_rates, mode='lines+markers', name='IZ vs Frequency',
-                line=dict(color='gray'),
-                error_y=dict(type='data', array=self.iz_uncertainties, visible=True)
+                line={'color': 'gray'},
+                error_y={'type': 'data', 'array': self.iz_uncertainties, 'visible': True}
             ),
             row=1, col=2
         )
@@ -259,7 +256,7 @@ class ConditionalStarkFineFrequencyTuneUp(Experiment):
         fig_2d.add_trace(
             go.Scatter(
                 x=self.frequencies, y=self.widths, mode='lines+markers', name='Width vs Frequency',
-                line=dict(color=dark_purple)
+                line={'color': dark_purple}
             ),
             row=1, col=3
         )
@@ -286,7 +283,7 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
             ):
         self.duts = duts
 
-        assert update_iz == False
+        assert not update_iz
 
         if params is None:
             amp_rabi_control = duts[0].get_c1('f01')['X'].amp
@@ -314,7 +311,6 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
         self.results = []
 
         for amp_control in np.arange(amp_control_start, amp_control_stop, amp_control_step):
-            print(f"amp_control: {amp_control:.3f}")
             self.current_params['amp_control'] = amp_control
             iz_rate, zz_rate, width, result, result_target, result_control = self.run_sizzel_xy_hamiltonian_tomography(
                 t_start=t_start, t_stop=t_stop, sweep_points=sweep_points
@@ -362,7 +358,6 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
         new_params['width'] = np.abs(0.125 / zz_rate.nominal_value) / 2
         width = new_params['width']
 
-        print(f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]: 0.5f} us')
 
         self.params_list.append(new_params)
         self.current_params = new_params
@@ -405,11 +400,11 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
         for i, amp_control in enumerate(amp_controls):
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[amp_control] * len(times[i]), y=times[i], z=results_ground_x[i], mode='lines',
-                             name='Ground X', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='Ground X', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=1)
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[amp_control] * len(times[i]), y=times[i], z=results_excited_x[i], mode='lines',
-                             name='Excited X', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='Excited X', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=1)
 
         # Plot 3D amp_control vs time vs result control X for ground and excited states
@@ -417,27 +412,27 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[amp_control] * len(times[i]), y=times[i], z=results_control_ground_x[i],
                              mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=2)
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[amp_control] * len(times[i]), y=times[i], z=results_control_excited_x[i],
                              mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=2)
 
         # Update layout for 3D X figure
         fig_3d_x.update_layout(
             height=plot_size_3d[0], width=plot_size_3d[1],
-            scene=dict(
-                xaxis=dict(title='Amp Control', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Target X', backgroundcolor='white', gridcolor=light_black)
-            ),
-            scene2=dict(
-                xaxis=dict(title='Amp Control', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Control X', backgroundcolor='white', gridcolor=light_black)
-            )
+            scene={
+                'xaxis': {'title': 'Amp Control', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Target X', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            },
+            scene2={
+                'xaxis': {'title': 'Amp Control', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Control X', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            }
         )
 
         # Create the figure with 3D plots for y data
@@ -449,11 +444,11 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
         for i, amp_control in enumerate(amp_controls):
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[amp_control] * len(times[i]), y=times[i], z=results_ground_y[i], mode='lines',
-                             name='Ground Y', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='Ground Y', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=1)
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[amp_control] * len(times[i]), y=times[i], z=results_excited_y[i], mode='lines',
-                             name='Excited Y', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='Excited Y', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=1)
 
         # Plot 3D amp_control vs time vs result control Y for ground and excited states
@@ -461,27 +456,27 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[amp_control] * len(times[i]), y=times[i], z=results_control_ground_y[i],
                              mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=2)
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[amp_control] * len(times[i]), y=times[i], z=results_control_excited_y[i],
                              mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=2)
 
         # Update layout for 3D Y figure
         fig_3d_y.update_layout(
             height=plot_size_3d[0], width=plot_size_3d[1],
-            scene=dict(
-                xaxis=dict(title='Amp Control', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Target Y', backgroundcolor='white', gridcolor=light_black)
-            ),
-            scene2=dict(
-                xaxis=dict(title='Amp Control', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Control Y', backgroundcolor='white', gridcolor=light_black)
-            )
+            scene={
+                'xaxis': {'title': 'Amp Control', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Target Y', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            },
+            scene2={
+                'xaxis': {'title': 'Amp Control', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Control Y', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            }
         )
 
         # Extract nominal values and uncertainties
@@ -503,8 +498,8 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
         fig_2d.add_trace(
             go.Scatter(
                 x=self.amp_controls, y=self.zz_rates, mode='lines+markers', name='ZZ vs Amp Control',
-                line=dict(color=dark_navy),
-                error_y=dict(type='data', array=self.zz_uncertainties, visible=True)
+                line={'color': dark_navy},
+                error_y={'type': 'data', 'array': self.zz_uncertainties, 'visible': True}
             ),
             row=1, col=1
         )
@@ -513,8 +508,8 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
         fig_2d.add_trace(
             go.Scatter(
                 x=self.amp_controls, y=self.iz_rates, mode='lines+markers', name='IZ vs Amp Control',
-                line=dict(color='gray'),
-                error_y=dict(type='data', array=self.iz_uncertainties, visible=True)
+                line={'color': 'gray'},
+                error_y={'type': 'data', 'array': self.iz_uncertainties, 'visible': True}
             ),
             row=1, col=2
         )
@@ -523,7 +518,7 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
         fig_2d.add_trace(
             go.Scatter(
                 x=self.amp_controls, y=self.widths, mode='lines+markers', name='Width vs Amp Control',
-                line=dict(color=dark_purple)
+                line={'color': dark_purple}
             ),
             row=1, col=3
         )
@@ -531,8 +526,8 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
         fig_2d.update_layout(
             height=fig_size[0], width=fig_size[1],
             plot_bgcolor='white',
-            xaxis=dict(gridcolor=light_black),
-            yaxis=dict(gridcolor=light_black)
+            xaxis={'gridcolor': light_black},
+            yaxis={'gridcolor': light_black}
         )
 
         # Customize 2D plots
@@ -558,7 +553,7 @@ class ConditionalStarkFinePhaseTuneUp(Experiment):
             ):
         self.duts = duts
 
-        assert update_iz == False
+        assert not update_iz
 
         if params is None:
             amp_rabi_control = duts[0].get_c1('f01')['X'].amp
@@ -586,7 +581,6 @@ class ConditionalStarkFinePhaseTuneUp(Experiment):
         self.results = []
 
         for phase in np.arange(phase_diff_start, phase_diff_stop, phase_diff_step):
-            print(f"phase: {phase:.3f} radians")
             self.current_params['phase_diff'] = phase
             iz_rate, zz_rate, width, result, result_target, result_control = self.run_sizzel_xy_hamiltonian_tomography(
                 t_start=t_start, t_stop=t_stop, sweep_points=sweep_points
@@ -634,7 +628,6 @@ class ConditionalStarkFinePhaseTuneUp(Experiment):
         new_params['width'] = np.abs(0.125 / zz_rate.nominal_value) / 2
         width = new_params['width']
 
-        print(f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]: 0.5f} us')
 
         self.params_list.append(new_params)
         self.current_params = new_params
@@ -677,38 +670,38 @@ class ConditionalStarkFinePhaseTuneUp(Experiment):
         for i, phase in enumerate(phases):
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_ground_x[i], mode='lines',
-                             name='Ground X', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='Ground X', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=1)
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_excited_x[i], mode='lines',
-                             name='Excited X', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='Excited X', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=1)
 
         # Plot 3D phase vs time vs result control X for ground and excited states
         for i, phase in enumerate(phases):
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_control_ground_x[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=2)
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_control_excited_x[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=2)
 
         # Update layout for 3D X figure
         fig_3d_x.update_layout(
             height=plot_size_3d[0], width=plot_size_3d[1],
             # title_text="Conditional Stark Fine Phase Tune-Up Results - 3D X",
-            scene=dict(
-                xaxis=dict(title='Phase', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Target X', backgroundcolor='white', gridcolor=light_black)
-            ),
-            scene2=dict(
-                xaxis=dict(title='Phase', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Control X', backgroundcolor='white', gridcolor=light_black)
-            )
+            scene={
+                'xaxis': {'title': 'Phase', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Target X', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            },
+            scene2={
+                'xaxis': {'title': 'Phase', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Control X', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            }
         )
 
         # Create the figure with 3D plots for y data
@@ -720,38 +713,38 @@ class ConditionalStarkFinePhaseTuneUp(Experiment):
         for i, phase in enumerate(phases):
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_ground_y[i], mode='lines',
-                             name='Ground Y', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='Ground Y', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=1)
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_excited_y[i], mode='lines',
-                             name='Excited Y', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='Excited Y', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=1)
 
         # Plot 3D phase vs time vs result control Y for ground and excited states
         for i, phase in enumerate(phases):
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_control_ground_y[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=2)
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[phase] * len(times[i]), y=times[i], z=results_control_excited_y[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=2)
 
         # Update layout for 3D Y figure
         fig_3d_y.update_layout(
             height=plot_size_3d[0], width=plot_size_3d[1],
             # title_text="Conditional Stark Fine Phase Tune-Up Results - 3D Y",
-            scene=dict(
-                xaxis=dict(title='Phase', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Target Y', backgroundcolor='white', gridcolor=light_black)
-            ),
-            scene2=dict(
-                xaxis=dict(title='Phase', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Control Y', backgroundcolor='white', gridcolor=light_black)
-            )
+            scene={
+                'xaxis': {'title': 'Phase', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Target Y', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            },
+            scene2={
+                'xaxis': {'title': 'Phase', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Control Y', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            }
         )
 
         # Extract nominal values and uncertainties
@@ -773,8 +766,8 @@ class ConditionalStarkFinePhaseTuneUp(Experiment):
         fig_2d.add_trace(
             go.Scatter(
                 x=self.phases, y=self.zz_rates, mode='lines+markers', name='ZZ vs Phase',
-                line=dict(color=dark_navy),
-                error_y=dict(type='data', array=self.zz_uncertainties, visible=True)
+                line={'color': dark_navy},
+                error_y={'type': 'data', 'array': self.zz_uncertainties, 'visible': True}
             ),
             row=1, col=1
         )
@@ -783,8 +776,8 @@ class ConditionalStarkFinePhaseTuneUp(Experiment):
         fig_2d.add_trace(
             go.Scatter(
                 x=self.phases, y=self.iz_rates, mode='lines+markers', name='IZ vs Phase',
-                line=dict(color='gray'),
-                error_y=dict(type='data', array=self.iz_uncertainties, visible=True)
+                line={'color': 'gray'},
+                error_y={'type': 'data', 'array': self.iz_uncertainties, 'visible': True}
             ),
             row=1, col=2
         )
@@ -793,7 +786,7 @@ class ConditionalStarkFinePhaseTuneUp(Experiment):
         fig_2d.add_trace(
             go.Scatter(
                 x=self.phases, y=self.widths, mode='lines+markers', name='Width vs Phase',
-                line=dict(color=dark_purple)
+                line={'color': dark_purple}
             ),
             row=1, col=3
         )
@@ -802,8 +795,8 @@ class ConditionalStarkFinePhaseTuneUp(Experiment):
         fig_2d.update_layout(
             height=fig_size[0], width=fig_size[1],
             plot_bgcolor='white',
-            xaxis=dict(gridcolor=light_black),
-            yaxis=dict(gridcolor=light_black)
+            xaxis={'gridcolor': light_black},
+            yaxis={'gridcolor': light_black}
         )
 
         # Customize 2D plots
@@ -828,7 +821,7 @@ class ConditionalStarkFineRiseTuneUp(Experiment):
             n_start=0, n_stop=32, update_iz=False, update_zz=True):
         self.duts = duts
 
-        assert update_iz == False
+        assert not update_iz
 
         if params is None:
             amp_rabi_control = duts[0].get_c1('f01')['X'].amp
@@ -856,7 +849,6 @@ class ConditionalStarkFineRiseTuneUp(Experiment):
         self.results = []
 
         for rise in np.arange(rise_start, rise_stop, rise_step):
-            print(f"rise: {rise}")
             self.current_params['rise'] = rise
             iz_rate, zz_rate, width, result, result_target, result_control = self.run_sizzel_xy_hamiltonian_tomography(
                 t_start=t_start, t_stop=t_stop, sweep_points=sweep_points
@@ -904,7 +896,6 @@ class ConditionalStarkFineRiseTuneUp(Experiment):
         new_params['width'] = np.abs(0.125 / zz_rate.nominal_value) / 2
         width = new_params['width']
 
-        print(f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]: 0.5f} us')
 
         self.params_list.append(new_params)
         self.current_params = new_params
@@ -947,37 +938,37 @@ class ConditionalStarkFineRiseTuneUp(Experiment):
         for i, rise in enumerate(rises):
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_ground_x[i], mode='lines',
-                             name='Ground X', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='Ground X', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=1)
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_excited_x[i], mode='lines',
-                             name='Excited X', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='Excited X', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=1)
 
         # Plot 3D rise vs time vs result control X for ground and excited states
         for i, rise in enumerate(rises):
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_control_ground_x[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=2)
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_control_excited_x[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=2)
 
         # Update layout for 3D X figure
         fig_3d_x.update_layout(
             height=plot_size_3d[0], width=plot_size_3d[1],
-            scene=dict(
-                xaxis=dict(title='Rise', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Target X', backgroundcolor='white', gridcolor=light_black)
-            ),
-            scene2=dict(
-                xaxis=dict(title='Rise', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Control X', backgroundcolor='white', gridcolor=light_black)
-            )
+            scene={
+                'xaxis': {'title': 'Rise', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Target X', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            },
+            scene2={
+                'xaxis': {'title': 'Rise', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Control X', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            }
         )
 
         # Create the figure with 3D plots for y data
@@ -989,37 +980,37 @@ class ConditionalStarkFineRiseTuneUp(Experiment):
         for i, rise in enumerate(rises):
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_ground_y[i], mode='lines',
-                             name='Ground Y', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='Ground Y', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=1)
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_excited_y[i], mode='lines',
-                             name='Excited Y', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='Excited Y', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=1)
 
         # Plot 3D rise vs time vs result control Y for ground and excited states
         for i, rise in enumerate(rises):
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_control_ground_y[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=2)
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[rise] * len(times[i]), y=times[i], z=results_control_excited_y[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=2)
 
         # Update layout for 3D Y figure
         fig_3d_y.update_layout(
             height=plot_size_3d[0], width=plot_size_3d[1],
-            scene=dict(
-                xaxis=dict(title='Rise', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Target Y', backgroundcolor='white', gridcolor=light_black)
-            ),
-            scene2=dict(
-                xaxis=dict(title='Rise', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Control Y', backgroundcolor='white', gridcolor=light_black)
-            )
+            scene={
+                'xaxis': {'title': 'Rise', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Target Y', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            },
+            scene2={
+                'xaxis': {'title': 'Rise', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Control Y', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            }
         )
 
         # Extract nominal values and uncertainties
@@ -1041,8 +1032,8 @@ class ConditionalStarkFineRiseTuneUp(Experiment):
         fig_2d.add_trace(
             go.Scatter(
                 x=self.rises, y=self.zz_rates, mode='lines+markers', name='ZZ vs Rise',
-                line=dict(color=dark_navy),
-                error_y=dict(type='data', array=self.zz_uncertainties, visible=True)
+                line={'color': dark_navy},
+                error_y={'type': 'data', 'array': self.zz_uncertainties, 'visible': True}
             ),
             row=1, col=1
         )
@@ -1051,8 +1042,8 @@ class ConditionalStarkFineRiseTuneUp(Experiment):
         fig_2d.add_trace(
             go.Scatter(
                 x=self.rises, y=self.iz_rates, mode='lines+markers', name='IZ vs Rise',
-                line=dict(color='gray'),
-                error_y=dict(type='data', array=self.iz_uncertainties, visible=True)
+                line={'color': 'gray'},
+                error_y={'type': 'data', 'array': self.iz_uncertainties, 'visible': True}
             ),
             row=1, col=2
         )
@@ -1061,7 +1052,7 @@ class ConditionalStarkFineRiseTuneUp(Experiment):
         fig_2d.add_trace(
             go.Scatter(
                 x=self.rises, y=self.widths, mode='lines+markers', name='Width vs Rise',
-                line=dict(color=dark_purple)
+                line={'color': dark_purple}
             ),
             row=1, col=3
         )
@@ -1070,8 +1061,8 @@ class ConditionalStarkFineRiseTuneUp(Experiment):
         fig_2d.update_layout(
             height=fig_size[0], width=fig_size[1],
             plot_bgcolor='white',
-            xaxis=dict(gridcolor=light_black),
-            yaxis=dict(gridcolor=light_black)
+            xaxis={'gridcolor': light_black},
+            yaxis={'gridcolor': light_black}
         )
 
         # Customize 2D plotsfig_2d.update_xaxes(title_text="Rise", row=1, col=1)
@@ -1094,7 +1085,7 @@ class ConditionalStarkFineTruncTuneUp(Experiment):
             n_start=0, n_stop=32, update_iz=False, update_zz=True):
         self.duts = duts
 
-        assert update_iz == False
+        assert not update_iz
 
         if params is None:
             amp_rabi_control = duts[0].get_c1('f01')['X'].amp
@@ -1122,7 +1113,6 @@ class ConditionalStarkFineTruncTuneUp(Experiment):
         self.results = []
 
         for trunc in np.arange(trunc_start, trunc_stop, trunc_step):
-            print(f"trunc: {trunc}")
             self.current_params['trunc'] = trunc
             iz_rate, zz_rate, width, result, result_target, result_control = self.run_sizzel_xy_hamiltonian_tomography(
                 t_start=t_start, t_stop=t_stop, sweep_points=sweep_points
@@ -1170,7 +1160,6 @@ class ConditionalStarkFineTruncTuneUp(Experiment):
         new_params['width'] = np.abs(0.125 / zz_rate.nominal_value) / 2
         width = new_params['width']
 
-        print(f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]: 0.5f} us')
 
         self.params_list.append(new_params)
         self.current_params = new_params
@@ -1216,37 +1205,37 @@ class ConditionalStarkFineTruncTuneUp(Experiment):
         for i, trunc in enumerate(truncs):
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_ground_x[i], mode='lines',
-                             name='Ground X', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='Ground X', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=1)
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_excited_x[i], mode='lines',
-                             name='Excited X', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='Excited X', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=1)
 
         # Plot 3D trunc vs time vs result control X for ground and excited states
         for i, trunc in enumerate(truncs):
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_control_ground_x[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=2)
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_control_excited_x[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=2)
 
         # Update layout for 3D X figure
         fig_3d_x.update_layout(
             height=plot_size_3d[0], width=plot_size_3d[1],
-            scene=dict(
-                xaxis=dict(title='Trunc', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Target X', backgroundcolor='white', gridcolor=light_black)
-            ),
-            scene2=dict(
-                xaxis=dict(title='Trunc', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Control X', backgroundcolor='white', gridcolor=light_black)
-            )
+            scene={
+                'xaxis': {'title': 'Trunc', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Target X', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            },
+            scene2={
+                'xaxis': {'title': 'Trunc', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Control X', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            }
         )
 
         # Create the figure with 3D plots for y data
@@ -1258,37 +1247,37 @@ class ConditionalStarkFineTruncTuneUp(Experiment):
         for i, trunc in enumerate(truncs):
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_ground_y[i], mode='lines',
-                             name='Ground Y', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='Ground Y', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=1)
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_excited_y[i], mode='lines',
-                             name='Excited Y', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='Excited Y', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=1)
 
         # Plot 3D trunc vs time vs result control Y for ground and excited states
         for i, trunc in enumerate(truncs):
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_control_ground_y[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=2)
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_control_excited_y[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=2)
 
         # Update layout for 3D Y figure
         fig_3d_y.update_layout(
             height=plot_size_3d[0], width=plot_size_3d[1],
-            scene=dict(
-                xaxis=dict(title='Trunc', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Target Y', backgroundcolor='white', gridcolor=light_black)
-            ),
-            scene2=dict(
-                xaxis=dict(title='Trunc', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Control Y', backgroundcolor='white', gridcolor=light_black)
-            )
+            scene={
+                'xaxis': {'title': 'Trunc', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Target Y', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            },
+            scene2={
+                'xaxis': {'title': 'Trunc', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Control Y', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            }
         )
 
         # Create the third figure with 2D plots
@@ -1298,20 +1287,20 @@ class ConditionalStarkFineTruncTuneUp(Experiment):
 
         # Plot 2D zz vs trunc
         fig_2d.add_trace(
-            go.Scatter(x=truncs, y=zz_rates, mode='lines+markers', name='ZZ vs Trunc', line=dict(color=dark_navy)),
+            go.Scatter(x=truncs, y=zz_rates, mode='lines+markers', name='ZZ vs Trunc', line={'color': dark_navy}),
             row=1, col=1)
 
         # Plot 2D iz vs trunc
         fig_2d.add_trace(
-            go.Scatter(x=truncs, y=iz_rates, mode='lines+markers', name='IZ vs Trunc', line=dict(color=dark_purple)),
+            go.Scatter(x=truncs, y=iz_rates, mode='lines+markers', name='IZ vs Trunc', line={'color': dark_purple}),
             row=1, col=2)
 
         # Update layout for 2D figure
         fig_2d.update_layout(
             height=fig_size[0], width=fig_size[1],
             plot_bgcolor='white',
-            xaxis=dict(gridcolor=light_black),
-            yaxis=dict(gridcolor=light_black)
+            xaxis={'gridcolor': light_black},
+            yaxis={'gridcolor': light_black}
         )
 
         # Customize 2D plots
@@ -1356,37 +1345,37 @@ class ConditionalStarkFineTruncTuneUp(Experiment):
         for i, trunc in enumerate(truncs):
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_ground_x[i], mode='lines',
-                             name='Ground X', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='Ground X', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=1)
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_excited_x[i], mode='lines',
-                             name='Excited X', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='Excited X', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=1)
 
         # Plot 3D trunc vs time vs result control X for ground and excited states
         for i, trunc in enumerate(truncs):
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_control_ground_x[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=2)
             fig_3d_x.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_control_excited_x[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=2)
 
         # Update layout for 3D X figure
         fig_3d_x.update_layout(
             height=plot_size_3d[0], width=plot_size_3d[1],
-            scene=dict(
-                xaxis=dict(title='Trunc', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Target X', backgroundcolor='white', gridcolor=light_black)
-            ),
-            scene2=dict(
-                xaxis=dict(title='Trunc', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Control X', backgroundcolor='white', gridcolor=light_black)
-            )
+            scene={
+                'xaxis': {'title': 'Trunc', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Target X', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            },
+            scene2={
+                'xaxis': {'title': 'Trunc', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Control X', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            }
         )
 
         # Create the figure with 3D plots for y data
@@ -1398,37 +1387,37 @@ class ConditionalStarkFineTruncTuneUp(Experiment):
         for i, trunc in enumerate(truncs):
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_ground_y[i], mode='lines',
-                             name='Ground Y', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='Ground Y', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=1)
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_excited_y[i], mode='lines',
-                             name='Excited Y', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='Excited Y', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=1)
 
         # Plot 3D trunc vs time vs result control Y for ground and excited states
         for i, trunc in enumerate(truncs):
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_control_ground_y[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_navy)),
+                             name='', showlegend=(i == 0), line={'color': dark_navy}),
                 row=1, col=2)
             fig_3d_y.add_trace(
                 go.Scatter3d(x=[trunc] * len(times[i]), y=times[i], z=results_control_excited_y[i], mode='lines',
-                             name='', showlegend=(i == 0), line=dict(color=dark_purple)),
+                             name='', showlegend=(i == 0), line={'color': dark_purple}),
                 row=1, col=2)
 
         # Update layout for 3D Y figure
         fig_3d_y.update_layout(
             height=plot_size_3d[0], width=plot_size_3d[1],
-            scene=dict(
-                xaxis=dict(title='Trunc', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Target Y', backgroundcolor='white', gridcolor=light_black)
-            ),
-            scene2=dict(
-                xaxis=dict(title='Trunc', backgroundcolor='white', gridcolor=light_black),
-                yaxis=dict(title='Time', backgroundcolor='white', gridcolor=light_black),
-                zaxis=dict(title='Result Control Y', backgroundcolor='white', gridcolor=light_black)
-            )
+            scene={
+                'xaxis': {'title': 'Trunc', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Target Y', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            },
+            scene2={
+                'xaxis': {'title': 'Trunc', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'yaxis': {'title': 'Time', 'backgroundcolor': 'white', 'gridcolor': light_black},
+                'zaxis': {'title': 'Result Control Y', 'backgroundcolor': 'white', 'gridcolor': light_black}
+            }
         )
 
         # Extract nominal values and uncertainties
@@ -1450,8 +1439,8 @@ class ConditionalStarkFineTruncTuneUp(Experiment):
         fig_2d.add_trace(
             go.Scatter(
                 x=self.truncs, y=self.zz_rates, mode='lines+markers', name='ZZ vs Trunc',
-                line=dict(color=dark_navy),
-                error_y=dict(type='data', array=self.zz_uncertainties, visible=True)
+                line={'color': dark_navy},
+                error_y={'type': 'data', 'array': self.zz_uncertainties, 'visible': True}
             ),
             row=1, col=1
         )
@@ -1460,8 +1449,8 @@ class ConditionalStarkFineTruncTuneUp(Experiment):
         fig_2d.add_trace(
             go.Scatter(
                 x=self.truncs, y=self.iz_rates, mode='lines+markers', name='IZ vs Trunc',
-                line=dict(color='gray'),
-                error_y=dict(type='data', array=self.iz_uncertainties, visible=True)
+                line={'color': 'gray'},
+                error_y={'type': 'data', 'array': self.iz_uncertainties, 'visible': True}
             ),
             row=1, col=2
         )
@@ -1470,7 +1459,7 @@ class ConditionalStarkFineTruncTuneUp(Experiment):
         fig_2d.add_trace(
             go.Scatter(
                 x=self.truncs, y=self.widths, mode='lines+markers', name='Width vs Trunc',
-                line=dict(color=dark_purple)
+                line={'color': dark_purple}
             ),
             row=1, col=3
         )
@@ -1479,8 +1468,8 @@ class ConditionalStarkFineTruncTuneUp(Experiment):
         fig_2d.update_layout(
             height=fig_size[0], width=fig_size[1],
             plot_bgcolor='white',
-            xaxis=dict(gridcolor=light_black),
-            yaxis=dict(gridcolor=light_black)
+            xaxis={'gridcolor': light_black},
+            yaxis={'gridcolor': light_black}
         )
 
         # Customize 2D plots

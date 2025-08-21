@@ -55,7 +55,7 @@ class CalibrateFullAssignmentMatrices(Experiment):
                     dut.get_gate('X', transition_name='f01') + dut.get_gate('X', transition_name='f12') + dut.get_gate(
                         'X', transition_name='f23')])
                 if max_level > 3:
-                    assert False, f'Level {max_level} not supported yet.'
+                    raise AssertionError(f'Level {max_level} not supported yet.')
 
             lpb_groups = new_lpb_groups
 
@@ -86,12 +86,12 @@ class CalibrateFullAssignmentMatrices(Experiment):
         qubit_number = self.qubit_number
         labels = [f'{i}' for i in range(self.max_level + 1)]
         label_group = ['']
-        for i in range(qubit_number):
+        for _i in range(qubit_number):
             label_group = [x + y for x in label_group for y in labels]
 
         # Create and display the plot.
         fig = px.imshow(self.assignment_matrix,
-                        labels=dict(x="Prepare", y="Measurement", color="Probability"),
+                        labels={'x': "Prepare", 'y': "Measurement", 'color': "Probability"},
                         x=label_group,
                         y=label_group,
                         color_continuous_scale='teal')
@@ -157,7 +157,7 @@ class CalibrateSingleDutAssignmentMatrices(Experiment):
                 dut.get_gate('X', transition_name='f01') + dut.get_gate('X', transition_name='f12') + dut.get_gate(
                     'X', transition_name='f23') for dut in duts]))
         if max_level > 3:
-            assert False, f'Level {max_level} not supported yet.'
+            raise AssertionError(f'Level {max_level} not supported yet.')
 
         # Create the LPB structures from the groups and a Sweeper to control the experiment.
         lpb = prims.SweepLPB(lpb_groups)
@@ -197,7 +197,7 @@ class CalibrateSingleDutAssignmentMatrices(Experiment):
 
         # Create and display the plot.
         fig = px.imshow(self.assignment_matrix[i],
-                        labels=dict(x="Prepare", y="Measurement", color="Probability"),
+                        labels={'x': "Prepare", 'y': "Measurement", 'color': "Probability"},
                         x=label_group,
                         y=label_group,
                         color_continuous_scale='teal')

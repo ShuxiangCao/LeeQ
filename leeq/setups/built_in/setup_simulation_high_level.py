@@ -1,15 +1,8 @@
-from typing import List
 
-import numpy as np
 
-from leeq.core.context import ExperimentContext
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
-from leeq.core.engine.measurement_result import MeasurementResult
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
-from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import ExperimentalSetup
 from leeq.theory.simulation.numpy.rotated_frame_simulator import VirtualTransmon
-from leeq.theory.simulation.qutip.pulsed_simulator import QutipPulsedSimulator
 
 
 class HighLevelSimulationSetup(ExperimentalSetup):

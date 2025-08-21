@@ -75,7 +75,7 @@ def _build_table(dict_data: dict):
         html.Tr([html.Td(key), html.Td(repr(val))]) for key, val in dict_data.items()
     ])]
 
-    table = dbc.Table(table_body, bordered=True)
+    dbc.Table(table_body, bordered=True)
 
 
 @app.callback(

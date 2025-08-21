@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import plotly.graph_objects as go
@@ -235,10 +235,10 @@ class QubitSpectroscopyFrequency(Experiment):
     @register_browser_function(available_after=(run,))
     @visual_inspection(
         """
-        Given a plot of the phase response of a resonator as a function of frequency, analyze the stability and 
-        features of the phase curve. Identify any distinct and sharp deviations from the baseline phase level, 
+        Given a plot of the phase response of a resonator as a function of frequency, analyze the stability and
+        features of the phase curve. Identify any distinct and sharp deviations from the baseline phase level,
         such as steep dips or peaks. If such features are present at specific frequencies, indicating a significant
-        change in the phase response, conclude that a qubit has been detected at these frequencies. If the plot 
+        change in the phase response, conclude that a qubit has been detected at these frequencies. If the plot
         shows a noisy or relatively stable phase without any pronounced features across the frequency range, conclude
         that no qubit has been observed
         """

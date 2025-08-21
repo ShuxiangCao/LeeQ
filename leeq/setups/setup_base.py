@@ -154,7 +154,7 @@ class SetupStatusParameters(LeeQObject):
         """
 
         # Make all the kwargs keys lowercase
-        new_kwargs = dict([(k.lower(), v) for k, v in kwargs.items()])
+        new_kwargs = {k.lower(): v for k, v in kwargs.items()}
 
         if channel not in self._channel_dict:
             msg = f"{self._name} does not have channel {channel}."
@@ -248,7 +248,7 @@ class SetupStatusParameters(LeeQObject):
             raise ValueError(msg)
 
         if not callable(callback):
-            msg = f"Callback is not callable."
+            msg = "Callback is not callable."
             logger.error(msg)
             raise ValueError(msg)
 

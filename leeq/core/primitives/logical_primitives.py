@@ -1,9 +1,10 @@
 import copy
 import uuid
-from typing import Any, Union
+from typing import Union
 
 import numpy
 import numpy as np
+
 from leeq.core.base import LeeQObject
 from leeq.core.primitives.base import SharedParameterObject
 from leeq.utils import ObjectFactory, elementwise_update_dict, setup_logging

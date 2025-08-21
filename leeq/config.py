@@ -7,7 +7,6 @@ path validation, and development mode settings for the LeeQ quantum computing fr
 
 import os
 from pathlib import Path
-from typing import Optional
 
 
 class Config:

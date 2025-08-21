@@ -112,11 +112,11 @@ class MeasurementCollectTraces(Experiment):
             index (int): Index of the qubit to be plotted.
         """
         self.analyze_data()
-        fig1 = self.plot_averaged_traces(index)
+        self.plot_averaged_traces(index)
         plt.show()
-        fig2 = self.plot_aggregated_trajectories(index)
+        self.plot_aggregated_trajectories(index)
         plt.show()
-        fig3 = self.plot_difference(index)
+        self.plot_difference(index)
         plt.show()
 
     @register_browser_function()
@@ -203,7 +203,7 @@ class MeasurementCollectTraces(Experiment):
             '#bcbd22',
             '#17becf']
 
-        ax = fig.add_subplot(int(f"121"))
+        ax = fig.add_subplot(int("121"))
         ax.set_title(rf"{self.duts_hrid[index]} Trajectory IQ")
         for i in range(traces.shape[0]):
             ax.plot(traces[i, :].real, traces[i, :].imag, color=colors[i], label=rf"$|{i}\rangle$")
@@ -211,8 +211,8 @@ class MeasurementCollectTraces(Experiment):
         ax.set_ylabel(r'Q Channel [a.u.]')
         ax.legend()
 
-        ax = fig.add_subplot(int(f"122"))
-        ax.set_title(rf"Accumulated Trajectory IQ")
+        ax = fig.add_subplot(int("122"))
+        ax.set_title(r"Accumulated Trajectory IQ")
         for i in range(traces.shape[0]):
             ax.plot(np.cumsum(traces[i, :].real), np.cumsum(traces[i, :].imag), color=colors[i],
                     label=rf"$|{i}\rangle$")
@@ -225,10 +225,10 @@ class MeasurementCollectTraces(Experiment):
         return fig
 
     def plot_difference(self, index=0):
-        traces = self.aggregated_traces_average[index]
+        self.aggregated_traces_average[index]
         fig = plt.figure(figsize=(2 * 3.5, 3.5))
 
-        ax = fig.add_subplot(int(f"121"))
+        ax = fig.add_subplot(int("121"))
         ax.set_title(rf"{self.duts_hrid[index]} Traces Difference")
 
         for i, (key, val) in enumerate(self.diffs[index].items()):

@@ -44,29 +44,29 @@ def generate_data_analysis(description: str, context: dict[str, Any]):
     """
     prompt: str = f"""
     Suppose some data is collected with the following code and description:
-    
+
     <context>
     {context}
     </context>
-    
+
     Please write a Python code snippet that performs the data analysis based on the description provided.
-    
+
     <description>
     {description}
     </description>
-    
-    The code should be a class function called `data_analysis` that takes the data saved in the class attributes as 
+
+    The code should be a class function called `data_analysis` that takes the data saved in the class attributes as
     input and save the analysis results into class attributes.
-    
+
     You can use the following fitting functions from the leeq package:
     <fitting_functions>
     {"".join([function_signature_to_xml(x, y) for x, y in _load_fitting_function_docstrings().items()])}
     </fitting_functions>
-    
+
     If the above functions are not enough, you have to create your own fitting functions.
-    
+
     Return the `data_analysis` function only.
-   
+
     The format of the return should be:
     ```python
     <The data analysis code>
@@ -91,33 +91,33 @@ def revise_data_analysis(description: str, code: dict[str, Any]):
     """
     prompt: str = f"""
     Please revise the Python code snippet that performs the data analysis based on the description provided.
-    
+
     <description>
     {description}
     </description>
-    
-    The code should be a class function called `data_analysis` that takes the data saved in the class attributes as 
+
+    The code should be a class function called `data_analysis` that takes the data saved in the class attributes as
     input and save the analysis results into class attributes.
-    
+
     <code>
     {code}
     </code>
-    
+
     Note that the code for fitting the data may be incorrect. It may have used functions does not exists.
     You should revise the code to make it correct.
-    
+
     Here are the only functions from the leeq package that exists and can be used (from the leeq.theory.fits module):
     <fitting_functions>
     {"".join([function_signature_to_xml(x, y) for x, y in _load_fitting_function_docstrings().items()])}
     </fitting_functions>
-    
+
     Note that these function may return `ufloat` objects from the `uncertainties` package. If needed, you can convert
     them to `float` using the `nominal_value` attribute.
-    
+
     If the above functions are not enough, you have to create your own fitting functions.
-    
+
     Return the `data_analysis` function only.
-   
+
     The format of the return should be:
     ```python
     <the code snippet that performs the data analysis>

@@ -1,4 +1,3 @@
-from typing import Any
 
 import numpy as np
 
@@ -20,7 +19,7 @@ class TransmonElement(Element):
         from leeq.core.primitives.built_in.simple_drive import (
             QuditVirtualZCollection,
             SimpleDispersiveMeasurement,
-            SimpleDriveCollection
+            SimpleDriveCollection,
         )
 
         factory = LogicalPrimitiveCollectionFactory()
@@ -96,7 +95,7 @@ class TransmonElement(Element):
 
         from leeq.core.primitives.built_in.simple_drive import SimpleDispersiveMeasurement, SimpleDriveCollection
 
-        for name, lpb_parameter in parameters["lpb_collections"].items():
+        for _name, lpb_parameter in parameters["lpb_collections"].items():
             assert (
                 "type" in lpb_parameter
             ), "The type of the lpb collection is not specified."
@@ -104,7 +103,7 @@ class TransmonElement(Element):
                 SimpleDriveCollection.__qualname__
             ], f"The lpb collection {lpb_parameter['name']} is not supported."
 
-        for name, measurement_parameter in parameters["measurement_primitives"].items(
+        for _name, measurement_parameter in parameters["measurement_primitives"].items(
         ):
             assert (
                 "type" in measurement_parameter

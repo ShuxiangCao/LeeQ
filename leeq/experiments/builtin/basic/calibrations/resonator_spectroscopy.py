@@ -3,7 +3,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
-import plotly
 import plotly.graph_objects as go
 from k_agents.inspection.decorator import text_inspection, visual_inspection
 from scipy import optimize as so
@@ -243,14 +242,12 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             "Phase Gradient": ((f[:-1] + f[1:]) / 2, np.gradient(unwrapped_phase))
         }
 
-        traces = dict([
-            (name, go.Scatter(
+        traces = {name: go.Scatter(
                 x=data[name][0],
                 y=data[name][1],
                 mode="lines",
-                name=name))
-            for name in data
-        ])
+                name=name)
+            for name in data}
 
         return traces
 
@@ -472,10 +469,7 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
         )
 
         if fit_succeed:
-            print(
-                "Phase gradient fit f0:%s, Q:%s, amp:%s, base:%s kappa:%f"
-                % (f0, Q, amp, baseline, f0 / Q)
-            )
+            pass
 
         return fig
 
@@ -490,9 +484,8 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
 
         try:
             z, f0, Q, amp, baseline, direction = self._fit_phase_gradient()
-            fit_succeed = True
-        except Exception as e:
-            return f"The experiment has an error fitting phase gradient, implying the experiment is failed."
+        except Exception:
+            return "The experiment has an error fitting phase gradient, implying the experiment is failed."
 
         return ("The fitting suggest that the resonant frequency is at %f MHz, "
                 "with a quality factor of %f (resonator linewidth kappa of %f MHz), an amplitude of %f, and a baseline of %f.") % (
@@ -537,7 +530,6 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
         # Get the original measurement primitive.
         mprim_index = '0'
         mp = dut_qubit.get_measurement_prim_intlist(mprim_index).clone()
-        original_freq = mp.freq
 
         # Update the pulse arguments with either the provided mp_width or
         # rep_rate if mp_width is None.
@@ -855,8 +847,6 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
                     mode='markers',
                     name=f'{key} Phase derivative'))
 
-            print(
-                f'Phase diff fit {key} f0:{f0}, Q:{Q}, amp:{amp}, base:{baseline}, kappa:{f0 / Q}')
 
         fig.update_layout(
             title='Resonator spectroscopy phase fitting',
@@ -998,7 +988,7 @@ class MeasurementScanParams(Experiment):
         # Adding text annotation inside the cells
         for i in range(len(self.scanned_freqs)):
             for j in range(len(self.scanned_amps)):
-                text = ax.text(j, i, f"{self.snrs[i, j]:.2f}",
+                ax.text(j, i, f"{self.snrs[i, j]:.2f}",
                                ha="center", va="center", color="w")
 
         # set ticks
@@ -1029,4 +1019,3 @@ class MeasurementScanParams(Experiment):
         with open(path, 'wb') as f:
             pickle.dump(data, f)
 
-        print(f"Dumped data to {path}")

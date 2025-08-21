@@ -42,7 +42,7 @@ class SimpleT1(Experiment):
         Plots the T1 decay.
     """
 
-    _experiment_result_analysis_instructions = """The T1 experiment measures the relaxation time of a qubit. 
+    _experiment_result_analysis_instructions = """The T1 experiment measures the relaxation time of a qubit.
     Please analyze the fitted plots and the fitting model to verify the data's validity. Subsequently, determine
     if the experiment needs to be rerun and adjust the experimental parameters as necessary. The suggested time
     length should be approximately 5 times the T1 value. If there is a significant discrepancy, adjust the time
@@ -146,7 +146,7 @@ class SimpleT1(Experiment):
         """
         args = self._get_run_args_dict()
 
-        t = np.arange(0, args['time_length'], args['time_resolution'])
+        np.arange(0, args['time_length'], args['time_resolution'])
         trace = self.trace
 
         fit_params = fit_exp_decay_with_cov(trace, args['time_resolution'])
@@ -197,11 +197,11 @@ class SimpleT1(Experiment):
         trace_scatter = go.Scatter(
             x=t, y=trace,
             mode='markers',
-            marker=dict(
+            marker={
                 # symbol='x',
-                size=5,
+                'size': 5,
                 # color='blue'
-            ),
+            },
             name='Experiment data'
         )
 
@@ -218,9 +218,9 @@ class SimpleT1(Experiment):
                 x=t,
                 y=fit_params['Amplitude'].n * np.exp(-t / fit_params['Decay'].n) + fit_params['Offset'].n,
                 mode='lines',
-                line=dict(
-                    color='blue'
-                ),
+                line={
+                    'color': 'blue'
+                },
                 visible='legendonly',
                 name='Decay fit'
             )
@@ -232,8 +232,8 @@ class SimpleT1(Experiment):
 
         layout = go.Layout(
             title=title,
-            xaxis=dict(title='Time (us)'),
-            yaxis=dict(title='P(1)'),
+            xaxis={'title': 'Time (us)'},
+            yaxis={'title': 'P(1)'},
             plot_bgcolor='white',
             showlegend=True
         )
@@ -310,12 +310,12 @@ class MultiQubitT1(Experiment):
             qubit.get_c1(collection_name) for qubit,
             collection_name in zip(
                 duts,
-                collection_names)]
+                collection_names, strict=False)]
         mps = [
             qubit.get_measurement_prim_intlist(mprim_index) for qubit,
             mprim_index in zip(
                 duts,
-                mprim_indexes)]
+                mprim_indexes, strict=False)]
         self.mps = mps
         delay = prims.Delay(0)
 
@@ -414,11 +414,11 @@ class MultiQubitT1(Experiment):
         trace_scatter = go.Scatter(
             x=t, y=trace,
             mode='markers',
-            marker=dict(
-                symbol='x',
-                size=10,
-                color='blue'
-            ),
+            marker={
+                'symbol': 'x',
+                'size': 10,
+                'color': 'blue'
+            },
             name='Experiment data'
         )
 
@@ -432,9 +432,9 @@ class MultiQubitT1(Experiment):
                 x=t,
                 y=fit_params['Amplitude'].n * np.exp(-t / fit_params['Decay'].n) + fit_params['Offset'].n,
                 mode='lines',
-                line=dict(
-                    color='blue'
-                ),
+                line={
+                    'color': 'blue'
+                },
                 name='Decay fit'
             )
             title = (
@@ -445,8 +445,8 @@ class MultiQubitT1(Experiment):
 
         layout = go.Layout(
             title=title,
-            xaxis=dict(title='Time (us)'),
-            yaxis=dict(title='P(1)'),
+            xaxis={'title': 'Time (us)'},
+            yaxis={'title': 'P(1)'},
             plot_bgcolor='white',
             showlegend=True
         )
@@ -534,7 +534,7 @@ class MultiQuditT1Decay(Experiment):
                     {},
                     'delay')])
 
-        mprims = [dut.get_measurement_prim_intlist(mprim_index) for mprim_index, dut in zip(mprim_indexes, duts)]
+        mprims = [dut.get_measurement_prim_intlist(mprim_index) for mprim_index, dut in zip(mprim_indexes, duts, strict=False)]
 
         lpb = lpb + prims.ParallelLPB(mprims)
 
@@ -561,7 +561,7 @@ class MultiQuditT1Decay(Experiment):
         self.fit_params = []
         self.t1_list = []
 
-        for i, prob in enumerate(self.probs):
+        for i, _prob in enumerate(self.probs):
             initial_state, gamma = self.analyze_single_dut(i)
             self.fit_params.append((initial_state, gamma))
 
@@ -596,9 +596,9 @@ class MultiQuditT1Decay(Experiment):
         for i in range(len(self.probs)):
             probs = self.probs[i].transpose([1, 2, 0])
             fit_param = self.fit_params[i]
-            t1s = self.t1_list[i]
+            self.t1_list[i]
             fig = plot(probs=probs, time_length=self.time_length, time_resolution=self.time_resolution,
                        initial_distribution=fit_param[0], gamma=fit_param[1])
             for i in range(self.max_level):
-                print(f"T1_{i + 1}{i} = {t1s[i]}")
+                pass
             fig.show()

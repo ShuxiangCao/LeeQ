@@ -6,7 +6,7 @@ from typing import Optional, Union
 
 from leeq.core.base import LeeQObject
 from leeq.core.primitives import LogicalPrimitiveCollectionFactory, LogicalPrimitiveFactory
-from leeq.utils import display_json_dict, get_calibration_log_path, setup_logging
+from leeq.utils import display_json_dict, get_calibration_log_path
 from leeq.utils.utils import setup_logging
 
 logger = setup_logging(__name__)
@@ -345,7 +345,6 @@ class Element(LeeQObject):
         """
         Print the configuration information of the element.
         """
-        from IPython.display import JSON, display
 
         calibrations = self.get_calibrations()
 

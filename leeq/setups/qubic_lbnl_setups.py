@@ -1,9 +1,7 @@
 import copy
 from http.client import CannotSendRequest
-from pprint import pprint
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List
 from urllib.parse import urlparse
-from uuid import UUID
 
 import numpy as np
 
@@ -205,6 +203,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
         try:
             # QubiC toolchain for compiling circuits
             import qubic.toolchain as tc
+
             # QubiC configuration management libraries
             import qubitconfig.qchip as qc
             from distproc.hwconfig import ChannelConfig, FPGAConfig, load_channel_configs
@@ -273,7 +272,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
         measure_start_time = -1
         measurement_length = -1
         channel_demodulation_config = {}
-        for proc_group, instructions in compiled_instructions.program.items():
+        for _proc_group, instructions in compiled_instructions.program.items():
             for instruction in instructions:
                 if instruction['op'] == 'pulse' and 'rdlo' in instruction["dest"]:
 
@@ -352,7 +351,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
         tc, qc, FPGAConfig, load_channel_configs, ChannelConfig = self._load_qubic_package()
 
         if self._status.get_parameters("QubiC_Debug_Print_Circuits"):
-            pprint(circuits)
+            pass
 
         # Register leeq pulse shapes to QubiC
         register_leeq_pulse_shapes_to_qubic_pulse_shape_factory()
@@ -363,7 +362,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
         if self._status.get_parameters(
                 "QubiC_Debug_Print_Compiled_Instructions"):
-            pprint(compiled_instructions.program)
+            pass
 
         asm_prog = tc.run_assemble_stage(
             compiled_instructions, self._channel_configs)
@@ -452,7 +451,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
             # Demodulate the data
             demodulated_result = self._software_demodulation(data['0'], channel_demodulation_config)
 
-            qubic_channel_channel_to_core = dict([(val, key) for key, val in self._core_to_channel_map.items()])
+            qubic_channel_channel_to_core = {val: key for key, val in self._core_to_channel_map.items()}
 
             self._result = {qubic_channel_channel_to_core[channel]: demodulated_result[channel] for channel in
                             demodulated_result.keys()}
@@ -566,7 +565,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
         # until the previous acquisition is returned to python, which is much longer than the shot interval.
         acquisition_type = self._status.get_parameters("Acquisition_Type")
         if acquisition_type == 'traces':
-            assert len(contexts) == 1, """Traces acquisition only supports batch size 1. Use 
+            assert len(contexts) == 1, """Traces acquisition only supports batch size 1. Use
                 setup().status().set_param('Engine_Batch_Size',1) to set the batch size to 1."""
             combined_circuits = contexts[0].instructions["circuits"]
         else:
@@ -576,7 +575,7 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
         # The dirtiness is true when at least one of the circuits is dirty
         merged_dirtiness = {
-            k: any([context.instructions["dirtiness"][k] for context in contexts]) for k in
+            k: any(context.instructions["dirtiness"][k] for context in contexts) for k in
             contexts[0].instructions["dirtiness"].keys()
         }
 

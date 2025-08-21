@@ -1,18 +1,13 @@
 import functools
 import inspect
-from pprint import pprint
-from typing import Union
 
 import numpy as np
 
-from leeq import setup
-from leeq.compiler.compiler_base import LPBCompiler, MeasurementSequence
+from leeq.compiler.compiler_base import LPBCompiler
 from leeq.compiler.lbnl_qubic.utils import (
     get_qubic_envelope_name_from_leeq_name,
-    register_leeq_pulse_shapes_to_qubic_pulse_shape_factory
 )
 from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
-from leeq.compiler.utils.time_base import get_t_list
 from leeq.core.context import ExperimentContext
 from leeq.core.primitives.built_in.common import DelayPrimitive, PhaseShift
 from leeq.core.primitives.logical_primitives import (
@@ -21,7 +16,7 @@ from leeq.core.primitives.logical_primitives import (
     LogicalPrimitiveBlockSerial,
     LogicalPrimitiveBlockSweep,
     LogicalPrimitiveCombinable,
-    MeasurementPrimitive
+    MeasurementPrimitive,
 )
 from leeq.experiments.experiments import ExperimentManager
 from leeq.utils import setup_logging
@@ -819,7 +814,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         if len(
                 child_circuits[0]) == 1 and child_circuits[0][0]["name"] == "delay":
             child_circuits[0][0]["scope"] = list(
-                set(x.split('.')[0] for x in block_scope))
+                {x.split('.')[0] for x in block_scope})
             child_scopes[0] = block_scope
 
         compiled_circuit.extend(child_circuits[0])
@@ -832,12 +827,12 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             if len(
                     child_circuits[i]) == 1 and child_circuits[i][0]["name"] == "delay":
                 child_circuits[i][0]["scope"] = list(
-                    set(x.split('.')[0] for x in block_scope))
+                    {x.split('.')[0] for x in block_scope})
                 if len(block_scope) > 1:
                     # If the block contains more than 1 channel, we need a
                     # barrier
                     compiled_circuit.append({"name": "barrier", "scope": list(
-                        set(x.split('.')[0] for x in block_scope))})
+                        {x.split('.')[0] for x in block_scope})})
             else:
                 # If we are only dealing with one channel, and the previous and current child are on the same channel,
                 # we do not need a barrier. Otherwise add a barrier at block
@@ -845,7 +840,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
                 union_scope = child_scopes[i - 1].union(child_scopes[i])
                 if len(block_scope) > 1 and len(union_scope) > 1:
                     compiled_circuit.append({"name": "barrier", "scope": list(
-                        set(x.split('.')[0] for x in block_scope))})
+                        {x.split('.')[0] for x in block_scope})})
 
             compiled_circuit.extend(child_circuits[i])
 
@@ -899,7 +894,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         block_scope = set(block_scope)
         if len(block_scope) > 1:
             compiled_circuit.append({"name": "barrier", "scope": list(
-                set(x.split('.')[0] for x in block_scope))})
+                {x.split('.')[0] for x in block_scope})})
 
         return compiled_circuit, block_scope
 

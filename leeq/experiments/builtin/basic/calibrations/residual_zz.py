@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List
 
 import numpy as np
 
@@ -58,7 +58,6 @@ class CalibrateOptimizedFrequencyWith2QZZShift(Experiment):
                 step=step,
                 set_offset=set_offset,
                 disable_sub_plot=False)
-            print(_, zz_shift.zz_shift)
 
             self.zz_shifts.append(zz_shift.zz_shift)
 

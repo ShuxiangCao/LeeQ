@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import numpy as np
 from qutip import Qobj, basis, destroy, qzero
-from qutip.control import cy_grape_unitary, grape_unitary_adaptive, plot_grape_control_fields
+from qutip.control import grape_unitary_adaptive, plot_grape_control_fields
 
 
 @dataclass
@@ -120,7 +120,6 @@ def example():
         initial_guess=None,
         max_amplitude=0.015,
     )
-    print(result.u.shape)
 
     times = np.arange(len(result.u))
 
@@ -149,7 +148,6 @@ def example_bak():
 
     result, fidelity, times = run_grape(HamiltonianParams(), GrapeParams(), U_target, initial_guess)
 
-    print(np.abs(overlap(U_target, result.U_f)))
     # Plot optimized control fields
     plot_grape_control_fields(times, result.u, ['x', 'y'])
     # Print results

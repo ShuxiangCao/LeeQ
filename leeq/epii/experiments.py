@@ -11,14 +11,15 @@ from typing import Any, Dict, List, Optional, Type
 
 from leeq.experiments.builtin.basic.calibrations.drag import (
     DragCalibrationSingleQubitMultilevel,
-    DragPhaseCalibrationMultiQubitsMultilevel
+    DragPhaseCalibrationMultiQubitsMultilevel,
 )
+
 # Import LeeQ experiment classes
 from leeq.experiments.builtin.basic.calibrations.rabi import MultiQubitRabi, NormalisedRabi
 from leeq.experiments.builtin.basic.calibrations.ramsey import SimpleRamseyMultilevel
 from leeq.experiments.builtin.basic.characterizations.randomized_benchmarking import (
     RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem,
-    SingleQubitRandomizedBenchmarking
+    SingleQubitRandomizedBenchmarking,
 )
 from leeq.experiments.builtin.basic.characterizations.t1 import MultiQubitT1, SimpleT1
 from leeq.experiments.builtin.basic.characterizations.t2 import SpinEchoMultiLevel
@@ -174,7 +175,7 @@ class ExperimentRouter:
 
         # Get the run method signature
         try:
-            run_method = getattr(experiment_class, 'run')
+            run_method = experiment_class.run
             signature = inspect.signature(run_method)
 
             parameters = {}
@@ -251,7 +252,7 @@ class ExperimentRouter:
                 errors.append(f"Missing required parameter: {param_name}")
 
         # Validate parameter types (basic validation)
-        for param_name, value in parameters.items():
+        for param_name, _value in parameters.items():
             if param_name not in schema:
                 # Warning, but not an error - might be an optional parameter
                 logger.warning(f"Unknown parameter '{param_name}' for experiment '{experiment_name}'")

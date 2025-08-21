@@ -109,7 +109,7 @@ def qubit_2():
 def test_ResonatorSweepTransmissionWithExtraInitialLPB(virtual_setup, qubit_1):
     setup().register_setup(virtual_setup)
 
-    sweep = ResonatorSweepTransmissionWithExtraInitialLPB(
+    ResonatorSweepTransmissionWithExtraInitialLPB(
         qubit_1,
         start=8000,
         stop=9000,

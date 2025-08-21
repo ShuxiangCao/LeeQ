@@ -231,7 +231,7 @@ class LoggableObject(metaclass=SetBrowserFunctionAttributeMeta):
                 mapped_args[param.name] = None
 
         # For positional arguments
-        for param, value in zip(parameters, called_args):
+        for param, value in zip(parameters, called_args, strict=False):
             mapped_args[param.name] = value
 
         # For keyword arguments (this will override any values set before)

@@ -1,5 +1,5 @@
 import inspect
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import numpy as np  # Assuming numpy is needed based on the provided function.
 
@@ -46,7 +46,6 @@ def segment_by_time(sampling_rate: int, env_name: str, seg_t_start: float, seg_t
     kwargs_call = {key: kwargs[key]
                    for key in required_parameters if key in kwargs}
 
-    print(kwargs_call)
     # Get the array of the entire pulse shape
     env_array = env_func(sampling_rate=sampling_rate, **kwargs_call)
 
@@ -54,8 +53,6 @@ def segment_by_time(sampling_rate: int, env_name: str, seg_t_start: float, seg_t
     t = np.arange(0, len(env_array) * dt, dt)
 
     seg_array = env_array[(t >= seg_t_start) & (t < seg_t_end)]
-    print(seg_t_start, seg_t_end)
-    print(seg_array.shape)
 
     return seg_array
 
@@ -89,7 +86,7 @@ def segment_by_index(sampling_rate: int, env_name: str, seg_i_start: float, seg_
     env_array = env_func(sampling_rate=sampling_rate, **kwargs_call)
 
     dt = 1 / sampling_rate
-    t = np.arange(0, len(env_array) * dt, dt)
+    np.arange(0, len(env_array) * dt, dt)
 
     seg_array = env_array[seg_i_start: seg_i_end]
 
@@ -338,9 +335,6 @@ def blackman_square(
         return square(sampling_rate=sampling_rate, amp=amp, width=width, phase=phase)
 
     # Coefficients used in the Blackman window formula
-    a0 = 7938.0 / 18608.0
-    a1 = 9240.0 / 18608.0
-    a2 = 1430.0 / 18608.0
 
     # Obtain the timebase
     t = get_t_list(sampling_rate, width)
@@ -354,7 +348,7 @@ def blackman_square(
     shape = np.zeros(shape=x_rise.shape, dtype="cfloat")
 
     # Create a midshape slice for modification
-    midshape = shape[offset: offset + len(t_rise)]
+    shape[offset: offset + len(t_rise)]
 
     shape[offset: offset + len(t_rise)] = blackman_drag(sampling_rate=sampling_rate, amp=1, phase=0, width=rise * 2,
                                                         alpha=alpha, trunc=trunc)

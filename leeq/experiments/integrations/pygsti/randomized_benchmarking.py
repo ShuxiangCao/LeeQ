@@ -1,7 +1,5 @@
 from typing import List, Optional
 
-import numpy as np
-
 from leeq.chronicle import log_and_record, register_browser_function
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockParallel
 

@@ -23,6 +23,21 @@ from .core import LoggableObject
 from .decorators import log_and_record, log_event, register_browser_function
 from .logger import setup_logging
 
+# Explicit re-exports for linting
+__all__ = [
+    "Chronicle",
+    "load_attributes",
+    "load_object",
+    "LoggableObject",
+    "log_and_record",
+    "log_event",
+    "register_browser_function",
+    "setup_logging",
+    "browser_function",
+    "log",
+    "logger"
+]
+
 browser_function = register_browser_function  # Alias for backwards compatibility
 
 log = None  # Chronical log instance, None if not running

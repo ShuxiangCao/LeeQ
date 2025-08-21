@@ -125,7 +125,6 @@ class SimpleRamseyMultilevel(Experiment):
         if update:
             self.analyze_data()
             c1q.update_parameters(freq=self.frequency_guess.n)
-            print(f"Frequency updated: {self.frequency_guess} MHz")
         else:
             c1q.update_parameters(freq=original_freq)
 
@@ -225,7 +224,6 @@ class SimpleRamseyMultilevel(Experiment):
 
         # If sampling noise is enabled, simulate the noise
         if setup().status().get_param('Sampling_Noise'):
-            print("Sampling noise is enabled")
             # Get the number of shot used in the simulation
             shot_number = setup().status().get_param('Shot_Number')
 
@@ -266,10 +264,10 @@ class SimpleRamseyMultilevel(Experiment):
             xaxis_title="Time (us)",
             yaxis_title="<z>",
             legend_title="Legend",
-            font=dict(
-                family="Courier New, monospace",
-                size=12,
-                color="Black"),
+            font={
+                'family': "Courier New, monospace",
+                'size': 12,
+                'color': "Black"},
             plot_bgcolor="white")
         return fig
 
@@ -293,7 +291,7 @@ class SimpleRamseyMultilevel(Experiment):
             self.frequency_guess = self.original_freq - fitted_freq_offset
             self.error_bar = self.fit_params['Frequency'].s
 
-        except Exception as e:
+        except Exception:
             # In case of fit failure, default the frequency guess and error
             self.frequency_guess = 0
             self.error_bar = np.inf
@@ -315,7 +313,7 @@ class SimpleRamseyMultilevel(Experiment):
 
     @register_browser_function(available_after=('run',))
     @visual_inspection("""
-        Here is a plot of data from a quantum mechanics experiment involving Ramsey oscillations. Can you analyze whether 
+        Here is a plot of data from a quantum mechanics experiment involving Ramsey oscillations. Can you analyze whether
             this plot shows a successful experiment or a failed one? Please consider the following aspects in your analysis:
         1. Clarity of Oscillation: Describe if the data points show a clear, regular oscillatory pattern.
         2. Fit Quality: Evaluate whether the fit line closely follows the data points throughout the plot.
@@ -389,7 +387,7 @@ class SimpleRamseyMultilevel(Experiment):
             title_text = f"Ramsey decay {args['dut'].hrid} transition {args['collection_name']}: <br>" \
                 f"Fit failed"
             fig.update_layout(title_text=title_text,
-                              xaxis_title=f"Time (us)",
+                              xaxis_title="Time (us)",
                               yaxis_title="<z>",
                               plot_bgcolor="white")
 
@@ -509,7 +507,7 @@ class MultiQubitRamseyMultilevel(Experiment):
             "The number of DUTs, collection names, and mprim indexes must be the same."
 
         c1s = [qubit.get_c1(collection_name) for qubit, collection_name in
-               zip(duts, collection_names)]  # Retrieve the control object
+               zip(duts, collection_names, strict=False)]  # Retrieve the control object
         self.set_offset = set_offset
         self.step = step
 
@@ -553,7 +551,7 @@ class MultiQubitRamseyMultilevel(Experiment):
             qubit.get_measurement_prim_intlist(mprim_index) for qubit,
             mprim_index in zip(
                 duts,
-                mprim_indexes)]
+                mprim_indexes, strict=False)]
         self.mp = mprims
 
         # Construct the logic primitive block
@@ -573,8 +571,6 @@ class MultiQubitRamseyMultilevel(Experiment):
             self.analyze_data()
             for i, c1 in enumerate(c1s):
                 c1.update_parameters(freq=self.frequency_guess[i])
-                print(
-                    f"Frequency updated: {duts[i].hrid} {self.frequency_guess[i]} MHz")
         else:
             for i, c1 in enumerate(c1s):
                 c1.update_parameters(freq=original_freqs[i])
@@ -611,10 +607,10 @@ class MultiQubitRamseyMultilevel(Experiment):
             xaxis_title="Time (us)",
             yaxis_title="<z>",
             legend_title="Legend",
-            font=dict(
-                family="Courier New, monospace",
-                size=12,
-                color="Black"),
+            font={
+                'family': "Courier New, monospace",
+                'size': 12,
+                'color': "Black"},
             plot_bgcolor="white")
         return fig
 
@@ -781,7 +777,7 @@ class MultiQubitRamseyMultilevel(Experiment):
 
         # Save original frequencies and get control objects
         c1s = [qubit.get_c1(collection_name) for qubit, collection_name in
-               zip(duts, collection_names)]
+               zip(duts, collection_names, strict=False)]
         original_freqs = [c1['Xp'].freq for c1 in c1s]
         self.original_freqs = original_freqs
 
@@ -792,7 +788,7 @@ class MultiQubitRamseyMultilevel(Experiment):
         self.data = []
         self.mp = []  # For compatibility with live_plots
 
-        for i, (dut, c1, collection_name) in enumerate(zip(duts, c1s, collection_names)):
+        for i, (dut, c1, collection_name) in enumerate(zip(duts, c1s, collection_names, strict=False)):
             # Get virtual qubit
             virtual_transmon = simulator_setup.get_virtual_qubit(dut)
 
@@ -856,8 +852,6 @@ class MultiQubitRamseyMultilevel(Experiment):
             self.analyze_data()
             for i, c1 in enumerate(c1s):
                 c1.update_parameters(freq=self.frequency_guess[i])
-                print(
-                    f"Frequency updated: {duts[i].hrid} {self.frequency_guess[i]} MHz")
         else:
             for i, c1 in enumerate(c1s):
                 c1.update_parameters(freq=original_freqs[i])

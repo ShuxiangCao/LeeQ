@@ -2,7 +2,6 @@ import os
 
 from k_agents.translation.agent import prepare_translation_agents
 from k_agents.translation.env import TranslationAgentEnv
-from k_agents.variable_table import VariableTable
 
 
 def init_leeq_translation_agents(document_root: str = "/procedures", n_agents_to_call: int = 3):

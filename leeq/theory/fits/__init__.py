@@ -80,7 +80,7 @@ def fit_sinusoidal(
         return np.mean((fit - y) ** 2) * 1e5
 
     # Optimization process
-    optimization_args = dict()
+    optimization_args = {}
     optimization_args.update(kwargs)
 
     if not fix_frequency:

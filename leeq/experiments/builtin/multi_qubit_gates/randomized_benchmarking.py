@@ -17,7 +17,7 @@ from leeq.core.primitives.logical_primitives import (
     LogicalPrimitiveBlock,
     LogicalPrimitiveBlockParallel,
     LogicalPrimitiveBlockSerial,
-    LogicalPrimitiveBlockSweep
+    LogicalPrimitiveBlockSweep,
 )
 from leeq.theory.cliffords.two_qubit_cliffords import NC2, append_inverse_C2
 from leeq.theory.utils import to_dense_probabilities
@@ -118,7 +118,6 @@ class RandomizedBenchmarking2Qubits(Experiment):
     @register_browser_function()
     def plot1(self):
         dark_navy = '#000080'
-        dark_purple = '#800080'
 
         self.analyze_result()
 
@@ -134,9 +133,6 @@ class RandomizedBenchmarking2Qubits(Experiment):
         # fit_curve = self.popt[0] * np.exp(self.popt[1] ** lseq) + self.popt[2]
         fit_curve = self.popt[0] * np.exp(self.popt[1] * lseq) + self.popt[2]
 
-        print(self.popt)
-        print(lseq)
-        print(fit_curve)
         plt.plot(lseq, fit_curve, color=dark_navy)
 
         plt.title(f'Randomized benchmarking 2Q \n F={1 - self.infidelity}')
@@ -246,10 +242,10 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
 
     @register_browser_function()
     @visual_inspection("""
-    This is the analysis of the randomized benchmarking experiment. The experiment is considered successful two clear 
+    This is the analysis of the randomized benchmarking experiment. The experiment is considered successful two clear
     exponential decays are observed. if the decay is too fast, the experiment is failed reduce the sequence length.
     If the decay is too slow, the experiment is failed and increase the sequence length. If the decay rate is proper,
-    the experiment is successful.  
+    the experiment is successful.
     """)
     def plot(self) -> None:
         """
@@ -266,7 +262,6 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
 
         # Formatting the float values to three decimal places
         df['Value'] = df['Value'].apply(lambda x: f"{x:.3f}" if isinstance(x, float) else x)
-        print(df)
 
         args = self._get_run_args_dict()
         seq_length = args['seq_length']

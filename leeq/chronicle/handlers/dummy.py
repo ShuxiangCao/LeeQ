@@ -1,11 +1,5 @@
-import numbers
 import pathlib
-import pickle
-from contextlib import contextmanager
 from typing import Any, Union
-
-import h5py
-import numpy as np
 
 from .handlers import RecordHandlersBase
 

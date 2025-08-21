@@ -1,10 +1,7 @@
-import uuid
 
 import numpy as np
 
-from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
 from leeq.core.primitives import LogicalPrimitiveFactory
-from leeq.core.primitives.built_in.compatibility import PulseArgsUpdatable
 from leeq.core.primitives.built_in.simple_drive import SimpleDrive
 from leeq.core.primitives.collections import LogicalPrimitiveCollection
 
@@ -134,7 +131,7 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         """
         Get the z cancellation pulse. The z cancellation pulse is a pulse that cancels the iz rotation of both qubits.
         """
-        width = self.get_parameters()['width']
+        self.get_parameters()['width']
 
         z_control_cancel = self.iz_control
         z_target_cancel = self.iz_target

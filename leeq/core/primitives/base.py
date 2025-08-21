@@ -1,7 +1,5 @@
 import copy
-import uuid
 
-from leeq.chronicle import log_event
 from leeq.core.base import LeeQObject
 from leeq.utils import elementwise_update_dict
 

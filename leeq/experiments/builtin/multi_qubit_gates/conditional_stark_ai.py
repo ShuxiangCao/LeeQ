@@ -84,7 +84,7 @@ I have a plot showing ZZ interaction Hamiltonian tomography along the Y axis. Th
 lines for both ground and excited states. The X-axis represents pulse width in microseconds, and the Y-axis shows
 the expectation value ⟨Y⟩. The data points are connected by lines, and there are separate fit lines for the ground
 (blue) and excited (pink) states. My objective is to determine whether the oscillations in the data are sinusoidal.
-The success of the experiment depends on observing sinusoidal oscillations in both the ground and excited state data. 
+The success of the experiment depends on observing sinusoidal oscillations in both the ground and excited state data.
 Can you inspect the figure, analyze the oscillations, and conclude whether the experiment is valid based on the
 presence of sinusoidal oscillations?
 """
@@ -160,7 +160,6 @@ presence of sinusoidal oscillations?
 
             anharmonicity = freq_01 - freq_12
             self.frequency = freq_01 - 0.3 * anharmonicity
-            print(f"Choosing frequency {self.frequency}")
         else:
             self.frequency = frequency
 
@@ -256,11 +255,6 @@ presence of sinusoidal oscillations?
             self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (
                 self.fitting_2D[1]['Phase'])) / 2
 
-            print(f"IZ: {self.iz_rate: 0.5f} MHz, ZZ: {self.zz_rate: 0.5f} MHz")
-            print(
-                f"Phase IZ Contributions from Pulse Rise Drop: {self.iz_from_pulse_rise_drop: 0.5f} rad")
-            print(
-                f"Phase ZZ Contributions from Pulse Rise Drop: {self.zz_from_pulse_rise_drop: 0.5f} rad")
 
         return {
             'fitting_2D': self.fitting_2D,
@@ -292,9 +286,6 @@ presence of sinusoidal oscillations?
             self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (
                 self.fitting_2D[1]['Phase'])) / 2
 
-            print(f"IZ: {self.iz_rate: 0.5f} MHz: {self.zz_rate: 0.5f} MHz")
-            print(
-                f"Phase IZ Contributions from Pulse Rise Drop: {self.iz_from_pulse_rise_drop: 0.5f} rad")
 
         return {
             'fitting_2D': self.fitting_2D,
@@ -328,7 +319,7 @@ presence of sinusoidal oscillations?
                      np.real(fit) if not use_imaginary_part else np.imag(fit))
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction Hamiltonian tomography - X axis")
+        plt.title("ZZ interaction Hamiltonian tomography - X axis")
         plot_specific_axis(data=self.result[:, 0, 0], label="Ground",
                            fit_params=self.fitting_2D[0],
                            use_imaginary_part=False)
@@ -343,7 +334,7 @@ presence of sinusoidal oscillations?
         plt.show()
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction Hamiltonian tomography - Y axis")
+        plt.title("ZZ interaction Hamiltonian tomography - Y axis")
         plot_specific_axis(data=self.result[:, 0, 1], label="Ground",
                            fit_params=self.fitting_2D[0],
                            use_imaginary_part=True)
@@ -369,7 +360,7 @@ presence of sinusoidal oscillations?
 
         fig.add_trace(
             go.Scatter(x=t, y=data, mode="lines+markers", name=label, opacity=0.5,
-                       marker=dict(color=color)))
+                       marker={'color': color}))
 
         f = fit_params['Frequency'].nominal_value
         a = fit_params['Amplitude'].nominal_value
@@ -384,7 +375,7 @@ presence of sinusoidal oscillations?
                                  y=np.real(fit) if not use_imaginary_part else np.imag(
                                      fit),
                                  mode='lines', name=f'{label} Fit',
-                                 line=dict(color=color), visible='legendonly'))
+                                 line={'color': color}, visible='legendonly'))
 
     @register_browser_function()
     @visual_inspection(_v_prompt)
@@ -404,7 +395,7 @@ presence of sinusoidal oscillations?
                           xaxis_title="Pulse width [us]",
                           yaxis_title="<X>",
                           plot_bgcolor='white',
-                          legend=dict(x=0, y=1, traceorder='normal'))
+                          legend={'x': 0, 'y': 1, 'traceorder': 'normal'})
 
         return fig
 
@@ -426,7 +417,7 @@ presence of sinusoidal oscillations?
                           xaxis_title="Pulse width [us]",
                           yaxis_title="<Y>",
                           plot_bgcolor='white',
-                          legend=dict(x=0, y=1, traceorder='normal'))
+                          legend={'x': 0, 'y': 1, 'traceorder': 'normal'})
 
         return fig
 
@@ -461,17 +452,17 @@ def _generate_zz_interaction_data_from_simulation(qubits,
     duts = qubits
 
     c1_control = duts[0].get_default_c1()
-    c1_target = duts[1].get_default_c1()
+    duts[1].get_default_c1()
 
     # Evaluate the ZZ value
 
-    coupling = simulator_setup.get_coupling_strength_by_qubit(virtual_transmon_1,
+    simulator_setup.get_coupling_strength_by_qubit(virtual_transmon_1,
                                                               virtual_transmon_2)
     drive_omega = simulator_setup.get_omega_per_amp(
         channel=c1_control.channel) * amp_control
 
-    delta = drive_frequency - virtual_transmon_1.qubit_frequency
-    freq_delta = virtual_transmon_2.qubit_frequency - virtual_transmon_1.qubit_frequency
+    drive_frequency - virtual_transmon_1.qubit_frequency
+    virtual_transmon_2.qubit_frequency - virtual_transmon_1.qubit_frequency
 
     step = (stop - start) / sweep_points
     zz_oscillation_t = np.arange(start, stop, step)
@@ -592,14 +583,14 @@ I have a plot showing ZZ interaction Hamiltonian tomography along the Y axis. Th
 lines for both ground and excited states. The X-axis represents pulse width in microseconds, and the Y-axis shows
 the expectation value ⟨Y⟩. The data points are connected by lines, and there are separate fit lines for the ground
 (blue) and excited (pink) states. My objective is to determine whether the oscillations in the data are sinusoidal.
-The success of the experiment depends on observing sinusoidal oscillations in both the ground and excited state data. 
+The success of the experiment depends on observing sinusoidal oscillations in both the ground and excited state data.
 Can you inspect the figure, analyze the oscillations, and conclude whether the experiment is valid based on the
 presence of sinusoidal oscillations?
 """
 
     _experiment_result_analysis_instructions = """
 This experiment is a Conditional Stark Tune-Up Rabi XY experiment for calibrating the IZ and ZZ interactions between two qubits under microwave drives.
-Please check the results of the visual inspection of the plots and the fitting results. 
+Please check the results of the visual inspection of the plots and the fitting results.
 
 If the any of above check fails, the experiment is considered failed.
 """
@@ -661,12 +652,11 @@ If the any of above check fails, the experiment is considered failed.
 
             anharmonicity = freq_01 - freq_12
             self.frequency = freq_01 - 0.3 * anharmonicity
-            print(f"Choosing frequency {self.frequency}")
         else:
             self.frequency = frequency
 
         c1_control = self.duts[0].get_default_c1()
-        c1_target = self.duts[1].get_default_c1()
+        self.duts[1].get_default_c1()
 
         simulator_setup = setup().get_default_setup()
         virtual_transmon_1 = simulator_setup.get_virtual_qubit(qubits[0])
@@ -759,7 +749,6 @@ If the any of above check fails, the experiment is considered failed.
 
             anharmonicity = freq_01 - freq_12
             self.frequency = freq_01 - 0.3 * anharmonicity
-            print(f"Choosing frequency {self.frequency}")
         else:
             self.frequency = frequency
 
@@ -848,11 +837,6 @@ If the any of above check fails, the experiment is considered failed.
             self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (
                 self.fitting_2D[1]['Phase'])) / 2
 
-            print(f"IZ: {self.iz_rate: 0.5f} MHz, ZZ: {self.zz_rate: 0.5f} MHz")
-            print(
-                f"Phase IZ Contributions from Pulse Rise Drop: {self.iz_from_pulse_rise_drop: 0.5f} rad")
-            print(
-                f"Phase ZZ Contributions from Pulse Rise Drop: {self.zz_from_pulse_rise_drop: 0.5f} rad")
 
         return {
             'fitting_2D': self.fitting_2D,
@@ -885,9 +869,6 @@ If the any of above check fails, the experiment is considered failed.
             self.zz_from_pulse_rise_drop = (self.fitting_2D[0]['Phase'] - (
                 self.fitting_2D[1]['Phase'])) / 2
 
-            print(f"IZ: {self.iz_rate: 0.5f} MHz: {self.zz_rate: 0.5f} MHz")
-            print(
-                f"Phase IZ Contributions from Pulse Rise Drop: {self.iz_from_pulse_rise_drop: 0.5f} rad")
 
         if len(self.fitting_2D) != 2:
             return {'error': 'Fitting failed'}
@@ -924,7 +905,7 @@ If the any of above check fails, the experiment is considered failed.
                      np.real(fit) if not use_imaginary_part else np.imag(fit))
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction Hamiltonian tomography - X axis")
+        plt.title("ZZ interaction Hamiltonian tomography - X axis")
         plot_specific_axis(data=self.result[:, 0, 0], label="Ground",
                            fit_params=self.fitting_2D[0],
                            use_imaginary_part=False)
@@ -939,7 +920,7 @@ If the any of above check fails, the experiment is considered failed.
         plt.show()
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction Hamiltonian tomography - Y axis")
+        plt.title("ZZ interaction Hamiltonian tomography - Y axis")
         plot_specific_axis(data=self.result[:, 0, 1], label="Ground",
                            fit_params=self.fitting_2D[0],
                            use_imaginary_part=True)
@@ -966,7 +947,7 @@ If the any of above check fails, the experiment is considered failed.
 
         fig.add_trace(
             go.Scatter(x=t, y=data, mode="lines+markers", name=label, opacity=0.5,
-                       marker=dict(color=color)))
+                       marker={'color': color}))
 
         if fit_params is not None:
             f = fit_params['Frequency'].nominal_value
@@ -981,7 +962,7 @@ If the any of above check fails, the experiment is considered failed.
             fig.add_trace(go.Scatter(x=t_interpolate, y=np.real(
                 fit) if not use_imaginary_part else np.imag(fit),
                 mode='lines', name=f'{label} Fit',
-                line=dict(color=color), visible='legendonly'))
+                line={'color': color}, visible='legendonly'))
 
     def get_ai_inspection_results(self):
         """
@@ -1009,7 +990,7 @@ If the any of above check fails, the experiment is considered failed.
                 'zz_interaction_positive': self.zz_rate > 0,
                 'zz_rate': self.zz_rate.n
             }
-        except:
+        except Exception:
             pass
 
         return inspection_results
@@ -1031,7 +1012,7 @@ If the any of above check fails, the experiment is considered failed.
                           xaxis_title="Pulse width [us]",
                           yaxis_title="<X>",
                           plot_bgcolor='white',
-                          legend=dict(x=0, y=1, traceorder='normal'))
+                          legend={'x': 0, 'y': 1, 'traceorder': 'normal'})
 
         return fig
 
@@ -1052,7 +1033,7 @@ If the any of above check fails, the experiment is considered failed.
                           xaxis_title="Pulse width [us]",
                           yaxis_title="<Y>",
                           plot_bgcolor='white',
-                          legend=dict(x=0, y=1, traceorder='normal'))
+                          legend={'x': 0, 'y': 1, 'traceorder': 'normal'})
 
         return fig
 
@@ -1070,21 +1051,21 @@ If the any of above check fails, the experiment is considered failed.
                           xaxis_title="Pulse width [us]",
                           yaxis_title="<Z>",
                           plot_bgcolor='white',
-                          legend=dict(x=0, y=1, traceorder='normal'))
+                          legend={'x': 0, 'y': 1, 'traceorder': 'normal'})
 
         return fig
 
     @register_browser_function()
     @visual_inspection("""
-I have a plot showing ZZ interaction Hamiltonian tomography in the Fourier space. The X-axis represents 
+I have a plot showing ZZ interaction Hamiltonian tomography in the Fourier space. The X-axis represents
 the frequency, and the Y-axis shows the amplitude of the fourier transformed value.
 My objective is to determine if the experiment is a success.
-The success of the experiment depends on observing two clear peaks in the Fourier space, 
+The success of the experiment depends on observing two clear peaks in the Fourier space,
 one for the ground state and one for the excited state. They should be symmetric around the center of the plot.
 If the peaks are not clear, the experiment is considered failed.
 If you observe more than two clear peaks, the experiment is considered failed.
 Otherwise, the experiment is considered successful.
-            
+
 For example, the following Image is a successful experiment plot:
 Image("ref_images/success_ConditionalStarkShiftContinuous.plot_fourier.png")
 The following Image is a failure case for the experiment due to the presence of multiple peaks:
@@ -1119,7 +1100,7 @@ Image("ref_images/failure_ConditionalStarkShiftContinuous.plot_fourier.png")
 
             fig.add_trace(
                 go.Scatter(x=sorted_frequencies, y=sorted_amplitude, mode="lines+markers",
-                           name=label, opacity=0.5, marker=dict(color=color)))
+                           name=label, opacity=0.5, marker={'color': color}))
 
         plot_fourier_trace(fig=fig,
                            data=self.result[:, 0, 0] + 1.j * self.result[:, 0, 1],
@@ -1133,7 +1114,7 @@ Image("ref_images/failure_ConditionalStarkShiftContinuous.plot_fourier.png")
             xaxis_title="Frequency [MHz]",
             yaxis_title="Amplitude [a.u.]",
             plot_bgcolor='white',
-            legend=dict(x=0, y=1, traceorder='normal'))
+            legend={'x': 0, 'y': 1, 'traceorder': 'normal'})
 
         return fig
 
@@ -1163,7 +1144,7 @@ Image("ref_images/failure_ConditionalStarkShiftContinuous.plot_control_populatio
                           xaxis_title="Pulse width [us]",
                           yaxis_title="<Z>",
                           plot_bgcolor='white',
-                          legend=dict(x=0, y=1, traceorder='normal'))
+                          legend={'x': 0, 'y': 1, 'traceorder': 'normal'})
 
         return fig
 
@@ -1197,9 +1178,9 @@ If the experiment is failed because of the population of the control qubit does 
 """
 
         analyze_prompt = """
-For the fitting results, if the absolute value of oscillation frequency is significantly different between the ground and excited states (more than 50%), 
-the experiment is considered failed due to fitting error. 
-For the fitting results, if the oscillation amplitude is less than 0.2, the experiment is considered failed due to noise data. 
+For the fitting results, if the absolute value of oscillation frequency is significantly different between the ground and excited states (more than 50%),
+the experiment is considered failed due to fitting error.
+For the fitting results, if the oscillation amplitude is less than 0.2, the experiment is considered failed due to noise data.
 The experiment is otherwise considered success.
 """
 
@@ -1211,7 +1192,7 @@ The experiment is otherwise considered success.
 Output your analysis of the success/failure of the experiment by a JSON with the following keys:
 "fitting_analysis" (string): The analysis about whether the experiment succeeded or failed.
 "success" (bool): Whether the experiment succeeded.
-</requirement>              
+</requirement>
 """
         res = Chat(prompt).complete(parse="dict", cache=True, expensive=True)
         return res
@@ -1223,16 +1204,16 @@ class ConditionalStarkShiftRepeatedGate(Experiment):
     lines for both ground and excited states. The X-axis represents pulse width in microseconds, and the Y-axis shows
     the expectation value ⟨Y⟩. The data points are connected by lines, and there are separate fit lines for the ground
     (blue) and excited (pink) states. My objective is to determine whether the oscillations in the data are sinusoidal.
-    The success of the experiment depends on observing sinusoidal oscillations in both the ground and excited state data. 
+    The success of the experiment depends on observing sinusoidal oscillations in both the ground and excited state data.
     The amplitude of the oscillations should be significant (more than 0.3), otherwise the experiment is invalid.
-    You should observe multiple oscillation periods in the data, otherwise the experiment is invalid.  
+    You should observe multiple oscillation periods in the data, otherwise the experiment is invalid.
     Can you inspect the figure, analyze the oscillations, and conclude whether the experiment is valid based on the
     presence of sinusoidal oscillations?
     """
 
     _experiment_result_analysis_instructions = """
 This experiment is a Repeated Gate Conditional Stark Tune-Up Rabi XY experiment for calibrating the IZ and ZZ interactions between two qubits under microwave drives.
-Please check the results of the visual inspection of the plots and the fitting results. 
+Please check the results of the visual inspection of the plots and the fitting results.
 
 For visual inspection, if the inspection plot_fourier indicates a failure, the experiment is considered failed and Suggested parameter updates to None.
 
@@ -1283,7 +1264,7 @@ If the above check passes, the experiment is considered successful.
         self.zz_rate_continous = zz_rate
 
         c1_control = self.duts[0].get_default_c1()
-        c1_target = self.duts[1].get_default_c1()
+        self.duts[1].get_default_c1()
 
         simulator_setup = setup().get_default_setup()
         virtual_transmon_1 = simulator_setup.get_virtual_qubit(self.duts[0])
@@ -1423,7 +1404,6 @@ If the above check passes, the experiment is considered successful.
         mprim_target = self.duts[1].get_measurement_prim_intlist(0)
 
         sequence_lpb = []
-        results = []
 
         for n in pulse_count:
             sequence = LogicalPrimitiveBlockSerial(
@@ -1451,13 +1431,12 @@ If the above check passes, the experiment is considered successful.
         return lpb, self.result
 
     def analyze_results(self):
-        print("Shape of result:", self.result.shape)
 
         t_start = self.start_gate_number
         t_stop = self.start_gate_number + self.gate_count
         t_step = 1
 
-        t = np.arange(t_start, t_stop, t_step)
+        np.arange(t_start, t_stop, t_step)
 
         self.fitting_2D = []
         for i in range(2):
@@ -1475,8 +1454,6 @@ If the above check passes, the experiment is considered successful.
         self.zz_rate = (self.fitting_2D[0]['Frequency'] - self.fitting_2D[1][
             'Frequency']) / 2
 
-        print(
-            f"IZ: {self.iz_rate: 0.5f} PGC, ZZ: {self.zz_rate: 0.5f} PGC (per gate count)")
 
         return {
             'fitting_2D': self.fitting_2D,
@@ -1495,7 +1472,7 @@ If the above check passes, the experiment is considered successful.
 
         fig.add_trace(
             go.Scatter(x=t, y=data, mode='lines+markers', name=label, opacity=0.5,
-                       marker=dict(color=color)))
+                       marker={'color': color}))
 
         if fit_params is not None:
             f = fit_params['Frequency'].nominal_value
@@ -1510,7 +1487,7 @@ If the above check passes, the experiment is considered successful.
 
             fig.add_trace(
                 go.Scatter(x=t_interpolate, y=fit_values, mode='lines',
-                           name=f'{label} Fit', line=dict(color=color),
+                           name=f'{label} Fit', line={'color': color},
                            visible='legendonly'))
 
     @register_browser_function()
@@ -1535,7 +1512,7 @@ If the above check passes, the experiment is considered successful.
                           xaxis_title="Pulse count",
                           yaxis_title="<X>",
                           plot_bgcolor='white',
-                          legend=dict(x=0, y=1, traceorder='normal'))
+                          legend={'x': 0, 'y': 1, 'traceorder': 'normal'})
 
         return fig
 
@@ -1561,7 +1538,7 @@ If the above check passes, the experiment is considered successful.
                           xaxis_title="Pulse count",
                           yaxis_title="<Y>",
                           plot_bgcolor='white',
-                          legend=dict(x=0, y=1, traceorder='normal'))
+                          legend={'x': 0, 'y': 1, 'traceorder': 'normal'})
 
         return fig
 
@@ -1586,16 +1563,16 @@ If the above check passes, the experiment is considered successful.
                           xaxis_title="Pulse count",
                           yaxis_title="<Z>",
                           plot_bgcolor='white',
-                          legend=dict(x=0, y=1, traceorder='normal'))
+                          legend={'x': 0, 'y': 1, 'traceorder': 'normal'})
 
         return fig
 
     @register_browser_function()
     @visual_inspection("""
-I have a plot showing ZZ interaction Hamiltonian tomography in the Fourier space. The X-axis represents 
+I have a plot showing ZZ interaction Hamiltonian tomography in the Fourier space. The X-axis represents
 the frequency, and the Y-axis shows the amplitude of the fourier transformed value.
 My objective is to determine if the experiment is a success.
-The success of the experiment depends on observing two clear peaks in the Fourier space, 
+The success of the experiment depends on observing two clear peaks in the Fourier space,
 one for the ground state and one for the excited state. They should be symmetric around the center of the plot.
 If the peaks are not clear, the experiment is considered failed.
 If you observe more than two clear peaks, the experiment is considered failed.
@@ -1634,7 +1611,7 @@ Image("ref_images/failure_3_ConditionalStarkShiftRepeatedGate.plot_fourier.png")
 
             fig.add_trace(
                 go.Scatter(x=sorted_frequencies, y=sorted_amplitude, mode="lines+markers",
-                           name=label, opacity=0.5, marker=dict(color=color)))
+                           name=label, opacity=0.5, marker={'color': color}))
 
         plot_fourier_trace(fig=fig,
                            data=self.result[:, 0, 0] + 1.j * self.result[:, 0, 1],
@@ -1648,7 +1625,7 @@ Image("ref_images/failure_3_ConditionalStarkShiftRepeatedGate.plot_fourier.png")
             xaxis_title="Frequency [MHz]",
             yaxis_title="Amplitude [a.u.]",
             plot_bgcolor='white',
-            legend=dict(x=0, y=1, traceorder='normal'))
+            legend={'x': 0, 'y': 1, 'traceorder': 'normal'})
 
         return fig
 
@@ -1680,7 +1657,7 @@ Image("ref_images/failure_ConditionalStarkShiftRepeatedGate.plot_control_populat
                           xaxis_title="Pulse count",
                           yaxis_title="<Z>",
                           plot_bgcolor='white',
-                          legend=dict(x=0, y=1, traceorder='normal'))
+                          legend={'x': 0, 'y': 1, 'traceorder': 'normal'})
 
         return fig
 
@@ -1717,7 +1694,7 @@ Image("ref_images/failure_ConditionalStarkShiftRepeatedGate.plot_control_populat
         desired_num_ticks = 10  # Desired number of ticks
         step = max(1, len(t) // desired_num_ticks)
         xticks_subset = t[::step]
-        plt.title(f"ZZ interaction repeated gate tomography - X axis")
+        plt.title("ZZ interaction repeated gate tomography - X axis")
 
         plot_specific_axis(data=self.result[:, 0, 0], label="Ground",
                            fit_params=self.fitting_2D[0],
@@ -1732,7 +1709,7 @@ Image("ref_images/failure_ConditionalStarkShiftRepeatedGate.plot_control_populat
         plt.xticks(xticks_subset)
 
         plt.figure(figsize=(20, 5))
-        plt.title(f"ZZ interaction repeated gate tomography - Y axis")
+        plt.title("ZZ interaction repeated gate tomography - Y axis")
 
         plot_specific_axis(data=self.result[:, 0, 1], label="Ground",
                            fit_params=self.fitting_2D[0],
@@ -1808,7 +1785,7 @@ class ConditionalStarkEchoTuneUpAI(Experiment):
 
     _experiment_result_analysis_instructions = """
 The Conditional Stark Echo Tune-Up experiment has been completed. Please read the following report to analyze the
-if this is a successful experiment. Make the analysis concise and clear in one short sentence describing the reason. 
+if this is a successful experiment. Make the analysis concise and clear in one short sentence describing the reason.
 """
 
     def run_simulated(self, *args, **kwargs):
@@ -1872,7 +1849,7 @@ if this is a successful experiment. Make the analysis concise and clear in one s
 
         self.ai_inspection = True
 
-        assert update_iz == False, "update_iz must be False."
+        assert not update_iz, "update_iz must be False."
 
         if params is None:
             amp_rabi_control = duts[0].get_c1('f01')['X'].amp
@@ -1961,19 +1938,19 @@ if this is a successful experiment. Make the analysis concise and clear in one s
 
         prompt = f"""
         You are asked to read the report of the data inspection AI and look at the results reported from a fitting code.
-        Please check the inspection results and confirm whether the experiment data is valid from the inspection. 
+        Please check the inspection results and confirm whether the experiment data is valid from the inspection.
         Also check the validity of the fitted results and ensure they are reasonable and physical. If the data is invalid
-        or the fitting results are invalid, the experiment is considered a failure. Otherwise, the experiment is  
+        or the fitting results are invalid, the experiment is considered a failure. Otherwise, the experiment is
         considered a success.
-        
+
         <Inspection results>
         {inspection_results}
         </Inspection results>
-        
+
         <Fitting results>
         {additional_information}
         </Fitting results>
-        
+
         """ + """
         <Return format>
         {
@@ -1990,7 +1967,7 @@ if this is a successful experiment. Make the analysis concise and clear in one s
         res = chat.complete(parse="dict", expensive=True, cache=True)
 
         html = dict_to_html(res)
-        display_chat(agent_name=f"Inspection AI", content='<br>' + html,
+        display_chat(agent_name="Inspection AI", content='<br>' + html,
                      background_color='#f0f8ff')
 
         return res
@@ -2012,7 +1989,7 @@ if this is a successful experiment. Make the analysis concise and clear in one s
         setup().status().set_param("Shot_Period", 500)
         setup().status().set_param("Shot_Number", 500)
 
-        t_step = (t_stop - t_start) / sweep_points
+        (t_stop - t_start) / sweep_points
 
         if self.ai_inspection:
 
@@ -2054,16 +2031,15 @@ if this is a successful experiment. Make the analysis concise and clear in one s
             new_params = self.current_params.copy()
             new_params['width'] = np.abs(0.125 / zz_rate.nominal_value) / 2
 
-            fitted_results_str = f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]} us'
-            print(fitted_results_str)
+            f'Estimated IZ = {iz_rate} MHz, ZZ = {zz_rate} MHz, width = {new_params["width"]} us'
 
             self.params_list.append(new_params)
             self.current_params = new_params
-        except Exception as e:
+        except Exception:
             iz_rate = None
             zz_rate = None
             inspection_results['success'] = False
-            inspection_results['error'] = f"Failed to analyze the results. Fitting error"
+            inspection_results['error'] = "Failed to analyze the results. Fitting error"
 
         return iz_rate, zz_rate, inspection_results
 
@@ -2100,7 +2076,7 @@ if this is a successful experiment. Make the analysis concise and clear in one s
         kalman_iz = None
         kalman_zz = None
 
-        for i in range(self.n_max_iteration):
+        for _i in range(self.n_max_iteration):
 
             try_count = 0
             while try_count < 1:
@@ -2162,7 +2138,6 @@ if this is a successful experiment. Make the analysis concise and clear in one s
                     break
                 else:
                     try_count += 1
-                    print(f"AI inspection suggests a failed experiment. Retrying...")
 
             if try_count == 3:
                 return inspection_results
@@ -2190,10 +2165,6 @@ if this is a successful experiment. Make the analysis concise and clear in one s
                     measurement_variance=(repeated_gate.zz_rate.std_dev * np.pi * 2) ** 2
                 )
 
-            print(
-                f'Kalman estimated ZZ pgc after measurement = {kalman_zz.x}+-{np.sqrt(kalman_zz.P)}')
-            print(
-                f'Kalman estimated IZ pgc after measurement = {kalman_iz.x}+-{np.sqrt(kalman_iz.P)}')
 
             if update_iz:
                 iz_target = kalman_iz.x
@@ -2213,7 +2184,6 @@ if this is a successful experiment. Make the analysis concise and clear in one s
                 zz_diff = zz_rate.nominal_value * width_diff * 2
                 width += width_diff
                 iz_diff = 0
-                print(f'Update width to {width} us')
                 kalman_zz.predict(
                     movement=zz_diff,
                     position_variance=(zz_rate.std_dev * width_diff * np.pi * 2) ** 2
@@ -2230,14 +2200,7 @@ if this is a successful experiment. Make the analysis concise and clear in one s
             zz_uncertainty_check = np.sqrt(kalman_zz.P) < self.zz_uncertainty_threshold
             zz_check_pass = zz_accuracy_check and zz_uncertainty_check
 
-            print(
-                f'Kalman estimated ZZ pgc after update = {kalman_zz.x}+-{np.sqrt(kalman_zz.P)}')
-            print(
-                f'Kalman estimated IZ pgc after update = {kalman_iz.x}+-{np.sqrt(kalman_iz.P)}')
 
-            print(
-                f'ZZ accuracy check pass: {zz_accuracy_check}, ZZ uncertainty check pass: {zz_uncertainty_check}')
-            print(f'IZ uncertainty check pass: {iz_check_pass}')
 
             if (iz_check_pass or not update_iz) and (zz_check_pass or not update_zz):
                 break
@@ -2247,7 +2210,6 @@ if this is a successful experiment. Make the analysis concise and clear in one s
         new_params['iz_target'] = iz_target
         new_params['width'] = width
 
-        print(f'Estimated IZ = {iz_target}, ZZ = {zz_pgc}, width = {width}')
 
         self.params_list.append(new_params)
         self.current_params = new_params
@@ -2271,8 +2233,8 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
     # """
 
     _background_information = """
-            Your objective is to find the optimal parameters for the conditional stark-shift gate that will allow you to entangle 
-            two qubits. The parameters you need to find are 
+            Your objective is to find the optimal parameters for the conditional stark-shift gate that will allow you to entangle
+            two qubits. The parameters you need to find are
             <parameters>
                 'frequency': the frequency of the drive pulse ,
                 'amp_control':  the amplitude of the control qubit (The first qubit),
@@ -2283,11 +2245,11 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
             </parameters>
 
             <Rules of parameter chosing>
-            'frequency': It can be below, between or above the single qubit transition transition frequencies. 
+            'frequency': It can be below, between or above the single qubit transition transition frequencies.
                             It has to be at least 30 MHz away from both of the single qubit transition frequency.
                             It should not be lower than 60MHz below the lowest qubit frequency and not higher than 60MHz above the highest qubit frequency.
                             Round it to multiples of MHz.
-            'amp_control': You should try from 1 time to 2 times of the first qubit's single qubit gate drive amplitude. 
+            'amp_control': You should try from 1 time to 2 times of the first qubit's single qubit gate drive amplitude.
                         The experiment may fail when chosing a amplitude too high, therefore you should start from a gentle value. The maximum value is 1. Adjust the amplitude to be multiples of 0.05.
             'rise': No more than 0.02, no less than 0.01. Usually 0.015 is the right value to choose.
             'phase_diff': keep it 0,
@@ -2299,7 +2261,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
             The optimal parameters give the highest ZZ rate and the lowest width.
             If an experiment succeeds, you can try to improve the results by increase the amplitude or move the frequency closer to the qubits.
             If an experiment fails, you should try to move the frequency further away from the qubits or decrease the amplitude.
-            To make the results comparable with the history results, do not chose a new set of parameters with both new frequency and amplitudes. 
+            To make the results comparable with the history results, do not chose a new set of parameters with both new frequency and amplitudes.
             If the experiment failed at a certain frequency and amplitude, this is usually the frequency choice is too close to the qubit frequency or the amplitude is too high.
             </Rules of parameter chosing>
         """
@@ -2325,10 +2287,10 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
             },
         }
 
-        If you find a set of parameters that has width less than 0.2 us immediately set status to finish. 
+        If you find a set of parameters that has width less than 0.2 us immediately set status to finish.
         If you have done 50 experiment, set status to finish.
         If you have done 20 experiment and could not find any improvements, return the set of parameters you believe to be optimal,
-        please set status to 'finish'. Otherwise keeps state to 'searching' and trying new parameters. 
+        please set status to 'finish'. Otherwise keeps state to 'searching' and trying new parameters.
         If you have encountered an error, please set status to 'error'.
         """
 
@@ -2358,7 +2320,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
         self._analyze_histroy = []
         self.duts = duts
 
-        while self._run_next_experiment() == True:
+        while self._run_next_experiment():
             pass
         pass
 
@@ -2379,7 +2341,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
         if len(self._experiment_history) == 0:
             return "You have not run any experiments yet."
 
-        prompt = f"Here is the history of the experiments you have run so far:"
+        prompt = "Here is the history of the experiments you have run so far:"
 
         for i, exp in enumerate(self._experiment_history):
             result = exp.get_ai_inspection_summary()
@@ -2413,7 +2375,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
 
         html = dict_to_html(html_dict)
 
-        display_chat(agent_name=f"Previous experiments", content='<br>' + html,
+        display_chat(agent_name="Previous experiments", content='<br>' + html,
                      background_color='#f0f8ff')
 
     def _run_next_experiment(self):
@@ -2434,13 +2396,13 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
         from k_agents.io_interface import dict_to_html, display_chat
 
         html = dict_to_html(res)
-        display_chat(agent_name=f"Parameter search AI", content='<br>' + html,
+        display_chat(agent_name="Parameter search AI", content='<br>' + html,
                      background_color='#f0f8ff')
 
         if res['status'] in ['finish', 'error']:
             return False
         else:
-            params = res['params']
+            res['params']
 
             func = ConditionalStarkEchoTuneUpAI.run
             # For compatibility, select the argument that the function
@@ -2499,7 +2461,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
         self._analyze_histroy = []
         self.duts = duts
 
-        for i in range(maximum_experiments):
+        for _i in range(maximum_experiments):
             if self._run_next_experiment(run_class=run_class, params=kwargs, filter_parameters=filter_parameters) in [
                     'finish', 'error']:
                 break
@@ -2532,7 +2494,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
 
         html = dict_to_html(html_dict)
 
-        display_chat(agent_name=f"Previous experiments", content='<br>' + html,
+        display_chat(agent_name="Previous experiments", content='<br>' + html,
                      background_color='#f0f8ff')
 
     def _run_next_experiment(self, run_class, params, filter_parameters=True):
@@ -2549,7 +2511,7 @@ class ConditionalStarkTwoQubitGateAIParameterSearchBase(Experiment):
         # , model = 'claude-3-opus-20240229'
 
         html = dict_to_html(res)
-        display_chat(agent_name=f"Parameter search AI", content='<br>' + html,
+        display_chat(agent_name="Parameter search AI", content='<br>' + html,
                      background_color='#f0f8ff')
 
         if res['status'] not in ['finish', 'error']:
@@ -2611,32 +2573,32 @@ class ConditionalStarkTwoQubitGateAmplitudeAdvise(Experiment):
     @text_inspection
     def next_parameter(self):
         prompt = f"""
-        Your objective is to find the optimal parameters for the conditional stark-shift gate that will allow you to entangle two qubits. The parameters you need to find are 
+        Your objective is to find the optimal parameters for the conditional stark-shift gate that will allow you to entangle two qubits. The parameters you need to find are
         <parameters>
-        'amp_control':  the amplitude of the control qubit (The first qubit), the required amplitude accuracy is 0.01. 
+        'amp_control':  the amplitude of the control qubit (The first qubit), the required amplitude accuracy is 0.01.
         </parameters>
-        
+
         <single qubit amplitude>
         qubit 1: {self.duts[0].get_c1('f01').get_parameters()['amp']}
         qubit 2: {self.duts[1].get_c1('f01').get_parameters()['amp']}
         </single qubit amplitude>
-        
+
         <Rules of parameter selection>
-        You should try around the amplitude of single qubits. 
+        You should try around the amplitude of single qubits.
         The optimal parameters give the highest ZZ rate and the lowest width.
         The experiment may fail when select a amplitude too high, therefore you should start from a gentle value.
-        The maximum amplitude value is 1. The minimum amplitude value is 0.  
+        The maximum amplitude value is 1. The minimum amplitude value is 0.
         If an experiment succeeds, you can try to improve the results by increase the amplitude.
         If an experiment failed, you can try to recover by reduce the amplitude.
         </Rules of parameter selection>
-        
+
         <Experiment history>
         {self._experiment_history_to_prompt()}
         </Experiment history>
-        
+
         <requirement>
         Suggest the next experiment to determine parameters for the conditional stark-shift gate, incorporating insights from prior experiments. Implement Binary Search methodology where applicable.
-        
+
         Please format your response as a JSON dictionary with the following keys:
         "finished" (bool): whether the experiment is finished.
         "analysis" (str): Explanation for choosing this set of parameters.
@@ -2687,9 +2649,9 @@ class ConditionalStarkTwoQubitGateAmplitudeAdvise(Experiment):
             return "You have not run any experiments yet."
 
         results = tuning_env.amplitude_tuning_results[self.frequency]
-        prompt = f"Here is the history of the experiments you have run so far:\n"
+        prompt = "Here is the history of the experiments you have run so far:\n"
 
-        for i, insp in enumerate(results):
+        for _i, insp in enumerate(results):
             section_prompt = f"""
             <experiment>
             amp_control: {insp['Calibrated parameters']['amp_control']}
@@ -2792,10 +2754,10 @@ class ConditionalStarkTwoQubitGateFrequencyAdvise(Experiment):
     @text_inspection
     def next_frequency(self):
         prompt = f"""
-        Your objective is to find the optimal parameters for the conditional stark-shift gate that will allow you to entangle 
-        two qubits. The parameters you need to find are 
+        Your objective is to find the optimal parameters for the conditional stark-shift gate that will allow you to entangle
+        two qubits. The parameters you need to find are
         <parameters>
-        'amp_control':  the amplitude of the control qubit (The first qubit), the required amplitude accuracy is 0.01. 
+        'amp_control':  the amplitude of the control qubit (The first qubit), the required amplitude accuracy is 0.01.
         </parameters>
 
         <single qubit frequency>
@@ -2804,7 +2766,7 @@ class ConditionalStarkTwoQubitGateFrequencyAdvise(Experiment):
         </single qubit frequency>
 
         <Rules of parameter selection>
-        The new frequency can be below, between or above the single qubit transition transition frequencies. 
+        The new frequency can be below, between or above the single qubit transition transition frequencies.
         It has to be at least 30 MHz away from both of the single qubit transition frequency.
         It should not be lower than 60MHz below the lowest qubit frequency and not higher than 60MHz above the highest qubit frequency.
         Round it to multiples of MHz.
@@ -2871,7 +2833,7 @@ class ConditionalStarkTwoQubitGateFrequencyAdvise(Experiment):
         if len(tuning_env.frequency_to_good_amplitude) == 0:
             return "You have not run any experiments yet."
 
-        prompt = f"Here is the history of the experiments you have run so far:\n"
+        prompt = "Here is the history of the experiments you have run so far:\n"
 
         for freq, insp in tuning_env.frequency_to_good_amplitude.items():
             section_prompt = f"""

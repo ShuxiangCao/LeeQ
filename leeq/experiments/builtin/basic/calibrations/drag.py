@@ -25,7 +25,7 @@ class DragCalibrationSingleQubitMultilevel(Experiment):
     Class for running a single AllXY drag experiment on a single qubit with a multilevel system.
     """
     _experiment_result_analysis_instructions = """
-This experiment calibrates the DRAG coefficient (alpha) using an AllXY DRAG experiment. 
+This experiment calibrates the DRAG coefficient (alpha) using an AllXY DRAG experiment.
 The experiment is successful if:
 1. Two differently colored lines show distinct trends
 2. Line fitting is appropriate, by checking the residuals of the data points.
@@ -289,7 +289,7 @@ If success cannot be determined, consider the experiment failed.
     @text_inspection
     def fitting(self) -> Union[str, None]:
 
-        args = self._get_run_args_dict()
+        self._get_run_args_dict()
 
         fitting_parameters = f"Sweep start: {self.inv_alpha_start}\n" \
             f"Sweep stop: {self.inv_alpha_stop}\n"
@@ -340,7 +340,6 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
             update (bool): Whether to update the alpha parameter in the DUT.
             reset_alpha_before_calibration (bool): Whether to reset the alpha parameter before calibration.
         """
-        print(f'Calibrating alpha by all XY {collection_name}')
 
         self.alpha_calibration_results = {}
 
@@ -357,7 +356,7 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
         alpha_higher_bound: Optional[float] = None
 
         # Perform up to 10 iterations to find a trustable value for alpha.
-        for i in range(10):
+        for _i in range(10):
             # Define the search interval around the current 1/alpha estimate.
             start_point = 1 / alpha - 0.006
             stop_point = 1 / alpha + 0.006
@@ -386,7 +385,6 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
             allxy.linear_fit()
             alpha_0 = allxy.optimum
 
-            print('Guessed alpha:', alpha_0)
 
             # Check if the new alpha value is within the trustable range.
             middle_point = (start_point + stop_point) / 2
@@ -404,11 +402,6 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
                 if alpha_higher_bound is None or alpha < alpha_higher_bound:
                     alpha_higher_bound = alpha
 
-            print(
-                'alpha_lower:',
-                alpha_lower_bound,
-                'alpha_higher:',
-                alpha_higher_bound)
 
             # Update the alpha value for the next iteration.
             if alpha_higher_bound is None or alpha_lower_bound is None:

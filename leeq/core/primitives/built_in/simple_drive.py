@@ -12,7 +12,7 @@ from leeq.core.primitives.logical_primitives import (
     LogicalPrimitiveClone,
     LogicalPrimitiveFactory,
     MeasurementPrimitive,
-    MeasurementPrimitiveClone
+    MeasurementPrimitiveClone,
 )
 
 

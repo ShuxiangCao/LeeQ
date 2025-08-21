@@ -193,9 +193,7 @@ class HilbertBasis(object):
             base_value (int): The base of the qudit space. Qubit is 2, qudit is 3, etc.
         """
 
-        import matplotlib.patches as mpatches
         from matplotlib import pyplot as plt
-        from matplotlib.colors import hsv_to_rgb
 
         nx = m.shape[0]
         ny = m.shape[1]
@@ -317,13 +315,11 @@ class HilbertBasis(object):
             base (int): The base of the qudit space. Qubit is 2, qudit is 3, etc.
         """
 
-        import matplotlib.patches as mpatches
         from matplotlib import pyplot as plt
-        from matplotlib.colors import hsv_to_rgb
 
         nx = m.shape[0]
         ny = m.shape[1]
-        qubit_number = int(np.round(np.log(nx) / np.log(base ** 2)))
+        int(np.round(np.log(nx) / np.log(base ** 2)))
         # qubit_number = int(np.log2(nx) / 2)
 
         # labels_single = ['I', 'Z', 'Y', 'X']

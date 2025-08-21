@@ -1,10 +1,6 @@
-import numbers
 import pathlib
-import pickle
 from collections import deque
 from typing import Any, Union
-
-import numpy as np
 
 from .handlers import RecordHandlersBase
 
@@ -19,9 +15,9 @@ class RecordHandlerMemory(RecordHandlersBase):
         Initialize the handler.
         """
         super().__init__(config)
-        self.records = {}  # Dictionary to store records
+        self.records: dict = {}  # Dictionary to store records
         self.max_records = config.get('max_records', 5)
-        self.record_keys = deque(maxlen=self.max_records)  # To track and limit records
+        self.record_keys: deque = deque(maxlen=self.max_records)  # To track and limit records
         self._initiated = True
 
     def init_new_record_book(self):

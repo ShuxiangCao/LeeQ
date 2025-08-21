@@ -184,7 +184,7 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
                 self.log_warning(
                     f"Error when executing the browsable plot function {name}:{e}."
                 )
-                self.log_warning(f"Ignore the error and continue.")
+                self.log_warning("Ignore the error and continue.")
                 self.log_warning(f"{e}")
                 continue
 
@@ -199,7 +199,7 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
                 self.log_warning(
                     f"Error when displaying experiment result of {func.__qualname__}: {e}"
                 )
-                self.log_warning(f"Ignore the error and continue.")
+                self.log_warning("Ignore the error and continue.")
                 self.log_warning(f"{e}")
 
     @property
@@ -305,9 +305,9 @@ class ExperimentManager(Singleton):
             return fig
 
         try:
-            args = self._active_experiment_instance.retrieve_args(
+            self._active_experiment_instance.retrieve_args(
                 self._active_experiment_instance.run)
-        except ValueError as e:
+        except ValueError:
             # The experiment has not been registered for plotting
             return fig
 

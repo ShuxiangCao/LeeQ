@@ -40,10 +40,10 @@ class LPBCompiler(LeeQObject):
         Commit the measurement result to the measurement primitives.
         """
 
-        measurement_keys = [k for k in context.results.keys()]
+        measurement_keys = list(context.results.keys())
         measurement_keys.sort(key=lambda x: x[1])
 
-        for i, (uuid, position_point) in enumerate(measurement_keys):
+        for _i, (uuid, position_point) in enumerate(measurement_keys):
             measurement_primitive = lpb.nodes[uuid]
             measurement_primitive.commit_result(
                 context.results[(uuid, position_point)])

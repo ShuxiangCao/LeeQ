@@ -1,5 +1,4 @@
 import datetime
-import multiprocessing
 import pickle
 
 import matplotlib.colors as colors
@@ -171,7 +170,7 @@ def solve_all_t_values(file, plot=False):
     zz_list = data['zz_list']
     delta_list = data['delta_list']
     eps_list = data['eps_list']
-    simulation_time = data['time']
+    data['time']
 
     def solve_t_wrapper(x):
         i, j = x
@@ -202,10 +201,8 @@ def solve_all_t_values(file, plot=False):
 
 def print_specific_configuration(drive_strength, detuning):
     zz = solve_zz((drive_strength, detuning))
-    ts = solve_t(zz)
+    solve_t(zz)
 
-    print(zz)
-    print(ts)
 
 
 def plot_data(data):
@@ -216,7 +213,7 @@ def plot_data(data):
     zz_list = data['zz_list']
     delta_list = data['delta_list']
     eps_list = data['eps_list']
-    simulation_time = data['time']
+    data['time']
 
     X, Y = np.meshgrid(delta_list, eps_list)
 
@@ -227,9 +224,7 @@ def plot_data(data):
         r'$\delta_{22}$'
     ]
 
-    print(data.keys())
 
-    print(data['alpha'])
 
     if alpha_1 not in data:
         data['alpha_1'] = data['alpha']
@@ -255,7 +250,6 @@ def plot_data(data):
         plt.xlabel(r"$Drive~detuning (MHz)$")
         plt.ylabel('Drive~strength (MHz)')
 
-    print(simulation_time)
     plt.show()
 
 
@@ -267,7 +261,7 @@ def plot_time(file):
     zz_list = data['zz_list']
     delta_list = data['delta_list']
     eps_list = data['eps_list']
-    simulation_time = data['time']
+    data['time']
     t_map = data['t_map']
 
     zz = solve_zz((0, 0))
@@ -317,15 +311,15 @@ def print_exact_point(filename, x, y):
     zz_list = data['zz_list']
     delta_list = data['delta_list']
     eps_list = data['eps_list']
-    simulation_time = data['time']
+    data['time']
     t_map = data['t_map']
 
     X, Y = np.meshgrid(delta_list, eps_list)
 
-    x_index = np.argmin(np.abs(X - x))
-    y_index = np.argmin(np.abs(Y - y))
+    np.argmin(np.abs(X - x))
+    np.argmin(np.abs(Y - y))
 
-    t_map_print = np.asarray([x[0] for x in t_map]).reshape(zz_list.shape[:2])
+    np.asarray([x[0] for x in t_map]).reshape(zz_list.shape[:2])
 
     # print(f"[{x_index}:{y_index}]zz:{zz_list[:, x_index, y_index]},t:{t_map_print]}")
 

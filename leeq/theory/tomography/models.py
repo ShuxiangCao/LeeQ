@@ -1,4 +1,3 @@
-from scipy.linalg import expm
 
 from .process_tomography import StandardProcessTomography
 from .state_tomography import StandardStateTomography
@@ -129,11 +128,11 @@ class MultiDutTomographyModels(StandardTomographyModels):
         basis_operators = [basis_operators[:, :, i] for i in range(basis_operators.shape[2])]
         full_basis_operators = basis_operators
         full_basis_name = basis_name
-        for i in range(self._number_of_duts - 1):
+        for _i in range(self._number_of_duts - 1):
             kron_basis_operators = []
             kron_basis_name = []
-            for name, basis_operator in zip(full_basis_name, full_basis_operators):
-                for n, o in zip(basis_name, basis_operators):
+            for name, basis_operator in zip(full_basis_name, full_basis_operators, strict=False):
+                for n, o in zip(basis_name, basis_operators, strict=False):
                     kron_basis_operators.append(np.kron(basis_operator, o))
                     kron_basis_name.append(name + n)
             full_basis_operators = kron_basis_operators
@@ -155,11 +154,11 @@ class MultiDutTomographyModels(StandardTomographyModels):
         full_gates = gates
         full_gates_name = gate_names
 
-        for i in range(self._number_of_duts - 1):
+        for _i in range(self._number_of_duts - 1):
             kron_gates = []
             kron_gates_name = []
-            for name, gate in zip(full_gates_name, full_gates):
-                for n, o in zip(gate_names, gates):
+            for name, gate in zip(full_gates_name, full_gates, strict=False):
+                for n, o in zip(gate_names, gates, strict=False):
                     kron_gates.append(np.kron(gate, o))
                     kron_gates_name.append(name + ':' + n)
             full_gates = kron_gates
@@ -182,7 +181,7 @@ class MultiDutTomographyModels(StandardTomographyModels):
                 merged_sequence.append((_get(x, i) + ':' + _get(y, i)))
             return tuple(merged_sequence)
 
-        for i in range(self._number_of_duts - 1):
+        for _i in range(self._number_of_duts - 1):
             measurement_sequence_full = [_merge_sequence(x, y) for x in measurement_sequence_full for y in
                                          measurement_operations_sequence]
             preparation_sequence_full = [_merge_sequence(x, y) for x in preparation_sequence_full for y in
@@ -368,10 +367,6 @@ class MultiQutritModel(MultiDutTomographyModels):
     ]) / np.sqrt(3)
 
     def __init__(self, number_of_qutrit: int):
-        germs = [
-            ('Xp_01', 'Yp_01',),
-            ('Xp_12', 'Yp_12',),
-        ]
         basis_operators = np.dstack([
             self.lambda_0,
             self.Z_1 / np.sqrt(2 / 3),

@@ -21,7 +21,7 @@ class NormalisedRabi(Experiment):
     _experiment_result_analysis_instructions = """
     The Normalised Rabi experiment is a quantum mechanics experiment that involves the measurement of oscillations.
     A successful Rabi experiment will show a clear, regular oscillatory pattern with amplitude greater than 0.2.
-    If less than 3 oscillations are observed, the experiment is considered failed. If more than 10 oscillations are observed, the experiment is considered failed. The new suggested driving amplitude should allow the observation of 5 oscillations, and can refer to the suggested amplitude in the analysis. 
+    If less than 3 oscillations are observed, the experiment is considered failed. If more than 10 oscillations are observed, the experiment is considered failed. The new suggested driving amplitude should allow the observation of 5 oscillations, and can refer to the suggested amplitude in the analysis.
     """
 
     @log_and_record
@@ -124,7 +124,6 @@ class NormalisedRabi(Experiment):
 
         if update:
             c1.update_parameters(amp=new_amp)
-            print(f"Amplitude updated: {new_amp}")
 
     @log_and_record(overwrite_func_name='NormalisedRabi.run')
     def run_simulated(self,
@@ -220,11 +219,10 @@ class NormalisedRabi(Experiment):
 
         if update:
             c1.update_parameters(amp=new_amp)
-            print(f"Amplitude updated: {new_amp}")
 
     @register_browser_function()
     @visual_inspection("""
-    Here is a plot of data from a quantum mechanics experiment involving Rabi oscillations. Can you analyze whether 
+    Here is a plot of data from a quantum mechanics experiment involving Rabi oscillations. Can you analyze whether
         this plot shows a successful experiment or a failed one? Please consider the following aspects in your analysis:
     1. Clarity of Oscillation: Describe if the data points show a clear, regular oscillatory pattern.
     2. Amplitude and Frequency: Note any inconsistencies in the amplitude and frequency of the oscillations.
@@ -256,13 +254,13 @@ class NormalisedRabi(Experiment):
                 x=t,
                 y=self.data,
                 mode='markers',
-                marker=dict(
-                    color='Blue',
-                    size=7,
-                    opacity=0.5,
-                    line=dict(color='Black', width=2),
-                ),
-                name=f'data'
+                marker={
+                    "color": 'Blue',
+                    "size": 7,
+                    "opacity": 0.5,
+                    "line": {"color": 'Black', "width": 2},
+                },
+                name='data'
             )
         )
 
@@ -279,8 +277,8 @@ class NormalisedRabi(Experiment):
                 x=t_interpolate,
                 y=fit,
                 mode='lines',
-                line=dict(color='Red'),
-                name=f'fit',
+                line={"color": 'Red'},
+                name='fit',
                 visible='legendonly'
             )
         )
@@ -291,11 +289,11 @@ class NormalisedRabi(Experiment):
             xaxis_title='Time (µs)',
             yaxis_title='<z>',
             legend_title='Legend',
-            font=dict(
-                family='Courier New, monospace',
-                size=12,
-                color='Black'
-            ),
+            font={
+                "family": 'Courier New, monospace',
+                "size": 12,
+                "color": 'Black'
+            },
             plot_bgcolor='white'
         )
 
@@ -325,13 +323,13 @@ class NormalisedRabi(Experiment):
                 x=t[:step_no[0]],
                 y=data[:step_no[0]],
                 mode='lines',
-                marker=dict(
-                    color='Blue',
-                    size=7,
-                    opacity=0.5,
-                    line=dict(color='Black', width=2)
-                ),
-                name=f'data'
+                marker={
+                    "color": 'Blue',
+                    "size": 7,
+                    "opacity": 0.5,
+                    "line": {"color": 'Black', "width": 2}
+                },
+                name='data'
             )
         )
 
@@ -341,11 +339,11 @@ class NormalisedRabi(Experiment):
             xaxis_title='Time (µs)',
             yaxis_title='<z>',
             legend_title='Legend',
-            font=dict(
-                family='Courier New, monospace',
-                size=12,
-                color='Black'
-            ),
+            font={
+                "family": 'Courier New, monospace',
+                "size": 12,
+                "color": 'Black'
+            },
             plot_bgcolor='white'
         )
 
@@ -417,7 +415,7 @@ class PowerRabi(Experiment):
             rabi_pulse.update_pulse_args(
                 width=width, phase=0., shape='square', amp=amp_start)
         else:
-            amp = rabi_pulse.amp
+            pass
 
         # Set up sweep parameters
         swpparams = [SweepParametersSideEffectFactory.func(
@@ -456,7 +454,6 @@ class PowerRabi(Experiment):
         if update:
             self.optimal_amp = 1 / self.fit_params['Frequency'] / 2
             c1.update_parameters(amp=self.optimal_amp)
-            print(f"Amplitude updated: {self.optimal_amp}")
 
     @register_browser_function()
     def plot(self) -> go.Figure:
@@ -484,13 +481,13 @@ class PowerRabi(Experiment):
                 x=t,
                 y=self.data,
                 mode='markers',
-                marker=dict(
-                    color='Blue',
-                    size=7,
-                    opacity=0.5,
-                    line=dict(color='Black', width=2),
-                ),
-                name=f'data'
+                marker={
+                    "color": 'Blue',
+                    "size": 7,
+                    "opacity": 0.5,
+                    "line": {"color": 'Black', "width": 2},
+                },
+                name='data'
             )
         )
 
@@ -507,8 +504,8 @@ class PowerRabi(Experiment):
                 x=amp_interpolate,
                 y=fit,
                 mode='lines',
-                line=dict(color='Red'),
-                name=f'fit',
+                line={"color": 'Red'},
+                name='fit',
                 visible='legendonly'
             )
         )
@@ -519,11 +516,11 @@ class PowerRabi(Experiment):
             xaxis_title='Time (µs)',
             yaxis_title='<z>',
             legend_title='Legend',
-            font=dict(
-                family='Courier New, monospace',
-                size=12,
-                color='Black'
-            ),
+            font={
+                "family": 'Courier New, monospace',
+                "size": 12,
+                "color": 'Black'
+            },
             plot_bgcolor='white'
         )
 
@@ -553,13 +550,13 @@ class PowerRabi(Experiment):
                 x=t[:step_no[0]],
                 y=data[:step_no[0]],
                 mode='lines',
-                marker=dict(
-                    color='Blue',
-                    size=7,
-                    opacity=0.5,
-                    line=dict(color='Black', width=2)
-                ),
-                name=f'data'
+                marker={
+                    "color": 'Blue',
+                    "size": 7,
+                    "opacity": 0.5,
+                    "line": {"color": 'Black', "width": 2}
+                },
+                name='data'
             )
         )
 
@@ -569,11 +566,11 @@ class PowerRabi(Experiment):
             xaxis_title='Time (µs)',
             yaxis_title='<z>',
             legend_title='Legend',
-            font=dict(
-                family='Courier New, monospace',
-                size=12,
-                color='Black'
-            ),
+            font={
+                "family": 'Courier New, monospace',
+                "size": 12,
+                "color": 'Black'
+            },
             plot_bgcolor='white'
         )
 
@@ -647,7 +644,6 @@ class PowerRabi(Experiment):
 
             # Update the qubit parameters
             c1.update_parameters(amp=self.optimal_amp)
-            print(f"Amplitude updated: {self.optimal_amp}")
 
         # Don't return anything to match the regular run() behavior
 
@@ -736,7 +732,7 @@ class MultiQubitRabi(Experiment):
 
         # Get the measurement primitive
         mprims = [dut_qubit.get_measurement_prim_intlist(
-            mprim_index) for dut_qubit, mprim_index in zip(duts, mprim_indexes)]
+            mprim_index) for dut_qubit, mprim_index in zip(duts, mprim_indexes, strict=False)]
         self.mps = mprims
 
         # Create the loopback pulse (lpb)
@@ -770,7 +766,6 @@ class MultiQubitRabi(Experiment):
                 two_pi_area = amps[i] * (1 / self.fit_params[i]['Frequency'])
                 new_amp = two_pi_area / 2 / normalised_pulse_area
                 c1.update_parameters(amp=new_amp)
-                print(f"Amplitude updated: {duts[i].hrid} {new_amp}")
 
     @register_browser_function()
     def plot_all(self):
@@ -806,13 +801,13 @@ class MultiQubitRabi(Experiment):
                 x=t,
                 y=self.data[i],
                 mode='markers',
-                marker=dict(
-                    color='Blue',
-                    size=7,
-                    opacity=0.5,
-                    line=dict(color='Black', width=2)
-                ),
-                name=f'data'
+                marker={
+                    "color": 'Blue',
+                    "size": 7,
+                    "opacity": 0.5,
+                    "line": {"color": 'Black', "width": 2}
+                },
+                name='data'
             )
         )
 
@@ -829,8 +824,8 @@ class MultiQubitRabi(Experiment):
                 x=t_interpolate,
                 y=fit,
                 mode='lines',
-                line=dict(color='Red'),
-                name=f'fit'
+                line={"color": 'Red'},
+                name='fit'
             )
         )
 
@@ -840,11 +835,11 @@ class MultiQubitRabi(Experiment):
             xaxis_title='Time (µs)',
             yaxis_title='<z>',
             legend_title='Legend',
-            font=dict(
-                family='Courier New, monospace',
-                size=12,
-                color='Black'
-            ),
+            font={
+                "family": 'Courier New, monospace',
+                "size": 12,
+                "color": 'Black'
+            },
             plot_bgcolor='white'
         )
 
@@ -951,4 +946,3 @@ class MultiQubitRabi(Experiment):
                 two_pi_area = amps[i] * (1 / self.fit_params[i]['Frequency'])
                 new_amp = two_pi_area / 2 / normalised_pulse_area
                 c1.update_parameters(amp=new_amp)
-                print(f"Amplitude updated: {duts[i].hrid} {new_amp}")

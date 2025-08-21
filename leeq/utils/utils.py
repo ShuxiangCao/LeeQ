@@ -159,10 +159,8 @@ class ObjectFactory(Singleton):
 
         # Check if collection class is at least one of the accepted types
         if not any(
-                [
-                    issubclass(collection_class, accepted_type)
-                    for accepted_type in self._accepted_template
-                ]
+                issubclass(collection_class, accepted_type)
+                for accepted_type in self._accepted_template
         ):
             msg = (
                 f"The collection class must be a subclass of at least one of the accepted types. Acceptable:"

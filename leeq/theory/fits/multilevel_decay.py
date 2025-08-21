@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import scipy.linalg
@@ -112,7 +112,7 @@ def simulate_decay(initial_distribution: np.ndarray, gamma: np.ndarray, time_res
     size = time_length / time_resolution
 
     # Simulate the decay at each time step
-    for i in range(int(size)):
+    for _i in range(int(size)):
         records.append(current)
         current = decay_per_step @ current
 
@@ -262,14 +262,14 @@ def fit_decay(probs: np.ndarray, time_length: float, time_resolution: float, ver
 
 
 title_dict = {
-    '00': rf"Qubit prepared to |0$\rangle$",
-    '01': rf"Qubit prepared to |1$\rangle$",
-    '12': rf"Qubit prepared to |2$\rangle$",
-    '23': rf"Qubit prepared to |3$\rangle$",
-    0: rf"Qubit prepared to |0$\rangle$",
-    1: rf"Qubit prepared to |1$\rangle$",
-    2: rf"Qubit prepared to |2$\rangle$",
-    3: rf"Qubit prepared to |3$\rangle$",
+    '00': r"Qubit prepared to |0$\rangle$",
+    '01': r"Qubit prepared to |1$\rangle$",
+    '12': r"Qubit prepared to |2$\rangle$",
+    '23': r"Qubit prepared to |3$\rangle$",
+    0: r"Qubit prepared to |0$\rangle$",
+    1: r"Qubit prepared to |1$\rangle$",
+    2: r"Qubit prepared to |2$\rangle$",
+    3: r"Qubit prepared to |3$\rangle$",
 }
 
 

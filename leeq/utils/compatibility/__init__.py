@@ -6,3 +6,13 @@ from leeq import basic_run as basic
 from leeq import setup
 from leeq.experiments.sweeper import Sweeper as sweeper
 from leeq.experiments.sweeper import SweepParametersSideEffectFactory as sparam
+
+# Explicit re-exports for linting
+__all__ = [
+    "prims",
+    "experiment",
+    "basic",
+    "setup",
+    "sweeper",
+    "sparam"
+]

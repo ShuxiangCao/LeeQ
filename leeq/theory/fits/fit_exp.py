@@ -55,8 +55,8 @@ def fit_1d_freq(
         min_omega, max_omega = omega * 0.5, omega * 1.5
 
     t = np.linspace(tstart, tstart + dt * (len(z) - 1), len(z))
-    cosz = z * np.cos(2.0 * np.pi * omega * t)
-    sinz = z * np.sin(2.0 * np.pi * omega * t)
+    z * np.cos(2.0 * np.pi * omega * t)
+    z * np.sin(2.0 * np.pi * omega * t)
     offset = np.mean(z)
     amp = 0.5 * (np.max(z) - np.min(z))
     phi = np.arcsin(np.clip((z[0] - offset) / amp, -1, 1))
@@ -237,8 +237,8 @@ def _fit_1d_freq_exp(z: np.ndarray, dt: float, use_freq_bound: bool = True) -> D
     max_omega = fmax + df
 
     # Pre-compute sine and cosine terms
-    cosz = z * np.cos(2.0 * np.pi * omega * t)
-    sinz = z * np.sin(2.0 * np.pi * omega * t)
+    z * np.cos(2.0 * np.pi * omega * t)
+    z * np.sin(2.0 * np.pi * omega * t)
 
     offset = np.mean(z)
     amp = 0.5 * (np.max(z) - np.min(z))

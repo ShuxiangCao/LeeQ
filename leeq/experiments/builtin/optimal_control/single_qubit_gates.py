@@ -1,16 +1,11 @@
-from typing import Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 import leeq
-from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, basic_run, setup
+from leeq import Experiment
 from leeq.chronicle import log_and_record, register_browser_function
 from leeq.core.primitives import LogicalPrimitiveCollectionFactory
-from leeq.core.primitives.built_in.simple_drive import SimpleDriveCollection
-from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
-from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
-from leeq.utils.compatibility import prims
 
 __all__ = [
     'GRAPESingleQubitGate',

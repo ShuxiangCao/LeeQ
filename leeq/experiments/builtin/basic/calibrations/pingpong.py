@@ -13,7 +13,7 @@ from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock, LogicalPrimitiveBlockSerial
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.utils import setup_logging
-from leeq.utils.compatibility import prims, setup, basic
+from leeq.utils.compatibility import prims, setup
 
 logger = setup_logging(__name__)
 
@@ -63,11 +63,11 @@ class PingPongSingleQubitMultilevel(Experiment):
         cur_amp = repeated_block.get_pulse_args('amp')
 
         # Getting the logical primitive for the initial and final gates
-        initial_gate_lpb = c1[initial_gate]
-        final_gate_lpb = c1[final_gate]
+        c1[initial_gate]
+        c1[final_gate]
 
         # Getting the measurement primitive
-        mprim = dut.get_measurement_prim_intlist(mprim_index)
+        dut.get_measurement_prim_intlist(mprim_index)
 
         if initial_lpb is not None:
             logger.warning("initial_lpb is ignored in the simulated mode.")
@@ -287,9 +287,9 @@ class AmpPingpongCalibrationSingleQubitMultilevel(Experiment):
 
         flip = [False] if not flip_other else [False, True]
 
-        for t in flip:
+        for _t in flip:
             reps = 8 * factor
-            for i in range(iteration):
+            for _i in range(iteration):
                 interval = math.ceil(reps / points)
                 interval += (interval %
                              2)  # round up interval to an even number
@@ -326,7 +326,6 @@ class AmpPingpongCalibrationSingleQubitMultilevel(Experiment):
                 else:
                     cur_amp = cur_amp * correction_factor
 
-                print(f"Estimated best amplitude {cur_amp}")
                 c1[repeated_gate].update_parameters(amp=cur_amp.nominal_value)
                 self.amps.append(cur_amp)
                 cur_amp = cur_amp.nominal_value
@@ -403,7 +402,7 @@ class PingPongMultiQubitMultilevel(Experiment):
             collection_names = [collection_names] * len(duts)
 
         c1s = [dut.get_c1(collection_name)
-               for dut, collection_name in zip(duts, collection_names)]
+               for dut, collection_name in zip(duts, collection_names, strict=False)]
 
         # Getting the logical primitive for the initial and final gates
         initial_gate_lpb = prims.ParallelLPB([c1[initial_gate] for c1 in c1s])
@@ -414,7 +413,7 @@ class PingPongMultiQubitMultilevel(Experiment):
             dut.get_measurement_prim_intlist(mprim_index) for dut,
             mprim_index in zip(
                 duts,
-                mprim_indexes)]
+                mprim_indexes, strict=False)]
 
         sequence_lpb = []
 
@@ -471,7 +470,7 @@ class PingPongMultiQubitMultilevel(Experiment):
         Plots the results of the ping pong experiment.
         """
         for i in range(len(self.results)):
-            fig = self.plot(i)
+            self.plot(i)
             plt.show()
 
     def plot(self, i) -> None:
@@ -546,7 +545,7 @@ class AmpTuneUpMultiQubitMultilevel(Experiment):
             final_gate = 'Ym'
 
         c1s = [dut.get_c1(collection_name)
-               for dut, collection_name in zip(duts, collection_names)]
+               for dut, collection_name in zip(duts, collection_names, strict=False)]
 
         cur_amps = [c1[repeated_gate].primary_kwargs()['amp'] for c1 in c1s]
 
@@ -559,7 +558,7 @@ class AmpTuneUpMultiQubitMultilevel(Experiment):
 
         flip = [False] if not flip_other else [False, True]
 
-        for t in flip:
+        for _t in flip:
             reps = 4 * factor
             for i in range(iteration):
                 self.amps.append(cur_amps)
@@ -571,7 +570,6 @@ class AmpTuneUpMultiQubitMultilevel(Experiment):
 
                 pulse_count = np.arange(0, reps, interval)
 
-                print('pulse_count:', pulse_count)
 
                 trial = PingPongMultiQubitMultilevel(
                     duts=duts,
@@ -608,8 +606,6 @@ class AmpTuneUpMultiQubitMultilevel(Experiment):
 
                     cur_amps[i] = cur_amp
 
-                    print(
-                        f"Update {duts[i]} {collection_name} amplitude to {cur_amp}")
                     c1[repeated_gate].update_parameters(amp=cur_amp)
                 reps *= 2
 

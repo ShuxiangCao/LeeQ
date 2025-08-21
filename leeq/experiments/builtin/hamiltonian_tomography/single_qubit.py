@@ -12,7 +12,7 @@ from leeq.core.primitives.logical_primitives import (
     LogicalPrimitive,
     LogicalPrimitiveBlock,
     LogicalPrimitiveBlockParallel,
-    LogicalPrimitiveBlockSweep
+    LogicalPrimitiveBlockSweep,
 )
 from leeq.theory.fits import fit_1d_freq_exp_with_cov, fit_2d_freq_with_cov
 from leeq.utils import setup_logging
@@ -242,7 +242,7 @@ class HamiltonianTomographySingleQubitXYBase(HamiltonianTomographySingleQubitBas
                 x=time_points_interpolate,
                 y=fitted_curve.imag,
                 mode='lines',
-                name=f'Fit Y'),
+                name='Fit Y'),
             row=1,
             col=1)
 
