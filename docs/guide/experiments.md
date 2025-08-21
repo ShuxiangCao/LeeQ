@@ -358,4 +358,4 @@ result.plot_raw_data()
 
 - Learn about [calibration workflows](calibrations.md)
 - Explore [advanced theory](../api/theory/simulation.md)
-- Check out [example notebooks](../../notebooks/)
+- Review the [Tutorial](../tutorial.md) for step-by-step examples
