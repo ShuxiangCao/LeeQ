@@ -1,5 +1,9 @@
 import pytest
 from leeq.core.primitives.logical_primitives import MeasurementPrimitive
+from leeq.experiments.experiments import ExperimentManager
+from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+from leeq.theory.simulation.numpy.rotated_frame_simulator import VirtualTransmon
+import numpy as np
 
 
 class MockMeasurementPrimitive(MeasurementPrimitive):
@@ -13,7 +17,40 @@ class MockMeasurementPrimitive(MeasurementPrimitive):
 
 
 @pytest.fixture
-def primitive():
+def test_setup():
+    """Create a test setup for measurement primitive tests using simulation setup."""
+    from leeq.chronicle import Chronicle
+    Chronicle().start_log()
+    manager = ExperimentManager()
+    manager.clear_setups()
+
+    virtual_transmon = VirtualTransmon(
+        name="VQubit",
+        qubit_frequency=5040.4,
+        anharmonicity=-198,
+        t1=70,
+        t2=35,
+        readout_frequency=9645.5,
+        quiescent_state_distribution=np.asarray([0.8, 0.15, 0.04, 0.01]))
+
+    setup = HighLevelSimulationSetup(
+        name='TestSimulationSetup',
+        virtual_qubits={2: virtual_transmon}
+    )
+    
+    # Set measurement basis to None for basic tests
+    setup.status.set_param("Measurement_Basis", None)
+    
+    manager.register_setup(setup, set_as_default=True)
+    
+    yield setup
+    
+    # Cleanup
+    manager.clear_setups()
+
+
+@pytest.fixture
+def primitive(test_setup):
     return MockMeasurementPrimitive(name="test_primitive", parameters={})
 
 
