@@ -34,8 +34,11 @@ class MockSetup:
     def get_default_setup(self):
         return self
 
+# Import and patch setup function before importing
+from leeq.experiments import experiments as exp_module
+
 # Patch setup function before importing
-with patch('leeq.experiments.experiments.setup', return_value=MockSetup()):
+with patch.object(exp_module, 'setup', return_value=MockSetup()):
     from leeq.experiments.builtin.multi_qubit_gates.ac_stark.ac_stark_shift import (
         StarkSingleQubitT1,
         StarkTwoQubitsSWAP,
@@ -67,7 +70,7 @@ class TestStarkSingleQubitT1:
     
     @pytest.mark.skip(reason="Experiment-specific test requiring further investigation")
     @patch.object(StarkSingleQubitT1, 'run')
-    @patch('leeq.experiments.experiments.setup')
+    @patch.object(exp_module, 'setup')
     def test_initialization(self, mock_setup_func, mock_run, mock_qubit):
         """Test that StarkSingleQubitT1 can be instantiated."""
         # Mock the setup status

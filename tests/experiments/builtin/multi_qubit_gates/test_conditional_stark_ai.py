@@ -46,8 +46,11 @@ class MockSetup:
     def get_default_setup(self):
         return self
 
+# Import and patch setup function before importing
+from leeq.experiments import experiments as exp_module
+
 # Patch setup function before importing
-with patch('leeq.experiments.experiments.setup', return_value=MockSetup()):
+with patch.object(exp_module, 'setup', return_value=MockSetup()):
     from leeq.experiments.builtin.multi_qubit_gates.conditional_stark_ai import (
         _qubit_z_expectation_value_off_resonance_drive,
         ConditionalStarkShiftContinuousPhaseSweep,
