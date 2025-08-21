@@ -12,7 +12,6 @@ h5py
 decorator
 dash
 pytest
-pytest-nbval
 nbval
 fsspec
 pyyaml
