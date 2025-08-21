@@ -2,13 +2,40 @@ import datetime
 import inspect
 
 import matplotlib
-import mllm
 import numpy as np
+
+try:
+    import mllm
+    MLLM_AVAILABLE = True
+except ImportError:
+    MLLM_AVAILABLE = False
+    mllm = None
+
+try:
+    from k_agents.experiment.experiment import Experiment as KExperiment
+    K_AGENTS_AVAILABLE = True
+except ImportError:
+    K_AGENTS_AVAILABLE = False
+    # Create a minimal base class if k_agents is not available
+    class KExperiment:
+        def __init__(self):
+            pass
+
+        def _before_run(self, args, kwargs):
+            pass
+
+        def _post_run(self, args, kwargs):
+            pass
+
 import plotly
 from IPython.display import display
-from k_agents.experiment.experiment import Experiment as KExperiment
 
-import leeq.experiments.plots.live_dash_app as live_monitor
+try:
+    import leeq.experiments.plots.live_dash_app as live_monitor
+    LIVE_MONITOR_AVAILABLE = True
+except ImportError:
+    LIVE_MONITOR_AVAILABLE = False
+    live_monitor = None
 from leeq.chronicle import Chronicle
 from leeq.core.base import LeeQObject
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable
@@ -85,12 +112,16 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
         return bound.args, bound.kwargs
 
     def _before_run(self, args, kwargs):
-        self._llm_logger = mllm.chat.ChatLogger(show_table=False)
+        if MLLM_AVAILABLE:
+            self._llm_logger = mllm.chat.ChatLogger(show_table=False)
+        else:
+            self._llm_logger = None
         # Check the input arguments
         args, kwargs = self._check_arguments(self.run, *args, **kwargs)
 
         KExperiment._before_run(self, args, kwargs)
-        self._llm_logger.__enter__()
+        if self._llm_logger is not None:
+            self._llm_logger.__enter__()
         # Register the active experiment instance
         setup().register_active_experiment_instance(self)
 
@@ -99,7 +130,8 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
         if self.to_show_figure_in_notebook:
             self.show_plots()
         self.chronicle_log()
-        self._llm_logger.__exit__(None, None, None)
+        if self._llm_logger is not None:
+            self._llm_logger.__exit__(None, None, None)
 
     def chronicle_log(self):
         # Make sure we print the record details before throwing the
@@ -209,14 +241,20 @@ class ExperimentManager(Singleton):
         """
         Start the live monitor.
         """
-        live_monitor.start_app(experiment_manager=self, **kwargs)
+        if LIVE_MONITOR_AVAILABLE:
+            live_monitor.start_app(experiment_manager=self, **kwargs)
+        else:
+            logger.warning("Live monitor is not available due to dependency issues")
 
     @staticmethod
     def stop_live_monitor():
         """
         Stop the live monitor.
         """
-        live_monitor.stop_app()
+        if LIVE_MONITOR_AVAILABLE:
+            live_monitor.stop_app()
+        else:
+            logger.warning("Live monitor is not available due to dependency issues")
 
     def get_live_status(self):
         """

@@ -13,7 +13,6 @@ from leeq import Experiment, ExperimentManager, Sweeper, setup
 from leeq.chronicle import log_and_record, register_browser_function
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlock
-from leeq.setups.setup_base import DeviceUnderTest
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockParallel, LogicalPrimitiveBlockSweep
 from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
 from leeq.theory.simulation.numpy.dispersive_readout.simulator import DispersiveReadoutSimulatorSyntheticData
@@ -349,7 +348,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
             freq: Optional[float] = None,
             amp: Optional[float] = None,
             update: bool = False,
-            extra_readout_duts: Optional[List['DeviceUnderTest']] = None,
+            extra_readout_duts: Optional[List['TransmonElement']] = None,
             z_threshold: Optional[int] = None, update_phase_for_two_level=False) -> None:
         """
         Run the measurement calibration using a GMM model on a transmon qubit, potentially
@@ -363,7 +362,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         freq (Optional[float]): New frequency to set, if any.
         amp (Optional[float]): New amplitude to set, if any.
         update (bool): Flag indicating if the original frequency/amplitude should be restored.
-        extra_readout_duts (Optional[List[DeviceUnderTest]]): Additional DUTs for readout.
+        extra_readout_duts (Optional[List[TransmonElement]]): Additional DUTs for readout.
         z_threshold (Optional[int]): Threshold for measurement, defaults to mprim_index + 1 or mprim_index.
         update_phase_for_two_level (bool): Flag to update the phase for two-level systems for further
             processing on FPGA mid-circuit measurement.
@@ -510,7 +509,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
                       freq: Optional[float] = None,
                       amp: Optional[float] = None,
                       update: bool = False,
-                      extra_readout_duts: Optional[List['DeviceUnderTest']] = None,
+                      extra_readout_duts: Optional[List['TransmonElement']] = None,
                       z_threshold: Optional[int] = None, update_phase_for_two_level=False) -> None:
         """
         Run the measurement process on a transmon qubit, potentially altering frequency and amplitude,
