@@ -1,0 +1,26 @@
+scipy
+matplotlib
+matplotlib-inline
+numpy>=2.0.0
+plotly
+dash
+dash_bootstrap_components
+qutip
+scikit-learn
+tqdm
+h5py
+decorator
+dash
+pytest
+nbval
+fsspec
+pyyaml
+decorator
+h5py
+uncertainties
+markdownify
+ipywidgets
+kaleido
+pandas
+dill
+k_agents @ git+https://github.com/EvoEvolver/k_agents
