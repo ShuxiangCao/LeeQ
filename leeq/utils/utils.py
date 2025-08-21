@@ -226,6 +226,8 @@ def is_running_in_jupyter():
     """
 
     # Just a dirty hack, but works for most of the time
+    if not sys.argv:  # Handle empty argv
+        return False
     return sys.argv[-1].endswith("json")
 
 

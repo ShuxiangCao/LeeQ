@@ -24,23 +24,27 @@ class TestSeriesLPB:
     
     def test_series_lpb_instantiation(self):
         """Test SeriesLPB can be instantiated."""
-        # Create mock primitives
+        # Create mock primitives with required nodes attribute
         mock_prim1 = Mock()
+        mock_prim1.nodes = {}
         mock_prim2 = Mock()
+        mock_prim2.nodes = {}
         
-        # Create SeriesLPB instance
-        series_lpb = SeriesLPB()
+        # Create SeriesLPB instance with children parameter
+        series_lpb = SeriesLPB([mock_prim1, mock_prim2])
         
         assert series_lpb is not None
         assert hasattr(series_lpb, '__class__')
     
     def test_series_lpb_with_children(self):
         """Test SeriesLPB with child primitives."""
-        # Create mock child primitives
+        # Create mock child primitives with nodes attribute
         children = [Mock(), Mock(), Mock()]
+        for child in children:
+            child.nodes = {}
         
         # Create SeriesLPB with children
-        series_lpb = SeriesLPB(children=children)
+        series_lpb = SeriesLPB(children)
         
         assert series_lpb is not None
         # The actual implementation may store children differently
@@ -52,8 +56,10 @@ class TestSweepLPB:
     
     def test_sweep_lpb_with_list(self):
         """Test SweepLPB creation with list of children."""
-        # Create mock children
+        # Create mock children with nodes attribute
         children_list = [Mock(), Mock(), Mock()]
+        for child in children_list:
+            child.nodes = {}
         
         # Create SweepLPB instance
         sweep_lpb = SweepLPB(children_list)
@@ -65,8 +71,11 @@ class TestSweepLPB:
     
     def test_sweep_lpb_with_tuple(self):
         """Test SweepLPB creation with tuple of children."""
-        # Create mock children as tuple
-        children_tuple = (Mock(), Mock())
+        # Create mock children as tuple with nodes attribute
+        mock1, mock2 = Mock(), Mock()
+        mock1.nodes = {}
+        mock2.nodes = {}
+        children_tuple = (mock1, mock2)
         
         # Create SweepLPB instance
         sweep_lpb = SweepLPB(children_tuple)
@@ -77,10 +86,13 @@ class TestSweepLPB:
     
     def test_sweep_lpb_with_individual_args(self):
         """Test SweepLPB creation with individual arguments."""
-        # Create mock children as separate arguments
+        # Create mock children as separate arguments with nodes attribute
         child1 = Mock()
+        child1.nodes = {}
         child2 = Mock()
+        child2.nodes = {}
         child3 = Mock()
+        child3.nodes = {}
         
         # Create SweepLPB instance
         sweep_lpb = SweepLPB(child1, child2, child3)
@@ -91,8 +103,8 @@ class TestSweepLPB:
     
     def test_sweep_lpb_empty(self):
         """Test SweepLPB creation with no children."""
-        # Create SweepLPB with no arguments
-        sweep_lpb = SweepLPB()
+        # Create SweepLPB with empty children list
+        sweep_lpb = SweepLPB([])
         
         assert sweep_lpb is not None
         from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
@@ -101,6 +113,7 @@ class TestSweepLPB:
     def test_sweep_lpb_single_child(self):
         """Test SweepLPB creation with single child."""
         child = Mock()
+        child.nodes = {}
         
         # Test with single argument
         sweep_lpb1 = SweepLPB(child)
@@ -125,8 +138,20 @@ class TestBuildCZStarkFromParameters:
         control_q = Mock()
         control_q.name = "control_qubit"
         
+        # Mock the c1 structure
+        mock_channel = Mock()
+        mock_channel.primary_channel.return_value = "channel_1"
+        
+        mock_c1 = {
+            'X': mock_channel,
+            'Y': mock_channel
+        }
+        
+        control_q.get_default_c1.return_value = mock_c1
+        
         target_q = Mock()
         target_q.name = "target_qubit"
+        target_q.get_default_c1.return_value = mock_c1
         
         return control_q, target_q
     
@@ -188,8 +213,8 @@ class TestBuildCZStarkFromParameters:
         assert lpb is not None
         
         # Verify it has expected attributes
-        assert hasattr(lpb, 'parameters')
-        assert lpb.name == 'zz'
+        assert hasattr(lpb, 'get_parameters')
+        assert lpb.hrid == 'zz'
     
     def test_build_cz_stark_parameter_validation(self, mock_qubits):
         """Test parameter validation for CZ Stark gate."""
@@ -238,8 +263,8 @@ class TestBuildCZStarkFromParameters:
         assert lpb is not None
         
         # Should have default values for optional parameters
-        assert hasattr(lpb, 'parameters')
-        params = lpb.parameters
+        assert hasattr(lpb, 'get_parameters')
+        params = lpb.get_parameters()
         
         # Check that default values are set
         assert 'iz_control' in params
@@ -253,7 +278,7 @@ class TestBuildCZStarkFromParameters:
         assert params['iz_target'] == 0
         assert params['phase_diff'] == 0
         assert params['echo'] is False
-        assert params['trunc'] == 1.05
+        assert params['trunc'] == 1.05  # Default from function is 1.05
     
     def test_build_cz_stark_different_qubit_types(self):
         """Test CZ Stark gate building with different qubit mock types."""
@@ -262,9 +287,19 @@ class TestBuildCZStarkFromParameters:
         control_q.name = "Q1"
         control_q.frequency = 5000.0
         
+        # Mock the c1 structure
+        mock_channel = Mock()
+        mock_channel.primary_channel.return_value = "channel_1"
+        mock_c1 = {
+            'X': mock_channel,
+            'Y': mock_channel
+        }
+        control_q.get_default_c1.return_value = mock_c1
+        
         target_q = Mock()
         target_q.name = "Q2"
         target_q.frequency = 5100.0
+        target_q.get_default_c1.return_value = mock_c1
         
         lpb = build_CZ_stark_from_parameters(
             control_q=control_q,
@@ -399,10 +434,13 @@ class TestCompatibilityIntegration:
     
     def test_series_and_sweep_compatibility(self):
         """Test that SeriesLPB and SweepLPB work together."""
-        # Create mock primitives
+        # Create mock primitives with nodes attribute
         prim1 = Mock()
+        prim1.nodes = {}
         prim2 = Mock()
+        prim2.nodes = {}
         prim3 = Mock()
+        prim3.nodes = {}
         
         # Create SeriesLPB
         series = SeriesLPB([prim1, prim2])
@@ -428,6 +466,16 @@ class TestCompatibilityIntegration:
         control_q = Mock()
         target_q = Mock()
         
+        # Mock the c1 structure
+        mock_channel = Mock()
+        mock_channel.primary_channel.return_value = "channel_1"
+        mock_c1 = {
+            'X': mock_channel,
+            'Y': mock_channel
+        }
+        control_q.get_default_c1.return_value = mock_c1
+        target_q.get_default_c1.return_value = mock_c1
+        
         # Create CZ Stark gate
         cz_gate = build_CZ_stark_from_parameters(
             control_q=control_q,
@@ -439,6 +487,9 @@ class TestCompatibilityIntegration:
             rise=0.01,
             zz_interaction_positive=True
         )
+        
+        # Mock nodes property for compatibility with LPB blocks
+        cz_gate.nodes = {cz_gate.uuid: cz_gate}
         
         # Should be able to use in Series and Sweep blocks
         series = SeriesLPB([cz_gate])
@@ -455,8 +506,19 @@ class TestCompatibilityIntegration:
         # Step 1: Create mock elements
         control = Mock()
         control.name = "control"
+        
+        # Mock the c1 structure
+        mock_channel = Mock()
+        mock_channel.primary_channel.return_value = "channel_1"
+        mock_c1 = {
+            'X': mock_channel,
+            'Y': mock_channel
+        }
+        control.get_default_c1.return_value = mock_c1
+        
         target = Mock()
         target.name = "target"
+        target.get_default_c1.return_value = mock_c1
         
         # Step 2: Create gate using compatibility function
         gate = build_CZ_stark_from_parameters(
@@ -470,9 +532,16 @@ class TestCompatibilityIntegration:
             zz_interaction_positive=False
         )
         
+        # Mock nodes property for compatibility with LPB blocks
+        gate.nodes = {gate.uuid: gate}
+        
         # Step 3: Use compatibility LPB classes
-        preparation = SeriesLPB([Mock(), Mock()])  # Mock preparation gates
+        mock_prep1, mock_prep2 = Mock(), Mock()
+        mock_prep1.nodes = {}
+        mock_prep2.nodes = {}
+        preparation = SeriesLPB([mock_prep1, mock_prep2])  # Mock preparation gates
         measurement = Mock()  # Mock measurement
+        measurement.nodes = {}
         
         # Create experiment structure
         experiment_sequence = SeriesLPB([preparation, gate, measurement])

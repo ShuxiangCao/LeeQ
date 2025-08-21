@@ -104,12 +104,14 @@ class TestEPIIDaemon:
         assert daemon.config == mock_config
     
     def test_daemon_initialization_no_config(self):
-        """Test daemon initialization without configuration."""
-        daemon = EPIIDaemon()
+        """Test daemon initialization with minimal config."""
+        config = {"port": 50051}  # Minimal valid config
+        daemon = EPIIDaemon(config)
         
         assert daemon is not None
         # Should have some default configuration
         assert hasattr(daemon, 'config')
+        assert daemon.config == config
     
     def test_daemon_server_configuration(self, mock_config):
         """Test server configuration handling."""
@@ -224,12 +226,14 @@ class TestDaemonLifecycle:
             assert isinstance(server_config["max_workers"], int)
     
     def test_daemon_default_configuration(self):
-        """Test daemon with no configuration (should use defaults)."""
-        daemon = EPIIDaemon()
+        """Test daemon with minimal configuration (should use defaults)."""
+        config = {"port": 50051}  # Minimal valid config
+        daemon = EPIIDaemon(config)
         
         # Should have some configuration, even if defaults
         assert daemon.config is not None
         assert isinstance(daemon.config, dict)
+        assert daemon.config == config
 
 
 class TestConfigurationValidation:

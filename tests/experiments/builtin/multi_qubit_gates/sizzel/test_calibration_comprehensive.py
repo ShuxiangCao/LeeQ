@@ -157,8 +157,8 @@ class TestNumericalFunctions:
         width_us = width_ns * 1e-3
         width_s = width_ns * 1e-9
         
-        assert width_us == 0.05
-        assert width_s == 50e-9
+        assert abs(width_us - 0.05) < 1e-10
+        assert abs(width_s - 50e-9) < 1e-15
     
     def test_phase_calculations(self):
         """Test phase calculations."""

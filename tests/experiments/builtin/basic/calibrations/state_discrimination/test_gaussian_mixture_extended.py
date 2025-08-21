@@ -281,7 +281,7 @@ class TestCalibrationExperiments:
         assert len(ground_prep) == 0
         assert len(excited_prep) == 1
     
-    @patch('leeq.experiments.builtin.basic.calibrations.state_discrimination.gaussian_mixture.LogicalPrimitiveBlockSerial')
+    @patch('leeq.core.primitives.logical_primitives.LogicalPrimitiveBlockSerial')
     def test_experiment_lpb_creation(self, mock_serial, mock_dut):
         """Test creation of logical primitive blocks for experiments."""
         mock_serial.return_value = Mock()
