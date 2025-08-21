@@ -30,14 +30,17 @@ pytest = "*"
 fsspec = "*"
 pyyaml = "*"
 uncertainties = "*"
+markdownify = "*"
 MinimalLLM = "*"
 ipywidgets = "*"
 kaleido = "*"
 pandas = "*"
 dill = "*"
+mkdocs = "*"
+mkdocs-material = "*"
+mkdocs-jupyter = "*"
 
 # Git-based dependencies
-labchronicle = {git = "https://github.com/ShuxiangCao/LabChronicle"}
 k_agents = {git = "https://github.com/EvoEvolver/k_agents"}
 
 [tool.poetry.dev-dependencies]
