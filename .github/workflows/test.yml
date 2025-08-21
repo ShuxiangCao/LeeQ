@@ -39,8 +39,7 @@ jobs:
           
       - name: Run linting
         run: |
-          ruff check leeq/
-          mypy leeq/ --ignore-missing-imports
+          bash ci_scripts/lint.sh
           
       - name: Run tests with coverage
         run: |
