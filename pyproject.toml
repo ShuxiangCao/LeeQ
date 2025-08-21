@@ -39,6 +39,8 @@ dill = "*"
 mkdocs = "*"
 mkdocs-material = "*"
 mkdocs-jupyter = "*"
+grpcio = "*"
+grpcio-tools = "*"
 
 # Git-based dependencies
 k_agents = {git = "https://github.com/EvoEvolver/k_agents"}
