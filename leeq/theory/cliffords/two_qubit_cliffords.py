@@ -5,10 +5,10 @@ from leeq.utils import setup_logging
 
 logger = setup_logging(__name__)
 
-pI = np.array([[1., 0.], [0., 1.]], dtype='cfloat')
-pX = np.array([[0, 1], [1, 0]], dtype='cfloat')
-pY = np.array([[0, -1j], [1j, 0]], dtype='cfloat')
-pZ = np.array([[1, 0], [0, -1]], dtype='cfloat')
+pI = np.array([[1., 0.], [0., 1.]], dtype='complex128')
+pX = np.array([[0, 1], [1, 0]], dtype='complex128')
+pY = np.array([[0, -1j], [1j, 0]], dtype='complex128')
+pZ = np.array([[1, 0], [0, -1]], dtype='complex128')
 pII = np.kron(pI, pI)
 pIX = np.kron(pI, pX)
 pIY = np.kron(pI, pY)
@@ -60,7 +60,7 @@ C1p_Zp = sl.expm(-0.25j * np.pi * pZ)
 C1p_Zm = sl.expm(+0.25j * np.pi * pZ)
 
 NC1 = 24
-C1 = np.zeros(shape=(NC1, 2, 2), dtype='cfloat')
+C1 = np.zeros(shape=(NC1, 2, 2), dtype='complex128')
 C1[0] = pI
 C1[1] = C1p_X
 C1[2] = C1p_Y
@@ -114,7 +114,7 @@ C2p[3] = SWAPlike
 
 # ZX construction of cliffords - for implimenting virtual Z gates
 # may be more efficient construction available!
-VZC1 = np.zeros(shape=(NC1, 2, 2), dtype='cfloat')
+VZC1 = np.zeros(shape=(NC1, 2, 2), dtype='complex128')
 VZC1[0] = pI
 VZC1[1] = C1p_Xp.dot(C1p_Zp)
 VZC1[2] = C1p_Zm.dot(C1p_Xm)

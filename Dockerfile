@@ -1,5 +1,20 @@
 FROM quay.io/jupyter/minimal-notebook:latest
 
+# Switch to root to install system packages
+USER root
+
+# Install build dependencies for Python packages
+# Required for packages like NumPy that may need to compile from source
+# especially when pre-built wheels are not available for the Python version
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Switch back to jovyan user
+USER ${NB_UID}
+
 # Clone the repository from github
 RUN git clone https://gitlab.com/ShuxiangCao/software.git /home/jovyan/packages/QubiC/software
 RUN git clone https://gitlab.com/ShuxiangCao/distributed_processor.git /home/jovyan/packages/QubiC/distributed_processor
