@@ -93,12 +93,13 @@ class TestLeeQWorkflow:
         from leeq.experiments.builtin.basic.calibrations import rabi
         from leeq.experiments.sweeper import Sweeper
         from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSweep
-        from leeq.experiments.experiments import setup
+        from leeq.experiments.experiments import setup, basic_run
+        from leeq.experiments import experiments
         
         # Register the mock setup
         with patch.object(setup(), 'get_default_setup', return_value=mock_setup):
             # Mock the experiment execution
-            with patch('leeq.experiments.experiments.basic_run') as mock_basic_run:
+            with patch.object(experiments, 'basic_run') as mock_basic_run:
                 # Configure mock basic_run to simulate successful execution
                 mock_basic_run.return_value = None
                 
@@ -118,7 +119,7 @@ class TestLeeQWorkflow:
                 }
                 
                 # Mock the entire NormalisedRabi class
-                with patch('leeq.experiments.builtin.basic.calibrations.rabi.NormalisedRabi') as MockRabi:
+                with patch.object(rabi, 'NormalisedRabi') as MockRabi:
                     mock_experiment = MockRabi.return_value
                     mock_experiment.run.return_value = mock_result
                     
@@ -213,7 +214,8 @@ class TestLeeQWorkflow:
                 mock_register.assert_called_once_with(mock_setup)
         
         # Mock LogicalPrimitiveBlock
-        with patch('leeq.core.primitives.logical_primitives.LogicalPrimitiveBlock') as MockLPB:
+        from leeq.core.primitives import logical_primitives
+        with patch.object(logical_primitives, 'LogicalPrimitiveBlock') as MockLPB:
             lpb = MockLPB.return_value
             lpb.nodes = []
             
@@ -239,11 +241,12 @@ class TestLeeQWorkflow:
             assert lpb_instance.add.call_count == 2
         
         # Execute the experiment
-        with patch('leeq.experiments.experiments.basic_run') as mock_basic_run:
+        from leeq.experiments import experiments
+        with patch.object(experiments, 'basic_run') as mock_basic_run:
             mock_basic_run.return_value = {'success': True}
             
             # Create experiment manager
-            with patch('leeq.experiments.experiments.ExperimentManager') as MockExpManager:
+            with patch.object(experiments, 'ExperimentManager') as MockExpManager:
                 exp_manager = MockExpManager()
                 exp_manager.run = Mock(return_value={'results': [0.95, 0.05]})
                 
@@ -258,11 +261,12 @@ class TestLeeQWorkflow:
         """Test error handling in experiment workflows."""
         from leeq.experiments.builtin.basic.calibrations import rabi
         from leeq.experiments.experiments import setup
+        from leeq.experiments import experiments
         
         # Register the mock setup
         with patch.object(setup(), 'get_default_setup', return_value=mock_setup):
             # Test handling of invalid parameters
-            with patch('leeq.experiments.builtin.basic.calibrations.rabi.NormalisedRabi') as MockRabi:
+            with patch.object(rabi, 'NormalisedRabi') as MockRabi:
                 mock_experiment = MockRabi.return_value
                 mock_experiment.run.side_effect = ValueError("Invalid amplitude: must be positive")
                 
@@ -277,7 +281,7 @@ class TestLeeQWorkflow:
                     )
         
         # Test handling of hardware errors
-        with patch('leeq.experiments.experiments.basic_run') as mock_basic_run:
+        with patch.object(experiments, 'basic_run') as mock_basic_run:
             mock_basic_run.side_effect = RuntimeError("Hardware communication error")
             
             with pytest.raises(RuntimeError, match="Hardware communication"):

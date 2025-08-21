@@ -13,8 +13,8 @@ from pathlib import Path
 import argparse
 
 
-def test_notebook_syntax(notebook_path):
-    """Test if a notebook has valid JSON syntax."""
+def check_notebook_syntax(notebook_path):
+    """Check if a notebook has valid JSON syntax."""
     try:
         import json
         with open(notebook_path, 'r') as f:
@@ -26,8 +26,8 @@ def test_notebook_syntax(notebook_path):
         return False, f"Error reading file: {e}"
 
 
-def test_notebook_structure(notebook_path):
-    """Test if a notebook has required structural elements."""
+def check_notebook_structure(notebook_path):
+    """Check if a notebook has required structural elements."""
     try:
         import json
         with open(notebook_path, 'r') as f:
@@ -75,7 +75,7 @@ def run_notebook_tests(notebooks_dir):
         print(f"\nTesting {notebook_path.relative_to(notebooks_dir)}...")
         
         # Test syntax
-        syntax_ok, syntax_msg = test_notebook_syntax(notebook_path)
+        syntax_ok, syntax_msg = check_notebook_syntax(notebook_path)
         if not syntax_ok:
             results['failed'] += 1
             results['errors'].append(f"{notebook_path}: {syntax_msg}")
@@ -85,7 +85,7 @@ def run_notebook_tests(notebooks_dir):
             print(f"  ✅ Syntax: {syntax_msg}")
         
         # Test structure
-        structure_ok, structure_msg = test_notebook_structure(notebook_path)
+        structure_ok, structure_msg = check_notebook_structure(notebook_path)
         if not structure_ok:
             results['failed'] += 1
             results['errors'].append(f"{notebook_path}: {structure_msg}")
