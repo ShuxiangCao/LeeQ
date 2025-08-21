@@ -11,7 +11,7 @@ from leeq.compiler.lbnl_qubic.circuit_list_compiler import *
 
 class TestCircuitListCompiler:
     """Test suite for compiler module."""
-    
+
     @pytest.fixture
     def setup_data(self):
         """Setup test data and mocks."""
@@ -19,18 +19,18 @@ class TestCircuitListCompiler:
             'test_data': np.array([1, 2, 3]),
             'mock_config': Mock(),
         }
-    
+
     def test_basic_functionality(self, setup_data):
         """Test core functionality."""
         # TODO: Implement actual test
         assert True
-        
+
     @pytest.mark.skip(reason="Edge case tests need implementation")
     def test_edge_cases(self, setup_data):
         """Test edge cases and error handling."""
         # TODO: Implement edge case tests
         pass
-            
+
     @pytest.mark.parametrize("input_val,expected", [
         (1, 1),
         (2, 4),

@@ -102,7 +102,7 @@ def test_pulse_on_virtual_2q(qubit):
 
     assert mprim.uuid in lpb.nodes
 
-    result = SimpleSampleExperiment(qubit, lpb=lpb)
+    SimpleSampleExperiment(qubit, lpb=lpb)
 
     assert dummy_obj.result is not None
     assert dummy_obj.result_raw is not None

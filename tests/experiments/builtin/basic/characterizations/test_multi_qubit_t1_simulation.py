@@ -31,7 +31,7 @@ def simulation_setup():
         readout_dipsersive_shift=2.0,
         quiescent_state_distribution=np.asarray([0.9, 0.08, 0.02])
     )
-    
+
     virtual_transmon_2 = VirtualTransmon(
         name="VQubit2",
         qubit_frequency=5100.0,
@@ -48,7 +48,7 @@ def simulation_setup():
         name='HighLevelSimulationSetup',
         virtual_qubits={2: virtual_transmon_1, 4: virtual_transmon_2}
     )
-    
+
     manager.register_setup(setup)
     return manager
 
@@ -103,27 +103,27 @@ def test_multi_qubit_t1_basic(simulation_setup, dut_qubits):
     """Test basic MultiQubitT1 functionality with simulation."""
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
-    
+
     # Run MultiQubitT1
     t1_exp = MultiQubitT1(
         duts=dut_qubits,
         time_length=150.0,  # Go to ~3*T1 of first qubit
         time_resolution=2.0
     )
-    
+
     # Check that traces were collected
     assert hasattr(t1_exp, 'traces')
     assert len(t1_exp.traces) == 2  # Two qubits
-    
+
     # Check data length
     expected_points = int(150.0 / 2.0)
     assert len(t1_exp.traces[0]) == expected_points
     assert len(t1_exp.traces[1]) == expected_points
-    
+
     # Check that data starts near 1 (excited state)
     assert 0.9 <= t1_exp.traces[0][0] <= 1.0
     assert 0.9 <= t1_exp.traces[1][0] <= 1.0
-    
+
     # Check that data decays
     assert t1_exp.traces[0][-1] < 0.5  # Should decay significantly
     assert t1_exp.traces[1][-1] < 0.5
@@ -134,25 +134,25 @@ def test_multi_qubit_t1_independent_decay(simulation_setup, dut_qubits):
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
     manager.status.set_parameter('Sampling_Noise', False)  # Disable noise for clean test
-    
+
     # Run experiment
     t1_exp = MultiQubitT1(
         duts=dut_qubits,
         time_length=200.0,
         time_resolution=5.0
     )
-    
+
     # Extract time array
     times = np.arange(0.0, 200.0, 5.0)
-    
+
     # Check that qubit 1 follows T1=50μs decay
     expected_q1 = np.exp(-times / 50.0)
     np.testing.assert_allclose(t1_exp.traces[0], expected_q1, rtol=1e-10)
-    
+
     # Check that qubit 2 follows T1=70μs decay
     expected_q2 = np.exp(-times / 70.0)
     np.testing.assert_allclose(t1_exp.traces[1], expected_q2, rtol=1e-10)
-    
+
     # Verify they are different (since T1 values are different)
     assert not np.allclose(t1_exp.traces[0], t1_exp.traces[1])
 
@@ -163,14 +163,14 @@ def test_multi_qubit_t1_with_noise(simulation_setup, dut_qubits):
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
     manager.status.set_parameter('Sampling_Noise', True)
     manager.status.set_parameter('Shot_Number', 1000)
-    
+
     # Run experiment
     t1_exp = MultiQubitT1(
         duts=dut_qubits,
         time_length=100.0,
         time_resolution=2.0
     )
-    
+
     # With noise, values should vary
     # Check that traces have variation (not smooth exponential)
     for trace in t1_exp.traces:
@@ -185,7 +185,7 @@ def test_multi_qubit_t1_collection_names(simulation_setup, dut_qubits):
     """Test MultiQubitT1 with different collection names."""
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
-    
+
     # Run with single collection name (should apply to all qubits)
     t1_exp = MultiQubitT1(
         duts=dut_qubits,
@@ -193,9 +193,9 @@ def test_multi_qubit_t1_collection_names(simulation_setup, dut_qubits):
         time_length=50.0,
         time_resolution=1.0
     )
-    
+
     assert t1_exp.collection_names == ['f01', 'f01']
-    
+
     # Run with different collection names
     t1_exp2 = MultiQubitT1(
         duts=dut_qubits,
@@ -203,7 +203,7 @@ def test_multi_qubit_t1_collection_names(simulation_setup, dut_qubits):
         time_length=50.0,
         time_resolution=1.0
     )
-    
+
     assert t1_exp2.collection_names == ['f01', 'f01']
 
 
@@ -211,25 +211,25 @@ def test_multi_qubit_t1_time_parameters(simulation_setup, dut_qubits):
     """Test MultiQubitT1 with different time parameters."""
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
-    
+
     # Test with fine time resolution
     t1_fine = MultiQubitT1(
         duts=dut_qubits,
         time_length=50.0,
         time_resolution=0.5
     )
-    
+
     assert len(t1_fine.traces[0]) == 100  # 50.0 / 0.5
-    
+
     # Test with coarse time resolution
     t1_coarse = MultiQubitT1(
         duts=dut_qubits,
         time_length=50.0,
         time_resolution=5.0
     )
-    
+
     assert len(t1_coarse.traces[0]) == 10  # 50.0 / 5.0
-    
+
     # Both should show decay
     assert t1_fine.traces[0][-1] < 0.5
     assert t1_coarse.traces[0][-1] < 0.5
@@ -239,23 +239,23 @@ def test_multi_qubit_t1_single_qubit(simulation_setup):
     """Test MultiQubitT1 with just one qubit."""
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
-    
+
     # Create single qubit
     qubit = TransmonElement(
         name='single_qubit',
         parameters=create_transmon_config(2, 5000.0)
     )
-    
+
     # Run with single qubit
     t1_exp = MultiQubitT1(
         duts=[qubit],
         time_length=100.0,
         time_resolution=2.0
     )
-    
+
     assert len(t1_exp.traces) == 1
     assert len(t1_exp.traces[0]) == 50
-    
+
     # Should still show T1 decay
     assert t1_exp.traces[0][0] > 0.9
     assert t1_exp.traces[0][-1] < 0.5
@@ -265,21 +265,21 @@ def test_multi_qubit_t1_plot_methods(simulation_setup, dut_qubits):
     """Test that MultiQubitT1 has plotting methods."""
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
-    
+
     t1_exp = MultiQubitT1(
         duts=dut_qubits,
         time_length=100.0,
         time_resolution=2.0
     )
-    
+
     # Check plot methods exist
     assert hasattr(t1_exp, 'plot_all')
     assert hasattr(t1_exp, 'plot_t1')
-    
+
     # Test plotting individual qubit
     fig = t1_exp.plot_t1(0, fit=True)
     assert fig is not None
-    
+
     fig2 = t1_exp.plot_t1(1, fit=False)
     assert fig2 is not None
 

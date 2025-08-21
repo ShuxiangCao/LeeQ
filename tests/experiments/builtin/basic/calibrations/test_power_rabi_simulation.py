@@ -36,7 +36,7 @@ def simulation_setup():
         virtual_qubits={2: virtual_transmon},
         omega_to_amp_map={2: 500.0}  # 500 MHz per unit amplitude
     )
-    
+
     manager.register_setup(setup)
     return manager
 
@@ -86,7 +86,7 @@ def test_power_rabi_basic(simulation_setup, dut_qubit):
     """Test basic PowerRabi functionality with simulation."""
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
-    
+
     # Run PowerRabi - the experiment runs in __init__
     rabi = PowerRabi(
         dut_qubit=dut_qubit,
@@ -96,18 +96,18 @@ def test_power_rabi_basic(simulation_setup, dut_qubit):
         fit=True,
         update=False
     )
-    
+
     # Check that data was collected
     assert hasattr(rabi, 'data')
     assert len(rabi.data) == len(np.arange(0.01, 0.2, 0.01))
-    
+
     # Check fit results
     assert hasattr(rabi, 'fit_params')
     assert 'Frequency' in rabi.fit_params
     assert 'Amplitude' in rabi.fit_params
     assert 'Phase' in rabi.fit_params
     assert 'Offset' in rabi.fit_params
-    
+
     # Check that we see oscillations
     assert max(rabi.data) > 0.8  # Should reach high population
     assert min(rabi.data) < 0.2  # Should have low population at some points
@@ -117,7 +117,7 @@ def test_power_rabi_finds_optimal_amplitude(simulation_setup, dut_qubit):
     """Test that PowerRabi finds reasonable pi amplitude."""
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
-    
+
     # Run with update=True to find optimal amplitude
     rabi = PowerRabi(
         dut_qubit=dut_qubit,
@@ -127,12 +127,12 @@ def test_power_rabi_finds_optimal_amplitude(simulation_setup, dut_qubit):
         fit=True,
         update=True
     )
-    
+
     # Check optimal amplitude was found
     assert hasattr(rabi, 'optimal_amp')
     # For 20ns pulse with omega_per_amp=500MHz: optimal_amp = 1/(500*0.02) = 0.1
     assert 0.08 <= rabi.optimal_amp <= 0.12
-    
+
     # Check that the amplitude was updated
     updated_amp = dut_qubit.get_c1('f01')['X'].amp
     assert abs(updated_amp - rabi.optimal_amp) < 1e-10
@@ -142,7 +142,7 @@ def test_power_rabi_with_custom_width(simulation_setup, dut_qubit):
     """Test PowerRabi with custom pulse width."""
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
-    
+
     # Run with custom width
     custom_width = 0.04  # 40 ns
     rabi = PowerRabi(
@@ -154,7 +154,7 @@ def test_power_rabi_with_custom_width(simulation_setup, dut_qubit):
         fit=True,
         update=True
     )
-    
+
     # With double the pulse width, optimal amplitude should be half
     # Expected: 1/(500*0.04) = 0.05
     assert hasattr(rabi, 'optimal_amp')
@@ -165,7 +165,7 @@ def test_power_rabi_no_fit(simulation_setup, dut_qubit):
     """Test PowerRabi without fitting."""
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
-    
+
     # Run without fitting
     rabi = PowerRabi(
         dut_qubit=dut_qubit,
@@ -175,11 +175,11 @@ def test_power_rabi_no_fit(simulation_setup, dut_qubit):
         fit=False,
         update=False
     )
-    
+
     # Data should still be collected
     assert hasattr(rabi, 'data')
     assert len(rabi.data) > 0
-    
+
     # But no fit params or optimal amp
     assert not hasattr(rabi, 'fit_params')
     assert not hasattr(rabi, 'optimal_amp')
@@ -189,7 +189,7 @@ def test_power_rabi_noise_effects(simulation_setup, dut_qubit):
     """Test PowerRabi with different noise settings."""
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
-    
+
     # Run with noise disabled
     manager.status.set_parameter('Sampling_Noise', False)
     rabi_no_noise = PowerRabi(
@@ -199,10 +199,10 @@ def test_power_rabi_noise_effects(simulation_setup, dut_qubit):
         amp_step=0.005,
         fit=False
     )
-    
+
     # First point should be exactly 0 (no rotation)
     assert rabi_no_noise.data[0] == 0.0
-    
+
     # Enable noise
     manager.status.set_parameter('Sampling_Noise', True)
     rabi_with_noise = PowerRabi(
@@ -212,7 +212,7 @@ def test_power_rabi_noise_effects(simulation_setup, dut_qubit):
         amp_step=0.01,
         fit=False
     )
-    
+
     # With noise, most values shouldn't be exactly 0 or 1
     # But some might be by chance, so check that there's variation
     assert len(set(rabi_with_noise.data)) > 10  # Should have many different values
@@ -223,7 +223,7 @@ def test_power_rabi_plot_exists(simulation_setup, dut_qubit):
     """Test that PowerRabi has a plot method."""
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
-    
+
     rabi = PowerRabi(
         dut_qubit=dut_qubit,
         amp_start=0.01,
@@ -231,7 +231,7 @@ def test_power_rabi_plot_exists(simulation_setup, dut_qubit):
         amp_step=0.01,
         fit=True
     )
-    
+
     # Check plot method exists and returns a figure
     assert hasattr(rabi, 'plot')
     fig = rabi.plot()

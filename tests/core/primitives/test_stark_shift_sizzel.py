@@ -111,8 +111,8 @@ def test_validate_parameters_missing_key(sizzel_gate_collection):
 
 
 def test_get_lpbs(sizzel_gate_collection):
-    lpb = sizzel_gate_collection['stark_drive_control']
-    lpb = sizzel_gate_collection['stark_drive_target']
+    sizzel_gate_collection['stark_drive_control']
+    sizzel_gate_collection['stark_drive_target']
 
     sizzel_gate_collection.get_z_cancellation_pulse()
     sizzel_gate_collection.get_cz()

@@ -120,9 +120,9 @@ def test_setup():
         t2=35,
         readout_frequency=9144.41,
         quiescent_state_distribution=np.asarray([0.8, 0.15, 0.04, 0.01]))
-    
+
     virtual_transmon_2 = VirtualTransmon(
-        name="VQubit2", 
+        name="VQubit2",
         qubit_frequency=4144.417053428905,
         anharmonicity=-425,
         t1=70,
@@ -134,19 +134,19 @@ def test_setup():
         name='TestSimulationSetup',
         virtual_qubits={0: virtual_transmon_0, 2: virtual_transmon_2}
     )
-    
+
     # Add all channels used in test configurations: 0, 1, 2, 3
     # Channels 0 and 2 are drive channels (handled by virtual_qubits)
     # Channels 1 and 3 are measurement channels (need to be added manually)
     setup.status.add_channel(0)  # Drive channel for qubit 1
     setup.status.add_channel(1)  # Measurement channel for qubit 1
-    setup.status.add_channel(2)  # Drive channel for qubit 2  
+    setup.status.add_channel(2)  # Drive channel for qubit 2
     setup.status.add_channel(3)  # Measurement channel for qubit 2
-    
+
     manager.register_setup(setup, set_as_default=True)
-    
+
     yield setup
-    
+
     # Cleanup
     manager.clear_setups()
 
@@ -254,15 +254,15 @@ def test_block_lpbs(qubit_1, qubit_2):
     ]
 
     for lpb in serial_lpbs:
-        instructions = compile_lpb(lpb)
+        compile_lpb(lpb)
 
     for lpb in parallel_lpbs:
-        instructions = compile_lpb(lpb)
+        compile_lpb(lpb)
 
     with pytest.raises(AssertionError):
         lpb = qubit_1.get_gate('qutrit_hadamard') * \
               qubit_1.get_gate('qutrit_hadamard')
-        instructions = compile_lpb(lpb)
+        compile_lpb(lpb)
 
 
 def test_measurement_like_pulse_experiment_circuit(qubit_1, qubit_2):

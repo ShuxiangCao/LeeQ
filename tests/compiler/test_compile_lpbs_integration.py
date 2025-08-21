@@ -95,7 +95,7 @@ def qubit_q2():
 
 def test_compile_primitive_to_sequence_integration(qubit_q1):
     hq1 = qubit_q1.get_lpb_collection('f01')['Yp']
-    mprim_1 = qubit_q1.get_measurement_primitive('0')
+    qubit_q1.get_measurement_primitive('0')
 
     compiler = FullSequencingCompiler(
         sampling_rate={

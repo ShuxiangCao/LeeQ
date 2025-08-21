@@ -37,14 +37,14 @@ def test_setup():
         name='TestSimulationSetup',
         virtual_qubits={2: virtual_transmon}
     )
-    
+
     # Set measurement basis to None for basic tests
     setup.status.set_param("Measurement_Basis", None)
-    
+
     manager.register_setup(setup, set_as_default=True)
-    
+
     yield setup
-    
+
     # Cleanup
     manager.clear_setups()
 

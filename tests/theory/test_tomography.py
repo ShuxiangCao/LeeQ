@@ -37,7 +37,7 @@ def _check_process_tomography(model, dimension, gate=None):
         gate = scipy.linalg.expm(1.j * t * np.einsum("abc,c->ab", basis_matrices, coefficient))
 
     ptm_truth = basis.unitary_to_ptm(gate)
-    chi_truth = basis.ptm_to_chi(ptm_truth)
+    basis.ptm_to_chi(ptm_truth)
 
     probabilities = process_tomography.simulate_ideal_process_tomography_distribution(gate)
 

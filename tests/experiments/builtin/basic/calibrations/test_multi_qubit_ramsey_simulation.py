@@ -31,7 +31,7 @@ def simulation_setup():
         readout_dipsersive_shift=2.0,
         quiescent_state_distribution=np.asarray([0.9, 0.08, 0.02])
     )
-    
+
     virtual_transmon_2 = VirtualTransmon(
         name="VQubit2",
         qubit_frequency=5100.0,
@@ -48,7 +48,7 @@ def simulation_setup():
         name='HighLevelSimulationSetup',
         virtual_qubits={2: virtual_transmon_1, 4: virtual_transmon_2}
     )
-    
+
     manager.register_setup(setup)
     return manager
 
@@ -115,7 +115,7 @@ def test_multi_qubit_ramsey_basic(simulation_setup, dut_qubits):
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
     manager.status.set_parameter('Sampling_Noise', False)
-    
+
     # Run MultiQubitRamseyMultilevel
     ramsey_exp = MultiQubitRamseyMultilevel(
         duts=dut_qubits,
@@ -127,16 +127,16 @@ def test_multi_qubit_ramsey_basic(simulation_setup, dut_qubits):
         set_offset=10.0,
         update=False
     )
-    
+
     # Check that data was collected for both qubits
     assert hasattr(ramsey_exp, 'data')
     assert len(ramsey_exp.data) == 2  # Two qubits
-    
+
     # Check data length
     expected_points = int((0.5 - 0.0) / 0.01)
     assert len(ramsey_exp.data[0]) == expected_points
     assert len(ramsey_exp.data[1]) == expected_points
-    
+
     # Check that data shows Ramsey oscillations (should not be constant)
     for data in ramsey_exp.data:
         assert np.std(data) > 0.01  # Should have variation
@@ -149,7 +149,7 @@ def test_multi_qubit_ramsey_different_collection_names(simulation_setup, dut_qub
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
     manager.status.set_parameter('Sampling_Noise', False)
-    
+
     # Run with different collection names for each qubit
     ramsey_exp = MultiQubitRamseyMultilevel(
         duts=dut_qubits,
@@ -161,12 +161,12 @@ def test_multi_qubit_ramsey_different_collection_names(simulation_setup, dut_qub
         set_offset=5.0,
         update=False
     )
-    
+
     # Check data was collected
     assert len(ramsey_exp.data) == 2
     assert hasattr(ramsey_exp, 'level_diffs')
     assert ramsey_exp.level_diffs == [1, 1]  # f01 and f12 both have level_diff = 1
-    
+
     # Both should show oscillations
     for data in ramsey_exp.data:
         assert np.std(data) > 0.01
@@ -177,7 +177,7 @@ def test_multi_qubit_ramsey_with_decoherence(simulation_setup, dut_qubits):
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
     manager.status.set_parameter('Sampling_Noise', False)
-    
+
     # Use longer time to see decay
     ramsey_exp = MultiQubitRamseyMultilevel(
         duts=dut_qubits,
@@ -188,13 +188,13 @@ def test_multi_qubit_ramsey_with_decoherence(simulation_setup, dut_qubits):
         set_offset=1.0,  # Smaller offset for slower oscillations
         update=False
     )
-    
+
     # Check that amplitude decreases over time (T2* decay)
     for data in ramsey_exp.data:
         # Compare first quarter to last quarter of data
         first_quarter_std = np.std(data[:len(data)//4])
         last_quarter_std = np.std(data[3*len(data)//4:])
-        
+
         # Last quarter should have smaller oscillation amplitude due to decay
         assert last_quarter_std < first_quarter_std
 
@@ -204,7 +204,7 @@ def test_multi_qubit_ramsey_time_resolution(simulation_setup, dut_qubits):
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
     manager.status.set_parameter('Sampling_Noise', False)
-    
+
     # Test with high time resolution
     ramsey_exp = MultiQubitRamseyMultilevel(
         duts=dut_qubits,
@@ -214,7 +214,7 @@ def test_multi_qubit_ramsey_time_resolution(simulation_setup, dut_qubits):
         set_offset=20.0,  # Higher frequency oscillations
         update=False
     )
-    
+
     # Should see more oscillation periods with fine time resolution
     for data in ramsey_exp.data:
         # Count zero crossings as proxy for oscillation frequency
@@ -228,7 +228,7 @@ def test_multi_qubit_ramsey_with_noise(simulation_setup, dut_qubits):
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
     manager.status.set_parameter('Sampling_Noise', True)
     manager.status.set_parameter('Shot_Number', 1000)
-    
+
     ramsey_exp = MultiQubitRamseyMultilevel(
         duts=dut_qubits,
         start=0.0,
@@ -237,7 +237,7 @@ def test_multi_qubit_ramsey_with_noise(simulation_setup, dut_qubits):
         set_offset=15.0,
         update=False
     )
-    
+
     # With noise, data should still oscillate but with added scatter
     for data in ramsey_exp.data:
         assert np.std(data) > 0.01  # Should still see oscillations
@@ -250,13 +250,13 @@ def test_multi_qubit_ramsey_single_qubit(simulation_setup):
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
     manager.status.set_parameter('Sampling_Noise', False)
-    
+
     # Create single qubit
     single_qubit = TransmonElement(
         name='single_test_qubit',
         parameters=create_transmon_config(2, 5050.0)
     )
-    
+
     ramsey_exp = MultiQubitRamseyMultilevel(
         duts=[single_qubit],
         collection_names='f01',
@@ -266,7 +266,7 @@ def test_multi_qubit_ramsey_single_qubit(simulation_setup):
         set_offset=8.0,
         update=False
     )
-    
+
     # Should work with single qubit
     assert len(ramsey_exp.data) == 1
     assert np.std(ramsey_exp.data[0]) > 0.01
@@ -277,7 +277,7 @@ def test_multi_qubit_ramsey_plot_methods(simulation_setup, dut_qubits):
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
     manager.status.set_parameter('Sampling_Noise', False)
-    
+
     ramsey_exp = MultiQubitRamseyMultilevel(
         duts=dut_qubits,
         start=0.0,
@@ -285,17 +285,17 @@ def test_multi_qubit_ramsey_plot_methods(simulation_setup, dut_qubits):
         step=0.01,
         update=True  # Need update=True to generate fit_params
     )
-    
+
     # Test that plot methods can be called without error
     try:
         # Note: plot methods exist but we just check they don't crash
         fig = ramsey_exp.plot(0)  # Plot first qubit
         assert fig is not None
-        
+
         # Note: live_plots method not properly implemented for multi-qubit yet
         # live_fig = ramsey_exp.live_plots()
         # assert live_fig is not None
-        
+
     except Exception as e:
         pytest.fail(f"Plotting methods should not raise exceptions: {e}")
 
@@ -305,10 +305,10 @@ def test_multi_qubit_ramsey_update_frequencies(simulation_setup, dut_qubits):
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
     manager.status.set_parameter('Sampling_Noise', False)
-    
+
     # Store original frequencies
-    original_freqs = [qubit.get_c1('f01')['Xp'].freq for qubit in dut_qubits]
-    
+    [qubit.get_c1('f01')['Xp'].freq for qubit in dut_qubits]
+
     ramsey_exp = MultiQubitRamseyMultilevel(
         duts=dut_qubits,
         start=0.0,
@@ -317,20 +317,20 @@ def test_multi_qubit_ramsey_update_frequencies(simulation_setup, dut_qubits):
         set_offset=10.0,
         update=True  # Enable frequency update
     )
-    
+
     # Should have fit parameters
     assert hasattr(ramsey_exp, 'fit_params')
     assert hasattr(ramsey_exp, 'frequency_guess')
-    
+
     # Frequencies should have been updated (may be different from original)
-    updated_freqs = [qubit.get_c1('f01')['Xp'].freq for qubit in dut_qubits]
-    
+    [qubit.get_c1('f01')['Xp'].freq for qubit in dut_qubits]
+
     # At least check that the attributes exist and have correct length
     assert len(ramsey_exp.frequency_guess) == len(dut_qubits)
 
 
 def test_multi_qubit_ramsey_different_offsets():
-    """Test that different frequency offsets produce different oscillation frequencies.""" 
+    """Test that different frequency offsets produce different oscillation frequencies."""
     # This test doesn't need the fixture as it's testing the concept
     # In a real scenario, higher offsets should produce faster oscillations
     pass  # Placeholder for conceptual test
@@ -341,7 +341,7 @@ def test_multi_qubit_ramsey_level_differences(simulation_setup, dut_qubits):
     manager = ExperimentManager().get_default_setup()
     manager.status.set_parameter("Plot_Result_In_Jupyter", False)
     manager.status.set_parameter('Sampling_Noise', False)
-    
+
     # Test with f01 and f12 transitions
     ramsey_exp = MultiQubitRamseyMultilevel(
         duts=dut_qubits,
@@ -352,10 +352,10 @@ def test_multi_qubit_ramsey_level_differences(simulation_setup, dut_qubits):
         set_offset=10.0,
         update=False
     )
-    
+
     # Should correctly calculate level differences
     assert ramsey_exp.level_diffs == [1, 1]  # Both f01 and f12 have level_diff = 1
-    
+
     # Both qubits should show oscillations
     for data in ramsey_exp.data:
         assert np.std(data) > 0.01

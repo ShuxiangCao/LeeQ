@@ -18,39 +18,28 @@ def test_epii_client():
     # Connect to the daemon
     channel = grpc.insecure_channel('localhost:50051')
     stub = epii_pb2_grpc.ExperimentPlatformServiceStub(channel)
-    
-    print("Testing EPII daemon...")
-    
+
+
     # Test Ping
     try:
         response = stub.Ping(epii_pb2.Empty())
-        print(f"✓ Ping successful: {response.message}")
-    except grpc.RpcError as e:
-        print(f"✗ Ping failed: {e}")
+    except grpc.RpcError:
         return False
-    
+
     # Test GetCapabilities
     try:
         response = stub.GetCapabilities(epii_pb2.Empty())
-        print(f"✓ GetCapabilities successful:")
-        print(f"  - Framework: {response.framework_name} v{response.framework_version}")
-        print(f"  - EPII version: {response.epii_version}")
-        print(f"  - Experiments: {len(response.experiment_types)} available")
-    except grpc.RpcError as e:
-        print(f"✗ GetCapabilities failed: {e}")
+    except grpc.RpcError:
         return False
-    
+
     # Test ListAvailableExperiments
     try:
         response = stub.ListAvailableExperiments(epii_pb2.Empty())
-        print(f"✓ ListAvailableExperiments successful:")
         for exp in response.experiments[:3]:  # Show first 3
-            print(f"  - {exp.name}: {exp.description}")
-    except grpc.RpcError as e:
-        print(f"✗ ListAvailableExperiments failed: {e}")
+            pass
+    except grpc.RpcError:
         return False
-    
-    print("\nAll tests passed!")
+
     return True
 
 
