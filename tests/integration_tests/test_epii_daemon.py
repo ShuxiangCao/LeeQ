@@ -604,4 +604,5 @@ class TestEPIIMockExperimentIntegration:
 # Pytest markers for different test categories
 pytestmark = [
     pytest.mark.integration,  # Mark all tests as integration tests
+    pytest.mark.daemon,       # Mark as daemon tests (may be flaky in CI)
 ]
