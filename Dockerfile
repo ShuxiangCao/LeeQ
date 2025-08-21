@@ -29,8 +29,23 @@ RUN git clone https://gitlab.com/LBL-QubiC/experiments/chipcalibration.git /home
 RUN git clone https://github.com/ShuxiangCao/LabChronicle.git /home/jovyan/packages/LabChronicle
 
 # Copy the content of the local src directory to the packagesing directory
-COPY . /home/jovyan/packages/LeeQ
-COPY ./notebooks/* /home/jovyan/notebook_examples
+COPY --chown=${NB_UID}:${NB_GID} . /home/jovyan/packages/LeeQ
+COPY --chown=${NB_UID}:${NB_GID} ./notebooks/* /home/jovyan/notebook_examples
+
+# Temporarily switch to root to fix permissions
+USER root
+RUN mkdir -p /home/jovyan/.local/share/jupyter/runtime && \
+    mkdir -p /home/jovyan/.config/matplotlib && \
+    mkdir -p /home/jovyan/.cache && \
+    chown -R ${NB_UID}:${NB_GID} /home/jovyan/.local && \
+    chown -R ${NB_UID}:${NB_GID} /home/jovyan/.config && \
+    chown -R ${NB_UID}:${NB_GID} /home/jovyan/.cache && \
+    chmod -R 755 /home/jovyan/.local && \
+    chmod -R 755 /home/jovyan/.config && \
+    chmod -R 755 /home/jovyan/.cache
+
+# Switch back to jovyan user
+USER ${NB_UID}
 
 # Install base requirements using uv (much faster and uses prebuilt wheels)
 RUN uv pip install --system ipdb ipywidgets
@@ -45,7 +60,7 @@ RUN uv pip install --system -e /home/jovyan/packages/QubiC/qubitconfig
 RUN uv pip install --system -e /home/jovyan/packages/LabChronicle
 
 # Copy Docker-specific requirements file
-COPY requirements-docker.txt /home/jovyan/packages/LeeQ/
+COPY --chown=${NB_UID}:${NB_GID} requirements-docker.txt /home/jovyan/packages/LeeQ/
 
 # Install the requirements using uv (will use prebuilt wheels when available)
 # Using requirements-docker.txt to avoid conflicts with packages that don't support NumPy 2.x
