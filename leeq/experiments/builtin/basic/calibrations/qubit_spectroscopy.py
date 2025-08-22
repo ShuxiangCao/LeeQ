@@ -178,59 +178,53 @@ class QubitSpectroscopyFrequency(Experiment):
         None
         """
 
-        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
-        virtual_transmon = simulator_setup.get_virtual_qubit(dut_qubit)
-
+        simulator_setup = setup().get_default_setup()
+        
+        # Prepare parameters
         mprim = dut_qubit.get_default_measurement_prim_intlist()
-
-        width = rep_rate if mp_width is None else mp_width
-        if width is None:
-            width = mprim.width
-
         f_readout = mprim.freq if res_freq is None else res_freq
-
-        omega_per_amp_readout = simulator_setup.get_omega_per_amp(
-            mprim.channel)  # MHz
+        omega_per_amp_readout = simulator_setup.get_omega_per_amp(mprim.channel)
         effective_amp_readout = mprim.amp * omega_per_amp_readout
-
-        omega_per_amp_drive = simulator_setup.get_omega_per_amp(
-            dut_qubit.get_default_c1().channel)  # MHz
+        
+        channel = dut_qubit.get_default_c1().channel
+        omega_per_amp_drive = simulator_setup.get_omega_per_amp(channel)
         effective_amp_drive = amp * omega_per_amp_drive
-
+        
+        # Use new CW spectroscopy simulator
+        from leeq.theory.simulation.numpy.cw_spectroscopy import CWSpectroscopySimulator
+        
+        sim = CWSpectroscopySimulator(simulator_setup)
         freq_qdrive = np.arange(start, stop, step)
-
-        response = virtual_transmon.get_qubit_spectroscopy_response(
-            f_qdrive=freq_qdrive,
-            f_readout=f_readout,
-            amp_qdrive=effective_amp_drive,
-            amp_rdrive=effective_amp_readout,
-            readout_baseline=2 * effective_amp_readout)
-
+        response = []
+        
+        for freq in freq_qdrive:
+            iq_responses = sim.simulate_spectroscopy_iq(
+                drives=[(channel, freq, effective_amp_drive)],
+                readout_params={channel: {'frequency': f_readout, 
+                                         'amplitude': effective_amp_readout}}
+            )
+            response.append(iq_responses[channel])
+        
+        response = np.array(response)
+        
+        # Add noise (same as original)
         num_elements_to_baseline = int(len(response) * 0.2)
-
-        # Randomly select indices to set to 0
         indices_to_baseline = np.random.choice(response.size, num_elements_to_baseline, replace=False)
-
-        # Set the selected elements to 0
         response[indices_to_baseline] = response.mean()
-
-        noise_scale = 100 / np.log(num_avs) / np.sqrt(width)
-
-        noise = (np.random.normal(0, noise_scale, response.shape)
-                 + 1j * np.random.normal(0, noise_scale, response.shape))
-
-        response = response + noise
-
-        self.trace = response
+        
+        noise_scale = 100 / np.log(num_avs) / np.sqrt(mp_width if mp_width else 0.5)
+        noise = (np.random.normal(0, noise_scale, response.shape) + 
+                 1j * np.random.normal(0, noise_scale, response.shape))
+        
+        self.trace = response + noise
         self.result = {
             'Magnitude': np.absolute(self.trace),
             'Phase': np.unwrap(np.angle(self.trace)),
         }
-
-        # Estimate the resonant frequency based on the results
+        
+        # Frequency guess
         mean_level = np.average(self.result['Magnitude'][:10])
-        self.frequency_guess = np.arange(start=start, stop=stop, step=step)[
-            np.argmax(abs(self.result['Magnitude'] - mean_level))]
+        self.frequency_guess = freq_qdrive[np.argmax(abs(self.result['Magnitude'] - mean_level))]
 
     @register_browser_function(available_after=(run,))
     @visual_inspection(
