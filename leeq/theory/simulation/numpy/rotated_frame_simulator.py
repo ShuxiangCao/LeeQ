@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Union, Optional
 
 import numpy as np
 import scipy
@@ -22,6 +22,8 @@ class VirtualTransmon(object):
             truncate_level=4,
             quiescent_state_distribution: Union[List[float], None] = None,
             frequency_selectivity_window: float = 50,
+            coupling_strength: Optional[float] = None,
+            use_physics_chi: bool = False,
     ):
         """
         Initialize the VirtualTransmon class.
@@ -42,6 +44,8 @@ class VirtualTransmon(object):
             frequency_selectivity_window (float): The frequency selectivity window of the transmon. If the the drive
                 frequency is outside of the window (centered at the transition frequency), we simplify the simulation
                 by assuming the drive does not affect the system. Otherwise an X/Y + Z rotation is applied.
+            coupling_strength (Optional[float]): Qubit-resonator coupling strength (MHz). Required if use_physics_chi=True.
+            use_physics_chi (bool): Whether to use physics-based chi shift calculation instead of constant dispersive shift.
         """
 
         self.name = name
@@ -55,6 +59,8 @@ class VirtualTransmon(object):
         self.truncate_level = truncate_level
         self.quiescent_state_distribution = quiescent_state_distribution
         self.frequency_selectivity_window = frequency_selectivity_window
+        self.coupling_strength = coupling_strength
+        self.use_physics_chi = use_physics_chi
         self._density_matrix = None
 
         self._transition_ops = {}
@@ -67,15 +73,40 @@ class VirtualTransmon(object):
 
     def _build_resonator_response(self):
         """
-        Find the resonator frequency when the transmon is at different state. Here we use the simplest approximation.
-        Which consider the dispersive shift are the same.
+        Find the resonator frequency when the transmon is at different state.
+        Uses physics-based chi calculation if enabled, otherwise uses constant dispersive shift.
         """
-        self._resonator_frequencies = np.asarray(
-            [
-                self.readout_frequency - i * self.readout_dipsersive_shift
+        if self.use_physics_chi:
+            # Use physics-based chi shift calculation
+            if self.coupling_strength is None:
+                raise ValueError("coupling_strength must be specified when use_physics_chi=True")
+            
+            from leeq.theory.simulation.numpy.dispersive_readout.physics import ChiShiftCalculator
+            
+            calculator = ChiShiftCalculator()
+            chi_shifts = calculator.calculate_chi_shifts(
+                f_r=self.readout_frequency,
+                f_q=self.qubit_frequency,
+                anharmonicity=self.anharmonicity,
+                g=self.coupling_strength,
+                num_levels=self.truncate_level,
+                relative=True  # Get relative chi shifts (chi[0] = 0)
+            )
+            
+            # Convert chi shifts to resonator frequencies
+            # Resonator frequency shifts by -chi when qubit is in state |n>
+            self._resonator_frequencies = np.asarray([
+                self.readout_frequency - chi_shifts[i]
                 for i in range(self.truncate_level)
-            ]
-        )
+            ])
+        else:
+            # Use constant dispersive shift (legacy behavior)
+            self._resonator_frequencies = np.asarray(
+                [
+                    self.readout_frequency - i * self.readout_dipsersive_shift
+                    for i in range(self.truncate_level)
+                ]
+            )
 
     def get_resonator_response(
             self,

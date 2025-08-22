@@ -549,8 +549,15 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         sampling_rate = 1e1
         f_r = virtual_transmon.readout_frequency
         kappa = virtual_transmon.readout_linewidth
-        chis = np.cumsum([virtual_transmon.readout_dipsersive_shift] * 4)
         quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+        
+        # Determine chi shifts based on virtual transmon configuration
+        if hasattr(virtual_transmon, 'use_physics_chi') and virtual_transmon.use_physics_chi:
+            # Use physics-based chi calculation via simulator
+            chis = None  # Will be calculated by DispersiveReadoutSimulatorSyntheticData
+        else:
+            # Use legacy constant chi shifts
+            chis = np.cumsum([virtual_transmon.readout_dipsersive_shift] * 4)
 
         def _get_state_based_on_quiescent_state_distribution(target_state):
             """
@@ -580,10 +587,31 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
 
             return int(r)
 
-        simulator = DispersiveReadoutSimulatorSyntheticData(
-            f_r, kappa, chis, amp, baseline, width,
-            rise, trunc, sampling_rate,
-        )
+        # Create simulator with appropriate parameters
+        if hasattr(virtual_transmon, 'use_physics_chi') and virtual_transmon.use_physics_chi:
+            # Use physics-based chi calculation
+            simulator = DispersiveReadoutSimulatorSyntheticData(
+                f_r=f_r,
+                kappa=kappa,
+                chis=None,  # Will be calculated by physics model
+                amp=amp,
+                baseline=baseline,
+                width=width,
+                rise=rise,
+                trunc=trunc,
+                sampling_rate=sampling_rate,
+                use_physics_model=True,
+                anharmonicity=virtual_transmon.anharmonicity,
+                coupling_strength=virtual_transmon.coupling_strength,
+                f_q=virtual_transmon.qubit_frequency,
+                num_levels=len(sweep_lpb_list)
+            )
+        else:
+            # Use legacy constant chi shifts
+            simulator = DispersiveReadoutSimulatorSyntheticData(
+                f_r, kappa, chis, amp, baseline, width,
+                rise, trunc, sampling_rate,
+            )
 
         shot_number = setup().status().get_param('Shot_Number')
 

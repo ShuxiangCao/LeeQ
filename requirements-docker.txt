@@ -24,3 +24,4 @@ kaleido
 pandas
 dill
 k_agents @ git+https://github.com/EvoEvolver/k_agents
+MinimalLLM @ git+https://github.com/EvoEvolver/MinimalLLM
