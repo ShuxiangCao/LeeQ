@@ -181,3 +181,25 @@ PRPs/
 devnotes/
 *devnote*
 .vscode.example/
+# Logs and temporary files
+log/
+*.log
+jupyter.log
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Personal files
+.claude
+
+# Coverage reports
+coverage.json
+*.coverage
+
+# Temporary test files
+test_issue
+mocked_path
+
+# Documentation builds
+*.html
+
