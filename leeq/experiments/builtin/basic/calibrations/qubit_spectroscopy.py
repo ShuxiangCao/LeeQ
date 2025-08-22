@@ -12,6 +12,19 @@ from leeq.utils.compatibility import setup
 __all__ = ['QubitSpectroscopyFrequency', 'QubitSpectroscopyAmplitudeFrequency']
 
 
+# Helper class for simulation mode - moved outside method for pickling
+class _MockMP:
+    """Mock measurement primitive for simulation compatibility."""
+    def __init__(self, parent, mprim):
+        self.parent = parent
+        self.freq = mprim.freq
+        self.channel = mprim.channel
+        self.amp = mprim.amp
+    
+    def result(self):
+        return self.parent.trace
+
+
 class QubitSpectroscopyFrequency(Experiment):
     """
     A class used to represent the QubitSweepPlottly experiment,
@@ -130,10 +143,13 @@ class QubitSpectroscopyFrequency(Experiment):
             'Magnitude': np.absolute(self.trace),
             'Phase': np.unwrap(np.angle(self.trace)),
         }
+        
+        # Store frequency array for later access
+        self.freq_arr = np.arange(start=start, stop=stop, step=step)
 
         # Estimate the resonant frequency based on the results
         mean_level = np.average(self.result['Magnitude'][:10])
-        self.frequency_guess = np.arange(start=start, stop=stop, step=step)[
+        self.frequency_guess = self.freq_arr[
             np.argmax(abs(self.result['Magnitude'] - mean_level))]
 
     @log_and_record(overwrite_func_name='QubitSpectroscopyFrequency.run')
@@ -222,11 +238,14 @@ class QubitSpectroscopyFrequency(Experiment):
             'Phase': np.unwrap(np.angle(self.trace)),
         }
         
+        # Store frequency array for later access
+        self.freq_arr = freq_qdrive
+        
         # Frequency guess
         mean_level = np.average(self.result['Magnitude'][:10])
         self.frequency_guess = freq_qdrive[np.argmax(abs(self.result['Magnitude'] - mean_level))]
 
-    @register_browser_function(available_after=(run,))
+    @register_browser_function()
     @visual_inspection(
         """
         Given a plot of the phase response of a resonator as a function of frequency, analyze the stability and
@@ -281,7 +300,7 @@ class QubitSpectroscopyFrequency(Experiment):
 
         return fig
 
-    @register_browser_function(available_after=(run,))
+    @register_browser_function()
     def plot_phase(self, step_no: tuple[int] = None) -> go.Figure:
         """
         Generates a plot for the phase response from the frequency sweep data.
@@ -417,6 +436,10 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         mp.set_transform_function(None)
 
         self.mp = mp
+        
+        # Store frequency and amplitude arrays
+        self.freq_arr = np.arange(start, stop, step)
+        self.amp_arr = np.arange(qubit_amp_start, qubit_amp_stop, qubit_amp_step)
 
         # Clone the default pulse
         pulse = dut_qubit.get_default_c1()['X'].clone()
@@ -465,7 +488,120 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
                 self.trace), 'Phase': np.angle(
                 self.trace)}
 
-    @register_browser_function(available_after=(run,))
+    @log_and_record(overwrite_func_name='QubitSpectroscopyAmplitudeFrequency.run')
+    def run_simulated(
+            self,
+            dut_qubit: Any,
+            start: float = 3.e3,
+            stop: float = 8.e3,
+            step: float = 5.,
+            num_avs: int = 1000,
+            rep_rate: float = 0.,
+            mp_width: Union[int, None] = 0.5,
+            qubit_amp_start: float = 0.01,
+            qubit_amp_stop: float = 0.03,
+            qubit_amp_step: float = 0.001) -> None:
+        """
+        Simulates the qubit spectroscopy experiment by sweeping both frequency and amplitude.
+        Uses the CW spectroscopy simulator for high-level simulation.
+
+        Parameters
+        ----------
+        dut_qubit : Any
+            The device under test (DUT) - qubit.
+        start : float
+            The starting frequency in MHz.
+        stop : float
+            The stopping frequency in MHz.
+        step : float
+            The frequency step in MHz.
+        num_avs : int
+            Number of averages for measurement.
+        rep_rate : float
+            The repetition rate.
+        mp_width : Union[int, None]
+            Measurement primitive width, if None, width is set to rep_rate.
+        qubit_amp_start : float
+            The start amplitude for qubit.
+        qubit_amp_stop : float
+            The stop amplitude for qubit.
+        qubit_amp_step : float
+            The amplitude step for qubit.
+        """
+        
+        # Get simulation setup
+        simulator_setup = setup().get_default_setup()
+        
+        # Prepare parameters
+        mprim = dut_qubit.get_default_measurement_prim_intlist()
+        
+        # Create a mock mp object that returns our simulated data
+        self.mp = _MockMP(self, mprim)  # Store for plotting compatibility
+        
+        f_readout = mprim.freq
+        omega_per_amp_readout = simulator_setup.get_omega_per_amp(mprim.channel)
+        effective_amp_readout = mprim.amp * omega_per_amp_readout
+        
+        channel = dut_qubit.get_default_c1().channel
+        omega_per_amp_drive = simulator_setup.get_omega_per_amp(channel)
+        
+        # Use new CW spectroscopy simulator
+        from leeq.theory.simulation.numpy.cw_spectroscopy import CWSpectroscopySimulator
+        
+        sim = CWSpectroscopySimulator(simulator_setup)
+        
+        # Create frequency and amplitude arrays
+        freq_array = np.arange(start, stop, step)
+        amp_array = np.arange(qubit_amp_start, qubit_amp_stop, qubit_amp_step)
+        
+        # Store arrays as attributes for later access
+        self.freq_arr = freq_array
+        self.amp_arr = amp_array
+        
+        # Create 2D array to store results
+        response_2d = np.zeros((len(amp_array), len(freq_array)), dtype=complex)
+        
+        # Perform 2D sweep
+        for i, amp in enumerate(amp_array):
+            effective_amp_drive = amp * omega_per_amp_drive
+            
+            for j, freq in enumerate(freq_array):
+                # Simulate for this frequency and amplitude
+                iq_responses = sim.simulate_spectroscopy_iq(
+                    drives=[(channel, freq, effective_amp_drive)],
+                    readout_params={channel: {'frequency': f_readout, 
+                                             'amplitude': effective_amp_readout}}
+                )
+                response_2d[i, j] = iq_responses[channel]
+        
+        # Add noise to simulate realistic measurements
+        width = mp_width if mp_width is not None else rep_rate
+        if width is None:
+            width = 0.5
+            
+        # Add baseline dropout (similar to 1D spectroscopy)
+        num_elements_to_baseline = int(response_2d.size * 0.2)
+        indices_to_baseline = np.random.choice(response_2d.size, num_elements_to_baseline, replace=False)
+        response_2d_flat = response_2d.flatten()
+        mean_value = response_2d_flat.mean()
+        response_2d_flat[indices_to_baseline] = mean_value
+        response_2d = response_2d_flat.reshape(response_2d.shape)
+        
+        # Add Gaussian noise
+        noise_scale = 100 / np.log(num_avs) / np.sqrt(width)
+        noise = (np.random.normal(0, noise_scale, response_2d.shape) + 
+                 1j * np.random.normal(0, noise_scale, response_2d.shape))
+        
+        response_2d = response_2d + noise
+        
+        # Store results in the same format as the regular run method
+        self.trace = response_2d
+        self.result = {
+            'Magnitude': np.absolute(self.trace),
+            'Phase': np.angle(self.trace)
+        }
+
+    @register_browser_function()
     def plot_magnitude(self) -> go.Figure:
         """
         Plots the magnitude from the experiment results.
@@ -480,7 +616,7 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         data = np.abs(trace)
         return self._plot(data, name='magnitude')
 
-    @register_browser_function(available_after=(run,))
+    @register_browser_function()
     def plot_magnitude_logscale(self) -> go.Figure:
         """
         Plots the magnitude from the experiment results in logarithmic scale.
@@ -495,7 +631,7 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         data = np.abs(trace)
         return self._plot(np.log(data), name='logscale magnitude')
 
-    @register_browser_function(available_after=(run,))
+    @register_browser_function()
     def plot_phase(self) -> go.Figure:
         """
         Plots the phase from the experiment results.
