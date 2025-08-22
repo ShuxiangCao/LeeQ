@@ -22,11 +22,14 @@ from .transmon_physics import (
     ac_stark_shift
 )
 
+from .multi_qubit_simulator import MultiQubitDispersiveReadoutSimulator
+
 __all__ = [
     'DispersiveReadoutSimulator',
     'DispersiveReadoutSimulatorSyntheticData', 
     'DispersiveReadoutSimulatorRealData',
     'ChiShiftCalculator',
+    'MultiQubitDispersiveReadoutSimulator',
     'calculate_transmon_energies',
     'calculate_transition_frequencies',
     'calculate_coupling_matrix_elements',
