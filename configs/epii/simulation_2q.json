@@ -1,48 +1,36 @@
 {
   "setup_type": "simulation",
-  "setup_class": "HighLevelSimulationSetup",
-  "config": {
-    "platform": "numpy",
-    "num_qubits": 2,
-    "coupling_graph": [[0, 1]],
+  "setup_name": "calibration_sim",
+  "port": 50051,
+  "log_level": "INFO",
+  "max_workers": 1,
+  "num_qubits": 2,
+  "simulation_backend": "high_level",
+  "parameters": {
     "qubits": {
       "q0": {
-        "frequency": 5.0e9,
-        "anharmonicity": -250e6,
-        "t1": 50e-6,
-        "t2": 30e-6,
-        "readout_frequency": 6.5e9,
-        "readout_snr": 10.0
+        "f01": 5000000000,
+        "anharmonicity": -330000000,
+        "t1": 20e-6,
+        "t2": 15e-6,
+        "readout_frequency": 8800000000
       },
       "q1": {
-        "frequency": 5.2e9,
-        "anharmonicity": -240e6,
-        "t1": 45e-6,
-        "t2": 28e-6,
-        "readout_frequency": 6.7e9,
-        "readout_snr": 9.5
+        "f01": 5100000000,
+        "anharmonicity": -330000000,
+        "t1": 25e-6,
+        "t2": 18e-6,
+        "readout_frequency": 8900000000
       }
     },
-    "gates": {
-      "single_qubit": {
-        "x": {"duration": 20e-9, "amplitude": 0.5},
-        "y": {"duration": 20e-9, "amplitude": 0.5},
-        "z": {"duration": 0, "amplitude": 0}
-      },
-      "two_qubit": {
-        "cx": {"duration": 200e-9, "coupling_strength": 10e6}
+    "couplings": {
+      "q0-q1": {
+        "strength": 5000000
       }
     }
-  },
-  "grpc": {
-    "port": 50051,
-    "max_workers": 10,
-    "max_message_length": 104857600
   },
   "logging": {
     "level": "INFO",
     "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-  },
-  "experiment_timeout": 300,
-  "parameter_validation": true
+  }
 }
