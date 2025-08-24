@@ -107,7 +107,7 @@ class CWSpectroscopySimulator:
 
     def _simulate_single_qubit(self, channel: int, freq: float, amp: float) -> np.ndarray:
         """
-        Simulate single qubit response in rotating frame.
+        Simulate single qubit response in rotating frame using steady-state master equation.
 
         Parameters
         ----------
@@ -124,20 +124,60 @@ class CWSpectroscopySimulator:
             Population array [P0, P1, P2, ...] for energy levels
         """
         N = self.truncation
+        vqubit = self.virtual_qubits[channel]
 
-        # Get cached Hamiltonian
+        # Get Hamiltonian
         H = self._get_cached_hamiltonian(channel, freq, amp)
 
-        # Find dressed ground state
-        eigenvalues, eigenstates = H.eigenstates()
-        ground_bare = qt.basis(N, 0)
-        overlaps = [np.abs(es.overlap(ground_bare))**2 for es in eigenstates]
-        dressed_ground = eigenstates[np.argmax(overlaps)]
-
-        # Extract populations
-        populations = np.zeros(N)
-        for i in range(N):
-            populations[i] = np.abs(dressed_ground.overlap(qt.basis(N, i)))**2
+        # Create collapse operators for T1 and T2 processes
+        c_ops = []
+        
+        # T1 decay (energy relaxation)
+        a = qt.destroy(N)
+        # Convert T1 from us to 1/MHz (since H is in MHz after scaling)
+        # T1 is in us, we want gamma in MHz
+        # gamma = 1/T1[us] * 1[us/MHz] = 1/T1 MHz
+        gamma1 = 1.0 / vqubit.t1  # in MHz
+        
+        # Add decay from each level (scales with sqrt(n))
+        for n in range(1, N):
+            c_ops.append(np.sqrt(gamma1 * n) * qt.basis(N, n-1) * qt.basis(N, n).dag())
+        
+        # T2 dephasing (pure dephasing contribution)
+        # T2 includes both T1 contribution and pure dephasing: 1/T2 = 1/(2*T1) + 1/T_phi
+        gamma_phi = 1.0 / vqubit.t2 - 1.0 / (2 * vqubit.t1)
+        
+        if gamma_phi > 0:  # Only add if there's pure dephasing
+            # Dephasing operator
+            for level in range(1, N):
+                c_ops.append(np.sqrt(gamma_phi * level) * qt.basis(N, level) * qt.basis(N, level).dag())
+        
+        # Find steady state using QuTiP's solver
+        try:
+            # The Hamiltonian H is in 2π*MHz (angular frequency)
+            # Convert to regular frequency (MHz) for consistency with decay rates
+            H_MHz = H / (2 * np.pi)
+            
+            # Calculate steady state
+            rho_ss = qt.steadystate(H_MHz, c_ops, method='direct')
+            
+            # Extract populations from density matrix
+            populations = np.zeros(N)
+            for i in range(N):
+                populations[i] = np.real(rho_ss[i, i])
+                
+        except Exception as e:
+            # Fallback to original method if steady state fails
+            print(f"Warning: Steady state calculation failed: {e}")
+            print("Falling back to dressed state approximation")
+            eigenvalues, eigenstates = H.eigenstates()
+            ground_bare = qt.basis(N, 0)
+            overlaps = [np.abs(es.overlap(ground_bare))**2 for es in eigenstates]
+            dressed_ground = eigenstates[np.argmax(overlaps)]
+            
+            populations = np.zeros(N)
+            for i in range(N):
+                populations[i] = np.abs(dressed_ground.overlap(qt.basis(N, i)))**2
 
         return populations
 

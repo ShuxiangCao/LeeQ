@@ -157,8 +157,6 @@ class VirtualTransmon(object):
             np.ndarray: The resonator response.
         """
 
-        from leeq.theory.simulation.numpy.dispersive_readout.utils import root_lorentzian
-
         # Calculate effective resonator frequencies with power-dependent shifts
         if power is not None and self.use_kerr_nonlinearity:
             # Calculate photon number from power
@@ -180,10 +178,11 @@ class VirtualTransmon(object):
             # Use original resonator frequencies when Kerr is disabled or power is None
             effective_resonator_frequencies = self._resonator_frequencies
 
+        # Calculate proper Lorentzian response for each state
+        # Response = amp / (1 + 2j * (f - f0) / kappa) + baseline
         s_11 = np.asarray([
-            root_lorentzian(
-                f=f, f0=f0, amp=amp, kappa=self.readout_linewidth, baseline=baseline
-            ) for f0 in effective_resonator_frequencies
+            amp / (1 + 2j * (f - f0) / self.readout_linewidth) + baseline
+            for f0 in effective_resonator_frequencies
         ])
 
         return s_11
