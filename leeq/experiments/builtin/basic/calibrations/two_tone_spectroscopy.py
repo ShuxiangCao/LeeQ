@@ -11,6 +11,15 @@ from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulation
 __all__ = ['TwoToneQubitSpectroscopy']
 
 
+def _simulate_two_tone_point_global(drives, readout_params, readout_channel, simulator):
+    """
+    Global worker function for parallel two-tone spectroscopy point calculation.
+    This function must be at module level to be pickle-able for multiprocessing.
+    """
+    iq_response = simulator.simulate_spectroscopy_iq(drives, readout_params)
+    return iq_response[readout_channel]
+
+
 class TwoToneQubitSpectroscopy(Experiment):
     """
     Two-tone spectroscopy with dual frequency sweeps and optional noise-free simulation.
@@ -86,6 +95,8 @@ class TwoToneQubitSpectroscopy(Experiment):
         mp_width: float = 1.0,
         set_qubit: str = 'f01',
         disable_noise: bool = False,
+        use_parallel: bool = True,
+        num_workers: Optional[int] = None,
     ):
         """
         Run two-tone spectroscopy experiment on hardware.
@@ -122,6 +133,10 @@ class TwoToneQubitSpectroscopy(Experiment):
             Qubit transition to probe ('f01' or 'f12').
         disable_noise : bool
             If True, disable noise in simulation mode. Ignored in hardware mode.
+        use_parallel : bool
+            If True, use CPU parallelization for faster processing. Ignored in hardware mode.
+        num_workers : Optional[int]
+            Number of worker processes. If None, uses all CPU cores. Ignored in hardware mode.
         """
         self.dut_qubit = dut_qubit
         self.tone1_amp = tone1_amp
@@ -169,9 +184,11 @@ class TwoToneQubitSpectroscopy(Experiment):
         mp_width: float = 1.0,
         set_qubit: str = 'f01',
         disable_noise: bool = False,
+        use_parallel: bool = True,
+        num_workers: Optional[int] = None,
     ):
         """
-        Run two-tone spectroscopy experiment in simulation mode with optional noise-free data.
+        Run two-tone spectroscopy experiment in simulation mode with optional noise-free data and CPU parallelization.
         
         Uses CWSpectroscopySimulator for efficient multi-tone simulation. Supports both
         same-channel (combined amplitude) and cross-channel configurations.
@@ -209,6 +226,12 @@ class TwoToneQubitSpectroscopy(Experiment):
         disable_noise : bool, optional
             If True, skip Gaussian noise addition for clean simulation data.
             Useful for physics validation and benchmarking. Default is False.
+        use_parallel : bool, optional
+            If True, use CPU parallelization for faster 2D processing.
+            Default is True for automatic speedup.
+        num_workers : Optional[int], optional
+            Number of worker processes for parallelization. If None, uses all CPU cores.
+            Only effective when use_parallel=True.
             
         Notes
         -----
@@ -277,28 +300,76 @@ class TwoToneQubitSpectroscopy(Experiment):
         readout_freq = mp.freq
         readout_amp = mp.amp
         
-        # 2D sweep simulation
-        result = []
-        for f1 in self.freq1_arr:
-            row = []
-            for f2 in self.freq2_arr:
-                # Setup drives
-                if same_channel and np.isclose(f1, f2):
-                    # Combined amplitude when same frequency on same channel
-                    drives = [(channel1, f1, tone1_amp + tone2_amp)]
-                else:
-                    drives = [(channel1, f1, tone1_amp), (channel2, f2, tone2_amp)]
+        # 2D sweep simulation with optional parallelization
+        if use_parallel:
+            try:
+                import time
+                from concurrent.futures import ProcessPoolExecutor
+                import multiprocessing
                 
-                # Simulate
-                readout_params = {
-                    readout_channel: {
-                        'frequency': readout_freq,
-                        'amplitude': readout_amp
+                start_time = time.time()
+                
+                if num_workers is None:
+                    num_workers = multiprocessing.cpu_count()
+                
+                # Create parameter combinations for parallel processing
+                param_combinations = []
+                for f1 in self.freq1_arr:
+                    for f2 in self.freq2_arr:
+                        # Setup drives for this parameter combination
+                        if same_channel and np.isclose(f1, f2):
+                            drives = [(channel1, f1, tone1_amp + tone2_amp)]
+                        else:
+                            drives = [(channel1, f1, tone1_amp), (channel2, f2, tone2_amp)]
+                        
+                        readout_params = {
+                            readout_channel: {
+                                'frequency': readout_freq,
+                                'amplitude': readout_amp
+                            }
+                        }
+                        param_combinations.append((drives, readout_params, readout_channel))
+                
+                # Process in parallel
+                with ProcessPoolExecutor(max_workers=num_workers) as executor:
+                    futures = [executor.submit(_simulate_two_tone_point_global, 
+                                             drives, readout_params, readout_channel, simulator)
+                             for drives, readout_params, readout_channel in param_combinations]
+                    result_flat = [f.result() for f in futures]
+                
+                # Reshape to 2D array
+                result = np.array(result_flat).reshape(len(self.freq1_arr), len(self.freq2_arr))
+                
+                parallel_time = time.time() - start_time
+                print(f"Two-tone parallel processing completed in {parallel_time:.2f}s using {num_workers} workers")
+                
+            except Exception as e:
+                print(f"Two-tone parallel processing failed ({e}), falling back to sequential")
+                use_parallel = False
+        
+        if not use_parallel:
+            # Sequential processing (original implementation)
+            result = []
+            for f1 in self.freq1_arr:
+                row = []
+                for f2 in self.freq2_arr:
+                    # Setup drives
+                    if same_channel and np.isclose(f1, f2):
+                        # Combined amplitude when same frequency on same channel
+                        drives = [(channel1, f1, tone1_amp + tone2_amp)]
+                    else:
+                        drives = [(channel1, f1, tone1_amp), (channel2, f2, tone2_amp)]
+                    
+                    # Simulate
+                    readout_params = {
+                        readout_channel: {
+                            'frequency': readout_freq,
+                            'amplitude': readout_amp
+                        }
                     }
-                }
-                iq_response = simulator.simulate_spectroscopy_iq(drives, readout_params)
-                row.append(iq_response[readout_channel])
-            result.append(row)
+                    iq_response = simulator.simulate_spectroscopy_iq(drives, readout_params)
+                    row.append(iq_response[readout_channel])
+                result.append(row)
         
         # Store results
         self.trace = np.array(result)
