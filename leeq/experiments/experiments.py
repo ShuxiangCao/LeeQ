@@ -204,15 +204,24 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
 
     @property
     def to_show_figure_in_notebook(self):
-        return setup().status().get_parameters("Plot_Result_In_Jupyter")
+        try:
+            return setup().status().get_parameters("Plot_Result_In_Jupyter")
+        except (AttributeError, TypeError):
+            return False
 
     @property
     def to_run_ai_inspection(self):
-        return setup().status().get_parameters("AIAutoInspectPlots")
+        try:
+            return setup().status().get_parameters("AIAutoInspectPlots")
+        except (AttributeError, TypeError):
+            return False
 
     @property
     def is_simulation(self):
-        return setup().status().get_parameters("High_Level_Simulation_Mode")
+        try:
+            return setup().status().get_parameters("High_Level_Simulation_Mode")
+        except (AttributeError, TypeError):
+            return False
 
     def log_warning(self, message):
         self.logger.warning(message)
