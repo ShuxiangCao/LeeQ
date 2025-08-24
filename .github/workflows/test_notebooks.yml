@@ -1,0 +1,184 @@
+name: Test Notebooks
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'notebooks/**/*.ipynb'
+      - 'scripts/test_notebook_infrastructure.py'
+      - 'scripts/test_chronicle_integration.py'
+      - 'leeq/**/*.py'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'notebooks/**/*.ipynb'
+      - 'scripts/test_notebook_infrastructure.py'
+      - 'scripts/test_chronicle_integration.py'
+      - 'leeq/**/*.py'
+  schedule:
+    # Run weekly on Sundays at 00:00 UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+    inputs:
+      notebook_type:
+        description: 'Type of notebooks to test'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - tutorials
+          - examples
+          - workflows
+
+jobs:
+  test-notebooks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+        notebook-type: ['tutorials', 'examples', 'workflows']
+      fail-fast: false
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install nbval pytest-nbval jupyter nbconvert
+    
+    - name: Check notebook testing dependencies
+      run: |
+        python scripts/test_notebook_infrastructure.py --check-deps
+    
+    - name: Test ${{ matrix.notebook-type }} notebooks
+      run: |
+        python scripts/test_notebook_infrastructure.py \
+          --${{ matrix.notebook-type }} \
+          --verbose \
+          --report notebooks_test_report_${{ matrix.notebook-type }}.md \
+          --json notebooks_test_results_${{ matrix.notebook-type }}.json
+      continue-on-error: true
+    
+    - name: Test Chronicle integration in ${{ matrix.notebook-type }}
+      run: |
+        python scripts/test_chronicle_integration.py \
+          notebooks/${{ matrix.notebook-type }}/ \
+          --verbose \
+          --report chronicle_report_${{ matrix.notebook-type }}.md
+      continue-on-error: true
+    
+    - name: Upload test reports
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: notebook-test-reports-py${{ matrix.python-version }}
+        path: |
+          notebooks_test_report_*.md
+          notebooks_test_results_*.json
+          chronicle_report_*.md
+    
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Read test reports
+          const reportFiles = fs.readdirSync('.')
+            .filter(f => f.endsWith('.md') && f.includes('report'));
+          
+          let comment = `## Notebook Test Results (Python ${{ matrix.python-version }})\n\n`;
+          
+          for (const file of reportFiles) {
+            const content = fs.readFileSync(file, 'utf8');
+            const type = file.includes('tutorials') ? 'Tutorials' :
+                        file.includes('examples') ? 'Examples' :
+                        file.includes('workflows') ? 'Workflows' : 'Unknown';
+            
+            comment += `### ${type}\n`;
+            comment += content.split('\n').slice(0, 20).join('\n');
+            comment += '\n...\n\n';
+          }
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+  consolidate-results:
+    needs: test-notebooks
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: test-artifacts
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Consolidate test results
+      run: |
+        python -c "
+        import json
+        import glob
+        from pathlib import Path
+        
+        all_results = {}
+        for json_file in glob.glob('test-artifacts/**/notebooks_test_results_*.json', recursive=True):
+            with open(json_file) as f:
+                data = json.load(f)
+                all_results[Path(json_file).stem] = data
+        
+        with open('consolidated_results.json', 'w') as f:
+            json.dump(all_results, f, indent=2)
+        
+        # Generate summary
+        total_passed = 0
+        total_failed = 0
+        
+        for test_set in all_results.values():
+            for directory in test_set.values():
+                for notebook in directory.values():
+                    if notebook.get('passed'):
+                        total_passed += 1
+                    else:
+                        total_failed += 1
+        
+        print(f'Total notebooks tested: {total_passed + total_failed}')
+        print(f'Passed: {total_passed}')
+        print(f'Failed: {total_failed}')
+        print(f'Success rate: {total_passed/(total_passed+total_failed)*100:.1f}%')
+        "
+    
+    - name: Upload consolidated results
+      uses: actions/upload-artifact@v3
+      with:
+        name: consolidated-test-results
+        path: consolidated_results.json

@@ -24,6 +24,8 @@ class VirtualTransmon(object):
             frequency_selectivity_window: float = 50,
             coupling_strength: Optional[float] = None,
             use_physics_chi: bool = False,
+            use_kerr_nonlinearity: bool = False,
+            kerr_coefficient: Optional[float] = None,
     ):
         """
         Initialize the VirtualTransmon class.
@@ -46,6 +48,9 @@ class VirtualTransmon(object):
                 by assuming the drive does not affect the system. Otherwise an X/Y + Z rotation is applied.
             coupling_strength (Optional[float]): Qubit-resonator coupling strength (MHz). Required if use_physics_chi=True.
             use_physics_chi (bool): Whether to use physics-based chi shift calculation instead of constant dispersive shift.
+            use_kerr_nonlinearity (bool): Whether to enable Kerr nonlinearity effects for power-dependent response.
+            kerr_coefficient (Optional[float]): Kerr coefficient K (Hz). If None and use_kerr_nonlinearity=True, 
+                will be calculated from transmon parameters.
         """
 
         self.name = name
@@ -61,6 +66,29 @@ class VirtualTransmon(object):
         self.frequency_selectivity_window = frequency_selectivity_window
         self.coupling_strength = coupling_strength
         self.use_physics_chi = use_physics_chi
+        self.use_kerr_nonlinearity = use_kerr_nonlinearity
+        
+        # Initialize Kerr nonlinearity
+        if use_kerr_nonlinearity:
+            from leeq.theory.simulation.numpy.dispersive_readout.kerr_physics import KerrBistabilityCalculator
+            self.kerr_calculator = KerrBistabilityCalculator()
+            
+            # Calculate or use provided Kerr coefficient
+            if kerr_coefficient is None:
+                if coupling_strength is None:
+                    raise ValueError("coupling_strength must be specified when use_kerr_nonlinearity=True and kerr_coefficient=None")
+                self.kerr_coefficient = self.kerr_calculator.calculate_kerr_coefficient(
+                    f_r=readout_frequency,
+                    f_q=qubit_frequency, 
+                    anharmonicity=anharmonicity,
+                    g=coupling_strength
+                )
+            else:
+                self.kerr_coefficient = kerr_coefficient
+        else:
+            self.kerr_calculator = None
+            self.kerr_coefficient = None
+            
         self._density_matrix = None
 
         self._transition_ops = {}
@@ -112,14 +140,18 @@ class VirtualTransmon(object):
             self,
             f: float,
             amp: float = 1,
-            baseline: float = 0):
+            baseline: float = 0,
+            power: Optional[float] = None):
         """
         Get the resonator response at a given frequency.
+        Enhanced to include power-dependent effects when Kerr nonlinearity is enabled.
 
         Parameters:
             f (float): The frequency to be evaluated.
             amp (float): The amplitude of the drive.
             baseline (float): The baseline of the response.
+            power (Optional[float]): Drive power for Kerr nonlinearity calculation.
+                If None, Kerr effects are ignored even if enabled.
 
         Returns:
             np.ndarray: The resonator response.
@@ -127,17 +159,31 @@ class VirtualTransmon(object):
 
         from leeq.theory.simulation.numpy.dispersive_readout.utils import root_lorentzian
 
-        s_11 = root_lorentzian(
-            f=f,
-            f0=self.readout_frequency,
-            amp=amp,
-            kappa=self.readout_linewidth,
-            baseline=baseline)
+        # Calculate effective resonator frequencies with power-dependent shifts
+        if power is not None and self.use_kerr_nonlinearity:
+            # Calculate photon number from power
+            # For a driven resonator: n = P / (ℏωκ) approximately
+            # Here we use a simpler approximation: n ∝ Power / (linewidth * frequency_detuning)
+            detuning = f - self.readout_frequency
+            effective_kappa = self.readout_linewidth
+            
+            # Estimate photon number (this is a simplified model)
+            # More accurate would be to solve the steady-state equation
+            photon_number = power / (effective_kappa + abs(detuning) + 1e-6)  # Add small term to avoid division by zero
+            
+            # Calculate Kerr frequency shift
+            kerr_shift = self.kerr_coefficient * photon_number
+            
+            # Apply Kerr shift to resonator frequencies
+            effective_resonator_frequencies = self._resonator_frequencies + kerr_shift
+        else:
+            # Use original resonator frequencies when Kerr is disabled or power is None
+            effective_resonator_frequencies = self._resonator_frequencies
 
         s_11 = np.asarray([
             root_lorentzian(
                 f=f, f0=f0, amp=amp, kappa=self.readout_linewidth, baseline=baseline
-            ) for f0 in self._resonator_frequencies
+            ) for f0 in effective_resonator_frequencies
         ])
 
         return s_11

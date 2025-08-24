@@ -199,12 +199,18 @@ class QubitSpectroscopyFrequency(Experiment):
         # Prepare parameters
         mprim = dut_qubit.get_default_measurement_prim_intlist()
         f_readout = mprim.freq if res_freq is None else res_freq
-        omega_per_amp_readout = simulator_setup.get_omega_per_amp(mprim.channel)
-        effective_amp_readout = mprim.amp * omega_per_amp_readout
         
-        channel = dut_qubit.get_default_c1().channel
-        omega_per_amp_drive = simulator_setup.get_omega_per_amp(channel)
+        # Get drive channel info
+        drive_channel = dut_qubit.get_default_c1().channel
+        omega_per_amp_drive = simulator_setup.get_omega_per_amp(drive_channel)
         effective_amp_drive = amp * omega_per_amp_drive
+        
+        # For readout, we need to check if there's a separate readout channel
+        # If the measurement primitive has a different channel, use that
+        # Otherwise use the drive channel (single-channel case)
+        readout_channel = mprim.channel if hasattr(mprim, 'channel') else drive_channel
+        omega_per_amp_readout = simulator_setup.get_omega_per_amp(readout_channel)
+        effective_amp_readout = mprim.amp * omega_per_amp_readout
         
         # Use new CW spectroscopy simulator
         from leeq.theory.simulation.numpy.cw_spectroscopy import CWSpectroscopySimulator
@@ -215,11 +221,11 @@ class QubitSpectroscopyFrequency(Experiment):
         
         for freq in freq_qdrive:
             iq_responses = sim.simulate_spectroscopy_iq(
-                drives=[(channel, freq, effective_amp_drive)],
-                readout_params={channel: {'frequency': f_readout, 
-                                         'amplitude': effective_amp_readout}}
+                drives=[(drive_channel, freq, effective_amp_drive)],
+                readout_params={drive_channel: {'frequency': f_readout, 
+                                               'amplitude': effective_amp_readout}}
             )
-            response.append(iq_responses[channel])
+            response.append(iq_responses[drive_channel])
         
         response = np.array(response)
         
@@ -539,11 +545,15 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         self.mp = _MockMP(self, mprim)  # Store for plotting compatibility
         
         f_readout = mprim.freq
-        omega_per_amp_readout = simulator_setup.get_omega_per_amp(mprim.channel)
-        effective_amp_readout = mprim.amp * omega_per_amp_readout
         
-        channel = dut_qubit.get_default_c1().channel
-        omega_per_amp_drive = simulator_setup.get_omega_per_amp(channel)
+        # Get drive channel info
+        drive_channel = dut_qubit.get_default_c1().channel
+        omega_per_amp_drive = simulator_setup.get_omega_per_amp(drive_channel)
+        
+        # For readout, check if there's a separate readout channel
+        readout_channel = mprim.channel if hasattr(mprim, 'channel') else drive_channel
+        omega_per_amp_readout = simulator_setup.get_omega_per_amp(readout_channel)
+        effective_amp_readout = mprim.amp * omega_per_amp_readout
         
         # Use new CW spectroscopy simulator
         from leeq.theory.simulation.numpy.cw_spectroscopy import CWSpectroscopySimulator
@@ -568,11 +578,11 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
             for j, freq in enumerate(freq_array):
                 # Simulate for this frequency and amplitude
                 iq_responses = sim.simulate_spectroscopy_iq(
-                    drives=[(channel, freq, effective_amp_drive)],
-                    readout_params={channel: {'frequency': f_readout, 
-                                             'amplitude': effective_amp_readout}}
+                    drives=[(drive_channel, freq, effective_amp_drive)],
+                    readout_params={drive_channel: {'frequency': f_readout, 
+                                                   'amplitude': effective_amp_readout}}
                 )
-                response_2d[i, j] = iq_responses[channel]
+                response_2d[i, j] = iq_responses[drive_channel]
         
         # Add noise to simulate realistic measurements
         width = mp_width if mp_width is not None else rep_rate

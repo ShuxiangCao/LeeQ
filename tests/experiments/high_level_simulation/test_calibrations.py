@@ -28,9 +28,12 @@ def simulation_setup():
                 0.04,
                 0.01]))
 
+    # Test uses integer channel ID (2) instead of string format ('readout_2')
+    # This tests the mixed type channel handling implemented in resonator_spectroscopy.py
+    # The channel mapping logic now supports both integer and string channel types
     setup = HighLevelSimulationSetup(
         name='HighLevelSimulationSetup',
-        virtual_qubits={2: virtual_transmon}
+        virtual_qubits={2: virtual_transmon}  # Integer key tests channel type compatibility
     )
     manager.register_setup(setup)
     return manager
