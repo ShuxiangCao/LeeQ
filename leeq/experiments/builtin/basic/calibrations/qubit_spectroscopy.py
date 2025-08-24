@@ -30,7 +30,9 @@ class QubitSpectroscopyFrequency(Experiment):
     A class used to represent the QubitSweepPlottly experiment,
     specialized for conducting frequency sweeps on qubits and visualizing the results.
 
-    ...
+    This experiment sweeps the drive frequency to find qubit resonances. In simulation mode,
+    a noise-free option is available via the disable_noise parameter to generate clean
+    data for validation and benchmarking.
 
     Attributes
     ----------
@@ -43,12 +45,40 @@ class QubitSpectroscopyFrequency(Experiment):
 
     Methods
     -------
-    run(dut_qubit, res_freq, start, stop, step, num_avs, rep_rate, mp_width, amp):
+    run(dut_qubit, res_freq, start, stop, step, num_avs, rep_rate, mp_width, amp, disable_noise=False):
         Runs the frequency sweep experiment on the qubit.
+    run_simulated(dut_qubit, res_freq, start, stop, step, num_avs, rep_rate, mp_width, amp, disable_noise=False):
+        Runs the simulated frequency sweep with optional noise-free mode.
     plot_magnitude():
         Plots the magnitude component of the results from the frequency sweep.
     plot_phase():
         Plots the phase component of the results from the frequency sweep.
+    
+    Examples
+    --------
+    Basic usage with default noisy simulation:
+    
+    >>> exp = QubitSpectroscopyFrequency(
+    ...     dut_qubit=qubit,
+    ...     start=4900.0,
+    ...     stop=5100.0,
+    ...     step=2.0,
+    ...     num_avs=1000
+    ... )
+    
+    Clean data generation for validation (simulation only):
+    
+    >>> exp_clean = QubitSpectroscopyFrequency(
+    ...     dut_qubit=qubit,
+    ...     start=4900.0,
+    ...     stop=5100.0,
+    ...     step=2.0,
+    ...     num_avs=1000,
+    ...     disable_noise=True
+    ... )
+    
+    The disable_noise parameter provides deterministic results without baseline
+    dropout or Gaussian noise, ideal for physics validation and testing.
     """
 
     @log_and_record
@@ -62,7 +92,8 @@ class QubitSpectroscopyFrequency(Experiment):
             num_avs: int = 1000,
             rep_rate: float = 0.,
             mp_width: float = 0.5,
-            amp: float = 0.01) -> None:
+            amp: float = 0.01,
+            disable_noise: bool = False) -> None:
         """
         Conducts a qubit spectroscopy experiment which fixes the resonator frequency and probes the qubit at different
          frequencies. Records the response.
@@ -87,10 +118,18 @@ class QubitSpectroscopyFrequency(Experiment):
             The width for the measurement primitive pulse (default is 0.5).
         amp : float
             The amplitude of the pulse (default is 1).
+        disable_noise : bool, optional
+            If True, disable noise in simulation mode for clean data generation.
+            Ignored in hardware mode. Default is False.
 
         Returns
         -------
         None
+        
+        Notes
+        -----
+        The disable_noise parameter is only effective when running in simulation mode.
+        Hardware experiments will ignore this parameter for safety reasons.
         """
 
         # Get the measurement primitive and update its parameters
@@ -163,10 +202,11 @@ class QubitSpectroscopyFrequency(Experiment):
             num_avs: int = 1000,
             rep_rate: float = 0.,
             mp_width: float = 0.5,
-            amp: float = 0.01) -> None:
+            amp: float = 0.01,
+            disable_noise: bool = False) -> None:
         """
         Conducts a frequency sweep on the designated qubit and records the response.
-        Generate simulated result.
+        Generate simulated result with optional noise-free mode.
 
         Parameters
         ----------
@@ -188,10 +228,40 @@ class QubitSpectroscopyFrequency(Experiment):
             The width for the measurement primitive pulse (default is 0.5).
         amp : float
             The amplitude of the pulse (default is 1).
+        disable_noise : bool, optional
+            If True, skip noise addition (baseline dropout and Gaussian noise) for clean 
+            simulation data. Useful for physics validation and testing. Default is False.
 
         Returns
         -------
         None
+        
+        Notes
+        -----
+        When disable_noise=True:
+        - No baseline dropout (20% of points normally set to mean value)
+        - No Gaussian noise (normally scaled by 100/log(num_avs)/sqrt(mp_width))
+        - Results are deterministic and repeatable
+        - Ideal for comparing against theoretical models
+        
+        Examples
+        --------
+        Standard noisy simulation:
+        
+        >>> exp = QubitSpectroscopyFrequency(
+        ...     dut_qubit=qubit,
+        ...     start=4900.0, stop=5100.0, step=2.0,
+        ...     num_avs=1000
+        ... )
+        
+        Clean simulation for validation:
+        
+        >>> exp_clean = QubitSpectroscopyFrequency(
+        ...     dut_qubit=qubit,
+        ...     start=4900.0, stop=5100.0, step=2.0,
+        ...     num_avs=1000,
+        ...     disable_noise=True
+        ... )
         """
 
         simulator_setup = setup().get_default_setup()
@@ -222,23 +292,27 @@ class QubitSpectroscopyFrequency(Experiment):
         for freq in freq_qdrive:
             iq_responses = sim.simulate_spectroscopy_iq(
                 drives=[(drive_channel, freq, effective_amp_drive)],
-                readout_params={drive_channel: {'frequency': f_readout, 
+                readout_params={readout_channel: {'frequency': f_readout, 
                                                'amplitude': effective_amp_readout}}
             )
-            response.append(iq_responses[drive_channel])
+            response.append(iq_responses[readout_channel])
         
         response = np.array(response)
         
-        # Add noise (same as original)
-        num_elements_to_baseline = int(len(response) * 0.2)
-        indices_to_baseline = np.random.choice(response.size, num_elements_to_baseline, replace=False)
-        response[indices_to_baseline] = response.mean()
-        
-        noise_scale = 100 / np.log(num_avs) / np.sqrt(mp_width if mp_width else 0.5)
-        noise = (np.random.normal(0, noise_scale, response.shape) + 
-                 1j * np.random.normal(0, noise_scale, response.shape))
-        
-        self.trace = response + noise
+        if not disable_noise:
+            # Add noise (same as original)
+            num_elements_to_baseline = int(len(response) * 0.2)
+            indices_to_baseline = np.random.choice(response.size, num_elements_to_baseline, replace=False)
+            response[indices_to_baseline] = response.mean()
+            
+            noise_scale = 100 / np.log(num_avs) / np.sqrt(mp_width if mp_width else 0.5)
+            noise = (np.random.normal(0, noise_scale, response.shape) + 
+                     1j * np.random.normal(0, noise_scale, response.shape))
+            
+            self.trace = response + noise
+        else:
+            # Clean response without noise
+            self.trace = response
         self.result = {
             'Magnitude': np.absolute(self.trace),
             'Phase': np.unwrap(np.angle(self.trace)),
@@ -368,22 +442,26 @@ class QubitSpectroscopyFrequency(Experiment):
 class QubitSpectroscopyAmplitudeFrequency(Experiment):
     """
     A class used to represent the Qubit Spectroscopy Amplitude Frequency experiment.
-
-    ...
+    
+    This experiment performs a 2D sweep of both frequency and amplitude to map out
+    the qubit response across different drive conditions. In simulation mode,
+    a noise-free option is available via the disable_noise parameter.
 
     Attributes
     ----------
     mp : Type of mp
-        Description of mp
+        The measurement primitive used for the experiment.
     trace : np.ndarray
-        Description of trace
+        A 2D numpy array holding the complex IQ trace data from the measurement.
     result : Dict[str, np.ndarray]
-        Description of result
+        Dictionary containing 'Magnitude' and 'Phase' arrays of the measured response.
 
     Methods
     -------
-    run(dut_qubit, start, stop, step, num_avs, rep_rate, mp_width, qubit_amp_start, qubit_amp_stop, qubit_amp_step):
-        Executes the qubit spectroscopy experiment.
+    run(dut_qubit, start, stop, step, num_avs, rep_rate, mp_width, qubit_amp_start, qubit_amp_stop, qubit_amp_step, disable_noise=False):
+        Executes the qubit spectroscopy experiment on hardware.
+    run_simulated(dut_qubit, start, stop, step, num_avs, rep_rate, mp_width, qubit_amp_start, qubit_amp_stop, qubit_amp_step, disable_noise=False):
+        Executes the simulated qubit spectroscopy experiment with optional noise-free mode.
     plot_magnitude():
         Plots the magnitude from the experiment results.
     plot_magnitude_logscale():
@@ -392,6 +470,27 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         Plots the phase from the experiment results.
     _plot(data, name, log_scale=False):
         Helper function to create a plotly plot.
+        
+    Examples
+    --------
+    Standard 2D spectroscopy with noise:
+    
+    >>> exp = QubitSpectroscopyAmplitudeFrequency(
+    ...     dut_qubit=qubit,
+    ...     start=4900.0, stop=5100.0, step=5.0,
+    ...     qubit_amp_start=0.01, qubit_amp_stop=0.05, qubit_amp_step=0.002,
+    ...     num_avs=1000
+    ... )
+    
+    Clean 2D map for validation:
+    
+    >>> exp_clean = QubitSpectroscopyAmplitudeFrequency(
+    ...     dut_qubit=qubit,
+    ...     start=4900.0, stop=5100.0, step=5.0,
+    ...     qubit_amp_start=0.01, qubit_amp_stop=0.05, qubit_amp_step=0.002,
+    ...     num_avs=1000,
+    ...     disable_noise=True
+    ... )
     """
 
     @log_and_record
@@ -406,7 +505,8 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
                             None] = 0.5,
             qubit_amp_start: float = 0.01,
             qubit_amp_stop: float = 0.03,
-            qubit_amp_step: float = 0.001) -> None:
+            qubit_amp_step: float = 0.001,
+            disable_noise: bool = False) -> None:
         """
         Executes the qubit spectroscopy experiment by sweeping both the frequency and amplitude.
 
@@ -432,6 +532,14 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
             The stop amplitude for qubit.
         qubit_amp_step : float
             The amplitude step for qubit.
+        disable_noise : bool, optional
+            If True, disable noise in simulation mode for clean data generation.
+            Ignored in hardware mode. Default is False.
+        
+        Notes
+        -----
+        The disable_noise parameter is only effective when running in simulation mode.
+        Hardware experiments will ignore this parameter for safety reasons.
         """
 
         # Clone and update measurement primitive based on given parameters
@@ -506,10 +614,11 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
             mp_width: Union[int, None] = 0.5,
             qubit_amp_start: float = 0.01,
             qubit_amp_stop: float = 0.03,
-            qubit_amp_step: float = 0.001) -> None:
+            qubit_amp_step: float = 0.001,
+            disable_noise: bool = False) -> None:
         """
         Simulates the qubit spectroscopy experiment by sweeping both frequency and amplitude.
-        Uses the CW spectroscopy simulator for high-level simulation.
+        Uses the CW spectroscopy simulator for high-level simulation with optional noise-free mode.
 
         Parameters
         ----------
@@ -533,6 +642,38 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
             The stop amplitude for qubit.
         qubit_amp_step : float
             The amplitude step for qubit.
+        disable_noise : bool, optional
+            If True, skip noise addition (baseline dropout and Gaussian noise) for clean 
+            2D simulation data. Useful for physics validation and testing. Default is False.
+        
+        Notes
+        -----
+        When disable_noise=True:
+        - No baseline dropout (20% of points normally set to mean value)
+        - No Gaussian noise (normally scaled by 100/log(num_avs)/sqrt(mp_width))
+        - Results are deterministic and repeatable across the entire 2D map
+        - Ideal for comparing against theoretical models or benchmarking
+        
+        Examples
+        --------
+        Standard 2D noisy simulation:
+        
+        >>> exp = QubitSpectroscopyAmplitudeFrequency(
+        ...     dut_qubit=qubit,
+        ...     start=4900.0, stop=5100.0, step=5.0,
+        ...     qubit_amp_start=0.01, qubit_amp_stop=0.05, qubit_amp_step=0.002,
+        ...     num_avs=1000
+        ... )
+        
+        Clean 2D map for analysis:
+        
+        >>> exp_clean = QubitSpectroscopyAmplitudeFrequency(
+        ...     dut_qubit=qubit,
+        ...     start=4900.0, stop=5100.0, step=5.0,
+        ...     qubit_amp_start=0.01, qubit_amp_stop=0.05, qubit_amp_step=0.002,
+        ...     num_avs=1000,
+        ...     disable_noise=True
+        ... )
         """
         
         # Get simulation setup
@@ -579,30 +720,31 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
                 # Simulate for this frequency and amplitude
                 iq_responses = sim.simulate_spectroscopy_iq(
                     drives=[(drive_channel, freq, effective_amp_drive)],
-                    readout_params={drive_channel: {'frequency': f_readout, 
+                    readout_params={readout_channel: {'frequency': f_readout, 
                                                    'amplitude': effective_amp_readout}}
                 )
-                response_2d[i, j] = iq_responses[drive_channel]
+                response_2d[i, j] = iq_responses[readout_channel]
         
         # Add noise to simulate realistic measurements
-        width = mp_width if mp_width is not None else rep_rate
-        if width is None:
-            width = 0.5
+        if not disable_noise:
+            width = mp_width if mp_width is not None else rep_rate
+            if width is None:
+                width = 0.5
+                
+            # Add baseline dropout (similar to 1D spectroscopy)
+            num_elements_to_baseline = int(response_2d.size * 0.2)
+            indices_to_baseline = np.random.choice(response_2d.size, num_elements_to_baseline, replace=False)
+            response_2d_flat = response_2d.flatten()
+            mean_value = response_2d_flat.mean()
+            response_2d_flat[indices_to_baseline] = mean_value
+            response_2d = response_2d_flat.reshape(response_2d.shape)
             
-        # Add baseline dropout (similar to 1D spectroscopy)
-        num_elements_to_baseline = int(response_2d.size * 0.2)
-        indices_to_baseline = np.random.choice(response_2d.size, num_elements_to_baseline, replace=False)
-        response_2d_flat = response_2d.flatten()
-        mean_value = response_2d_flat.mean()
-        response_2d_flat[indices_to_baseline] = mean_value
-        response_2d = response_2d_flat.reshape(response_2d.shape)
-        
-        # Add Gaussian noise
-        noise_scale = 100 / np.log(num_avs) / np.sqrt(width)
-        noise = (np.random.normal(0, noise_scale, response_2d.shape) + 
-                 1j * np.random.normal(0, noise_scale, response_2d.shape))
-        
-        response_2d = response_2d + noise
+            # Add Gaussian noise
+            noise_scale = 100 / np.log(num_avs) / np.sqrt(width)
+            noise = (np.random.normal(0, noise_scale, response_2d.shape) + 
+                     1j * np.random.normal(0, noise_scale, response_2d.shape))
+            
+            response_2d = response_2d + noise
         
         # Store results in the same format as the regular run method
         self.trace = response_2d

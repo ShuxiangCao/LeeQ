@@ -13,13 +13,16 @@ __all__ = ['TwoToneQubitSpectroscopy']
 
 class TwoToneQubitSpectroscopy(Experiment):
     """
-    Two-tone spectroscopy with dual frequency sweeps.
+    Two-tone spectroscopy with dual frequency sweeps and optional noise-free simulation.
     
     This experiment applies two frequency-swept tones simultaneously to probe:
     - Multi-photon transitions
-    - Sideband effects
+    - Sideband effects  
     - Qubit-resonator coupling
     - AC Stark shifts
+    
+    In simulation mode, the disable_noise parameter allows generation of clean data
+    without Gaussian noise for validation and benchmarking purposes.
     
     Attributes
     ----------
@@ -31,6 +34,38 @@ class TwoToneQubitSpectroscopy(Experiment):
         Array of frequencies for tone 1.
     freq2_arr : ndarray
         Array of frequencies for tone 2.
+        
+    Examples
+    --------
+    Standard two-tone spectroscopy with noise:
+    
+    >>> exp = TwoToneQubitSpectroscopy(
+    ...     dut_qubit=qubit,
+    ...     tone1_start=4950.0, tone1_stop=5050.0, tone1_step=10.0,
+    ...     tone2_start=4750.0, tone2_stop=4850.0, tone2_step=10.0,
+    ...     num_avs=1000
+    ... )
+    
+    Clean simulation for theoretical comparison:
+    
+    >>> exp_clean = TwoToneQubitSpectroscopy(
+    ...     dut_qubit=qubit,
+    ...     tone1_start=4950.0, tone1_stop=5050.0, tone1_step=10.0,
+    ...     tone2_start=4750.0, tone2_stop=4850.0, tone2_step=10.0,
+    ...     num_avs=1000,
+    ...     disable_noise=True
+    ... )
+    
+    Cross-channel measurement (tone2 on f12):
+    
+    >>> exp_cross = TwoToneQubitSpectroscopy(
+    ...     dut_qubit=qubit,
+    ...     tone1_start=4950.0, tone1_stop=5050.0, tone1_step=10.0,
+    ...     tone2_start=4750.0, tone2_stop=4850.0, tone2_step=10.0,
+    ...     same_channel=False,
+    ...     num_avs=1000,
+    ...     disable_noise=True
+    ... )
     """
     
     @log_and_record
@@ -50,6 +85,7 @@ class TwoToneQubitSpectroscopy(Experiment):
         rep_rate: float = 0.0,
         mp_width: float = 1.0,
         set_qubit: str = 'f01',
+        disable_noise: bool = False,
     ):
         """
         Run two-tone spectroscopy experiment on hardware.
@@ -84,6 +120,8 @@ class TwoToneQubitSpectroscopy(Experiment):
             Measurement pulse width in microseconds.
         set_qubit : str
             Qubit transition to probe ('f01' or 'f12').
+        disable_noise : bool
+            If True, disable noise in simulation mode. Ignored in hardware mode.
         """
         self.dut_qubit = dut_qubit
         self.tone1_amp = tone1_amp
@@ -130,11 +168,80 @@ class TwoToneQubitSpectroscopy(Experiment):
         rep_rate: float = 0.0,
         mp_width: float = 1.0,
         set_qubit: str = 'f01',
+        disable_noise: bool = False,
     ):
         """
-        Run two-tone spectroscopy experiment in simulation mode.
+        Run two-tone spectroscopy experiment in simulation mode with optional noise-free data.
         
-        Uses CWSpectroscopySimulator for efficient multi-tone simulation.
+        Uses CWSpectroscopySimulator for efficient multi-tone simulation. Supports both
+        same-channel (combined amplitude) and cross-channel configurations.
+        
+        Parameters
+        ----------
+        dut_qubit : Any
+            The qubit element to perform spectroscopy on.
+        tone1_start : float
+            Start frequency for tone 1 in MHz.
+        tone1_stop : float
+            Stop frequency for tone 1 in MHz.
+        tone1_step : float
+            Step size for tone 1 frequency sweep in MHz.
+        tone1_amp : float
+            Amplitude for tone 1.
+        tone2_start : float
+            Start frequency for tone 2 in MHz.
+        tone2_stop : float
+            Stop frequency for tone 2 in MHz.
+        tone2_step : float
+            Step size for tone 2 frequency sweep in MHz.
+        tone2_amp : float
+            Amplitude for tone 2.
+        same_channel : bool
+            If True, both tones on same channel. If False, tone 2 on f12 channel.
+        num_avs : int
+            Number of averages.
+        rep_rate : float
+            Repetition rate in Hz.
+        mp_width : float
+            Measurement pulse width in microseconds.
+        set_qubit : str
+            Qubit transition to probe ('f01' or 'f12').
+        disable_noise : bool, optional
+            If True, skip Gaussian noise addition for clean simulation data.
+            Useful for physics validation and benchmarking. Default is False.
+            
+        Notes
+        -----
+        When disable_noise=True:
+        - No Gaussian noise (normally scaled by 10.0/sqrt(num_avs))
+        - Results are deterministic and repeatable across the entire 2D map
+        - Ideal for comparing against theoretical models
+        - Note: This experiment uses simpler noise model (Gaussian only, no baseline dropout)
+        
+        Channel Configuration:
+        - same_channel=True: Both tones on same drive channel, amplitudes combine
+        - same_channel=False: Tone 1 on primary channel, tone 2 on secondary (f01/f12)
+        
+        Examples
+        --------
+        Standard two-tone simulation with noise:
+        
+        >>> exp = TwoToneQubitSpectroscopy(
+        ...     dut_qubit=qubit,
+        ...     tone1_start=4950.0, tone1_stop=5050.0, tone1_step=10.0,
+        ...     tone2_start=4750.0, tone2_stop=4850.0, tone2_step=10.0,
+        ...     same_channel=True, num_avs=1000
+        ... )
+        
+        Clean cross-channel analysis:
+        
+        >>> exp_clean = TwoToneQubitSpectroscopy(
+        ...     dut_qubit=qubit,
+        ...     tone1_start=4950.0, tone1_stop=5050.0, tone1_step=10.0,
+        ...     tone2_start=4750.0, tone2_stop=4850.0, tone2_step=10.0,
+        ...     same_channel=False, num_avs=1000,
+        ...     disable_noise=True
+        ... )
         """
         from leeq.theory.simulation.numpy.cw_spectroscopy import CWSpectroscopySimulator
         
@@ -196,8 +303,9 @@ class TwoToneQubitSpectroscopy(Experiment):
         # Store results
         self.trace = np.array(result)
         
-        # Add realistic noise
-        self.trace = self._add_realistic_noise(self.trace, num_avs)
+        # Add realistic noise (only if noise is enabled)
+        if not disable_noise:
+            self.trace = self._add_realistic_noise(self.trace, num_avs)
         
         # Process results
         self._process_results()

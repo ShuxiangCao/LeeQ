@@ -266,8 +266,8 @@ class CWSpectroscopySimulator:
         # Calculate effective drives
         effective_drives = self._calculate_effective_drives(drives)
 
-        # Simulate each qubit and get IQ
-        iq_responses = {}
+        # Simulate each qubit and get populations
+        populations_by_channel = {}
         for channel in self.channels:
             # Get populations
             if channel in effective_drives:
@@ -276,23 +276,44 @@ class CWSpectroscopySimulator:
             else:
                 populations = np.zeros(self.truncation)
                 populations[0] = 1.0
+            populations_by_channel[channel] = populations
 
-            # Convert to IQ if readout requested
-            if channel in readout_params:
-                vqubit = self.virtual_qubits[channel]
-                f_readout = readout_params[channel]['frequency']
-                amp_readout = readout_params[channel]['amplitude']
-                
-                # Use VirtualTransmon's resonator response with population weighting
-                resonator_responses = vqubit.get_resonator_response(
-                    f=f_readout, 
-                    amp=amp_readout, 
-                    baseline=0
-                )
-                
-                # Weight by populations to get effective IQ response
-                # Each element of resonator_responses corresponds to a qubit state
-                iq = np.dot(populations, resonator_responses)
-                iq_responses[channel] = iq
+        # Calculate IQ responses for requested readout channels
+        iq_responses = {}
+        for readout_channel, readout_config in readout_params.items():
+            f_readout = readout_config['frequency']
+            amp_readout = readout_config['amplitude']
+            
+            # Find which virtual qubit this readout should use
+            # For single-qubit systems, use the only available virtual qubit
+            # For multi-qubit, we may need more sophisticated mapping
+            if readout_channel in self.virtual_qubits:
+                # Direct mapping: readout channel has its own virtual qubit
+                vqubit = self.virtual_qubits[readout_channel]
+                populations = populations_by_channel[readout_channel]
+            elif len(self.channels) == 1:
+                # Single qubit case: use the only virtual qubit
+                drive_channel = self.channels[0]
+                vqubit = self.virtual_qubits[drive_channel]
+                populations = populations_by_channel[drive_channel]
+            else:
+                # Multi-qubit case with cross-channel readout
+                # Use first available virtual qubit as fallback
+                # TODO: Implement proper channel mapping for complex cases
+                drive_channel = self.channels[0]
+                vqubit = self.virtual_qubits[drive_channel]
+                populations = populations_by_channel[drive_channel]
+            
+            # Use VirtualTransmon's resonator response with population weighting
+            resonator_responses = vqubit.get_resonator_response(
+                f=f_readout, 
+                amp=amp_readout, 
+                baseline=0
+            )
+            
+            # Weight by populations to get effective IQ response
+            # Each element of resonator_responses corresponds to a qubit state
+            iq = np.dot(populations, resonator_responses)
+            iq_responses[readout_channel] = iq
 
         return iq_responses

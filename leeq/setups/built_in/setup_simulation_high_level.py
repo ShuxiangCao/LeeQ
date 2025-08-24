@@ -91,7 +91,7 @@ class HighLevelSimulationSetup(ExperimentalSetup):
 
         # TODO: Implement mapping
 
-        return self._omega_per_amp_dict.get(channel, 200)
+        return self._omega_per_amp_dict.get(channel, 100)
 
     def get_coupling_strength_by_name(self, name1: str, name2: str) -> float:
         """
