@@ -286,5 +286,5 @@ class TestDiagnosticReport:
         assert "EPII Service Diagnostic Report" in report
 
 
-if __name__ == "__main__":
-    pytest.main([__file__])
+# Script-style execution converted to proper pytest discovery
+# Tests will be run by pytest discovery, no manual execution needed

@@ -625,4 +625,6 @@ def test_comprehensive_coverage_metrics():
     
     print(f"\n🎉 Comprehensive coverage achieved: {coverage_percentage:.1f}% >= 90%")
     
-    return coverage_percentage
+    # Assert coverage meets requirements instead of returning value
+    assert coverage_percentage >= 90.0, f"Coverage {coverage_percentage:.1f}% is below required 90% threshold"
+    assert covered_areas >= total_areas * 0.9, f"Only {covered_areas}/{total_areas} areas covered"

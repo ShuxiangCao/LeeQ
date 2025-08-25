@@ -238,5 +238,5 @@ def test_power_rabi_plot_exists(simulation_setup, dut_qubit):
     assert fig is not None
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+# Script-style execution converted to proper pytest discovery
+# Tests will be run by pytest discovery, no manual execution needed

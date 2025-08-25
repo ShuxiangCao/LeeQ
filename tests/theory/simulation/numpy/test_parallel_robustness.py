@@ -402,13 +402,5 @@ class TestParallelCompatibility:
         assert np.isfinite(result[0, 0])
 
 
-if __name__ == "__main__":
-    # Run specific test for quick validation
-    import sys
-    
-    if len(sys.argv) > 1 and sys.argv[1] == "--quick":
-        # Quick test for development
-        pytest.main([__file__ + "::TestParallelRobustness::test_timeout_handling", "-v"])
-    else:
-        # Run all tests
-        pytest.main([__file__, "-v"])
+# Script-style execution converted to proper pytest discovery
+# Tests will be run by pytest discovery, no manual execution needed

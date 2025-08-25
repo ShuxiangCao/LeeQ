@@ -520,6 +520,6 @@ class TestBistabilityEdgeCases:
                 f"Off-resonance response at {f_probe} MHz should be finite"
 
 
-if __name__ == "__main__":
-    # Run tests with verbose output
+# Script-style execution converted to proper pytest discovery
+# Tests will be run by pytest discovery, no manual execution needed
     pytest.main([__file__, "-v", "--tb=short"])

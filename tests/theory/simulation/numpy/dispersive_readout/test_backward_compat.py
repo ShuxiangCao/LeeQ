@@ -415,5 +415,5 @@ class TestNumericalConsistency:
         np.testing.assert_array_almost_equal(trace, trace2, decimal=10)
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+# Script-style execution converted to proper pytest discovery
+# Tests will be run by pytest discovery, no manual execution needed

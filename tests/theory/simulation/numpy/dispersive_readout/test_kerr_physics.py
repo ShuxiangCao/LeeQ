@@ -373,6 +373,6 @@ class TestKerrPhysicsEdgeCases:
         assert magnitudes == sorted(magnitudes), "Filtered solutions should be sorted by magnitude"
 
 
-if __name__ == "__main__":
-    # Run the tests
+# Script-style execution converted to proper pytest discovery
+# Tests will be run by pytest discovery, no manual execution needed
     pytest.main([__file__, "-v"])
