@@ -9,12 +9,18 @@ from typing import List, Dict, Tuple, Optional
 
 class CWSpectroscopySimulator:
     """
-    Continuous wave spectroscopy simulator for multi-qubit systems.
-
-    This simulator uses a crosstalk approximation where coupling between qubits
-    transfers drive amplitude rather than creating full entanglement. Each qubit
-    is simulated independently in its rotating frame after calculating effective
-    drives including crosstalk contributions.
+    Continuous-wave spectroscopy simulator for multi-qubit systems.
+    
+    Supports:
+    - Single and multiple drives per channel
+    - Automatic drive combination for same-channel multi-tone experiments
+    - Coupling-induced crosstalk between qubits
+    - Realistic noise modeling and IQ readout simulation
+    
+    Drive Combination:
+    - Same frequency drives: amplitudes are added linearly
+    - Different frequency drives: amplitude-weighted effective frequency
+    - Preserves total energy and maintains physics accuracy
 
     Parameters
     ----------
@@ -32,12 +38,24 @@ class CWSpectroscopySimulator:
 
     Examples
     --------
-    >>> setup = HighLevelSimulationSetup(...)
+    Single drive spectroscopy:
+    
     >>> sim = CWSpectroscopySimulator(setup)
-    >>> iq = sim.simulate_spectroscopy_iq(
-    ...     drives=[(1, 5000.0, 10.0)],
-    ...     readout_params={1: {'frequency': 7000.0, 'amplitude': 5.0}}
-    ... )
+    >>> drives = [(1, 5000.0, 50.0)]  # channel, freq, amplitude
+    >>> readout = {1: {'frequency': 6000.0, 'amplitude': 10.0}}
+    >>> iq = sim.simulate_spectroscopy_iq(drives, readout)
+    
+    Two-tone same-channel spectroscopy:
+    
+    >>> drives = [(1, 5000.0, 30.0), (1, 5010.0, 20.0)]
+    >>> iq = sim.simulate_spectroscopy_iq(drives, readout)
+    # Drives automatically combined: effective freq ≈ 5004 MHz, amp = 50.0
+    
+    Multi-qubit with crosstalk:
+    
+    >>> drives = [(1, 5000.0, 50.0)]  # Drive qubit 1
+    >>> iq = sim.simulate_spectroscopy_iq(drives, readout)
+    # Automatic crosstalk to coupled qubits based on coupling strengths
     """
 
     def __init__(self, simulation_setup):
@@ -187,10 +205,17 @@ class CWSpectroscopySimulator:
 
     def _calculate_effective_drives(self, drives: List[Tuple[int, float, float]]) -> Dict[int, Tuple[float, float]]:
         """
-        Calculate effective drives including coupling-induced crosstalk.
-
-        Coupling transfers a fraction of drive amplitude to neighboring qubits:
-        effective_amp_neighbor = coupling_strength / detuning * primary_amp
+        Calculate effective drives including coupling-induced crosstalk and drive combination.
+        
+        This method handles:
+        1. Multiple drives on the same channel (combines them appropriately)
+        2. Coupling-induced crosstalk between qubits
+        3. Frequency and amplitude preservation according to physics principles
+        
+        Drive Combination Algorithm:
+        - Drives with same frequency (within 1 MHz): amplitudes added, frequency averaged
+        - Drives with different frequencies: amplitude-weighted effective frequency
+        - Crosstalk contributions are added to each channel's drive list before combination
 
         Parameters
         ----------
@@ -200,42 +225,135 @@ class CWSpectroscopySimulator:
         Returns
         -------
         Dict[int, Tuple[float, float]]
-            Dictionary mapping channel to (frequency, effective_amplitude)
+            Dictionary mapping channel to (effective_frequency, effective_amplitude)
+            
+        Examples
+        --------
+        Single drive (unchanged behavior):
+        
+        >>> drives = [(1, 5000.0, 50.0)]
+        >>> effective = sim._calculate_effective_drives(drives)
+        >>> effective[1]  # (5000.0, 50.0)
+        
+        Same frequency combination:
+        
+        >>> drives = [(1, 5000.0, 30.0), (1, 5000.0, 20.0)]
+        >>> effective = sim._calculate_effective_drives(drives)
+        >>> effective[1]  # (5000.0, 50.0) - amplitudes added
+        
+        Different frequency combination:
+        
+        >>> drives = [(1, 5000.0, 40.0), (1, 5020.0, 20.0)]
+        >>> effective = sim._calculate_effective_drives(drives)
+        >>> effective[1]  # (~5006.7, 60.0) - weighted frequency, total amplitude
 
         Raises
         ------
         ValueError
             If any drive channel is not found in the simulation setup
         """
-        # Initialize with direct drives
-        effective_drives = {}
+        from collections import defaultdict
+        
+        # Step 1: Group drives by channel (including direct drives)
+        drives_by_channel = defaultdict(list)
+        
+        # Add direct drives
         for channel, freq, amp in drives:
             if channel not in self.channels:
                 raise ValueError(f"Channel {channel} not found")
-            effective_drives[channel] = (freq, amp)
-
-        # Add crosstalk contributions
+            drives_by_channel[channel].append((freq, amp))
+        
+        # Step 2: Add crosstalk contributions
         for ch_driven, freq_drive, amp_drive in drives:
             vq_driven = self.virtual_qubits[ch_driven]
-
+            
             for ch_other in self.channels:
                 if ch_other == ch_driven:
                     continue
-
+                
                 vq_other = self.virtual_qubits[ch_other]
                 coupling = self.setup.get_coupling_strength_by_qubit(vq_driven, vq_other)
-
+                
                 if coupling != 0:
                     detuning = max(abs(freq_drive - vq_other.qubit_frequency), 1.0)
                     transfer = coupling / detuning * amp_drive
-
-                    if ch_other in effective_drives:
-                        freq_existing, amp_existing = effective_drives[ch_other]
-                        effective_drives[ch_other] = (freq_drive, amp_existing + transfer)
-                    else:
-                        effective_drives[ch_other] = (freq_drive, transfer)
-
+                    
+                    # Add crosstalk contribution to channel's drive list
+                    drives_by_channel[ch_other].append((freq_drive, transfer))
+        
+        # Step 3: Combine multiple drives per channel
+        effective_drives = {}
+        for channel, drive_list in drives_by_channel.items():
+            if len(drive_list) == 1:
+                effective_drives[channel] = drive_list[0]
+            else:
+                effective_drives[channel] = self._combine_drives(drive_list)
+        
         return effective_drives
+
+    def _combine_drives(self, drive_list: List[Tuple[float, float]], freq_tolerance: float = 1.0) -> Tuple[float, float]:
+        """
+        Combine multiple drives on the same channel.
+        
+        Parameters
+        ----------
+        drive_list : List[Tuple[float, float]]
+            List of (frequency, amplitude) pairs to combine
+        freq_tolerance : float, optional
+            Frequency tolerance for considering drives as same frequency (default: 1.0 MHz)
+        
+        Returns
+        -------
+        Tuple[float, float]
+            Combined (effective_frequency, total_amplitude)
+        
+        Algorithm
+        ---------
+        - Same frequency (within tolerance): amplitudes are added, frequency averaged
+        - Different frequencies: amplitude-weighted effective frequency is calculated
+        - Preserves total amplitude for energy conservation
+        """
+        if not drive_list:
+            return (0.0, 0.0)
+        if len(drive_list) == 1:
+            return drive_list[0]
+        
+        # Group drives by frequency within tolerance
+        from collections import defaultdict
+        freq_groups = defaultdict(list)
+        
+        for freq, amp in drive_list:
+            # Find existing group within tolerance
+            group_key = None
+            for existing_freq in freq_groups.keys():
+                if abs(freq - existing_freq) <= freq_tolerance:
+                    group_key = existing_freq
+                    break
+            
+            if group_key is None:
+                group_key = freq
+            
+            freq_groups[group_key].append((freq, amp))
+        
+        # Combine frequency groups
+        if len(freq_groups) == 1:
+            # All frequencies within tolerance - amplitude addition with frequency averaging
+            total_amp = sum(amp for freq, amp in drive_list)
+            if total_amp == 0:
+                return (drive_list[0][0], 0.0)
+            
+            # Amplitude-weighted average frequency
+            avg_freq = sum(freq * abs(amp) for freq, amp in drive_list) / sum(abs(amp) for freq, amp in drive_list)
+            return (avg_freq, total_amp)
+        else:
+            # Multiple frequency groups - amplitude-weighted effective frequency
+            total_amp = sum(amp for freq, amp in drive_list)
+            if total_amp == 0:
+                return (drive_list[0][0], 0.0)
+            
+            # Use amplitude weighting for effective frequency
+            effective_freq = sum(freq * abs(amp) for freq, amp in drive_list) / sum(abs(amp) for freq, amp in drive_list)
+            return (effective_freq, total_amp)
 
     def simulate_spectroscopy_iq(self,
                                  drives: List[Tuple[int, float, float]],

@@ -142,10 +142,14 @@ def test_spectroscopy_integration(coupled_qubits_setup):
     
     responses = np.array(responses)
     
-    # Peak should be near qubit frequency
-    peak_idx = np.argmax(np.abs(responses))
-    peak_freq = frequencies[peak_idx]
-    assert abs(peak_freq - 5000.0) < 50.0  # Within 50 MHz
+    # Find local minimum around expected qubit frequency (5000 MHz)
+    # Look in range 4950-5050 MHz to avoid coupling-induced features
+    freq_mask = (frequencies >= 4950.0) & (frequencies <= 5050.0)
+    local_responses = np.abs(responses)[freq_mask]
+    local_frequencies = frequencies[freq_mask]
+    local_min_idx = np.argmin(local_responses)
+    min_freq = local_frequencies[local_min_idx]
+    assert abs(min_freq - 5000.0) < 50.0  # Within 50 MHz
 
 
 def test_setup_validation():

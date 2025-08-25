@@ -354,9 +354,9 @@ class TwoToneQubitSpectroscopy(Experiment):
                 row = []
                 for f2 in self.freq2_arr:
                     # Setup drives
-                    if same_channel and np.isclose(f1, f2):
-                        # Combined amplitude when same frequency on same channel
-                        drives = [(channel1, f1, tone1_amp + tone2_amp)]
+                    if same_channel:
+                        # Both drives on same channel - simulator now handles combination correctly
+                        drives = [(channel1, f1, tone1_amp), (channel1, f2, tone2_amp)]
                     else:
                         drives = [(channel1, f1, tone1_amp), (channel2, f2, tone2_amp)]
                     
