@@ -193,6 +193,10 @@ def test_cross_sections(simulation_setup, test_qubit):
 
 def test_plotting_functions(simulation_setup, test_qubit):
     """Test that plotting functions return correct objects."""
+    # Disable plotting for tests
+    manager = simulation_setup
+    manager.status.set_parameter("Plot_Result_In_Jupyter", False)
+    
     exp = TwoToneQubitSpectroscopy(
         dut_qubit=test_qubit,
         tone1_start=4980.0,
