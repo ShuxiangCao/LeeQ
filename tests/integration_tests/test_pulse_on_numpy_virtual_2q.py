@@ -1,5 +1,5 @@
 from pytest import fixture
-from leeq.chronicle import log_and_record, register_browser_function
+from leeq.chronicle import log_and_record, register_browser_function, Chronicle
 
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.experiments.experiments import Experiment
@@ -91,6 +91,7 @@ class SimpleSampleExperiment(Experiment):
 
 def test_pulse_on_virtual_2q(qubit):
     # Prepare some lpb to prepare a non-trivial distribution
+    Chronicle().start_log()
     setup().clear_setups()
 
     exp_setup = Numpy2QVirtualDeviceSetup()

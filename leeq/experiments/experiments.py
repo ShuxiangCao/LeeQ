@@ -181,11 +181,12 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
                 self._execute_single_plot_function(func)
                 result = self._plot_function_result_objs[func.__qualname__]
             except Exception as e:
+                import traceback
                 self.log_warning(
                     f"Error when executing the browsable plot function {name}:{e}."
                 )
                 self.log_warning("Ignore the error and continue.")
-                self.log_warning(f"{e}")
+                self.log_warning(f"Full traceback: {traceback.format_exc()}")
                 continue
 
             try:
@@ -316,8 +317,9 @@ class ExperimentManager(Singleton):
         try:
             self._active_experiment_instance.retrieve_args(
                 self._active_experiment_instance.run)
-        except ValueError:
-            # The experiment has not been registered for plotting
+        except ValueError as e:
+            logger.warning(f"Experiment not registered: {e}")
+            logger.warning("This usually indicates an earlier initialization error")
             return fig
 
         # try:
