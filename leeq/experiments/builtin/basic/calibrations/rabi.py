@@ -36,7 +36,8 @@ class NormalisedRabi(Experiment):
             mprim_index: int = 0,
             pulse_discretization: bool = True,
             update=True,
-            initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+            initial_lpb: Optional[Any] = None,
+            drive_frequency: Optional[float] = None) -> Optional[Dict[str, Any]]:
         """
         Run a Rabi experiment on a given qubit for rough calibration of the driving amplitude.
         Note that this experiment is only for rough calibration, and the final calibration should be done using
@@ -54,6 +55,7 @@ class NormalisedRabi(Experiment):
         pulse_discretization (bool): Whether to discretize the pulse. Default is False.
         update (bool): Whether to update the qubit parameters If you are tuning up the qubit set it to True. Default is False.
         initial_lpb (Any): Initial lpb to add to the created lpb. Default is None.
+        drive_frequency (Optional[float]): Override frequency for the Rabi pulse. If specified, overrides the pulse frequency. Default is None.
 
         Returns:
         Dict[str, Any]: Fitted parameters if fit is True, None otherwise.
@@ -73,6 +75,10 @@ class NormalisedRabi(Experiment):
                 amp=amp, phase=0., shape='square', width=step)
         else:
             amp = rabi_pulse.amp
+
+        # New frequency override logic
+        if drive_frequency is not None:
+            rabi_pulse.update_pulse_args(freq=drive_frequency)
 
         if not pulse_discretization:
             # Set up sweep parameters
@@ -137,7 +143,8 @@ class NormalisedRabi(Experiment):
                       mprim_index: int = 0,
                       pulse_discretization: bool = True,
                       update=True,
-                      initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+                      initial_lpb: Optional[Any] = None,
+                      drive_frequency: Optional[float] = None) -> Optional[Dict[str, Any]]:
         """
         Run a simulated Rabi experiment on a given qubit and analyze the results.
 
@@ -153,6 +160,7 @@ class NormalisedRabi(Experiment):
         pulse_discretization (bool): Whether to discretize the pulse. Default is False.
         update (bool): Whether to update the qubit parameters. Default is True.
         initial_lpb (Any): Initial lpb to add to the created lpb. Default is None.
+        drive_frequency (Optional[float]): Override frequency for the Rabi pulse. If specified, overrides the pulse frequency. Default is None.
 
         Returns:
         Dict[str, Any]: Fitted parameters if fit is True, None otherwise.
@@ -171,8 +179,9 @@ class NormalisedRabi(Experiment):
             c1.channel)  # MHz
         omega = rabi_rate_per_amp * amp
 
-        # Detuning
-        delta = virtual_transmon.qubit_frequency - c1['X'].freq
+        # Detuning - use drive_frequency if provided, otherwise use pulse frequency
+        pulse_frequency = drive_frequency if drive_frequency is not None else c1['X'].freq
+        delta = virtual_transmon.qubit_frequency - pulse_frequency
 
         # Time array (let's consider 100 ns for demonstration)
         t = np.arange(start, stop, step)  # 1000 points from 0 to 100 ns
