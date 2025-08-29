@@ -476,7 +476,7 @@ class VirtualTransmon(object):
         """
 
         population_distribution = np.diag(
-            self._density_matrix).astype(
+            self._density_matrix).real.astype(
             np.float64)
         readout_response = self.get_resonator_response(readout_frequency)
         return np.mean(population_distribution
@@ -500,7 +500,7 @@ class VirtualTransmon(object):
             np.ndarray: The IQ data in complex value.
         """
         population_distribution = np.diag(
-            self._density_matrix).astype(
+            self._density_matrix).real.astype(
             np.float64)
 
         # Set the mean and standard deviation for each axis
@@ -511,7 +511,7 @@ class VirtualTransmon(object):
         noise_y = np.random.normal(mu, sigma, sampling_number)
 
         population_distribution = np.diag(
-            self._density_matrix).astype(
+            self._density_matrix).real.astype(
             np.float64)
 
         readout_response = self.get_resonator_response(readout_frequency)
