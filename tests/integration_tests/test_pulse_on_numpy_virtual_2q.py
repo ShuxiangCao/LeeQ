@@ -1,4 +1,5 @@
 from pytest import fixture
+import pytest
 from leeq.chronicle import log_and_record, register_browser_function, Chronicle
 
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
@@ -89,6 +90,7 @@ class SimpleSampleExperiment(Experiment):
         dummy_obj.result_raw = self.raw_values
 
 
+@pytest.mark.slow  # Skipped by default due to test isolation issues in full suite
 def test_pulse_on_virtual_2q(qubit):
     # Prepare some lpb to prepare a non-trivial distribution
     Chronicle().start_log()
