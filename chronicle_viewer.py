@@ -221,6 +221,55 @@ app.layout = dbc.Container([
     Input("file-path", "value"),
     prevent_initial_call=True
 )
+def populate_experiment_selector(file_path):
+    """
+    Populate experiment selector with a tree view when a file is loaded.
+    Returns a tree structure with all available experiments organized hierarchically.
+    """
+    if not file_path:
+        return []
+    
+    try:
+        experiments = build_experiment_tree(file_path)
+        
+        if not experiments:
+            return [
+                dbc.Alert(
+                    "No experiments found in this chronicle file.",
+                    color="warning",
+                    className="mb-3"
+                )
+            ]
+        
+        # Create tree structure
+        tree_nodes = create_tree_view_items(experiments)
+        tree_items = render_tree_nodes(tree_nodes)
+        
+        return [
+            dbc.Label("Select Experiment (ordered by timestamp):", className="fw-bold mb-2"),
+            html.Div(
+                tree_items,
+                className="experiment-tree border rounded p-3",
+                style={
+                    "maxHeight": "400px",
+                    "overflowY": "auto",
+                    "backgroundColor": "#f8f9fa"
+                }
+            ),
+            html.Small(f"Found {len(experiments)} experiments in this file", 
+                      className="text-muted mt-2 d-block")
+        ]
+        
+    except Exception as e:
+        return [
+            dbc.Alert(
+                f"Error loading experiments: {str(e)[:200]}",
+                color="danger",
+                className="mb-3"
+            )
+        ]
+
+
 def build_experiment_tree(file_path):
     """
     Build a hierarchical tree structure of experiments from the chronicle file.
@@ -342,7 +391,7 @@ def render_tree_nodes(tree_nodes, level=0):
                         style=indent_style
                     ),
                     html.Div([
-                        render_tree_nodes(node['children'], level + 1),
+                        *render_tree_nodes(node['children'], level + 1),
                         # Add direct experiments of this parent
                         *[dbc.Button(
                             exp['display_name'],
@@ -371,54 +420,6 @@ def render_tree_nodes(tree_nodes, level=0):
     
     return items
 
-
-def populate_experiment_selector(file_path):
-    """
-    Populate experiment selector with a tree view when a file is loaded.
-    Returns a tree structure with all available experiments organized hierarchically.
-    """
-    if not file_path:
-        return []
-    
-    try:
-        experiments = build_experiment_tree(file_path)
-        
-        if not experiments:
-            return [
-                dbc.Alert(
-                    "No experiments found in this chronicle file.",
-                    color="warning",
-                    className="mb-3"
-                )
-            ]
-        
-        # Create tree structure
-        tree_nodes = create_tree_view_items(experiments)
-        tree_items = render_tree_nodes(tree_nodes)
-        
-        return [
-            dbc.Label("Select Experiment (ordered by timestamp):", className="fw-bold mb-2"),
-            html.Div(
-                tree_items,
-                className="experiment-tree border rounded p-3",
-                style={
-                    "maxHeight": "400px",
-                    "overflowY": "auto",
-                    "backgroundColor": "#f8f9fa"
-                }
-            ),
-            html.Small(f"Found {len(experiments)} experiments in this file", 
-                      className="text-muted mt-2 d-block")
-        ]
-        
-    except Exception as e:
-        return [
-            dbc.Alert(
-                f"Error loading experiments: {str(e)[:200]}",
-                color="danger",
-                className="mb-3"
-            )
-        ]
 
 # Callback for loading selected experiment and displaying info
 @app.callback(
