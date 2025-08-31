@@ -84,6 +84,47 @@ body {
     min-height: 0;
 }
 
+.main-content-column {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.main-content-card .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.attributes-column {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.attributes-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.attributes-card .card-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
 .sidebar-card .card-body {
     flex: 1;
     overflow-y: auto;
@@ -250,9 +291,9 @@ app.layout = dbc.Container([
         ])
     ], className="flex-shrink-0"),
     
-    # Main layout with sidebar and content
+    # Main layout with three panels: sidebar, content, and attributes
     dbc.Row([
-        # Left Sidebar
+        # Left Sidebar - File & Experiment Selection
         dbc.Col([
             dbc.Card([
                 dbc.CardHeader([
@@ -289,38 +330,73 @@ app.layout = dbc.Container([
                     ], className="experiment-section")
                 ])
             ], className="sidebar-card")
-        ], width=4, className="pe-3 sidebar-column"),
+        ], width=3, className="pe-2 sidebar-column"),
         
-        # Main Content Area
+        # Main Content Area - Plot & Controls
         dbc.Col([
-            # Experiment info section
-            dcc.Loading(
-                id="loading-exp-info",
-                type="circle",
-                children=html.Div(id="experiment-info", className="mb-3"),
-                color="#0d6efd"
-            ),
-            
-            # Plot controls section
-            dcc.Loading(
-                id="loading-plot-controls",
-                type="dot",
-                children=html.Div(id="plot-controls", className="mb-3"),
-                color="#0d6efd"
-            ),
-            
-            # Plot display section
-            dcc.Loading(
-                id="loading-plot",
-                type="graph",
-                children=dcc.Graph(
-                    id="plot-display",
-                    style={"height": "100%", "minHeight": "400px"},
-                    config={"displayModeBar": True, "displaylogo": False}
-                ),
-                color="#0d6efd"
-            ),
-        ], width=8, className="main-content"),
+            dbc.Card([
+                dbc.CardBody([
+                    # Experiment info section
+                    dcc.Loading(
+                        id="loading-exp-info",
+                        type="circle",
+                        children=html.Div(id="experiment-info", className="mb-3"),
+                        color="#0d6efd"
+                    ),
+                    
+                    # Plot controls section
+                    dcc.Loading(
+                        id="loading-plot-controls",
+                        type="dot",
+                        children=html.Div(id="plot-controls", className="mb-3"),
+                        color="#0d6efd"
+                    ),
+                    
+                    # Plot display section
+                    dcc.Loading(
+                        id="loading-plot",
+                        type="graph",
+                        children=dcc.Graph(
+                            id="plot-display",
+                            style={"height": "100%", "minHeight": "400px"},
+                            config={"displayModeBar": True, "displaylogo": False}
+                        ),
+                        color="#0d6efd"
+                    ),
+                ])
+            ], className="main-content-card")
+        ], width=6, className="px-1 main-content-column"),
+        
+        # Right Panel - Experiment Attributes
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader([
+                    html.I(className="bi bi-info-circle me-2"),
+                    html.Strong("Experiment Attributes")
+                ]),
+                dbc.CardBody([
+                    dcc.Loading(
+                        id="loading-attributes",
+                        type="dot",
+                        children=html.Div(
+                            id="experiment-attributes", 
+                            children=[
+                                dbc.Alert(
+                                    [
+                                        html.I(className="bi bi-arrow-left me-2"),
+                                        "Select an experiment to view its attributes"
+                                    ],
+                                    color="info",
+                                    className="text-center"
+                                )
+                            ],
+                            className=""
+                        ),
+                        color="#0d6efd"
+                    )
+                ])
+            ], className="attributes-card")
+        ], width=3, className="ps-2 attributes-column"),
     ], className="content-row"),
     
     # Hidden storage for file path
@@ -533,10 +609,104 @@ def render_tree_nodes(tree_nodes, level=0):
     return items
 
 
+def create_experiment_attributes_panel(experiment=None, record_id=None, error_msg=None):
+    """Create the experiment attributes panel content."""
+    if error_msg:
+        return dbc.Alert(
+            [
+                html.I(className="bi bi-exclamation-triangle me-2"),
+                f"Error loading attributes: {error_msg}"
+            ],
+            color="warning"
+        )
+    
+    if not experiment:
+        return dbc.Alert(
+            [
+                html.I(className="bi bi-arrow-left me-2"),
+                "Select an experiment to view its attributes"
+            ],
+            color="info",
+            className="text-center"
+        )
+    
+    # Extract experiment attributes
+    attributes = []
+    
+    # Basic information
+    attributes.append(
+        html.Div([
+            html.H6("Basic Information", className="text-primary mb-2 border-bottom pb-1"),
+            html.P([html.Strong("Type: "), html.Span(type(experiment).__name__, className="font-monospace")], className="mb-1 small"),
+            html.P([html.Strong("Record ID: "), html.Span(record_id[:16] + "..." if len(record_id) > 16 else record_id, className="font-monospace")], className="mb-1 small"),
+        ], className="mb-3")
+    )
+    
+    # Experiment-specific attributes
+    exp_attrs = []
+    if hasattr(experiment, '__dict__'):
+        for attr_name in sorted(dir(experiment)):
+            if not attr_name.startswith('_') and not callable(getattr(experiment, attr_name)):
+                try:
+                    attr_value = getattr(experiment, attr_name)
+                    if attr_value is not None and str(attr_value) != "":
+                        # Format the attribute value
+                        if isinstance(attr_value, (int, float)):
+                            display_value = str(attr_value)
+                        elif isinstance(attr_value, str):
+                            display_value = attr_value[:100] + "..." if len(attr_value) > 100 else attr_value
+                        elif hasattr(attr_value, '__len__') and not isinstance(attr_value, str):
+                            display_value = f"{type(attr_value).__name__} (length: {len(attr_value)})"
+                        else:
+                            display_value = str(type(attr_value).__name__)
+                        
+                        exp_attrs.append(
+                            html.P([
+                                html.Strong(f"{attr_name}: "), 
+                                html.Span(display_value, className="text-muted small")
+                            ], className="mb-1 small", style={"wordBreak": "break-word"})
+                        )
+                except:
+                    continue
+    
+    if exp_attrs:
+        attributes.append(
+            html.Div([
+                html.H6("Experiment Attributes", className="text-primary mb-2 border-bottom pb-1"),
+                html.Div(exp_attrs[:20])  # Limit to first 20 attributes to avoid overwhelming UI
+            ], className="mb-3")
+        )
+    else:
+        attributes.append(
+            html.Div([
+                html.H6("Experiment Attributes", className="text-primary mb-2 border-bottom pb-1"),
+                html.P("No public attributes found", className="text-muted small")
+            ], className="mb-3")
+        )
+    
+    # Methods/Functions info
+    if hasattr(experiment, 'get_browser_functions'):
+        try:
+            plot_functions = experiment.get_browser_functions()
+            if plot_functions:
+                func_list = [html.Li(name, className="small") for name, _ in plot_functions]
+                attributes.append(
+                    html.Div([
+                        html.H6("Available Plot Functions", className="text-primary mb-2 border-bottom pb-1"),
+                        html.Ul(func_list, className="small mb-0")
+                    ], className="mb-3")
+                )
+        except:
+            pass
+    
+    return html.Div(attributes, style={"fontSize": "0.9rem"})
+
+
 # Callback for loading selected experiment and displaying info
 @app.callback(
     [Output("experiment-info", "children"),
      Output("plot-controls", "children"),
+     Output("experiment-attributes", "children"),
      Output("file-store", "data")],
     [Input({"type": "experiment-btn", "index": ALL}, "n_clicks")],
     [State("file-path", "value")],
@@ -597,6 +767,7 @@ def load_selected_experiment(n_clicks_list, file_path):
                 className="d-flex align-items-center"
             ),
             [],
+            create_experiment_attributes_panel(),
             None
         )
     
@@ -644,6 +815,7 @@ def load_selected_experiment(n_clicks_list, file_path):
         except AttributeError:
             # Experiment doesn't have get_browser_functions method
             store_data = {"file_path": file_path.strip(), "record_id": selected_record_id}
+            attributes_panel = create_experiment_attributes_panel(experiment, selected_record_id)
             return (
                 info_card,
                 dbc.Alert(
@@ -655,6 +827,7 @@ def load_selected_experiment(n_clicks_list, file_path):
                     color="warning",
                     className="d-flex align-items-center"
                 ),
+                attributes_panel,
                 store_data
             )
         
@@ -684,12 +857,15 @@ def load_selected_experiment(n_clicks_list, file_path):
             
             # Store both file path and record ID for plot callbacks
             store_data = {"file_path": file_path.strip(), "record_id": selected_record_id}
-            return info_card, plot_control_div, store_data
+            attributes_panel = create_experiment_attributes_panel(experiment, selected_record_id)
+            return (info_card, plot_control_div, attributes_panel, store_data)
         else:
             store_data = {"file_path": file_path.strip(), "record_id": selected_record_id}
+            attributes_panel = create_experiment_attributes_panel(experiment, selected_record_id)
             return (
                 info_card,
                 dbc.Alert("No plots available for this experiment", color="info"),
+                attributes_panel,
                 store_data
             )
             
@@ -706,6 +882,7 @@ def load_selected_experiment(n_clicks_list, file_path):
                 className="d-flex align-items-start"
             ),
             [],
+            create_experiment_attributes_panel(error_msg="File not found"),
             {"file_path": file_path, "record_id": selected_record_id} if selected_record_id else None
         )
     except PermissionError:
@@ -721,6 +898,7 @@ def load_selected_experiment(n_clicks_list, file_path):
                 className="d-flex align-items-start"
             ),
             [],
+            create_experiment_attributes_panel(error_msg="Permission denied"),
             {"file_path": file_path, "record_id": selected_record_id} if selected_record_id else None
         )
     except Exception as e:
@@ -743,6 +921,7 @@ def load_selected_experiment(n_clicks_list, file_path):
                     color="danger"
                 ),
                 [],
+                create_experiment_attributes_panel(error_msg="Invalid chronicle file"),
                 {"file_path": file_path, "record_id": selected_record_id} if selected_record_id else None
             )
         else:
@@ -762,6 +941,7 @@ def load_selected_experiment(n_clicks_list, file_path):
                     color="danger"
                 ),
                 [],
+                create_experiment_attributes_panel(error_msg="Loading error"),
                 {"file_path": file_path, "record_id": selected_record_id} if selected_record_id else None
             )
 
