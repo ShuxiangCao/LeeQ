@@ -33,7 +33,8 @@ Version: 1.0.0
 """
 
 import dash
-from dash import dcc, html, Input, Output, State, callback_context
+from dash import dcc, html, Input, Output, State, callback_context, ALL
+from dash.exceptions import PreventUpdate
 import dash.dependencies
 import dash_bootstrap_components as dbc
 from leeq.chronicle import load_object
@@ -220,82 +221,223 @@ app.layout = dbc.Container([
     Input("file-path", "value"),
     prevent_initial_call=True
 )
-def populate_experiment_selector(file_path):
+def build_experiment_tree(file_path):
     """
-    Populate the experiment selection dropdown when a file is loaded.
-    
-    Args:
-        file_path (str): Path to the chronicle log file
-        
-    Returns:
-        list: Dropdown component with available experiments
+    Build a hierarchical tree structure of experiments from the chronicle file.
+    Returns experiments organized by their entry paths with timestamps.
     """
-    if not file_path:
-        return []
-    
     try:
-        # Load available experiments from the chronicle file
         from leeq.chronicle import Chronicle
         chronicle = Chronicle()
         record_book = chronicle.open_record_book(file_path.strip())
         record_ids = record_book.get_available_record_ids()
         
         if not record_ids:
-            return [dbc.Alert("No experiments found in this chronicle file.", color="warning")]
+            return []
         
-        # Create dropdown options with experiment info
-        options = []
-        for i, record_id in enumerate(record_ids):
+        # Collect all experiments with their paths and timestamps
+        experiments = []
+        for record_id in record_ids:
             try:
-                # Load just to get the experiment type
-                experiment = load_object(file_path.strip(), record_id=record_id)
-                exp_type = type(experiment).__name__
-                label = f"{i+1}. {exp_type} ({record_id[:8]}...)"
-                options.append({"label": label, "value": record_id})
+                record = record_book.get_record_by_id(record_id)
+                entry_path = str(record.get_path())
+                timestamp = record.timestamp
+                
+                experiments.append({
+                    'record_id': record_id,
+                    'entry_path': entry_path,
+                    'timestamp': timestamp,
+                    'path_parts': entry_path.strip('/').split('/')[1:]  # Remove '/root' prefix
+                })
             except Exception:
-                # If we can't load, just show the record ID
-                label = f"{i+1}. Unknown ({record_id[:8]}...)"
-                options.append({"label": label, "value": record_id})
+                continue
         
-        # Create dropdown component
-        dropdown = dbc.Row([
-            dbc.Col([
-                dbc.Label("Select Experiment:", className="fw-bold"),
-                dcc.Dropdown(
-                    id="experiment-selector",
-                    options=options,
-                    value=record_ids[0],  # Select first experiment by default
-                    placeholder="Choose an experiment to visualize...",
-                    className="mb-2"
-                ),
-                html.Small(f"Found {len(record_ids)} experiments in this file", 
-                          className="text-muted")
-            ])
-        ])
+        # Sort by timestamp (older first)
+        experiments.sort(key=lambda x: x['timestamp'])
         
-        return [dropdown]
+        return experiments
         
     except Exception as e:
-        return [dbc.Alert(f"Error reading file: {str(e)[:100]}", color="danger")]
+        raise e
+
+
+def create_tree_view_items(experiments):
+    """
+    Create tree view items from the flat experiment list.
+    Organizes experiments in a hierarchical structure based on entry paths.
+    """
+    if not experiments:
+        return []
+    
+    # Group experiments by their hierarchy
+    tree_nodes = {}
+    
+    for exp in experiments:
+        path_parts = exp['path_parts']
+        record_id = exp['record_id']
+        timestamp = exp['timestamp']
+        
+        if not path_parts:
+            continue
+            
+        # Create display name from the experiment path
+        full_name = path_parts[-1].replace('.run', '')
+        
+        # Extract clean name (remove number prefix)
+        if '-' in full_name and full_name.split('-')[0].isdigit():
+            clean_name = '-'.join(full_name.split('-')[1:])
+        else:
+            clean_name = full_name
+            
+        # Build the tree path
+        current_level = tree_nodes
+        for i, part in enumerate(path_parts[:-1]):  # All parts except the last
+            part_clean = part.replace('.run', '')
+            if '-' in part_clean and part_clean.split('-')[0].isdigit():
+                parent_name = '-'.join(part_clean.split('-')[1:])
+            else:
+                parent_name = part_clean
+                
+            if parent_name not in current_level:
+                current_level[parent_name] = {
+                    'children': {},
+                    'experiments': [],
+                    'is_parent': True
+                }
+            current_level = current_level[parent_name]['children']
+        
+        # Add the experiment to the appropriate level
+        if clean_name not in current_level:
+            current_level[clean_name] = {
+                'children': {},
+                'experiments': [],
+                'is_parent': False
+            }
+        
+        current_level[clean_name]['experiments'].append({
+            'record_id': record_id,
+            'display_name': f"{clean_name} ({record_id[:8]}...)",
+            'timestamp': timestamp,
+            'full_path': '/'.join(path_parts)
+        })
+    
+    return tree_nodes
+
+
+def render_tree_nodes(tree_nodes, level=0):
+    """
+    Recursively render tree nodes as HTML elements.
+    """
+    items = []
+    
+    for name, node in tree_nodes.items():
+        indent_style = {"marginLeft": f"{level * 20}px"}
+        
+        if node['is_parent'] and node['children']:
+            # Parent node with children
+            items.append(
+                html.Details([
+                    html.Summary(
+                        html.Strong(name),
+                        style=indent_style
+                    ),
+                    html.Div([
+                        render_tree_nodes(node['children'], level + 1),
+                        # Add direct experiments of this parent
+                        *[dbc.Button(
+                            exp['display_name'],
+                            id={"type": "experiment-btn", "index": exp['record_id']},
+                            color="outline-primary",
+                            size="sm",
+                            className="me-2 mb-1",
+                            style={"marginLeft": f"{(level + 1) * 20}px"}
+                        ) for exp in node['experiments']]
+                    ])
+                ], open=True, className="mb-2")
+            )
+        else:
+            # Leaf experiments
+            for exp in node['experiments']:
+                items.append(
+                    dbc.Button(
+                        exp['display_name'],
+                        id={"type": "experiment-btn", "index": exp['record_id']},
+                        color="outline-primary",
+                        size="sm",
+                        className="me-2 mb-1",
+                        style=indent_style
+                    )
+                )
+    
+    return items
+
+
+def populate_experiment_selector(file_path):
+    """
+    Populate experiment selector with a tree view when a file is loaded.
+    Returns a tree structure with all available experiments organized hierarchically.
+    """
+    if not file_path:
+        return []
+    
+    try:
+        experiments = build_experiment_tree(file_path)
+        
+        if not experiments:
+            return [
+                dbc.Alert(
+                    "No experiments found in this chronicle file.",
+                    color="warning",
+                    className="mb-3"
+                )
+            ]
+        
+        # Create tree structure
+        tree_nodes = create_tree_view_items(experiments)
+        tree_items = render_tree_nodes(tree_nodes)
+        
+        return [
+            dbc.Label("Select Experiment (ordered by timestamp):", className="fw-bold mb-2"),
+            html.Div(
+                tree_items,
+                className="experiment-tree border rounded p-3",
+                style={
+                    "maxHeight": "400px",
+                    "overflowY": "auto",
+                    "backgroundColor": "#f8f9fa"
+                }
+            ),
+            html.Small(f"Found {len(experiments)} experiments in this file", 
+                      className="text-muted mt-2 d-block")
+        ]
+        
+    except Exception as e:
+        return [
+            dbc.Alert(
+                f"Error loading experiments: {str(e)[:200]}",
+                color="danger",
+                className="mb-3"
+            )
+        ]
 
 # Callback for loading selected experiment and displaying info
 @app.callback(
     [Output("experiment-info", "children"),
      Output("plot-controls", "children"),
      Output("file-store", "data")],
-    [Input("experiment-selector", "value")],
+    [Input({"type": "experiment-btn", "index": ALL}, "n_clicks")],
     [State("file-path", "value")],
     prevent_initial_call=True
 )
-def load_selected_experiment(selected_record_id, file_path):
+def load_selected_experiment(n_clicks_list, file_path):
     """
     Load the selected chronicle experiment from the file and extract metadata.
     
-    This callback is triggered when the user selects an experiment from the dropdown.
+    This callback is triggered when the user clicks an experiment button in the tree view.
     It loads the specific experiment using the record ID and prepares UI components.
     
     Args:
-        selected_record_id (str): The record ID of the selected experiment
+        n_clicks_list (list): List of n_clicks values from experiment buttons
         file_path (str): Path to the chronicle log file
     
     Returns:
@@ -316,6 +458,21 @@ def load_selected_experiment(selected_record_id, file_path):
         The function provides detailed error messages with visual indicators
         using Bootstrap icons for better user experience.
     """
+    # Determine which button was clicked
+    ctx = callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+    
+    # Extract record_id from the triggered button
+    triggered_id = ctx.triggered[0]['prop_id']
+    if not triggered_id or 'experiment-btn' not in triggered_id:
+        raise PreventUpdate
+    
+    # Parse the button ID to get the record_id
+    import json
+    button_id = json.loads(triggered_id.split('.')[0])
+    selected_record_id = button_id['index']
+    
     if not selected_record_id or not file_path or file_path.strip() == "":
         return (
             dbc.Alert(
