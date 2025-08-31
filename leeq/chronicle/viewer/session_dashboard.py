@@ -3,13 +3,15 @@ Chronicle Session Viewer - Live monitoring dashboard for active Chronicle sessio
 
 This module provides a web-based dashboard for viewing experiments from the current
 Chronicle session in real-time. It polls the Chronicle singleton every 5 seconds
-to display newly completed experiments.
+to display newly completed experiments with full visualization capabilities.
 
 Features:
     - Live polling of active Chronicle session (5-second intervals)
     - Manual refresh capability as backup
     - Hierarchical tree view of experiments
+    - Interactive plot generation and visualization
     - Experiment details and attributes display
+    - Resizable panels for optimal layout
     - Graceful handling of no active session
 
 Usage:
@@ -19,7 +21,7 @@ Usage:
         chronicle.launch_viewer()
 
 Author: LeeQ Development Team
-Version: 1.0.0
+Version: 2.0.0
 """
 
 import dash
@@ -29,9 +31,14 @@ import dash_bootstrap_components as dbc
 from leeq.chronicle.viewer.dashboard import (
     create_tree_view_items,
     render_tree_nodes,
-    create_experiment_attributes_panel
+    create_experiment_attributes_panel,
+    convert_figure_to_plotly
 )
+import plotly.graph_objects as go
+import plotly.tools
 import json
+import base64
+import io
 
 # Initialize Dash app with Bootstrap theme
 app = dash.Dash(__name__, external_stylesheets=[
@@ -42,7 +49,7 @@ app = dash.Dash(__name__, external_stylesheets=[
 # Global chronicle instance (similar to experiment_manager pattern in live_dash_app)
 chronicle_instance = None
 
-# Custom CSS for layout (reuse from existing dashboard)
+# Custom CSS for layout with resizable panels
 custom_css = """
 <style>
 body {
@@ -97,7 +104,8 @@ body {
 
 .main-content-card .card-body {
     flex: 1;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     min-height: 0;
 }
 
@@ -121,7 +129,28 @@ body {
     min-height: 0;
 }
 
+.sidebar-card .card-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.file-input-section {
+    flex-shrink: 0;
+}
+
+.experiment-section {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
 .experiment-tree {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto !important;
 }
 
@@ -146,12 +175,80 @@ body {
     background-color: rgba(0, 123, 255, 0.1);
     border-color: #0d6efd;
 }
+
+.main-content {
+    height: 100%;
+    overflow-y: auto;
+}
+
+/* Resizable panel styles */
+.resizable-container {
+    display: flex;
+    height: 100%;
+    position: relative;
+}
+
+.sidebar-resizable {
+    min-width: 200px;
+    max-width: 60%;
+    width: 25%;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.resize-handle {
+    width: 6px;
+    background: #ced4da;
+    cursor: col-resize;
+    position: absolute;
+    top: 0;
+    right: -3px;
+    bottom: 0;
+    z-index: 100;
+    transition: all 0.2s;
+    border-radius: 0 3px 3px 0;
+}
+
+.resize-handle:hover,
+.resize-handle.resizing {
+    background: #0d6efd;
+    width: 8px;
+    right: -4px;
+}
+
+.resize-handle:hover::after,
+.resize-handle.resizing::after {
+    content: '';
+    position: absolute;
+    left: -3px;
+    right: -3px;
+    top: 0;
+    bottom: 0;
+    background: rgba(13, 110, 253, 0.15);
+    border-radius: 3px;
+}
+
+.main-content-resizable {
+    flex: 1;
+    min-width: 300px;
+    padding-left: 10px;
+}
+
+/* Prevent text selection during resize */
+.resizing * {
+    user-select: none !important;
+    pointer-events: none !important;
+}
+
+/* Resize cursor for the entire document during resize */
+body.resizing {
+    cursor: col-resize !important;
+}
 </style>
 """
 
-# Set custom HTML template with CSS
-app.index_string = """
-<!DOCTYPE html>
+# Set custom HTML template with CSS and JavaScript
+app.index_string = """<!DOCTYPE html>
 <html>
     <head>
         {%metas%}
@@ -167,88 +264,219 @@ app.index_string = """
             {%scripts%}
             {%renderer%}
         </footer>
+        <script>
+        // Resizable panel functionality with better Dash compatibility
+        function initializeResize() {
+            const resizeHandle = document.querySelector('.resize-handle');
+            const sidebar = document.querySelector('.sidebar-resizable');
+            const container = document.querySelector('.resizable-container');
+            
+            if (!resizeHandle || !sidebar || !container) {
+                // Retry after a short delay if elements aren't found
+                setTimeout(initializeResize, 100);
+                return;
+            }
+            
+            let isResizing = false;
+            let startX = 0;
+            let startWidth = 0;
+            
+            // Remove any existing event listeners
+            resizeHandle.onmousedown = null;
+            
+            resizeHandle.onmousedown = function(e) {
+                isResizing = true;
+                startX = e.clientX;
+                startWidth = parseInt(document.defaultView.getComputedStyle(sidebar).width, 10);
+                
+                document.body.classList.add('resizing');
+                resizeHandle.classList.add('resizing');
+                
+                e.preventDefault();
+                e.stopPropagation();
+            };
+            
+            document.onmousemove = function(e) {
+                if (!isResizing) return;
+                
+                const width = startWidth + e.clientX - startX;
+                const containerWidth = container.offsetWidth;
+                const minWidth = 200;
+                const maxWidth = containerWidth * 0.6;
+                
+                if (width >= minWidth && width <= maxWidth) {
+                    const percentage = (width / containerWidth) * 100;
+                    sidebar.style.width = percentage + '%';
+                }
+                
+                e.preventDefault();
+            };
+            
+            document.onmouseup = function() {
+                if (isResizing) {
+                    isResizing = false;
+                    document.body.classList.remove('resizing');
+                    resizeHandle.classList.remove('resizing');
+                }
+            };
+            
+            // Handle window resize
+            window.onresize = function() {
+                const containerWidth = container.offsetWidth;
+                const currentWidth = sidebar.offsetWidth;
+                const percentage = (currentWidth / containerWidth) * 100;
+                
+                if (percentage > 60) {
+                    sidebar.style.width = '60%';
+                } else if (percentage < 15) {
+                    sidebar.style.width = '200px';
+                }
+            };
+            
+            console.log('Resize functionality initialized');
+        }
+        
+        // Initialize immediately and also after Dash renders
+        document.addEventListener('DOMContentLoaded', initializeResize);
+        setTimeout(initializeResize, 500);
+        setTimeout(initializeResize, 1000);
+        </script>
     </body>
-</html>
-"""
+</html>"""
 
-# Application layout
+# Main app layout with full-height sidebar design
 app.layout = dbc.Container([
-        # Header
-        dbc.Row([
-            dbc.Col([
-                html.H1("Active Chronicle Session Viewer", className="mb-3"),
-                html.Hr()
-            ])
-        ]),
-        
-        # Auto-refresh interval component (5-second polling)
-        dcc.Interval(
-            id='session-interval',
-            interval=5000,  # 5 seconds in milliseconds
-            n_intervals=0
-        ),
-        
-        # Manual refresh button and status
-        dbc.Row([
-            dbc.Col([
-                dbc.ButtonGroup([
-                    dbc.Button(
-                        [html.I(className="bi bi-arrow-clockwise me-2"), "Manual Refresh"],
-                        id="manual-refresh",
-                        color="primary",
-                        className="mb-3"
-                    )
+    # Header
+    dbc.Row([
+        dbc.Col([
+            html.H1("Active Chronicle Session Viewer", className="mb-2 text-primary"),
+            html.P("Live monitoring of active Chronicle recording session", className="text-muted mb-3"),
+            html.Hr(className="mb-3"),
+        ])
+    ], className="flex-shrink-0"),
+    
+    # Main layout with resizable three panels
+    html.Div([
+        # Left Sidebar - Experiment Selection (Resizable)
+        html.Div([
+            dbc.Card([
+                dbc.CardHeader([
+                    html.I(className="bi bi-diagram-3 me-2"),
+                    html.Strong("Experiment Selection"),
+                    html.Small(" (drag right edge to resize)", className="text-muted ms-2")
                 ]),
-                html.Div(id="refresh-status", className="text-muted small mb-2")
-            ])
-        ]),
+                dbc.CardBody([
+                    # Session controls section
+                    html.Div([
+                        dbc.Label("Session Controls:", className="fw-bold mb-2"),
+                        dcc.Interval(
+                            id='session-interval',
+                            interval=5000,  # Update every 5 seconds
+                            n_intervals=0
+                        ),
+                        dbc.ButtonGroup([
+                            dbc.Button(
+                                [
+                                    html.I(className="bi bi-arrow-clockwise me-1"),
+                                    "Refresh"
+                                ],
+                                id="manual-refresh",
+                                color="primary",
+                                size="sm",
+                                n_clicks=0
+                            )
+                        ], className="mb-3 w-100"),
+                        html.Div(id="refresh-status", className="text-muted small mb-3"),
+                    ], className="file-input-section"),
+                    
+                    # Experiment tree section
+                    html.Div([
+                        html.Hr(className="my-3"),
+                        html.Div(id="session-tree", className="experiment-tree"),
+                    ], className="experiment-section")
+                ])
+            ], className="sidebar-card"),
+            # Resize handle
+            html.Div(className="resize-handle", title="Drag to resize sidebar")
+        ], className="sidebar-resizable"),
         
-        # Main content area with three columns
-        dbc.Row([
-            # Left panel: Experiment tree view
-            dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader([
-                        html.I(className="bi bi-diagram-3 me-2"),
-                        "Experiments"
-                    ]),
-                    dbc.CardBody([
-                        html.Div(id="session-tree", className="experiment-tree")
-                    ])
-                ], className="sidebar-card h-100")
-            ], width=4, className="sidebar-column"),
-            
-            # Middle panel: Experiment information
-            dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader([
-                        html.I(className="bi bi-info-circle me-2"),
-                        "Experiment Information"
-                    ]),
-                    dbc.CardBody([
-                        html.Div(id="session-experiment-info")
-                    ])
-                ], className="main-content-card h-100")
-            ], width=5, className="main-content-column"),
-            
-            # Right panel: Experiment attributes
-            dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader([
-                        html.I(className="bi bi-list-ul me-2"),
-                        "Experiment Attributes"
-                    ]),
-                    dbc.CardBody([
-                        html.Div(id="session-experiment-attributes")
-                    ])
-                ], className="attributes-card h-100")
-            ], width=3, className="attributes-column")
-        ], className="content-row h-100"),
-        
-        # Hidden stores for state management
-        dcc.Store(id='selected-experiment-id', storage_type='memory'),
-        dcc.Store(id='experiment-data-store', storage_type='memory')
-    ], fluid=True, className="main-container")
+        # Right Content Area - Plot & Attributes
+        html.Div([
+            dbc.Row([
+                # Main Content Area - Plot & Controls
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            # Experiment info section
+                            dcc.Loading(
+                                id="loading-exp-info",
+                                type="circle",
+                                children=html.Div(id="session-experiment-info", className="mb-3"),
+                                color="#0d6efd"
+                            ),
+                            
+                            # Plot controls section
+                            dcc.Loading(
+                                id="loading-plot-controls",
+                                type="dot",
+                                children=html.Div(id="plot-controls", className="mb-3"),
+                                color="#0d6efd"
+                            ),
+                            
+                            # Plot display section
+                            dcc.Loading(
+                                id="loading-plot",
+                                type="graph",
+                                children=dcc.Graph(
+                                    id="plot-display",
+                                    style={"height": "100%", "minHeight": "400px"},
+                                    config={"displayModeBar": True, "displaylogo": False}
+                                ),
+                                color="#0d6efd"
+                            ),
+                        ])
+                    ], className="main-content-card")
+                ], width=8, className="main-content-column pe-2"),
+                
+                # Right Panel - Experiment Attributes
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader([
+                            html.I(className="bi bi-info-circle me-2"),
+                            html.Strong("Experiment Attributes")
+                        ]),
+                        dbc.CardBody([
+                            dcc.Loading(
+                                id="loading-attributes",
+                                type="dot",
+                                children=html.Div(
+                                    id="session-experiment-attributes", 
+                                    children=[
+                                        dbc.Alert(
+                                            [
+                                                html.I(className="bi bi-arrow-left me-2"),
+                                                "Select an experiment to view its attributes"
+                                            ],
+                                            color="info",
+                                            className="text-center"
+                                        )
+                                    ],
+                                    className=""
+                                ),
+                                color="#0d6efd"
+                            )
+                        ])
+                    ], className="attributes-card")
+                ], width=4, className="attributes-column")
+            ], className="g-0 h-100")
+        ], className="main-content-resizable")
+    ], className="resizable-container content-row"),
+    
+    # Hidden stores for state management
+    dcc.Store(id='selected-experiment-id', storage_type='memory'),
+    dcc.Store(id='experiment-data-store', storage_type='memory'),
+    dcc.Store(id='plot-functions-store', storage_type='memory')
+], fluid=True, className="main-container")
 
 
 def load_session_experiments():
@@ -437,7 +665,9 @@ def select_experiment(n_clicks, button_ids):
 
 @app.callback(
     [Output("session-experiment-info", "children"),
-     Output("session-experiment-attributes", "children")],
+     Output("plot-controls", "children"),
+     Output("session-experiment-attributes", "children"),
+     Output("plot-functions-store", "data")],
     [Input("selected-experiment-id", "data")],
     [State("experiment-data-store", "data")]
 )
@@ -460,8 +690,9 @@ def update_experiment_display(selected_id, experiment_data):
             color="info",
             className="text-center"
         )
+        plot_controls = []
         attributes_content = create_experiment_attributes_panel()
-        return info_content, attributes_content
+        return info_content, plot_controls, attributes_content, None
     
     # Check chronicle instance is available
     if not chronicle_instance:
@@ -472,7 +703,7 @@ def update_experiment_display(selected_id, experiment_data):
             ],
             color="warning"
         )
-        return error_content, create_experiment_attributes_panel(error_msg="Chronicle not available")
+        return error_content, [], create_experiment_attributes_panel(error_msg="Chronicle not available"), None
     
     try:
         # Verify Chronicle is still recording
@@ -484,7 +715,7 @@ def update_experiment_display(selected_id, experiment_data):
                 ],
                 color="warning"
             )
-            return error_content, create_experiment_attributes_panel(error_msg="Session ended")
+            return error_content, [], create_experiment_attributes_panel(error_msg="Session ended"), None
         
         # Access the record book and get the specific record
         record_book = chronicle_instance._active_record_book
@@ -566,9 +797,67 @@ def update_experiment_display(selected_id, experiment_data):
         
         info_content = html.Div(info_sections)
         
+        # Generate plot controls if experiment object is available
+        plot_controls = []
+        plot_functions_data = None
+        
+        if experiment_obj:
+            try:
+                # Get available plot functions
+                plot_functions = experiment_obj.get_browser_functions()
+                if plot_functions:
+                    # Create buttons for each plot function
+                    buttons = []
+                    for name, method in plot_functions:
+                        btn = dbc.Button(
+                            name.replace("_", " ").title(),
+                            id={"type": "plot-btn", "index": name},
+                            color="primary",
+                            className="me-2 mb-2",
+                            size="sm"
+                        )
+                        buttons.append(btn)
+                    
+                    plot_controls = dbc.Card([
+                        dbc.CardBody([
+                            html.H5([
+                                html.I(className="bi bi-graph-up me-2"),
+                                f"Available Plots ({len(plot_functions)})"
+                            ], className="card-title mb-3 text-primary"),
+                            html.Div(buttons)
+                        ])
+                    ], color="light", className="shadow-sm")
+                    
+                    # Store plot functions for later use
+                    plot_functions_data = {
+                        "record_id": selected_id,
+                        "functions": {name: True for name, _ in plot_functions}
+                    }
+                else:
+                    plot_controls = dbc.Alert(
+                        [
+                            html.I(className="bi bi-info-circle me-2"),
+                            "No plots available for this experiment type"
+                        ],
+                        color="info"
+                    )
+            except AttributeError:
+                plot_controls = dbc.Alert(
+                    [
+                        html.I(className="bi bi-exclamation-triangle me-2"),
+                        "This experiment does not support browser functions"
+                    ],
+                    color="warning"
+                )
+        
         # Create attributes panel
         if attr_error:
             attributes_content = create_experiment_attributes_panel(error_msg=attr_error)
+        elif experiment_obj:
+            attributes_content = create_experiment_attributes_panel(
+                experiment=experiment_obj,
+                record_id=selected_id
+            )
         elif attributes:
             attributes_content = create_experiment_attributes_panel(
                 experiment=attributes,
@@ -579,7 +868,7 @@ def update_experiment_display(selected_id, experiment_data):
                 error_msg="No attributes available"
             )
         
-        return info_content, attributes_content
+        return info_content, plot_controls, attributes_content, plot_functions_data
         
     except Exception as e:
         # Handle unexpected errors gracefully
@@ -590,7 +879,100 @@ def update_experiment_display(selected_id, experiment_data):
             ],
             color="danger"
         )
-        return error_content, create_experiment_attributes_panel(error_msg=str(e))
+        return error_content, [], create_experiment_attributes_panel(error_msg=str(e)), None
+
+
+# Callback for displaying plots
+@app.callback(
+    Output("plot-display", "figure"),
+    Input({"type": "plot-btn", "index": ALL}, "n_clicks"),
+    [State("plot-functions-store", "data"),
+     State("selected-experiment-id", "data")],
+    prevent_initial_call=True
+)
+def display_plot(n_clicks, plot_functions_data, selected_id):
+    """
+    Generate and display a plot based on the selected browser function.
+    
+    This callback generates plots from live Chronicle session experiments.
+    Unlike the file-based viewer, this accesses experiments directly from memory.
+    """
+    if not any(n_clicks):
+        return go.Figure()
+    
+    # Check chronicle instance and selected experiment
+    if not chronicle_instance or not selected_id:
+        return go.Figure().add_annotation(
+            text="No experiment selected or Chronicle not available",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
+    
+    # Get which button was clicked
+    ctx = callback_context
+    if not ctx.triggered:
+        return go.Figure()
+    
+    # Extract the button ID that was clicked
+    button_id = ctx.triggered[0]['prop_id']
+    if '"index":' not in button_id:
+        return go.Figure()
+    
+    # Parse the method name from the button ID
+    button_dict = json.loads(button_id.split('.')[0])
+    method_name = button_dict['index']
+    
+    try:
+        # Verify Chronicle is still recording
+        if not chronicle_instance.is_recording():
+            return go.Figure().add_annotation(
+                text="Chronicle session has ended",
+                xref="paper", yref="paper",
+                x=0.5, y=0.5, showarrow=False
+            )
+        
+        # Access the record book and get the specific record
+        record_book = chronicle_instance._active_record_book
+        if not record_book:
+            raise Exception("Record book not accessible")
+            
+        record = record_book.get_record_by_id(selected_id)
+        if not record:
+            raise Exception(f"Record {selected_id} not found")
+        
+        # Load the experiment object
+        experiment = record.get_object()
+        
+        # Get plot functions and find the selected one
+        plot_functions = experiment.get_browser_functions()
+        
+        for name, method in plot_functions:
+            if name == method_name:
+                try:
+                    # Generate the plot
+                    fig = method()
+                    # Convert figure to Plotly format (supports both Plotly and matplotlib)
+                    plotly_fig = convert_figure_to_plotly(fig)
+                    return plotly_fig
+                except Exception as plot_error:
+                    return go.Figure().add_annotation(
+                        text=f"Error generating plot: {str(plot_error)[:200]}",
+                        xref="paper", yref="paper",
+                        x=0.5, y=0.5, showarrow=False
+                    )
+        
+        return go.Figure().add_annotation(
+            text=f"Plot method '{method_name}' not found",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
+        
+    except Exception as e:
+        return go.Figure().add_annotation(
+            text=f"Error: {str(e)[:200]}",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
 
 
 def start_viewer(**kwargs):
@@ -624,7 +1006,7 @@ def start_viewer(**kwargs):
     print("Press Ctrl+C to stop the viewer")
     
     # Start the Dash server
-    app.run_server(**default_args)
+    app.run(**default_args)
 
 
 # For testing import
