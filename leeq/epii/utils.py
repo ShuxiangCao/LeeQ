@@ -330,7 +330,7 @@ class DiagnosticTool:
 
                 # Check parameter manager
                 try:
-                    param_count = len(self.service.parameter_manager.list_parameters())
+                    param_count = len(self.service.parameter_manager.get_all_parameters())
                     health["checks"]["parameters"] = {
                         "status": "ok",
                         "message": f"{param_count} parameters available"

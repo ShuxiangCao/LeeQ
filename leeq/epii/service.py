@@ -391,28 +391,29 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
         response = epii_pb2.ParametersResponse()
 
         try:
-            logger.debug(f"GetParameters called for {len(request.parameter_names)} parameters")
-
+            # If no specific parameters requested, return all parameters
             if not request.parameter_names:
-                # Return empty response if no parameters requested
-                return response
-
-            for param_name in request.parameter_names:
-                try:
+                logger.debug("GetParameters called - returning all parameters")
+                all_params = self.parameter_manager.get_all_parameters()
+                
+                # Convert all parameters to protobuf format
+                for name, value in all_params.items():
+                    serialized = self.parameter_manager.serialize_value(value)
+                    response.parameters[name] = str(serialized)
+                
+                logger.debug(f"Returned {len(all_params)} parameters")
+            else:
+                # Return only requested parameters
+                logger.debug(f"GetParameters called for {len(request.parameter_names)} specific parameters")
+                
+                for param_name in request.parameter_names:
                     value = self.parameter_manager.get_parameter(param_name)
                     if value is not None:
-                        # Serialize parameter value
-                        if isinstance(value, (int, float, str, bool)):
-                            response.parameters[param_name] = str(value)
-                        else:
-                            response.parameters[param_name] = str(value)
+                        serialized = self.parameter_manager.serialize_value(value)
+                        response.parameters[param_name] = str(serialized)
                     else:
-                        logger.warning(f"Parameter '{param_name}' not found")
+                        # Parameter not found, return null
                         response.parameters[param_name] = "null"
-
-                except Exception as e:
-                    logger.error(f"Error getting parameter '{param_name}': {e}")
-                    response.parameters[param_name] = f"error: {str(e)}"
 
             return response
 
@@ -444,47 +445,41 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
 
             if not request.parameters:
                 response.success = True
-                response.message = "No parameters to set"
+                # StatusResponse doesn't have a message field, use error_message for info
                 return response
 
-            failed_params = []
+            # Track successes and failures
             success_count = 0
+            failed_params = []
 
             for param_name, param_value in request.parameters.items():
                 try:
-                    # Validate parameter before setting
-                    if not self.parameter_manager.validate_parameter(param_name, param_value):
-                        failed_params.append(f"{param_name}: validation failed")
-                        continue
-
-                    # Set the parameter
+                    # Directly set the parameter without validation
                     success = self.parameter_manager.set_parameter(param_name, param_value)
                     if success:
                         success_count += 1
                         logger.debug(f"Set parameter {param_name} = {param_value}")
                     else:
-                        failed_params.append(f"{param_name}: failed to set")
+                        failed_params.append(f"{param_name}: unable to set")
 
                 except Exception as e:
                     failed_params.append(f"{param_name}: {str(e)}")
-                    logger.error(f"Error setting parameter '{param_name}': {e}")
+                    logger.warning(f"Error setting parameter '{param_name}': {e}")
 
-            # Determine overall success
+            # Build response based on results
             if failed_params:
                 if success_count == 0:
                     # All parameters failed
                     response.success = False
-                    response.error_message = f"Failed to set parameters: {'; '.join(failed_params)}"
-                    if context:
-                        context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-                        context.set_details(response.error_message)
+                    response.error_message = f"Failed to set all parameters: {'; '.join(failed_params)}"
                 else:
-                    # Partial success - treat as success but note failures in error_message
+                    # Partial success
                     response.success = True
-                    response.error_message = f"Set {success_count} parameters, failed: {'; '.join(failed_params)}"
+                    response.error_message = f"Set {success_count}/{len(request.parameters)} parameters. Failed: {'; '.join(failed_params)}"
             else:
                 # All parameters succeeded
                 response.success = True
+                # Note: StatusResponse only has success and error_message fields
 
             return response
 
@@ -517,19 +512,42 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
         try:
             logger.debug("ListParameters called")
 
-            # Get all available parameters from parameter manager
-            parameter_list = self.parameter_manager.list_parameters()
+            # Get all parameters as a flat dictionary
+            all_params = self.parameter_manager.get_all_parameters()
 
-            for param_dict in parameter_list:
+            # Convert each parameter to ParameterInfo
+            for param_name, param_value in all_params.items():
                 param_info = epii_pb2.ParameterInfo()
-                param_info.name = param_dict["name"]
-                param_info.type = param_dict["type"]
-                param_info.current_value = param_dict["current_value"]
-                param_info.description = param_dict["description"]
-                param_info.read_only = param_dict["read_only"]
+                param_info.name = param_name
+                
+                # Determine type from value
+                if isinstance(param_value, bool):
+                    param_info.type = "bool"
+                elif isinstance(param_value, int):
+                    param_info.type = "int"
+                elif isinstance(param_value, float):
+                    param_info.type = "float"
+                elif isinstance(param_value, str):
+                    param_info.type = "string"
+                elif isinstance(param_value, (list, np.ndarray)):
+                    param_info.type = "array"
+                elif isinstance(param_value, dict):
+                    param_info.type = "dict"
+                else:
+                    param_info.type = "unknown"
+                
+                # Serialize current value
+                param_info.current_value = str(self.parameter_manager.serialize_value(param_value))
+                
+                # Simple description
+                param_info.description = f"Parameter {param_name}"
+                
+                # No validation means nothing is read-only
+                param_info.read_only = False
+                
                 response.parameters.append(param_info)
 
-            logger.debug(f"Listed {len(parameter_list)} parameters")
+            logger.debug(f"Listed {len(all_params)} parameters")
             return response
 
         except Exception as e:
