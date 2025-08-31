@@ -203,3 +203,4 @@ mocked_path
 # Documentation builds
 *.html
 
+CLAUDE.md
