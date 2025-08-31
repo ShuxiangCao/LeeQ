@@ -176,6 +176,70 @@ body {
     height: 100%;
     overflow-y: auto;
 }
+
+/* Resizable panel styles */
+.resizable-container {
+    display: flex;
+    height: 100%;
+    position: relative;
+}
+
+.sidebar-resizable {
+    min-width: 200px;
+    max-width: 60%;
+    width: 25%;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.resize-handle {
+    width: 6px;
+    background: #ced4da;
+    cursor: col-resize;
+    position: absolute;
+    top: 0;
+    right: -3px;
+    bottom: 0;
+    z-index: 100;
+    transition: all 0.2s;
+    border-radius: 0 3px 3px 0;
+}
+
+.resize-handle:hover,
+.resize-handle.resizing {
+    background: #0d6efd;
+    width: 8px;
+    right: -4px;
+}
+
+.resize-handle:hover::after,
+.resize-handle.resizing::after {
+    content: '';
+    position: absolute;
+    left: -3px;
+    right: -3px;
+    top: 0;
+    bottom: 0;
+    background: rgba(13, 110, 253, 0.15);
+    border-radius: 3px;
+}
+
+.main-content-resizable {
+    flex: 1;
+    min-width: 300px;
+    padding-left: 10px;
+}
+
+/* Prevent text selection during resize */
+.resizing * {
+    user-select: none !important;
+    pointer-events: none !important;
+}
+
+/* Resize cursor for the entire document during resize */
+body.resizing {
+    cursor: col-resize !important;
+}
 </style>
 """
 
@@ -196,6 +260,83 @@ app.index_string = """<!DOCTYPE html>
             {%scripts%}
             {%renderer%}
         </footer>
+        <script>
+        // Resizable panel functionality with better Dash compatibility
+        function initializeResize() {
+            const resizeHandle = document.querySelector('.resize-handle');
+            const sidebar = document.querySelector('.sidebar-resizable');
+            const container = document.querySelector('.resizable-container');
+            
+            if (!resizeHandle || !sidebar || !container) {
+                // Retry after a short delay if elements aren't found
+                setTimeout(initializeResize, 100);
+                return;
+            }
+            
+            let isResizing = false;
+            let startX = 0;
+            let startWidth = 0;
+            
+            // Remove any existing event listeners
+            resizeHandle.onmousedown = null;
+            
+            resizeHandle.onmousedown = function(e) {
+                isResizing = true;
+                startX = e.clientX;
+                startWidth = parseInt(document.defaultView.getComputedStyle(sidebar).width, 10);
+                
+                document.body.classList.add('resizing');
+                resizeHandle.classList.add('resizing');
+                
+                e.preventDefault();
+                e.stopPropagation();
+            };
+            
+            document.onmousemove = function(e) {
+                if (!isResizing) return;
+                
+                const width = startWidth + e.clientX - startX;
+                const containerWidth = container.offsetWidth;
+                const minWidth = 200;
+                const maxWidth = containerWidth * 0.6;
+                
+                if (width >= minWidth && width <= maxWidth) {
+                    const percentage = (width / containerWidth) * 100;
+                    sidebar.style.width = percentage + '%';
+                }
+                
+                e.preventDefault();
+            };
+            
+            document.onmouseup = function() {
+                if (isResizing) {
+                    isResizing = false;
+                    document.body.classList.remove('resizing');
+                    resizeHandle.classList.remove('resizing');
+                }
+            };
+            
+            // Handle window resize
+            window.onresize = function() {
+                const containerWidth = container.offsetWidth;
+                const currentWidth = sidebar.offsetWidth;
+                const percentage = (currentWidth / containerWidth) * 100;
+                
+                if (percentage > 60) {
+                    sidebar.style.width = '60%';
+                } else if (percentage < 15) {
+                    sidebar.style.width = '200px';
+                }
+            };
+            
+            console.log('Resize functionality initialized');
+        }
+        
+        // Initialize immediately and also after Dash renders
+        document.addEventListener('DOMContentLoaded', initializeResize);
+        setTimeout(initializeResize, 500);
+        setTimeout(initializeResize, 1000);
+        </script>
     </body>
 </html>"""
 
@@ -291,14 +432,15 @@ app.layout = dbc.Container([
         ])
     ], className="flex-shrink-0"),
     
-    # Main layout with three panels: sidebar, content, and attributes
-    dbc.Row([
-        # Left Sidebar - File & Experiment Selection
-        dbc.Col([
+    # Main layout with resizable three panels
+    html.Div([
+        # Left Sidebar - File & Experiment Selection (Resizable)
+        html.Div([
             dbc.Card([
                 dbc.CardHeader([
                     html.I(className="bi bi-folder-open me-2"),
-                    html.Strong("File & Experiment Selection")
+                    html.Strong("File & Experiment Selection"),
+                    html.Small(" (drag right edge to resize)", className="text-muted ms-2")
                 ]),
                 dbc.CardBody([
                     # File input section
@@ -329,75 +471,82 @@ app.layout = dbc.Container([
                         html.Div(id="experiment-selector-container", children=[], className=""),
                     ], className="experiment-section")
                 ])
-            ], className="sidebar-card")
-        ], width=3, className="pe-2 sidebar-column"),
+            ], className="sidebar-card"),
+            # Resize handle
+            html.Div(className="resize-handle", title="Drag to resize sidebar")
+        ], className="sidebar-resizable"),
         
-        # Main Content Area - Plot & Controls
-        dbc.Col([
-            dbc.Card([
-                dbc.CardBody([
-                    # Experiment info section
-                    dcc.Loading(
-                        id="loading-exp-info",
-                        type="circle",
-                        children=html.Div(id="experiment-info", className="mb-3"),
-                        color="#0d6efd"
-                    ),
-                    
-                    # Plot controls section
-                    dcc.Loading(
-                        id="loading-plot-controls",
-                        type="dot",
-                        children=html.Div(id="plot-controls", className="mb-3"),
-                        color="#0d6efd"
-                    ),
-                    
-                    # Plot display section
-                    dcc.Loading(
-                        id="loading-plot",
-                        type="graph",
-                        children=dcc.Graph(
-                            id="plot-display",
-                            style={"height": "100%", "minHeight": "400px"},
-                            config={"displayModeBar": True, "displaylogo": False}
-                        ),
-                        color="#0d6efd"
-                    ),
-                ])
-            ], className="main-content-card")
-        ], width=6, className="px-1 main-content-column"),
-        
-        # Right Panel - Experiment Attributes
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader([
-                    html.I(className="bi bi-info-circle me-2"),
-                    html.Strong("Experiment Attributes")
-                ]),
-                dbc.CardBody([
-                    dcc.Loading(
-                        id="loading-attributes",
-                        type="dot",
-                        children=html.Div(
-                            id="experiment-attributes", 
-                            children=[
-                                dbc.Alert(
-                                    [
-                                        html.I(className="bi bi-arrow-left me-2"),
-                                        "Select an experiment to view its attributes"
+        # Right Content Area - Plot & Attributes
+        html.Div([
+            dbc.Row([
+                # Main Content Area - Plot & Controls
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            # Experiment info section
+                            dcc.Loading(
+                                id="loading-exp-info",
+                                type="circle",
+                                children=html.Div(id="experiment-info", className="mb-3"),
+                                color="#0d6efd"
+                            ),
+                            
+                            # Plot controls section
+                            dcc.Loading(
+                                id="loading-plot-controls",
+                                type="dot",
+                                children=html.Div(id="plot-controls", className="mb-3"),
+                                color="#0d6efd"
+                            ),
+                            
+                            # Plot display section
+                            dcc.Loading(
+                                id="loading-plot",
+                                type="graph",
+                                children=dcc.Graph(
+                                    id="plot-display",
+                                    style={"height": "100%", "minHeight": "400px"},
+                                    config={"displayModeBar": True, "displaylogo": False}
+                                ),
+                                color="#0d6efd"
+                            ),
+                        ])
+                    ], className="main-content-card")
+                ], width=8, className="main-content-column pe-2"),
+                
+                # Right Panel - Experiment Attributes
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader([
+                            html.I(className="bi bi-info-circle me-2"),
+                            html.Strong("Experiment Attributes")
+                        ]),
+                        dbc.CardBody([
+                            dcc.Loading(
+                                id="loading-attributes",
+                                type="dot",
+                                children=html.Div(
+                                    id="experiment-attributes", 
+                                    children=[
+                                        dbc.Alert(
+                                            [
+                                                html.I(className="bi bi-arrow-left me-2"),
+                                                "Select an experiment to view its attributes"
+                                            ],
+                                            color="info",
+                                            className="text-center"
+                                        )
                                     ],
-                                    color="info",
-                                    className="text-center"
-                                )
-                            ],
-                            className=""
-                        ),
-                        color="#0d6efd"
-                    )
-                ])
-            ], className="attributes-card")
-        ], width=3, className="ps-2 attributes-column"),
-    ], className="content-row"),
+                                    className=""
+                                ),
+                                color="#0d6efd"
+                            )
+                        ])
+                    ], className="attributes-card")
+                ], width=4, className="attributes-column"),
+            ], className="h-100")
+        ], className="main-content-resizable")
+    ], className="resizable-container content-row"),
     
     # Hidden storage for file path
     dcc.Store(id="file-store"),
@@ -502,13 +651,45 @@ def create_tree_view_items(experiments):
     """
     Create tree view items from the flat experiment list.
     Organizes experiments in a hierarchical structure based on entry paths.
+    Also identifies which parent nodes have their own experiment records.
     """
     if not experiments:
         return []
     
     # Group experiments by their hierarchy
     tree_nodes = {}
+    # Track parent experiments that have their own records
+    parent_experiments = {}
     
+    # First pass: identify all parent experiments
+    for exp in experiments:
+        # Check if this experiment is a parent experiment (could have children)
+        # by looking for other experiments that start with this path
+        is_potential_parent = any(
+            other_exp['entry_path'].startswith(exp['entry_path'] + '/') 
+            for other_exp in experiments if other_exp != exp
+        )
+        
+        if is_potential_parent:
+            path_parts = exp['path_parts']
+            full_name = path_parts[-1].replace('.run', '')
+            
+            # Extract clean name (remove number prefix)
+            if '-' in full_name and full_name.split('-')[0].isdigit():
+                clean_name = '-'.join(full_name.split('-')[1:])
+            else:
+                clean_name = full_name
+            
+            parent_key = exp['entry_path']
+            parent_experiments[parent_key] = {
+                'record_id': exp['record_id'],
+                'display_name': f"{clean_name} ({exp['record_id'][:8]}...)",
+                'timestamp': exp['timestamp'],
+                'clean_name': clean_name,
+                'full_path': '/'.join(path_parts)
+            }
+    
+    # Second pass: build the tree structure
     for exp in experiments:
         path_parts = exp['path_parts']
         record_id = exp['record_id']
@@ -536,11 +717,23 @@ def create_tree_view_items(experiments):
                 parent_name = part_clean
                 
             if parent_name not in current_level:
+                # Check if this parent has its own experiment record
+                parent_path = '/root/' + '/'.join(path_parts[:i+1])
+                parent_exp_data = parent_experiments.get(parent_path)
+                
                 current_level[parent_name] = {
                     'children': {},
                     'experiments': [],
-                    'is_parent': True
+                    'is_parent': True,
+                    'parent_experiment': parent_exp_data  # Store parent experiment data if exists
                 }
+            else:
+                # Update existing parent node with experiment data if we found some
+                parent_path = '/root/' + '/'.join(path_parts[:i+1])
+                parent_exp_data = parent_experiments.get(parent_path)
+                if parent_exp_data and not current_level[parent_name]['parent_experiment']:
+                    current_level[parent_name]['parent_experiment'] = parent_exp_data
+                    
             current_level = current_level[parent_name]['children']
         
         # Add the experiment to the appropriate level
@@ -548,7 +741,8 @@ def create_tree_view_items(experiments):
             current_level[clean_name] = {
                 'children': {},
                 'experiments': [],
-                'is_parent': False
+                'is_parent': False,
+                'parent_experiment': None
             }
         
         current_level[clean_name]['experiments'].append({
@@ -572,11 +766,33 @@ def render_tree_nodes(tree_nodes, level=0):
         
         if node['is_parent'] and node['children']:
             # Parent node with children
+            # Check if this parent has its own experiment data
+            parent_exp = node.get('parent_experiment')
+            
+            # Create the summary content with optional SELECT button
+            if parent_exp:
+                # Parent has its own experiment - add SELECT button
+                summary_content = html.Div([
+                    html.Strong(name, className="me-2"),
+                    dbc.Button(
+                        "SELECT",
+                        id={"type": "experiment-btn", "index": parent_exp['record_id']},
+                        color="primary",
+                        size="sm",
+                        className="ms-auto",
+                        style={"fontSize": "0.7rem", "padding": "2px 8px"}
+                    )
+                ], className="d-flex align-items-center w-100")
+            else:
+                # Parent is just organizational - no SELECT button
+                summary_content = html.Strong(name)
+            
             items.append(
                 html.Details([
                     html.Summary(
-                        html.Strong(name),
-                        style=indent_style
+                        summary_content,
+                        style=indent_style,
+                        className="mb-1"
                     ),
                     html.Div([
                         *render_tree_nodes(node['children'], level + 1),
