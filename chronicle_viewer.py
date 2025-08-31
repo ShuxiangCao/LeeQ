@@ -54,16 +54,59 @@ app = dash.Dash(__name__, external_stylesheets=[
 # Custom CSS for sidebar layout
 custom_css = """
 <style>
-.sidebar-card {
-    position: sticky;
-    top: 20px;
-    max-height: calc(100vh - 40px);
+body {
+    height: 100vh;
     overflow: hidden;
 }
 
+.main-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.content-row {
+    flex: 1;
+    min-height: 0;
+}
+
+.sidebar-column {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
 .sidebar-card .card-body {
-    max-height: calc(100vh - 120px);
+    flex: 1;
     overflow-y: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.file-input-section {
+    flex-shrink: 0;
+}
+
+.experiment-section {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.experiment-tree {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto !important;
 }
 
 .experiment-tree details summary {
@@ -89,7 +132,8 @@ custom_css = """
 }
 
 .main-content {
-    min-height: calc(100vh - 180px);
+    height: 100%;
+    overflow-y: auto;
 }
 </style>
 """
@@ -195,7 +239,7 @@ def convert_figure_to_plotly(fig):
         x=0.5, y=0.5, showarrow=False
     )
 
-# Main app layout with sidebar design
+# Main app layout with full-height sidebar design
 app.layout = dbc.Container([
     # Header
     dbc.Row([
@@ -204,7 +248,7 @@ app.layout = dbc.Container([
             html.P("Load and visualize LeeQ experiment chronicle files", className="text-muted mb-3"),
             html.Hr(className="mb-3"),
         ])
-    ]),
+    ], className="flex-shrink-0"),
     
     # Main layout with sidebar and content
     dbc.Row([
@@ -236,16 +280,16 @@ app.layout = dbc.Container([
                                 )
                             ),
                         ], className="mb-3"),
-                    ]),
+                    ], className="file-input-section"),
                     
                     # Experiment selection section
                     html.Div([
                         html.Hr(className="my-3"),
                         html.Div(id="experiment-selector-container", children=[], className=""),
-                    ])
-                ], className="")
+                    ], className="experiment-section")
+                ])
             ], className="sidebar-card")
-        ], width=4, className="pe-3"),
+        ], width=4, className="pe-3 sidebar-column"),
         
         # Main Content Area
         dbc.Col([
@@ -271,17 +315,17 @@ app.layout = dbc.Container([
                 type="graph",
                 children=dcc.Graph(
                     id="plot-display",
-                    style={"height": "650px"},
+                    style={"height": "100%", "minHeight": "400px"},
                     config={"displayModeBar": True, "displaylogo": False}
                 ),
                 color="#0d6efd"
             ),
         ], width=8, className="main-content"),
-    ], className="flex-grow-1"),
+    ], className="content-row"),
     
     # Hidden storage for file path
     dcc.Store(id="file-store"),
-], fluid=True, className="p-4 vh-100 d-flex flex-column", style={"maxWidth": "1600px"})
+], fluid=True, className="p-4 main-container", style={"maxWidth": "1600px"})
 
 
 # Callback for populating experiment selector when file is loaded
@@ -322,8 +366,6 @@ def populate_experiment_selector(file_path):
                 tree_items,
                 className="experiment-tree border rounded p-2",
                 style={
-                    "maxHeight": "500px",
-                    "overflowY": "auto",
                     "backgroundColor": "#f8f9fa",
                     "fontSize": "0.9rem"
                 }
