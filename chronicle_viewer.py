@@ -642,6 +642,63 @@ def create_experiment_attributes_panel(experiment=None, record_id=None, error_ms
         ], className="mb-3")
     )
     
+    # Run Arguments section
+    if hasattr(experiment, 'run_args') and experiment.run_args is not None:
+        try:
+            run_args = experiment.run_args
+            run_args_items = []
+            
+            if isinstance(run_args, tuple):
+                # Unpack tuple elements
+                for i, arg in enumerate(run_args):
+                    # Format the argument value
+                    if isinstance(arg, (int, float, bool)):
+                        display_value = str(arg)
+                    elif isinstance(arg, str):
+                        display_value = f'"{arg}"' if len(arg) < 50 else f'"{arg[:47]}..."'
+                    elif isinstance(arg, (list, tuple)):
+                        display_value = f"{type(arg).__name__}[{len(arg)}]"
+                    elif isinstance(arg, dict):
+                        display_value = f"dict[{len(arg)} keys]"
+                    elif hasattr(arg, '__name__'):
+                        display_value = f"{type(arg).__name__}: {arg.__name__}"
+                    else:
+                        display_value = str(type(arg).__name__)
+                    
+                    run_args_items.append(
+                        html.P([
+                            html.Strong(f"Arg {i}: "), 
+                            html.Span(display_value, className="text-muted small font-monospace")
+                        ], className="mb-1 small", style={"wordBreak": "break-word"})
+                    )
+            else:
+                # Handle non-tuple run_args
+                display_value = str(run_args)[:100] + "..." if len(str(run_args)) > 100 else str(run_args)
+                run_args_items.append(
+                    html.P([
+                        html.Strong("Value: "), 
+                        html.Span(display_value, className="text-muted small font-monospace")
+                    ], className="mb-1 small", style={"wordBreak": "break-word"})
+                )
+            
+            if run_args_items:
+                attributes.append(
+                    html.Div([
+                        html.H6("Run Arguments", className="text-primary mb-2 border-bottom pb-1"),
+                        html.Small(f"Type: {type(run_args).__name__}" + (f", Length: {len(run_args)}" if hasattr(run_args, '__len__') else ""), 
+                                  className="text-muted d-block mb-2"),
+                        html.Div(run_args_items)
+                    ], className="mb-3")
+                )
+        except Exception as e:
+            # If there's an error processing run_args, show a brief error message
+            attributes.append(
+                html.Div([
+                    html.H6("Run Arguments", className="text-primary mb-2 border-bottom pb-1"),
+                    html.P(f"Error processing run_args: {str(e)[:50]}...", className="text-muted small")
+                ], className="mb-3")
+            )
+    
     # Experiment-specific attributes
     exp_attrs = []
     if hasattr(experiment, '__dict__'):
