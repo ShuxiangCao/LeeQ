@@ -45,8 +45,74 @@ import argparse
 import base64
 import io
 
-# Initialize Dash app with Bootstrap theme
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+# Initialize Dash app with Bootstrap theme and custom CSS
+app = dash.Dash(__name__, external_stylesheets=[
+    dbc.themes.BOOTSTRAP,
+    "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
+])
+
+# Custom CSS for sidebar layout
+custom_css = """
+<style>
+.sidebar-card {
+    position: sticky;
+    top: 20px;
+    max-height: calc(100vh - 40px);
+    overflow: hidden;
+}
+
+.sidebar-card .card-body {
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+.experiment-tree details summary {
+    cursor: pointer;
+    padding: 4px 0;
+}
+
+.experiment-tree details summary:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+    border-radius: 3px;
+}
+
+.experiment-tree .btn-outline-primary {
+    border-width: 1px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.experiment-tree .btn-outline-primary:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+    border-color: #0d6efd;
+}
+
+.main-content {
+    min-height: calc(100vh - 180px);
+}
+</style>
+"""
+
+# Add custom CSS to app layout
+app.index_string = """<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        """ + custom_css + """
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>"""
 
 def convert_figure_to_plotly(fig):
     """
@@ -129,90 +195,93 @@ def convert_figure_to_plotly(fig):
         x=0.5, y=0.5, showarrow=False
     )
 
-# Main app layout with improved styling
+# Main app layout with sidebar design
 app.layout = dbc.Container([
-    # Header with improved styling
+    # Header
     dbc.Row([
         dbc.Col([
             html.H1("Chronicle Log Viewer", className="mb-2 text-primary"),
             html.P("Load and visualize LeeQ experiment chronicle files", className="text-muted mb-3"),
-            html.Hr(className="mb-4"),
+            html.Hr(className="mb-3"),
         ])
     ]),
     
-    # File input with better visual feedback
+    # Main layout with sidebar and content
     dbc.Row([
+        # Left Sidebar
         dbc.Col([
-            dbc.Label("Chronicle Log File Path:", className="fw-bold"),
-            dbc.InputGroup([
-                dbc.Input(
-                    id="file-path",
-                    placeholder="Enter full path to chronicle log file (e.g., /path/to/experiment.hdf5)",
-                    type="text",
-                    className="form-control"
-                ),
-                dbc.InputGroupText(
-                    dbc.Spinner(
-                        html.Span(id="loading-indicator", children=""),
-                        size="sm",
-                        spinner_style={"display": "none"},
-                        id="file-spinner"
-                    )
-                ),
-            ], className="mb-3"),
-        ])
-    ]),
-    
-    # Experiment selection dropdown
-    dbc.Row([
+            dbc.Card([
+                dbc.CardHeader([
+                    html.I(className="bi bi-folder-open me-2"),
+                    html.Strong("File & Experiment Selection")
+                ]),
+                dbc.CardBody([
+                    # File input section
+                    html.Div([
+                        dbc.Label("Chronicle Log File:", className="fw-bold mb-2"),
+                        dbc.InputGroup([
+                            dbc.Input(
+                                id="file-path",
+                                placeholder="Enter file path...",
+                                type="text",
+                                className="form-control",
+                                size="sm"
+                            ),
+                            dbc.InputGroupText(
+                                dbc.Spinner(
+                                    html.Span(id="loading-indicator", children=""),
+                                    size="sm",
+                                    spinner_style={"display": "none"},
+                                    id="file-spinner"
+                                )
+                            ),
+                        ], className="mb-3"),
+                    ]),
+                    
+                    # Experiment selection section
+                    html.Div([
+                        html.Hr(className="my-3"),
+                        html.Div(id="experiment-selector-container", children=[], className=""),
+                    ])
+                ], className="")
+            ], className="sidebar-card")
+        ], width=4, className="pe-3"),
+        
+        # Main Content Area
         dbc.Col([
-            html.Div(id="experiment-selector-container", children=[], className="mb-3"),
-        ])
-    ]),
-    
-    # Loading state wrapper for experiment info
-    dbc.Row([
-        dbc.Col([
+            # Experiment info section
             dcc.Loading(
                 id="loading-exp-info",
                 type="circle",
                 children=html.Div(id="experiment-info", className="mb-3"),
                 color="#0d6efd"
             ),
-        ])
-    ]),
-    
-    # Plot controls with loading state
-    dbc.Row([
-        dbc.Col([
+            
+            # Plot controls section
             dcc.Loading(
                 id="loading-plot-controls",
                 type="dot",
                 children=html.Div(id="plot-controls", className="mb-3"),
                 color="#0d6efd"
             ),
-        ])
-    ]),
-    
-    # Plot display with loading overlay
-    dbc.Row([
-        dbc.Col([
+            
+            # Plot display section
             dcc.Loading(
                 id="loading-plot",
                 type="graph",
                 children=dcc.Graph(
                     id="plot-display",
-                    style={"height": "600px"},
+                    style={"height": "650px"},
                     config={"displayModeBar": True, "displaylogo": False}
                 ),
                 color="#0d6efd"
             ),
-        ])
-    ]),
+        ], width=8, className="main-content"),
+    ], className="flex-grow-1"),
     
     # Hidden storage for file path
     dcc.Store(id="file-store"),
-], fluid=True, className="p-4", style={"maxWidth": "1400px"})
+], fluid=True, className="p-4 vh-100 d-flex flex-column", style={"maxWidth": "1600px"})
 
 
 # Callback for populating experiment selector when file is loaded
@@ -246,18 +315,19 @@ def populate_experiment_selector(file_path):
         tree_items = render_tree_nodes(tree_nodes)
         
         return [
-            dbc.Label("Select Experiment (ordered by timestamp):", className="fw-bold mb-2"),
+            dbc.Label("Select Experiment:", className="fw-bold mb-2"),
+            html.Small(f"({len(experiments)} experiments, ordered by timestamp)", 
+                      className="text-muted mb-2 d-block"),
             html.Div(
                 tree_items,
-                className="experiment-tree border rounded p-3",
+                className="experiment-tree border rounded p-2",
                 style={
-                    "maxHeight": "400px",
+                    "maxHeight": "500px",
                     "overflowY": "auto",
-                    "backgroundColor": "#f8f9fa"
+                    "backgroundColor": "#f8f9fa",
+                    "fontSize": "0.9rem"
                 }
-            ),
-            html.Small(f"Found {len(experiments)} experiments in this file", 
-                      className="text-muted mt-2 d-block")
+            )
         ]
         
     except Exception as e:
@@ -398,8 +468,8 @@ def render_tree_nodes(tree_nodes, level=0):
                             id={"type": "experiment-btn", "index": exp['record_id']},
                             color="outline-primary",
                             size="sm",
-                            className="me-2 mb-1",
-                            style={"marginLeft": f"{(level + 1) * 20}px"}
+                            className="mb-1 w-100 text-start",
+                            style={"marginLeft": f"{(level + 1) * 15}px", "fontSize": "0.85rem"}
                         ) for exp in node['experiments']]
                     ])
                 ], open=True, className="mb-2")
@@ -413,8 +483,8 @@ def render_tree_nodes(tree_nodes, level=0):
                         id={"type": "experiment-btn", "index": exp['record_id']},
                         color="outline-primary",
                         size="sm",
-                        className="me-2 mb-1",
-                        style=indent_style
+                        className="mb-1 w-100 text-start",
+                        style={**indent_style, "fontSize": "0.85rem"}
                     )
                 )
     
