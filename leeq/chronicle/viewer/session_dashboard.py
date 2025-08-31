@@ -28,17 +28,19 @@ import dash
 from dash import dcc, html, Input, Output, State, callback_context, ALL
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
-from leeq.chronicle.viewer.dashboard import (
+import plotly.graph_objects as go
+import json
+
+# Import shared components from common module
+from leeq.chronicle.viewer.common import (
+    get_html_template,
+    convert_figure_to_plotly,
     create_tree_view_items,
     render_tree_nodes,
     create_experiment_attributes_panel,
-    convert_figure_to_plotly
+    create_header_layout,
+    create_plot_display_section
 )
-import plotly.graph_objects as go
-import plotly.tools
-import json
-import base64
-import io
 
 # Initialize Dash app with Bootstrap theme
 app = dash.Dash(__name__, external_stylesheets=[
@@ -49,311 +51,16 @@ app = dash.Dash(__name__, external_stylesheets=[
 # Global chronicle instance (similar to experiment_manager pattern in live_dash_app)
 chronicle_instance = None
 
-# Custom CSS for layout with resizable panels
-custom_css = """
-<style>
-body {
-    height: 100vh;
-    overflow: hidden;
-}
-
-.main-container {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-.content-row {
-    flex: 1;
-    min-height: 0;
-}
-
-.sidebar-column {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar-card {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0;
-}
-
-.sidebar-card .card-body {
-    flex: 1;
-    overflow-y: auto;
-    min-height: 0;
-}
-
-.main-content-column {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.main-content-card {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0;
-}
-
-.main-content-card .card-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-}
-
-.attributes-column {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.attributes-card {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0;
-}
-
-.attributes-card .card-body {
-    flex: 1;
-    overflow-y: auto;
-    min-height: 0;
-}
-
-.sidebar-card .card-body {
-    flex: 1;
-    overflow-y: auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.file-input-section {
-    flex-shrink: 0;
-}
-
-.experiment-section {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.experiment-tree {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto !important;
-}
-
-.experiment-tree details summary {
-    cursor: pointer;
-    padding: 4px 0;
-}
-
-.experiment-tree details summary:hover {
-    background-color: rgba(0, 123, 255, 0.1);
-    border-radius: 3px;
-}
-
-.experiment-tree .btn-outline-primary {
-    border-width: 1px;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-.experiment-tree .btn-outline-primary:hover {
-    background-color: rgba(0, 123, 255, 0.1);
-    border-color: #0d6efd;
-}
-
-.main-content {
-    height: 100%;
-    overflow-y: auto;
-}
-
-/* Resizable panel styles */
-.resizable-container {
-    display: flex;
-    height: 100%;
-    position: relative;
-}
-
-.sidebar-resizable {
-    min-width: 200px;
-    max-width: 60%;
-    width: 25%;
-    position: relative;
-    flex-shrink: 0;
-}
-
-.resize-handle {
-    width: 6px;
-    background: #ced4da;
-    cursor: col-resize;
-    position: absolute;
-    top: 0;
-    right: -3px;
-    bottom: 0;
-    z-index: 100;
-    transition: all 0.2s;
-    border-radius: 0 3px 3px 0;
-}
-
-.resize-handle:hover,
-.resize-handle.resizing {
-    background: #0d6efd;
-    width: 8px;
-    right: -4px;
-}
-
-.resize-handle:hover::after,
-.resize-handle.resizing::after {
-    content: '';
-    position: absolute;
-    left: -3px;
-    right: -3px;
-    top: 0;
-    bottom: 0;
-    background: rgba(13, 110, 253, 0.15);
-    border-radius: 3px;
-}
-
-.main-content-resizable {
-    flex: 1;
-    min-width: 300px;
-    padding-left: 10px;
-}
-
-/* Prevent text selection during resize */
-.resizing * {
-    user-select: none !important;
-    pointer-events: none !important;
-}
-
-/* Resize cursor for the entire document during resize */
-body.resizing {
-    cursor: col-resize !important;
-}
-</style>
-"""
-
-# Set custom HTML template with CSS and JavaScript
-app.index_string = """<!DOCTYPE html>
-<html>
-    <head>
-        {%metas%}
-        <title>{%title%}</title>
-        {%favicon%}
-        {%css%}
-        """ + custom_css + """
-    </head>
-    <body>
-        {%app_entry%}
-        <footer>
-            {%config%}
-            {%scripts%}
-            {%renderer%}
-        </footer>
-        <script>
-        // Resizable panel functionality with better Dash compatibility
-        function initializeResize() {
-            const resizeHandle = document.querySelector('.resize-handle');
-            const sidebar = document.querySelector('.sidebar-resizable');
-            const container = document.querySelector('.resizable-container');
-            
-            if (!resizeHandle || !sidebar || !container) {
-                // Retry after a short delay if elements aren't found
-                setTimeout(initializeResize, 100);
-                return;
-            }
-            
-            let isResizing = false;
-            let startX = 0;
-            let startWidth = 0;
-            
-            // Remove any existing event listeners
-            resizeHandle.onmousedown = null;
-            
-            resizeHandle.onmousedown = function(e) {
-                isResizing = true;
-                startX = e.clientX;
-                startWidth = parseInt(document.defaultView.getComputedStyle(sidebar).width, 10);
-                
-                document.body.classList.add('resizing');
-                resizeHandle.classList.add('resizing');
-                
-                e.preventDefault();
-                e.stopPropagation();
-            };
-            
-            document.onmousemove = function(e) {
-                if (!isResizing) return;
-                
-                const width = startWidth + e.clientX - startX;
-                const containerWidth = container.offsetWidth;
-                const minWidth = 200;
-                const maxWidth = containerWidth * 0.6;
-                
-                if (width >= minWidth && width <= maxWidth) {
-                    const percentage = (width / containerWidth) * 100;
-                    sidebar.style.width = percentage + '%';
-                }
-                
-                e.preventDefault();
-            };
-            
-            document.onmouseup = function() {
-                if (isResizing) {
-                    isResizing = false;
-                    document.body.classList.remove('resizing');
-                    resizeHandle.classList.remove('resizing');
-                }
-            };
-            
-            // Handle window resize
-            window.onresize = function() {
-                const containerWidth = container.offsetWidth;
-                const currentWidth = sidebar.offsetWidth;
-                const percentage = (currentWidth / containerWidth) * 100;
-                
-                if (percentage > 60) {
-                    sidebar.style.width = '60%';
-                } else if (percentage < 15) {
-                    sidebar.style.width = '200px';
-                }
-            };
-            
-            console.log('Resize functionality initialized');
-        }
-        
-        // Initialize immediately and also after Dash renders
-        document.addEventListener('DOMContentLoaded', initializeResize);
-        setTimeout(initializeResize, 500);
-        setTimeout(initializeResize, 1000);
-        </script>
-    </body>
-</html>"""
+# Use common HTML template with CSS and JavaScript
+app.index_string = get_html_template(title="Active Chronicle Session Viewer")
 
 # Main app layout with full-height sidebar design
 app.layout = dbc.Container([
     # Header
-    dbc.Row([
-        dbc.Col([
-            html.H1("Active Chronicle Session Viewer", className="mb-2 text-primary"),
-            html.P("Live monitoring of active Chronicle recording session", className="text-muted mb-3"),
-            html.Hr(className="mb-3"),
-        ])
-    ], className="flex-shrink-0"),
+    create_header_layout(
+        "Active Chronicle Session Viewer",
+        "Live monitoring of active Chronicle recording session"
+    ),
     
     # Main layout with resizable three panels
     html.Div([
@@ -424,16 +131,7 @@ app.layout = dbc.Container([
                             ),
                             
                             # Plot display section
-                            dcc.Loading(
-                                id="loading-plot",
-                                type="graph",
-                                children=dcc.Graph(
-                                    id="plot-display",
-                                    style={"height": "100%", "minHeight": "400px"},
-                                    config={"displayModeBar": True, "displaylogo": False}
-                                ),
-                                color="#0d6efd"
-                            ),
+                            create_plot_display_section(),
                         ])
                     ], className="main-content-card")
                 ], width=8, className="main-content-column pe-2"),
@@ -479,10 +177,16 @@ app.layout = dbc.Container([
 ], fluid=True, className="main-container")
 
 
+# ============================================================================
+# Session-Specific Functions
+# ============================================================================
+
 def load_session_experiments():
     """
     Load experiments from the active Chronicle session.
     Returns a tuple of (experiments_list, tree_structure).
+    
+    This function is specific to live session monitoring.
     """
     global chronicle_instance
     
@@ -532,7 +236,7 @@ def load_session_experiments():
         # Sort by timestamp (older first)
         experiments.sort(key=lambda x: x['timestamp'])
         
-        # Build tree structure using the existing function
+        # Build tree structure using the common function
         tree_structure = create_tree_view_items(experiments)
         
         return experiments, tree_structure
@@ -541,6 +245,10 @@ def load_session_experiments():
         print(f"Error loading session experiments: {str(e)}")
         return [], {}
 
+
+# ============================================================================
+# Session-Specific Callbacks
+# ============================================================================
 
 @app.callback(
     [Output("session-tree", "children"),
@@ -602,7 +310,7 @@ def update_session_view(n_intervals, n_clicks):
             
             return tree_content, status_msg, []
         
-        # Render the tree view
+        # Render the tree view using common function
         tree_content = render_tree_nodes(tree_structure)
         
         # Create informative status message
@@ -850,7 +558,7 @@ def update_experiment_display(selected_id, experiment_data):
                     color="warning"
                 )
         
-        # Create attributes panel
+        # Create attributes panel using common function
         if attr_error:
             attributes_content = create_experiment_attributes_panel(error_msg=attr_error)
         elif experiment_obj:
@@ -951,7 +659,7 @@ def display_plot(n_clicks, plot_functions_data, selected_id):
                 try:
                     # Generate the plot
                     fig = method()
-                    # Convert figure to Plotly format (supports both Plotly and matplotlib)
+                    # Convert figure to Plotly format using common function
                     plotly_fig = convert_figure_to_plotly(fig)
                     return plotly_fig
                 except Exception as plot_error:
@@ -983,7 +691,7 @@ def start_viewer(**kwargs):
         chronicle_instance: The Chronicle singleton instance
         debug: Whether to run in debug mode (default: True)
         port: Port to run the server on (default: 8051)
-        **kwargs: Additional arguments passed to app.run_server()
+        **kwargs: Additional arguments passed to app.run()
     """
     global chronicle_instance
     
