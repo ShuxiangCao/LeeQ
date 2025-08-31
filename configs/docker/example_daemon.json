@@ -1,0 +1,114 @@
+{
+  "setup_type": "simulation",
+  "setup_name": "docker_epii_daemon",
+  "port": 50051,
+  "log_level": "INFO",
+  "max_workers": 4,
+  "simulation_backend": "high_level",
+  "num_qubits": 4,
+  "experiment_timeout": 60,
+  
+  "chronicle": {
+    "enabled": true,
+    "session_name": "docker_epii_session",
+    "viewer_port": 8051,
+    "auto_launch": false,
+    "data_dir": "/home/jovyan/work/chronicle_data"
+  },
+  
+  "parameters": {
+    "qubits": {
+      "q0": {
+        "f01": 5000000000,
+        "anharmonicity": -330000000,
+        "t1": 20e-6,
+        "t2": 15e-6,
+        "readout_frequency": 9645000000,
+        "readout_power": -30,
+        "drive_power": -20
+      },
+      "q1": {
+        "f01": 5100000000,
+        "anharmonicity": -330000000,
+        "t1": 25e-6,
+        "t2": 18e-6,
+        "readout_frequency": 9650000000,
+        "readout_power": -30,
+        "drive_power": -20
+      },
+      "q2": {
+        "f01": 5200000000,
+        "anharmonicity": -320000000,
+        "t1": 22e-6,
+        "t2": 17e-6,
+        "readout_frequency": 9655000000,
+        "readout_power": -30,
+        "drive_power": -20
+      },
+      "q3": {
+        "f01": 5300000000,
+        "anharmonicity": -325000000,
+        "t1": 23e-6,
+        "t2": 19e-6,
+        "readout_frequency": 9660000000,
+        "readout_power": -30,
+        "drive_power": -20
+      }
+    },
+    
+    "couplings": {
+      "q0-q1": {
+        "strength": 5000000,
+        "type": "capacitive"
+      },
+      "q1-q2": {
+        "strength": 4500000,
+        "type": "capacitive"
+      },
+      "q2-q3": {
+        "strength": 5000000,
+        "type": "capacitive"
+      }
+    },
+    
+    "readout": {
+      "integration_time": 2e-6,
+      "cooldown_time": 1e-6,
+      "acquisition_delay": 200e-9
+    }
+  },
+  
+  "calibration": {
+    "auto_calibrate": false,
+    "calibration_points": 1000,
+    "calibration_interval": 3600
+  },
+  
+  "performance": {
+    "cache_enabled": true,
+    "cache_ttl": 300,
+    "parallel_experiments": true,
+    "batch_size": 100
+  },
+  
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "/home/jovyan/work/logs/epii_daemon.log",
+    "max_size": "100MB",
+    "backup_count": 5
+  },
+  
+  "security": {
+    "require_auth": false,
+    "tls_enabled": false,
+    "allowed_ips": ["0.0.0.0/0"]
+  },
+  
+  "health_check": {
+    "enabled": true,
+    "interval": 30,
+    "timeout": 10,
+    "endpoint": "/health"
+  }
+}
