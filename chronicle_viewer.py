@@ -683,7 +683,7 @@ def create_tree_view_items(experiments):
             parent_key = exp['entry_path']
             parent_experiments[parent_key] = {
                 'record_id': exp['record_id'],
-                'display_name': f"{clean_name} ({exp['record_id'][:8]}...)",
+                'display_name': f"{clean_name} ({exp['record_id']})",
                 'timestamp': exp['timestamp'],
                 'clean_name': clean_name,
                 'full_path': '/'.join(path_parts)
@@ -747,7 +747,7 @@ def create_tree_view_items(experiments):
         
         current_level[clean_name]['experiments'].append({
             'record_id': record_id,
-            'display_name': f"{clean_name} ({record_id[:8]}...)",
+            'display_name': f"{clean_name} ({record_id})",
             'timestamp': timestamp,
             'full_path': '/'.join(path_parts)
         })
@@ -854,7 +854,7 @@ def create_experiment_attributes_panel(experiment=None, record_id=None, error_ms
         html.Div([
             html.H6("Basic Information", className="text-primary mb-2 border-bottom pb-1"),
             html.P([html.Strong("Type: "), html.Span(type(experiment).__name__, className="font-monospace")], className="mb-1 small"),
-            html.P([html.Strong("Record ID: "), html.Span(record_id[:16] + "..." if len(record_id) > 16 else record_id, className="font-monospace")], className="mb-1 small"),
+            html.P([html.Strong("Record ID: "), html.Span(record_id, className="font-monospace")], className="mb-1 small"),
         ], className="mb-3")
     )
     
@@ -1127,7 +1127,7 @@ def load_selected_experiment(n_clicks_list, file_path):
         
         # Try to get additional experiment attributes if available
         exp_attrs = []
-        exp_attrs.append(html.P(f"Record ID: {selected_record_id[:8]}...", className="mb-1 small"))
+        exp_attrs.append(html.P(f"Record ID: {selected_record_id}", className="mb-1 small"))
         exp_attrs.append(html.P(f"File: {file_path}", className="mb-1 small text-truncate"))
         
         if hasattr(experiment, '__dict__'):
