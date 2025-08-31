@@ -214,12 +214,23 @@ def load_session_experiments():
             
             # Add this entry as an experiment
             if entry != root:  # Don't include root itself
+                # Parse path parts correctly - remove '/root' prefix if present
+                if entry_path.startswith('/root/'):
+                    path_parts = entry_path[6:].split('/')  # Remove '/root/' prefix
+                elif entry_path.startswith('/'):
+                    path_parts = entry_path[1:].split('/')  # Remove leading '/'
+                else:
+                    path_parts = entry_path.split('/')
+                
+                # Filter out empty parts
+                path_parts = [p for p in path_parts if p]
+                
                 experiments.append({
                     'record_id': entry.record_id,
                     'entry_path': entry_path,
                     'timestamp': entry.timestamp,
                     'name': entry.name,
-                    'path_parts': entry_path.strip('/').split('/')[1:] if '/' in entry_path else []
+                    'path_parts': path_parts
                 })
             
             # Recursively traverse children
