@@ -172,23 +172,36 @@ def main():
         duts_dict = setup_qubits()
         print(f"Successfully initialized {len(duts_dict)} qubits")
         
+        # Launch Chronicle viewer for monitoring
+        from leeq.chronicle import Chronicle
+        chronicle = Chronicle()
+        chronicle.launch_viewer(port=8051)  # Launches in background
+        print("\n" + "="*50)
+        print("Chronicle viewer launched at http://localhost:8051")
+        print("You can monitor experiments as they complete in real-time")
+        print("="*50 + "\n")
+        
         experiments = []
         
         # Run resonator spectroscopy
         resonator_exp = run_resonator_spectroscopy(duts_dict)
         experiments.append(resonator_exp)
+        input("\n📊 Check viewer for completed resonator spectroscopy. Press Enter to continue...")
         
         # Run qubit tuneup
         rabi, ramsey1, ramsey2, ramsey3 = run_qubit_tuneup(duts_dict)
         experiments.extend([rabi, ramsey1, ramsey2, ramsey3])
+        input("\n📊 Check viewer for Rabi and Ramsey experiments. Press Enter to continue...")
         
         # Run advanced calibration
         pingpong, drag = run_advanced_calibration(duts_dict)
         experiments.extend([pingpong, drag])
+        input("\n📊 Check viewer for advanced calibration experiments. Press Enter to continue...")
         
         # Run coherence experiments
         t1_exp, echo, final_ramsey = run_coherence_experiments(duts_dict)
         experiments.extend([t1_exp, echo, final_ramsey])
+        input("\n📊 Check viewer for coherence measurements. Press Enter to continue...")
         
         print(f"\n=== Experiment Generation Complete ===")
         print(f"Total experiments created: {len(experiments)}")
@@ -199,8 +212,6 @@ def main():
             print(f"  {i:2d}. {type(exp).__name__}")
         
         # Get chronicle log location
-        from leeq.chronicle import Chronicle
-        chronicle = Chronicle()
         log_path = chronicle._config["log_path"]
         print(f"\nChronicle logs saved to: {log_path}")
         

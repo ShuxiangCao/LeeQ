@@ -4,7 +4,12 @@ Interactive visualization tools for LeeQ chronicle experiment data.
 
 ## Overview
 
-The Chronicle Viewer provides a web-based dashboard for loading and visualizing chronicle log files from LeeQ experiments. It features an intuitive three-panel interface with resizable layout and comprehensive experiment data display.
+The Chronicle Viewer package provides two complementary web-based dashboards for visualizing LeeQ experiments:
+
+1. **Historical Viewer** (`dashboard.py`): Loads and analyzes completed chronicle HDF5 files
+2. **Session Viewer** (`session_dashboard.py`): Real-time monitoring of active Chronicle sessions
+
+Both viewers feature an intuitive three-panel interface with resizable layout and comprehensive experiment data display.
 
 ## Features
 
@@ -18,7 +23,9 @@ The Chronicle Viewer provides a web-based dashboard for loading and visualizing 
 
 ## Usage
 
-### From Package
+### Historical Viewer (Post-Session Analysis)
+
+#### From Package
 ```python
 from leeq.chronicle.viewer import app, main
 
@@ -26,10 +33,10 @@ from leeq.chronicle.viewer import app, main
 main()
 
 # Or customize the app
-app.run_server(debug=True, port=8080)
+app.run_server(debug=True, port=8050)
 ```
 
-### From Command Line
+#### From Command Line
 ```bash
 # Using the entry point script
 python scripts/chronicle_viewer.py
@@ -41,11 +48,31 @@ python scripts/chronicle_viewer.py --port 8080
 python scripts/chronicle_viewer.py --no-debug
 ```
 
-### From Package Import
+#### From Package Import
 ```python
 import leeq.chronicle.viewer.dashboard as viewer
 viewer.main()
 ```
+
+### Session Viewer (Real-Time Monitoring)
+
+#### From Chronicle Instance
+```python
+from leeq.chronicle import Chronicle
+
+# Get Chronicle singleton
+chronicle = Chronicle()
+
+# Launch session viewer
+chronicle.launch_viewer()  # Opens at http://localhost:8051
+
+# With custom settings
+chronicle.launch_viewer(port=8055, debug=False)
+```
+
+#### Use Cases
+- **Session Viewer**: Monitor experiments during active calibration sessions
+- **Historical Viewer**: Analyze completed chronicle files after sessions
 
 ## Interface Layout
 
@@ -72,7 +99,8 @@ viewer.main()
 ```
 leeq/chronicle/viewer/
 ├── __init__.py          # Package exports
-├── dashboard.py         # Main dashboard implementation
+├── dashboard.py         # Historical viewer for HDF5 files
+├── session_dashboard.py # Live session viewer with polling
 ├── utils.py            # Helper functions (future)
 └── README.md           # This file
 ```
