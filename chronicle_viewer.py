@@ -642,32 +642,61 @@ def create_experiment_attributes_panel(experiment=None, record_id=None, error_ms
         ], className="mb-3")
     )
     
-    # Run Arguments section
+    # Run Arguments and Kwargs section
+    def format_argument_value(arg):
+        """Helper function to format argument values for display."""
+        if isinstance(arg, (int, float, bool)):
+            return str(arg)
+        elif isinstance(arg, str):
+            return f'"{arg}"' if len(arg) < 50 else f'"{arg[:47]}..."'
+        elif isinstance(arg, (list, tuple)):
+            return f"{type(arg).__name__}[{len(arg)}]"
+        elif isinstance(arg, dict):
+            return f"dict[{len(arg)} keys]"
+        elif hasattr(arg, '__name__'):
+            return f"{type(arg).__name__}: {arg.__name__}"
+        else:
+            return str(type(arg).__name__)
+    
+    def get_run_function_params(experiment):
+        """Extract parameter names from the experiment's run function."""
+        import inspect
+        try:
+            # Look for run method
+            if hasattr(experiment, 'run') and callable(experiment.run):
+                sig = inspect.signature(experiment.run)
+                params = list(sig.parameters.keys())
+                # Remove 'self' if present
+                if params and params[0] == 'self':
+                    params = params[1:]
+                return params
+        except Exception:
+            pass
+        return []
+    
+    # Get parameter names from run function
+    run_param_names = get_run_function_params(experiment)
+    
+    # Display run_args
     if hasattr(experiment, 'run_args') and experiment.run_args is not None:
         try:
             run_args = experiment.run_args
             run_args_items = []
             
             if isinstance(run_args, tuple):
-                # Unpack tuple elements
+                # Unpack tuple elements with parameter names if available
                 for i, arg in enumerate(run_args):
-                    # Format the argument value
-                    if isinstance(arg, (int, float, bool)):
-                        display_value = str(arg)
-                    elif isinstance(arg, str):
-                        display_value = f'"{arg}"' if len(arg) < 50 else f'"{arg[:47]}..."'
-                    elif isinstance(arg, (list, tuple)):
-                        display_value = f"{type(arg).__name__}[{len(arg)}]"
-                    elif isinstance(arg, dict):
-                        display_value = f"dict[{len(arg)} keys]"
-                    elif hasattr(arg, '__name__'):
-                        display_value = f"{type(arg).__name__}: {arg.__name__}"
+                    display_value = format_argument_value(arg)
+                    
+                    # Use parameter name if available, otherwise use index
+                    if i < len(run_param_names):
+                        param_label = f"{run_param_names[i]}:"
                     else:
-                        display_value = str(type(arg).__name__)
+                        param_label = f"Arg {i}:"
                     
                     run_args_items.append(
                         html.P([
-                            html.Strong(f"Arg {i}: "), 
+                            html.Strong(param_label + " "), 
                             html.Span(display_value, className="text-muted small font-monospace")
                         ], className="mb-1 small", style={"wordBreak": "break-word"})
                     )
@@ -696,6 +725,51 @@ def create_experiment_attributes_panel(experiment=None, record_id=None, error_ms
                 html.Div([
                     html.H6("Run Arguments", className="text-primary mb-2 border-bottom pb-1"),
                     html.P(f"Error processing run_args: {str(e)[:50]}...", className="text-muted small")
+                ], className="mb-3")
+            )
+    
+    # Display run_kwargs
+    if hasattr(experiment, 'run_kwargs') and experiment.run_kwargs is not None:
+        try:
+            run_kwargs = experiment.run_kwargs
+            run_kwargs_items = []
+            
+            if isinstance(run_kwargs, dict):
+                # Display each key-value pair
+                for key, value in run_kwargs.items():
+                    display_value = format_argument_value(value)
+                    
+                    run_kwargs_items.append(
+                        html.P([
+                            html.Strong(f"{key}: "), 
+                            html.Span(display_value, className="text-muted small font-monospace")
+                        ], className="mb-1 small", style={"wordBreak": "break-word"})
+                    )
+            else:
+                # Handle non-dict run_kwargs (unusual case)
+                display_value = str(run_kwargs)[:100] + "..." if len(str(run_kwargs)) > 100 else str(run_kwargs)
+                run_kwargs_items.append(
+                    html.P([
+                        html.Strong("Value: "), 
+                        html.Span(display_value, className="text-muted small font-monospace")
+                    ], className="mb-1 small", style={"wordBreak": "break-word"})
+                )
+            
+            if run_kwargs_items:
+                attributes.append(
+                    html.Div([
+                        html.H6("Run Keyword Arguments", className="text-primary mb-2 border-bottom pb-1"),
+                        html.Small(f"Type: {type(run_kwargs).__name__}" + (f", Length: {len(run_kwargs)}" if hasattr(run_kwargs, '__len__') else ""), 
+                                  className="text-muted d-block mb-2"),
+                        html.Div(run_kwargs_items)
+                    ], className="mb-3")
+                )
+        except Exception as e:
+            # If there's an error processing run_kwargs, show a brief error message
+            attributes.append(
+                html.Div([
+                    html.H6("Run Keyword Arguments", className="text-primary mb-2 border-bottom pb-1"),
+                    html.P(f"Error processing run_kwargs: {str(e)[:50]}...", className="text-muted small")
                 ], className="mb-3")
             )
     
