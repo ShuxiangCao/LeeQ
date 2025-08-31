@@ -38,11 +38,95 @@ import dash.dependencies
 import dash_bootstrap_components as dbc
 from leeq.chronicle import load_object
 import plotly.graph_objects as go
+import plotly.tools
 import json
 import argparse
+import base64
+import io
 
 # Initialize Dash app with Bootstrap theme
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+def convert_figure_to_plotly(fig):
+    """
+    Convert various figure types to Plotly figures for display in Dash.
+    
+    Supports:
+    - Plotly figures (returned as-is)
+    - Matplotlib figures (converted to Plotly)
+    - Other types (error message)
+    
+    Args:
+        fig: Figure object of various types
+        
+    Returns:
+        go.Figure: Plotly figure ready for display
+    """
+    if isinstance(fig, go.Figure):
+        # Already a Plotly figure
+        return fig
+    
+    # Check if it's a matplotlib figure
+    try:
+        import matplotlib.figure
+        if isinstance(fig, matplotlib.figure.Figure):
+            # Convert matplotlib figure to Plotly
+            try:
+                # Try using plotly.tools.mpl_to_plotly (if available)
+                if hasattr(plotly.tools, 'mpl_to_plotly'):
+                    plotly_fig = plotly.tools.mpl_to_plotly(fig)
+                    return plotly_fig
+                else:
+                    # Fallback: save matplotlib figure as image and embed
+                    img_buffer = io.BytesIO()
+                    fig.savefig(img_buffer, format='png', bbox_inches='tight', dpi=150)
+                    img_buffer.seek(0)
+                    img_b64 = base64.b64encode(img_buffer.read()).decode()
+                    
+                    # Create Plotly figure with embedded image
+                    plotly_fig = go.Figure()
+                    plotly_fig.add_layout_image(
+                        dict(
+                            source=f"data:image/png;base64,{img_b64}",
+                            xref="paper", yref="paper",
+                            x=0, y=1, sizex=1, sizey=1,
+                            xanchor="left", yanchor="top",
+                            layer="below"
+                        )
+                    )
+                    plotly_fig.update_layout(
+                        xaxis=dict(visible=False),
+                        yaxis=dict(visible=False),
+                        margin=dict(l=0, r=0, t=0, b=0),
+                        showlegend=False
+                    )
+                    
+                    # Close matplotlib figure to free memory
+                    import matplotlib.pyplot as plt
+                    plt.close(fig)
+                    
+                    return plotly_fig
+            except Exception as e:
+                # Close matplotlib figure and return error
+                try:
+                    import matplotlib.pyplot as plt
+                    plt.close(fig)
+                except:
+                    pass
+                return go.Figure().add_annotation(
+                    text=f"Error converting matplotlib figure: {str(e)[:100]}",
+                    xref="paper", yref="paper",
+                    x=0.5, y=0.5, showarrow=False
+                )
+    except ImportError:
+        pass
+    
+    # Unsupported figure type
+    return go.Figure().add_annotation(
+        text=f"Unsupported figure type: {type(fig).__name__}. Supported: Plotly Figure, matplotlib Figure",
+        xref="paper", yref="paper",
+        x=0.5, y=0.5, showarrow=False
+    )
 
 # Main app layout with improved styling
 app.layout = dbc.Container([
@@ -448,14 +532,9 @@ def display_plot(n_clicks, file_path):
             if name == method_name:
                 try:
                     fig = method()
-                    # Ensure we have a valid plotly figure
-                    if not isinstance(fig, go.Figure):
-                        return go.Figure().add_annotation(
-                            text=f"Plot method returned invalid type: {type(fig).__name__}",
-                            xref="paper", yref="paper",
-                            x=0.5, y=0.5, showarrow=False
-                        )
-                    return fig
+                    # Convert figure to Plotly format (supports both Plotly and matplotlib)
+                    plotly_fig = convert_figure_to_plotly(fig)
+                    return plotly_fig
                 except Exception as plot_error:
                     return go.Figure().add_annotation(
                         text=f"Error generating plot: {str(plot_error)[:200]}",

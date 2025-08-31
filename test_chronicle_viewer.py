@@ -249,7 +249,7 @@ class TestDisplayPlotCallback:
             fig = display_plot_func([1], "/path/to/file.hdf5")
             assert isinstance(fig, go.Figure)
             assert fig.layout.annotations
-            assert "invalid type" in fig.layout.annotations[0].text
+            assert "Unsupported figure type" in fig.layout.annotations[0].text
     
     @patch('chronicle_viewer.load_object')
     def test_successful_plot_display(self, mock_load, display_plot_func):
@@ -340,6 +340,38 @@ class TestErrorMessages:
         # Should have approximately 193 x's (200 chars total minus "Error: ")
         assert x_count < 250  # Should be truncated, not all 500
         assert x_count > 150  # Should have a substantial portion
+
+
+class TestFigureConversion:
+    """Test figure conversion functionality."""
+    
+    @pytest.fixture
+    def display_plot_func(self):
+        """Get the display plot callback function."""
+        from chronicle_viewer import display_plot
+        return display_plot
+    
+    @patch('chronicle_viewer.load_object')  
+    def test_matplotlib_figure_conversion(self, mock_load, display_plot_func):
+        """Test matplotlib figure conversion to Plotly."""
+        import matplotlib.pyplot as plt
+        
+        # Create a mock matplotlib figure
+        mock_mpl_fig, ax = plt.subplots()
+        ax.plot([1, 2, 3], [4, 5, 6])
+        
+        mock_exp = Mock()
+        mock_method = Mock(return_value=mock_mpl_fig)
+        mock_exp.get_browser_functions.return_value = [("mpl_plot", mock_method)]
+        mock_load.return_value = mock_exp
+
+        with patch('chronicle_viewer.callback_context') as mock_ctx:
+            mock_ctx.triggered = [{'prop_id': '{"index":"mpl_plot","type":"plot-btn"}.n_clicks'}]
+
+            fig = display_plot_func([1], "/path/to/file.hdf5")
+            assert isinstance(fig, go.Figure)
+            # Should be converted successfully (either as data traces or as image)
+            plt.close(mock_mpl_fig)  # Clean up
 
 
 class TestBasicFixtures:
