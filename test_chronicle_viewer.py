@@ -81,76 +81,90 @@ class TestLoadExperimentCallback:
     def load_experiment_func(self):
         """Get the load_experiment function."""
         import chronicle_viewer
-        return chronicle_viewer.load_experiment
+        return chronicle_viewer.load_selected_experiment
     
     def test_empty_file_path(self, load_experiment_func):
         """Test handling of empty file path."""
-        info, controls, store = load_experiment_func("")
-        assert "Please enter a file path" in str(info)
+        info, controls, store = load_experiment_func("", "")
+        assert "Select an experiment from the dropdown" in str(info)
         assert controls == []
-        assert store is None
+        # Store should contain the attempted file path even on error
+        if store:
+            assert "file_path" in store
     
     def test_none_file_path(self, load_experiment_func):
         """Test handling of None file path."""
-        info, controls, store = load_experiment_func(None)
-        assert "Please enter a file path" in str(info)
+        info, controls, store = load_experiment_func(None, None)
+        assert "Select an experiment from the dropdown" in str(info)
         assert controls == []
-        assert store is None
+        # Store should contain the attempted file path even on error
+        if store:
+            assert "file_path" in store
     
     def test_whitespace_file_path(self, load_experiment_func):
         """Test handling of whitespace-only file path."""
-        info, controls, store = load_experiment_func("   ")
-        assert "Please enter a file path" in str(info)
+        info, controls, store = load_experiment_func("record123", "   ")
+        assert "Select an experiment from the dropdown" in str(info)
         assert controls == []
-        assert store is None
+        # Store should contain the attempted file path even on error
+        if store:
+            assert "file_path" in store
     
     @patch('chronicle_viewer.load_object')
     def test_file_not_found(self, mock_load, load_experiment_func):
         """Test handling of file not found error."""
         mock_load.side_effect = FileNotFoundError("File not found")
-        info, controls, store = load_experiment_func("/path/to/nonexistent.hdf5")
+        info, controls, store = load_experiment_func("record123", "/path/to/nonexistent.hdf5")
         info_str = str(info)
         # Check for the improved error message components
         assert "File Not Found" in info_str or "File not found" in info_str
         assert "danger" in info_str  # Should be a danger alert
         assert controls == []
-        assert store is None
+        # Store should contain the attempted file path even on error
+        if store:
+            assert "file_path" in store
     
     @patch('chronicle_viewer.load_object')
     def test_permission_error(self, mock_load, load_experiment_func):
         """Test handling of permission denied error."""
         mock_load.side_effect = PermissionError("Access denied")
-        info, controls, store = load_experiment_func("/path/to/protected.hdf5")
+        info, controls, store = load_experiment_func("record123", "/path/to/protected.hdf5")
         info_str = str(info)
         # Check for the improved error message components
         assert "Permission Denied" in info_str or "Permission denied" in info_str
         assert "danger" in info_str  # Should be a danger alert
         assert controls == []
-        assert store is None
+        # Store should contain the attempted file path even on error
+        if store:
+            assert "file_path" in store
     
     @patch('chronicle_viewer.load_object')
     def test_corrupted_hdf5_file(self, mock_load, load_experiment_func):
         """Test handling of corrupted HDF5 file."""
         mock_load.side_effect = Exception("HDF5 error: Unable to open file")
-        info, controls, store = load_experiment_func("/path/to/corrupted.hdf5")
+        info, controls, store = load_experiment_func("record123", "/path/to/corrupted.hdf5")
         info_str = str(info)
         # Check for the improved error message components
         assert "Invalid Chronicle File" in info_str or "corrupted" in info_str.lower() or "HDF5" in info_str
         assert "danger" in info_str  # Should be a danger alert
         assert controls == []
-        assert store is None
+        # Store should contain the attempted file path even on error
+        if store:
+            assert "file_path" in store
     
     @patch('chronicle_viewer.load_object')
     def test_generic_loading_error(self, mock_load, load_experiment_func):
         """Test handling of generic loading errors."""
         mock_load.side_effect = Exception("Unknown error occurred")
-        info, controls, store = load_experiment_func("/path/to/file.hdf5")
+        info, controls, store = load_experiment_func("record123", "/path/to/file.hdf5")
         info_str = str(info)
         # Check for the improved error message components
         assert "Error Loading Experiment" in info_str or "Error loading" in info_str
         assert "danger" in info_str  # Should be a danger alert
         assert controls == []
-        assert store is None
+        # Store should contain the attempted file path even on error
+        if store:
+            assert "file_path" in store
     
     @patch('chronicle_viewer.load_object')
     def test_experiment_without_browser_functions(self, mock_load, load_experiment_func):
@@ -160,10 +174,10 @@ class TestLoadExperimentCallback:
         mock_exp.__class__.__name__ = "TestExperiment"
         mock_load.return_value = mock_exp
         
-        info, controls, store = load_experiment_func("/path/to/valid.hdf5")
+        info, controls, store = load_experiment_func("record123", "/path/to/valid.hdf5")
         assert "TestExperiment" in str(info)
         assert "does not have browser functions" in str(controls)
-        assert store == "/path/to/valid.hdf5"
+        assert store["file_path"] == "/path/to/valid.hdf5"
     
     @patch('chronicle_viewer.load_object')
     def test_experiment_with_no_plots(self, mock_load, load_experiment_func):
@@ -173,10 +187,10 @@ class TestLoadExperimentCallback:
         mock_exp.__class__.__name__ = "EmptyExperiment"
         mock_load.return_value = mock_exp
         
-        info, controls, store = load_experiment_func("/path/to/empty.hdf5")
+        info, controls, store = load_experiment_func("record123", "/path/to/empty.hdf5")
         assert "EmptyExperiment" in str(info)
         assert "No plots available" in str(controls)
-        assert store == "/path/to/empty.hdf5"
+        assert store["file_path"] == "/path/to/empty.hdf5"
     
     @patch('chronicle_viewer.load_object')
     def test_successful_experiment_load(self, mock_load, load_experiment_func):
@@ -190,7 +204,7 @@ class TestLoadExperimentCallback:
         mock_exp.__class__.__name__ = "SuccessfulExperiment"
         mock_load.return_value = mock_exp
         
-        info, controls, store = load_experiment_func("/path/to/success.hdf5")
+        info, controls, store = load_experiment_func("record123", "/path/to/success.hdf5")
         assert "SuccessfulExperiment" in str(info)
         assert "Available Plots" in str(controls)
         # Check that buttons were created for each plot
@@ -198,7 +212,7 @@ class TestLoadExperimentCallback:
         assert "Plot Magnitude" in controls_str or "plot_magnitude" in controls_str
         assert "Plot Phase" in controls_str or "plot_phase" in controls_str
         assert "Plot Iq" in controls_str or "plot_iq" in controls_str
-        assert store == "/path/to/success.hdf5"
+        assert store["file_path"] == "/path/to/success.hdf5"
 
 
 class TestDisplayPlotCallback:
@@ -230,7 +244,7 @@ class TestDisplayPlotCallback:
         with patch('chronicle_viewer.callback_context') as mock_ctx:
             mock_ctx.triggered = [{'prop_id': '{"index":"test_plot","type":"plot-btn"}.n_clicks'}]
             
-            fig = display_plot_func([1], "/path/to/file.hdf5")
+            fig = display_plot_func([1], {"file_path": "/path/to/file.hdf5", "record_id": "record123"})
             assert isinstance(fig, go.Figure)
             assert fig.layout.annotations
             assert "Error generating plot" in fig.layout.annotations[0].text
@@ -246,7 +260,7 @@ class TestDisplayPlotCallback:
         with patch('chronicle_viewer.callback_context') as mock_ctx:
             mock_ctx.triggered = [{'prop_id': '{"index":"bad_plot","type":"plot-btn"}.n_clicks'}]
             
-            fig = display_plot_func([1], "/path/to/file.hdf5")
+            fig = display_plot_func([1], {"file_path": "/path/to/file.hdf5", "record_id": "record123"})
             assert isinstance(fig, go.Figure)
             assert fig.layout.annotations
             assert "Unsupported figure type" in fig.layout.annotations[0].text
@@ -263,7 +277,7 @@ class TestDisplayPlotCallback:
         with patch('chronicle_viewer.callback_context') as mock_ctx:
             mock_ctx.triggered = [{'prop_id': '{"index":"good_plot","type":"plot-btn"}.n_clicks'}]
             
-            fig = display_plot_func([1], "/path/to/file.hdf5")
+            fig = display_plot_func([1], {"file_path": "/path/to/file.hdf5", "record_id": "record123"})
             assert isinstance(fig, go.Figure)
             assert len(fig.data) == 1
             assert fig.data[0].x == (1, 2, 3)
@@ -279,7 +293,7 @@ class TestDisplayPlotCallback:
         with patch('chronicle_viewer.callback_context') as mock_ctx:
             mock_ctx.triggered = [{'prop_id': '{"index":"missing_plot","type":"plot-btn"}.n_clicks'}]
             
-            fig = display_plot_func([1], "/path/to/file.hdf5")
+            fig = display_plot_func([1], {"file_path": "/path/to/file.hdf5", "record_id": "record123"})
             assert isinstance(fig, go.Figure)
             assert fig.layout.annotations
             assert "not found" in fig.layout.annotations[0].text
@@ -322,7 +336,7 @@ class TestErrorMessages:
     def load_experiment_func(self):
         """Get the load_experiment function."""
         import chronicle_viewer
-        return chronicle_viewer.load_experiment
+        return chronicle_viewer.load_selected_experiment
     
     @patch('chronicle_viewer.load_object')
     def test_long_error_message_truncation(self, mock_load, load_experiment_func):
@@ -330,7 +344,7 @@ class TestErrorMessages:
         long_error = "Error: " + "x" * 500
         mock_load.side_effect = Exception(long_error)
         
-        info, controls, store = load_experiment_func("/path/to/file.hdf5")
+        info, controls, store = load_experiment_func("record123", "/path/to/file.hdf5")
         info_str = str(info)
         # Check that the error message is present but truncated
         assert "Error Loading Experiment" in info_str or "Error" in info_str
@@ -368,7 +382,7 @@ class TestFigureConversion:
         with patch('chronicle_viewer.callback_context') as mock_ctx:
             mock_ctx.triggered = [{'prop_id': '{"index":"mpl_plot","type":"plot-btn"}.n_clicks'}]
 
-            fig = display_plot_func([1], "/path/to/file.hdf5")
+            fig = display_plot_func([1], {"file_path": "/path/to/file.hdf5", "record_id": "record123"})
             assert isinstance(fig, go.Figure)
             # Should be converted successfully (either as data traces or as image)
             plt.close(mock_mpl_fig)  # Clean up

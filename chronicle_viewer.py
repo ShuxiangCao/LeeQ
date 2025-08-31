@@ -162,6 +162,13 @@ app.layout = dbc.Container([
         ])
     ]),
     
+    # Experiment selection dropdown
+    dbc.Row([
+        dbc.Col([
+            html.Div(id="experiment-selector-container", children=[], className="mb-3"),
+        ])
+    ]),
+    
     # Loading state wrapper for experiment info
     dbc.Row([
         dbc.Col([
@@ -207,25 +214,89 @@ app.layout = dbc.Container([
 ], fluid=True, className="p-4", style={"maxWidth": "1400px"})
 
 
-# Callback for loading experiment and displaying info
+# Callback for populating experiment selector when file is loaded
+@app.callback(
+    Output("experiment-selector-container", "children"),
+    Input("file-path", "value"),
+    prevent_initial_call=True
+)
+def populate_experiment_selector(file_path):
+    """
+    Populate the experiment selection dropdown when a file is loaded.
+    
+    Args:
+        file_path (str): Path to the chronicle log file
+        
+    Returns:
+        list: Dropdown component with available experiments
+    """
+    if not file_path:
+        return []
+    
+    try:
+        # Load available experiments from the chronicle file
+        from leeq.chronicle import Chronicle
+        chronicle = Chronicle()
+        record_book = chronicle.open_record_book(file_path.strip())
+        record_ids = record_book.get_available_record_ids()
+        
+        if not record_ids:
+            return [dbc.Alert("No experiments found in this chronicle file.", color="warning")]
+        
+        # Create dropdown options with experiment info
+        options = []
+        for i, record_id in enumerate(record_ids):
+            try:
+                # Load just to get the experiment type
+                experiment = load_object(file_path.strip(), record_id=record_id)
+                exp_type = type(experiment).__name__
+                label = f"{i+1}. {exp_type} ({record_id[:8]}...)"
+                options.append({"label": label, "value": record_id})
+            except Exception:
+                # If we can't load, just show the record ID
+                label = f"{i+1}. Unknown ({record_id[:8]}...)"
+                options.append({"label": label, "value": record_id})
+        
+        # Create dropdown component
+        dropdown = dbc.Row([
+            dbc.Col([
+                dbc.Label("Select Experiment:", className="fw-bold"),
+                dcc.Dropdown(
+                    id="experiment-selector",
+                    options=options,
+                    value=record_ids[0],  # Select first experiment by default
+                    placeholder="Choose an experiment to visualize...",
+                    className="mb-2"
+                ),
+                html.Small(f"Found {len(record_ids)} experiments in this file", 
+                          className="text-muted")
+            ])
+        ])
+        
+        return [dropdown]
+        
+    except Exception as e:
+        return [dbc.Alert(f"Error reading file: {str(e)[:100]}", color="danger")]
+
+# Callback for loading selected experiment and displaying info
 @app.callback(
     [Output("experiment-info", "children"),
      Output("plot-controls", "children"),
      Output("file-store", "data")],
-    Input("file-path", "value"),
+    [Input("experiment-selector", "value")],
+    [State("file-path", "value")],
     prevent_initial_call=True
 )
-def load_experiment(file_path):
+def load_selected_experiment(selected_record_id, file_path):
     """
-    Load a chronicle experiment from the specified file path and extract metadata.
+    Load the selected chronicle experiment from the file and extract metadata.
     
-    This callback is triggered when the user enters a file path in the input field.
-    It attempts to load the experiment using LeeQ's load_object function, extracts
-    available browser functions, and prepares the UI components for display.
+    This callback is triggered when the user selects an experiment from the dropdown.
+    It loads the specific experiment using the record ID and prepares UI components.
     
     Args:
-        file_path (str): Path to the chronicle log file (.hdf5 format).
-                        Can be absolute or relative path.
+        selected_record_id (str): The record ID of the selected experiment
+        file_path (str): Path to the chronicle log file
     
     Returns:
         tuple: A 3-element tuple containing:
@@ -245,12 +316,12 @@ def load_experiment(file_path):
         The function provides detailed error messages with visual indicators
         using Bootstrap icons for better user experience.
     """
-    if not file_path or file_path.strip() == "":
+    if not selected_record_id or not file_path or file_path.strip() == "":
         return (
             dbc.Alert(
                 [
                     html.I(className="bi bi-info-circle-fill me-2"),
-                    "Please enter a file path to load an experiment"
+                    "Select an experiment from the dropdown to view details"
                 ],
                 color="info",
                 className="d-flex align-items-center"
@@ -260,40 +331,16 @@ def load_experiment(file_path):
         )
     
     try:
-        # Try to open record book and get record IDs
-        try:
-            from leeq.chronicle import Chronicle
-            chronicle = Chronicle()
-            record_book = chronicle.open_record_book(file_path.strip())
-            record_ids = record_book.get_available_record_ids()
-            
-            if not record_ids:
-                return dbc.Alert("No experiments found in this chronicle file.", color="warning"), [], None
-            
-            # Use the first record ID
-            first_record_id = record_ids[0]
-            # Attempt to load the experiment object
-            experiment = load_object(file_path.strip(), record_id=first_record_id)
-        except Exception:
-            # Fallback: try to load without record_id (old behavior)
-            try:
-                experiment = load_object(file_path.strip())
-                record_ids = []  # No record ID info available
-                first_record_id = None
-            except Exception as e:
-                # This is the original error handling
-                raise e
+        # Load the specific experiment using the selected record ID
+        experiment = load_object(file_path.strip(), record_id=selected_record_id)
         
         # Create experiment info display with improved styling
         exp_type = type(experiment).__name__
         
         # Try to get additional experiment attributes if available
         exp_attrs = []
-        if first_record_id:
-            exp_attrs.append(html.P(f"Record ID: {first_record_id[:8]}...", className="mb-1 small"))
-            exp_attrs.append(html.P(f"Total records in file: {len(record_ids)}", className="mb-1 small"))
-        else:
-            exp_attrs.append(html.P("Loaded using legacy method", className="mb-1 small"))
+        exp_attrs.append(html.P(f"Record ID: {selected_record_id[:8]}...", className="mb-1 small"))
+        exp_attrs.append(html.P(f"File: {file_path}", className="mb-1 small text-truncate"))
         
         if hasattr(experiment, '__dict__'):
             for attr in ['name', 'description', 'timestamp', 'date']:
@@ -326,6 +373,7 @@ def load_experiment(file_path):
             plot_functions = experiment.get_browser_functions()
         except AttributeError:
             # Experiment doesn't have get_browser_functions method
+            store_data = {"file_path": file_path.strip(), "record_id": selected_record_id}
             return (
                 info_card,
                 dbc.Alert(
@@ -337,7 +385,7 @@ def load_experiment(file_path):
                     color="warning",
                     className="d-flex align-items-center"
                 ),
-                file_path.strip()
+                store_data
             )
         
         if plot_functions:
@@ -364,12 +412,15 @@ def load_experiment(file_path):
                 ])
             ], color="primary", outline=True, className="shadow-sm")
             
-            return info_card, plot_control_div, file_path.strip()
+            # Store both file path and record ID for plot callbacks
+            store_data = {"file_path": file_path.strip(), "record_id": selected_record_id}
+            return info_card, plot_control_div, store_data
         else:
+            store_data = {"file_path": file_path.strip(), "record_id": selected_record_id}
             return (
                 info_card,
                 dbc.Alert("No plots available for this experiment", color="info"),
-                file_path.strip()
+                store_data
             )
             
     except FileNotFoundError:
@@ -385,7 +436,7 @@ def load_experiment(file_path):
                 className="d-flex align-items-start"
             ),
             [],
-            None
+            {"file_path": file_path, "record_id": selected_record_id} if selected_record_id else None
         )
     except PermissionError:
         return (
@@ -400,7 +451,7 @@ def load_experiment(file_path):
                 className="d-flex align-items-start"
             ),
             [],
-            None
+            {"file_path": file_path, "record_id": selected_record_id} if selected_record_id else None
         )
     except Exception as e:
         # Generic error handling for other issues (corrupted files, etc.)
@@ -422,7 +473,7 @@ def load_experiment(file_path):
                     color="danger"
                 ),
                 [],
-                None
+                {"file_path": file_path, "record_id": selected_record_id} if selected_record_id else None
             )
         else:
             return (
@@ -441,7 +492,7 @@ def load_experiment(file_path):
                     color="danger"
                 ),
                 [],
-                None
+                {"file_path": file_path, "record_id": selected_record_id} if selected_record_id else None
             )
 
 
@@ -452,7 +503,7 @@ def load_experiment(file_path):
     State("file-store", "data"),
     prevent_initial_call=True
 )
-def display_plot(n_clicks, file_path):
+def display_plot(n_clicks, store_data):
     """
     Generate and display a plot based on the selected browser function.
     
@@ -463,7 +514,7 @@ def display_plot(n_clicks, file_path):
     Args:
         n_clicks (list): List of click counts for all plot buttons.
                         Used with pattern-matching callbacks.
-        file_path (str): Stored path to the chronicle file from dcc.Store.
+        store_data (dict): Dictionary containing file_path and record_id from dcc.Store.
     
     Returns:
         plotly.graph_objects.Figure: The plot to display, or an error figure
@@ -487,10 +538,20 @@ def display_plot(n_clicks, file_path):
         The experiment is reloaded for each plot to ensure consistency
         and handle any potential state changes.
     """
-    if not file_path:
+    if not store_data:
         return go.Figure().add_annotation(
             text="No experiment loaded",
             xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
+    
+    file_path = store_data.get("file_path")
+    record_id = store_data.get("record_id")
+    
+    if not file_path or not record_id:
+        return go.Figure().add_annotation(
+            text="Invalid experiment data",
+            xref="paper", yref="paper", 
             x=0.5, y=0.5, showarrow=False
         )
     
@@ -509,21 +570,8 @@ def display_plot(n_clicks, file_path):
     method_name = button_dict['index']
     
     try:
-        # Try to reload with record ID, fallback to legacy method
-        try:
-            from leeq.chronicle import Chronicle
-            chronicle = Chronicle()
-            record_book = chronicle.open_record_book(file_path)
-            record_ids = record_book.get_available_record_ids()
-            
-            if not record_ids:
-                return go.Figure().add_annotation(text="No experiments found in chronicle file")
-            
-            first_record_id = record_ids[0]
-            experiment = load_object(file_path, record_id=first_record_id)
-        except Exception:
-            # Fallback: try to load without record_id
-            experiment = load_object(file_path)
+        # Load the specific experiment using the selected record ID
+        experiment = load_object(file_path, record_id=record_id)
         
         plot_functions = experiment.get_browser_functions()
         
