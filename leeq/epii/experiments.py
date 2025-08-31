@@ -200,30 +200,101 @@ class ExperimentRouter:
             logger.error(f"Experiment class {experiment_class.__name__} has no 'run' method")
             return {}
 
-    def map_parameters(self, experiment_name: str, epii_params: Dict[str, Any]) -> Dict[str, Any]:
+    def map_parameters(self, experiment_name: str, epii_params: Dict[str, Any], setup=None) -> Dict[str, Any]:
         """
-        Map EPII parameter names to LeeQ parameter names.
+        Map EPII parameter names to LeeQ parameter names and resolve object references.
 
         Args:
             experiment_name: Name of the experiment
             epii_params: Parameters with EPII naming convention
+            setup: Optional setup instance to resolve qubit references
 
         Returns:
-            Parameters with LeeQ naming convention
+            Parameters with LeeQ naming convention and resolved objects
         """
         if experiment_name not in self.parameter_map:
-            # No mapping needed, return as is
-            return epii_params
-
-        mapping = self.parameter_map[experiment_name]
-        leeq_params = {}
-
-        for epii_name, value in epii_params.items():
-            # Map the parameter name if a mapping exists
-            leeq_name = mapping.get(epii_name, epii_name)
-            leeq_params[leeq_name] = value
-
+            # No mapping needed, but still resolve qubit references
+            leeq_params = epii_params.copy()
+        else:
+            mapping = self.parameter_map[experiment_name]
+            leeq_params = {}
+            
+            for epii_name, value in epii_params.items():
+                # Map the parameter name if a mapping exists
+                leeq_name = mapping.get(epii_name, epii_name)
+                leeq_params[leeq_name] = value
+        
+        # Resolve qubit references if setup is provided
+        if setup:
+            leeq_params = self._resolve_qubit_references(leeq_params, setup)
+        
         return leeq_params
+    
+    def _resolve_qubit_references(self, params: Dict[str, Any], setup) -> Dict[str, Any]:
+        """
+        Resolve qubit string references to actual qubit objects.
+        
+        Args:
+            params: Parameters dictionary
+            setup: Setup instance with qubit registry
+            
+        Returns:
+            Parameters with resolved qubit objects
+        """
+        resolved = params.copy()
+        
+        # List of parameter names that typically contain qubit references
+        qubit_param_names = ['qubit', 'dut_qubit', 'dut', 'qubits', 'dut_list']
+        
+        for param_name in qubit_param_names:
+            if param_name in resolved:
+                value = resolved[param_name]
+                
+                # Handle single qubit reference
+                if isinstance(value, str):
+                    resolved[param_name] = self._get_qubit_from_setup(value, setup)
+                # Handle list of qubit references
+                elif isinstance(value, list):
+                    resolved[param_name] = [
+                        self._get_qubit_from_setup(q, setup) if isinstance(q, str) else q
+                        for q in value
+                    ]
+        
+        return resolved
+    
+    def _get_qubit_from_setup(self, qubit_name: str, setup):
+        """
+        Get a qubit object from the setup by name.
+        
+        Args:
+            qubit_name: Name of the qubit (e.g., 'q0', 'q1', 'Q0', 'Q1')
+            setup: Setup instance
+            
+        Returns:
+            Qubit object from setup
+        """
+        # Try to get qubit from setup's qubit registry
+        if hasattr(setup, 'qubits') and hasattr(setup.qubits, '__getitem__'):
+            try:
+                # Try direct indexing first
+                if qubit_name.lower().startswith('q'):
+                    index = int(qubit_name[1:])
+                    return setup.qubits[index]
+            except (ValueError, IndexError, KeyError):
+                pass
+        
+        # Try to get by attribute name (both lower and uppercase)
+        for name in [qubit_name, qubit_name.lower(), qubit_name.upper()]:
+            if hasattr(setup, name):
+                return getattr(setup, name)
+        
+        # If setup has a get_qubit method
+        if hasattr(setup, 'get_qubit'):
+            return setup.get_qubit(qubit_name)
+        
+        # Log warning and return the string as fallback
+        logger.warning(f"Could not resolve qubit '{qubit_name}' from setup")
+        return qubit_name
 
     def validate_parameters(self, experiment_name: str, parameters: Dict[str, Any]) -> tuple[bool, List[str]]:
         """

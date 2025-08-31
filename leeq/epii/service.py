@@ -202,18 +202,28 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
             parameters = {}
             for key, value in request.parameters.items():
                 try:
-                    # Deserialize parameter value
-                    param_data = {
-                        "type": "string",  # Default type
-                        "value": value
-                    }
-                    parameters[key] = deserialize_value(param_data)
+                    # Try to convert to appropriate type
+                    if value.lower() in ['true', 'false']:
+                        parameters[key] = value.lower() == 'true'
+                    elif '.' in value or 'e' in value.lower():
+                        # Try float first for decimal or scientific notation
+                        try:
+                            parameters[key] = float(value)
+                        except ValueError:
+                            parameters[key] = value
+                    else:
+                        # Try integer
+                        try:
+                            parameters[key] = int(value)
+                        except ValueError:
+                            # Keep as string if can't convert
+                            parameters[key] = value
                 except Exception as e:
-                    logger.warning(f"Failed to deserialize parameter {key}: {e}")
+                    logger.warning(f"Failed to convert parameter {key}: {e}")
                     parameters[key] = value
 
-            # Map EPII parameters to LeeQ parameters
-            leeq_parameters = self.experiment_router.map_parameters(experiment_name, parameters)
+            # Map EPII parameters to LeeQ parameters and resolve qubit references
+            leeq_parameters = self.experiment_router.map_parameters(experiment_name, parameters, self.setup)
 
             # Validate parameters
             is_valid, errors = self.experiment_router.validate_parameters(experiment_name, leeq_parameters)
