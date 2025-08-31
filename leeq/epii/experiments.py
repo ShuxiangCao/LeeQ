@@ -252,13 +252,27 @@ class ExperimentRouter:
                 
                 # Handle single qubit reference
                 if isinstance(value, str):
-                    resolved[param_name] = self._get_qubit_from_setup(value, setup)
+                    try:
+                        resolved[param_name] = self._get_qubit_from_setup(value, setup)
+                    except ValueError as e:
+                        logger.warning(f"Failed to resolve qubit for {param_name}: {e}")
+                        # Keep the string value if resolution fails
+                        # This allows experiments to handle string references themselves
+                        pass
                 # Handle list of qubit references
                 elif isinstance(value, list):
-                    resolved[param_name] = [
-                        self._get_qubit_from_setup(q, setup) if isinstance(q, str) else q
-                        for q in value
-                    ]
+                    resolved_list = []
+                    for q in value:
+                        if isinstance(q, str):
+                            try:
+                                resolved_list.append(self._get_qubit_from_setup(q, setup))
+                            except ValueError as e:
+                                logger.warning(f"Failed to resolve qubit '{q}': {e}")
+                                # Keep string if resolution fails
+                                resolved_list.append(q)
+                        else:
+                            resolved_list.append(q)
+                    resolved[param_name] = resolved_list
         
         return resolved
     
@@ -267,34 +281,41 @@ class ExperimentRouter:
         Get a qubit object from the setup by name.
         
         Args:
-            qubit_name: Name of the qubit (e.g., 'q0', 'q1', 'Q0', 'Q1')
+            qubit_name: Name of the qubit (e.g., '0', '1', 'q0', 'Q0')
             setup: Setup instance
             
         Returns:
             Qubit object from setup
+            
+        Raises:
+            ValueError: If qubit cannot be resolved
         """
-        # Try to get qubit from setup's qubit registry
-        if hasattr(setup, 'qubits') and hasattr(setup.qubits, '__getitem__'):
-            try:
-                # Try direct indexing first
-                if qubit_name.lower().startswith('q'):
-                    index = int(qubit_name[1:])
+        # Handle pure number format ("0", "1", etc.)
+        if qubit_name.isdigit():
+            index = int(qubit_name)
+            # Try qubits list first
+            if hasattr(setup, 'qubits') and isinstance(setup.qubits, list):
+                if index < len(setup.qubits):
                     return setup.qubits[index]
-            except (ValueError, IndexError, KeyError):
+            # Try q{index} attribute
+            if hasattr(setup, f'q{index}'):
+                return getattr(setup, f'q{index}')
+        
+        # Handle "q0", "Q0" format  
+        elif qubit_name.lower().startswith('q'):
+            try:
+                index = int(qubit_name[1:])
+                # Try qubits list
+                if hasattr(setup, 'qubits') and index < len(setup.qubits):
+                    return setup.qubits[index]
+                # Try direct attribute
+                if hasattr(setup, qubit_name.lower()):
+                    return getattr(setup, qubit_name.lower())
+            except ValueError:
                 pass
         
-        # Try to get by attribute name (both lower and uppercase)
-        for name in [qubit_name, qubit_name.lower(), qubit_name.upper()]:
-            if hasattr(setup, name):
-                return getattr(setup, name)
-        
-        # If setup has a get_qubit method
-        if hasattr(setup, 'get_qubit'):
-            return setup.get_qubit(qubit_name)
-        
-        # Log warning and return the string as fallback
-        logger.warning(f"Could not resolve qubit '{qubit_name}' from setup")
-        return qubit_name
+        # Fail explicitly instead of returning string
+        raise ValueError(f"Cannot resolve qubit '{qubit_name}' from setup. Available: {getattr(setup, 'qubits', [])}")
 
     def validate_parameters(self, experiment_name: str, parameters: Dict[str, Any]) -> tuple[bool, List[str]]:
         """
