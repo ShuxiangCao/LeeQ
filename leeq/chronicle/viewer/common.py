@@ -521,6 +521,21 @@ def create_tree_view_items(experiments):
             'full_path': '/'.join(path_parts)
         })
     
+    # Third pass: Update is_parent flag based on whether there are multiple experiments
+    def update_is_parent(nodes):
+        for name, node in nodes.items():
+            # Set is_parent to True if:
+            # 1. It has children (nested structure), OR
+            # 2. It has multiple experiments under this type
+            if node['children'] or len(node['experiments']) > 1:
+                node['is_parent'] = True
+            
+            # Recursively update children
+            if node['children']:
+                update_is_parent(node['children'])
+    
+    update_is_parent(tree_nodes)
+    
     return tree_nodes
 
 
