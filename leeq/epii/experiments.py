@@ -22,15 +22,69 @@ class ExperimentRouter:
     LeeQ's internal experiment implementations.
     """
 
-    def __init__(self):
-        """Initialize the experiment router with dynamic discovery."""
+    def __init__(self, setup=None):
+        """Initialize the experiment router with dynamic discovery.
+        
+        Args:
+            setup: Optional LeeQ setup instance for backend-aware filtering
+        """
+        self.setup = setup
+        self.is_simulation = self._detect_simulation_setup()
         self.experiment_map: Dict[str, Type] = {}
         self._discover_experiments()  # Changed from _initialize_experiment_map
 
+    def _detect_simulation_setup(self) -> bool:
+        """
+        Check if the setup is a high-level simulation setup.
+        
+        Returns:
+            True if setup is HighLevelSimulationSetup, False otherwise
+        """
+        if not self.setup:
+            return False
+        
+        try:
+            from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+            return isinstance(self.setup, HighLevelSimulationSetup)
+        except ImportError:
+            logger.warning("Could not import HighLevelSimulationSetup")
+            return False
+    
+    def _has_own_run_simulated(self, exp_class: Type) -> bool:
+        """
+        Check if an experiment class has its own run_simulated implementation
+        (not just inherited from base class).
+        
+        Args:
+            exp_class: The experiment class to check
+            
+        Returns:
+            True if the class implements its own run_simulated method
+        """
+        if not hasattr(exp_class, 'run_simulated'):
+            return False
+        
+        # Check if run_simulated is defined in this class, not inherited
+        # We check the class itself, not parent classes
+        if 'run_simulated' in exp_class.__dict__:
+            return True
+        
+        # Also check if any direct parent (not base Experiment) has it
+        # This handles cases where a specialized experiment base class implements it
+        for base in exp_class.__bases__:
+            # Skip the base Experiment classes
+            if base.__name__ in ['Experiment', 'LeeQAIExperiment', 'KExperiment']:
+                continue
+            if 'run_simulated' in base.__dict__:
+                return True
+        
+        return False
+    
     def _discover_experiments(self):
         """
         Dynamically discover all experiments with EPII_INFO.
-        Replaces the static _initialize_experiment_map method.
+        Filters based on backend type - only includes experiments with run_simulated
+        method when using high-level simulation setup.
         """
         from leeq.experiments import builtin
 
@@ -50,6 +104,13 @@ class ExperimentRouter:
 
                     # Include if has EPII_INFO and run method (not a base class)
                     if hasattr(obj, 'EPII_INFO') and hasattr(obj, 'run'):
+                        # Filter for simulation capability if using high-level simulator
+                        if self.is_simulation:
+                            # Check if the class actually implements run_simulated, not just inherits it
+                            if not self._has_own_run_simulated(obj):
+                                logger.debug(f"Skipping {name} - no run_simulated implementation for simulation setup")
+                                continue
+                        
                         # Build experiment name with module prefix for duplicates
                         # Extract the last parts of module path for context
                         module_parts = modname.split('.')
@@ -80,7 +141,10 @@ class ExperimentRouter:
             except Exception as e:
                 logger.warning(f"Failed to import {modname}: {e}")
 
-        logger.info(f"Discovered {len(self.experiment_map)} experiments with EPII_INFO")
+        if self.is_simulation:
+            logger.info(f"Discovered {len(self.experiment_map)} experiments with run_simulated method for simulation setup")
+        else:
+            logger.info(f"Discovered {len(self.experiment_map)} experiments with EPII_INFO")
 
 
     def get_experiment_info(self, name: str) -> Dict[str, Any]:

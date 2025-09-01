@@ -47,7 +47,7 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
         self.platform_version = "0.1.0"
 
         # Initialize core components (Phase 2 integration)
-        self.experiment_router = ExperimentRouter()
+        self.experiment_router = ExperimentRouter(setup)  # Pass setup for backend-aware filtering
         self.parameter_manager = ParameterManager(setup)
 
         # Register setup with LeeQ ExperimentManager if provided
