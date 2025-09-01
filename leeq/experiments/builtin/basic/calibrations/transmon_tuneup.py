@@ -9,6 +9,60 @@ __all__ = ['MultilevelTransmonTuneup']
 
 
 class MultilevelTransmonTuneup(Experiment):
+    EPII_INFO = {
+        "name": "MultilevelTransmonTuneup",
+        "description": "Comprehensive multilevel transmon calibration sequence",
+        "purpose": "Performs complete calibration sequence for multilevel transmon qubits, tuning up all transitions systematically. Handles single and two-photon transitions with integrated measurement calibration.",
+        "attributes": {
+            "duts": {
+                "type": "list[TransmonElement]",
+                "description": "List of transmon qubits being tuned"
+            },
+            "highest_level": {
+                "type": "int",
+                "description": "Highest energy level to calibrate (2 for qubit, 3 for qutrit, etc.)"
+            },
+            "rabi_amplitude_calibration": {
+                "type": "bool",
+                "description": "Whether to perform Rabi amplitude calibration"
+            },
+            "ramsey_frequency_calibration": {
+                "type": "bool",
+                "description": "Whether to perform Ramsey frequency calibration"
+            },
+            "ramsey_tomography_frequency_calibration": {
+                "type": "bool",
+                "description": "Whether to perform Ramsey tomography calibration"
+            },
+            "pingpong_calibration": {
+                "type": "bool",
+                "description": "Whether to perform ping-pong amplitude calibration"
+            },
+            "drag_calibration": {
+                "type": "bool",
+                "description": "Whether to perform DRAG coefficient calibration"
+            },
+            "measurement_calibration": {
+                "type": "bool",
+                "description": "Whether to perform measurement calibration"
+            },
+            "_experiments": {
+                "type": "list",
+                "description": "List of all calibration experiments performed"
+            },
+            "intermediate_step_configuraiton": {
+                "type": "list",
+                "description": "Configuration snapshots at each calibration step"
+            }
+        },
+        "notes": [
+            "Systematically calibrates all transitions",
+            "Supports both single and two-photon transitions",
+            "Integrates multiple calibration techniques",
+            "Tracks intermediate configurations for debugging"
+        ]
+    }
+    
     """
     A class that extends Experiment to perform a multilevel transmon tuneup experiment.
     The experiment tunes up a multilevel transmon qubit to optimize its performance.

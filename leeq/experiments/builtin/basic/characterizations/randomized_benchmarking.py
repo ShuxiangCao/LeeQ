@@ -23,6 +23,94 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
     Class for running a randomized benchmarking experiment on a multilevel system.
     """
 
+    EPII_INFO = {
+        "name": "RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem",
+        "description": "Randomized benchmarking for two-level subspaces in multi-level systems",
+        "purpose": "Measures average gate fidelity using randomized benchmarking protocol on specified two-level subspaces of multi-level quantum systems. Applies random sequences of Clifford gates and measures decay to extract gate error rates. Essential for benchmarking gate quality in transmon qubits with higher energy levels.",
+        "attributes": {
+            "results": {
+                "type": "np.ndarray",
+                "description": "Raw measurement results for all qubits",
+                "shape": "(n_qubits, n_measurements, n_shots)"
+            },
+            "seq_length": {
+                "type": "np.ndarray[int]",
+                "description": "Array of sequence lengths used in the experiment",
+                "shape": "(n_lengths,)"
+            },
+            "gates": {
+                "type": "List[List[Gate]]",
+                "description": "Clifford gate sets for each qubit"
+            },
+            "cliff_set": {
+                "type": "str",
+                "description": "Clifford set used ('XY' or 'VZX')"
+            },
+            "mean": {
+                "type": "List[List[float]]",
+                "description": "Mean population values for each qubit and state"
+            },
+            "std": {
+                "type": "List[List[float]]",
+                "description": "Standard deviation of populations"
+            },
+            "rb_parameters": {
+                "type": "List[List[unc.Variable]]",
+                "description": "Fitted RB decay parameters with uncertainties"
+            },
+            "probs": {
+                "type": "List[np.ndarray]",
+                "description": "Probability distributions for each qubit"
+            }
+        },
+        "notes": [
+            "Supports XY and VZX Clifford gate sets",
+            "Can operate on arbitrary two-level subspaces (f01, f12, f23, etc.)",
+            "Automatically generates exponentially spaced sequence lengths if integer provided",
+            "Extracts both per-Clifford and per-gate infidelities",
+            "Uses 24 single-qubit Clifford gates"
+        ]
+    }
+
+    @log_and_record(overwrite_func_name='RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem.run')
+    def run_simulated(self,
+                      dut_list: List,
+                      collection_name: str = 'f01',
+                      seq_length: Union[int, np.ndarray] = 1024,
+                      kinds: int = 10,
+                      cliff_set: str = 'XY',
+                      pi_half_only: bool = False,
+                      mprim_index: int = 0,
+                      seed: int = 42) -> None:
+        """Execute randomized benchmarking in simulation mode.
+
+        Parameters
+        ----------
+        dut_list : List
+            A list of device under test (DUT) instances.
+        collection_name : str, optional
+            Name of the collection to use. Default: 'f01'
+        seq_length : Union[int, np.ndarray], optional
+            Either max sequence length (generates exponential spacing) or array of lengths. Default: 1024
+        kinds : int, optional
+            Number of random sequences per length. Default: 10
+        cliff_set : str, optional
+            Clifford gate set to use ('XY' or 'VZX'). Default: 'XY'
+        pi_half_only : bool, optional
+            If True, only π/2 rotations are used. Default: False
+        mprim_index : int, optional
+            Index of measurement primitive. Default: 0
+        seed : int, optional
+            Random seed for reproducibility. Default: 42
+
+        Returns
+        -------
+        None
+            Updates instance's results attribute with simulated data.
+        """
+        # Simulation implementation placeholder
+        raise NotImplementedError("Simulation for RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem not yet implemented")
+
     @log_and_record
     def run(self,
             dut_list: List,
@@ -33,21 +121,31 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
             pi_half_only: bool = False,
             mprim_index: int = 0,
             seed: int = 42) -> None:
-        """
-        Executes a randomized benchmarking run with a sequence of operations on a list of devices under test (DUTs).
+        """Execute randomized benchmarking on hardware.
 
-        Args:
-            dut_list: A list of device under test (DUT) instances.
-            collection_name: Name of the collection to use, with default 'f01'.
-            seq_length: Either an integer specifying the max length of the sequence, or an array of sequence lengths.
-            kinds: The number of kinds/types of sequences to generate.
-            cliff_set: The set of Clifford gates to use, either 'XY' or 'VZX'.
-            pi_half_only: If True, only pi/2 rotations are used in gate generation.
-            mprim_index: Index to select the measurement primitive.
-            seed: Seed for random number generation to ensure reproducibility.
+        Parameters
+        ----------
+        dut_list : List
+            A list of device under test (DUT) instances.
+        collection_name : str, optional
+            Name of the collection to use. Default: 'f01'
+        seq_length : Union[int, np.ndarray], optional
+            Either max sequence length (generates exponential spacing) or array of lengths. Default: 1024
+        kinds : int, optional
+            Number of random sequences per length. Default: 10
+        cliff_set : str, optional
+            Clifford gate set to use ('XY' or 'VZX'). Default: 'XY'
+        pi_half_only : bool, optional
+            If True, only π/2 rotations are used. Default: False
+        mprim_index : int, optional
+            Index of measurement primitive. Default: 0
+        seed : int, optional
+            Random seed for reproducibility. Default: 42
 
-        Returns:
-            None: This method modifies the instance's state but does not return any value.
+        Returns
+        -------
+        None
+            Updates instance's results attribute with measurement data.
         """
         # Validate input arguments
         if not isinstance(seq_length, (int, np.ndarray)):
@@ -380,11 +478,104 @@ class SingleQubitRandomizedBenchmarking(RandomizedBenchmarkingTwoLevelSubspaceMu
     Class for running a randomized benchmarking experiment on a single qubit.
     """
 
+    EPII_INFO = {
+        "name": "SingleQubitRandomizedBenchmarking",
+        "description": "Single-qubit randomized benchmarking experiment",
+        "purpose": "Measures average single-qubit gate fidelity using the randomized benchmarking protocol. Applies sequences of random Clifford gates with varying lengths and measures exponential decay of fidelity. Provides robust characterization of gate quality that is insensitive to state preparation and measurement errors.",
+        "attributes": {
+            "results": {
+                "type": "np.ndarray",
+                "description": "Raw measurement results",
+                "shape": "(1, n_measurements, n_shots)"
+            },
+            "seq_length": {
+                "type": "np.ndarray[int]",
+                "description": "Array of sequence lengths used",
+                "shape": "(n_lengths,)"
+            },
+            "gates": {
+                "type": "List[List[Gate]]",
+                "description": "Clifford gate set for the qubit"
+            },
+            "cliff_set": {
+                "type": "str",
+                "description": "Clifford set used ('XY' or 'VZX')"
+            },
+            "mean": {
+                "type": "List[List[float]]",
+                "description": "Mean population values for each state"
+            },
+            "std": {
+                "type": "List[List[float]]",
+                "description": "Standard deviation of populations"
+            },
+            "rb_parameters": {
+                "type": "List[List[unc.Variable]]",
+                "description": "Fitted RB parameters: [amplitude, decay_rate, offset]"
+            },
+            "probs": {
+                "type": "List[np.ndarray]",
+                "description": "Probability distributions"
+            }
+        },
+        "notes": [
+            "Inherits from multi-level RB but operates on single qubit",
+            "Automatically computes per-Clifford and per-gate infidelities",
+            "Average number of gates per Clifford is ~1.825",
+            "Decay rate relates to average gate fidelity",
+            "Currently run_simulated is not fully implemented"
+        ]
+    }
+
     _experiment_result_analysis_instructions = """
     This is the analysis of the randomized benchmarking experiment. The experiment is considered successful if no
     parameter needs to be updated based on the visual plot inspection, and the infidelity values are physical. Otherwise
     the experiment is failed.
     """
+
+    @log_and_record(overwrite_func_name='SingleQubitRandomizedBenchmarking.run')
+    def run_simulated(self,
+                      dut: TransmonElement,
+                      collection_name: str = 'f01',
+                      seq_length: Union[int, np.ndarray] = 1024,
+                      kinds: int = 10,
+                      cliff_set: str = 'XY',
+                      pi_half_only: bool = False,
+                      mprim_index: int = 0,
+                      seed: int = 42
+                      ):
+        """Execute single-qubit randomized benchmarking in simulation mode.
+
+        Parameters
+        ----------
+        dut : TransmonElement
+            The qubit device under test.
+        collection_name : str, optional
+            Name of the pulse collection. Default: 'f01'
+        seq_length : Union[int, np.ndarray], optional
+            Either max sequence length (generates exponential spacing) or array of lengths. Default: 1024
+        kinds : int, optional
+            Number of random sequences per length. Default: 10
+        cliff_set : str, optional
+            Clifford gate set to use ('XY' or 'VZX'). Default: 'XY'
+        pi_half_only : bool, optional
+            If True, only π/2 rotations are used. Default: False
+        mprim_index : int, optional
+            Index of measurement primitive. Default: 0
+        seed : int, optional
+            Random seed for reproducibility. Default: 42
+
+        Returns
+        -------
+        None
+            Updates instance's results attribute with simulated data.
+
+        Raises
+        ------
+        NotImplementedError
+            This method is not yet fully implemented.
+        """
+        raise NotImplementedError("Single-qubit RB simulation not yet implemented")
 
     @log_and_record
     def run(self,
@@ -397,18 +588,36 @@ class SingleQubitRandomizedBenchmarking(RandomizedBenchmarkingTwoLevelSubspaceMu
             mprim_index: int = 0,
             seed: int = 42
             ):
-        """
-        Executes a randomized benchmarking run with a sequence of operations on a qubit.
+        """Execute single-qubit randomized benchmarking on hardware.
 
-        Parameters:
-            dut: A list of device under test (DUT) instances.
-            collection_name: Name of the collection to use, with default 'f01'.
-            seq_length: Either an integer specifying the max length of the sequence, or an array of sequence lengths.
-            kinds: The number of kinds/types of sequences to generate.
-            cliff_set: The set of Clifford gates to use, either 'XY' or 'VZX'.
-            pi_half_only: If True, only pi/2 rotations are used in gate generation.
-            mprim_index: Index to select the measurement primitive.
-            seed: Seed for random number generation to ensure reproducibility.
+        Parameters
+        ----------
+        dut : TransmonElement
+            The qubit device under test.
+        collection_name : str, optional
+            Name of the pulse collection. Default: 'f01'
+        seq_length : Union[int, np.ndarray], optional
+            Either max sequence length (generates exponential spacing) or array of lengths. Default: 1024
+        kinds : int, optional
+            Number of random sequences per length. Default: 10
+        cliff_set : str, optional
+            Clifford gate set to use ('XY' or 'VZX'). Default: 'XY'
+        pi_half_only : bool, optional
+            If True, only π/2 rotations are used. Default: False
+        mprim_index : int, optional
+            Index of measurement primitive. Default: 0
+        seed : int, optional
+            Random seed for reproducibility. Default: 42
+
+        Returns
+        -------
+        None
+            Updates instance's results attribute with measurement data.
+
+        Raises
+        ------
+        NotImplementedError
+            This method is not yet fully implemented for simulation.
         """
         Z = np.array([[1, 0], [0, -1]])
         X = np.array([[0, 1], [1, 0]])

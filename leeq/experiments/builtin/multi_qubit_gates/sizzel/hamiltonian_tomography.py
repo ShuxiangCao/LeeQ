@@ -9,12 +9,125 @@ from leeq.utils.compatibility import *
 
 
 class ConditionalStarkFineFrequencyTuneUp(Experiment):
+    EPII_INFO = {
+        "name": "ConditionalStarkFineFrequencyTuneUp",
+        "description": "Fine-tunes Stark frequency for optimal ZZ interaction",
+        "purpose": "Sweeps the Stark drive frequency to find the optimal value that maximizes ZZ interaction strength. Performs Hamiltonian tomography at each frequency to measure interaction rates and determine the best operating point.",
+        "attributes": {
+            "duts": {
+                "type": "list[TransmonElement]",
+                "description": "List of two qubits [control, target]"
+            },
+            "current_params": {
+                "type": "dict",
+                "description": "Current gate parameters being tested"
+            },
+            "params_list": {
+                "type": "list[dict]",
+                "description": "History of all parameter sets tested"
+            },
+            "results": {
+                "type": "list[dict]",
+                "description": "Results for each frequency tested",
+                "keys": {
+                    "frequency": "float - Test frequency (MHz)",
+                    "iz_rate": "unc.ufloat - IZ rate",
+                    "zz_rate": "unc.ufloat - ZZ rate",
+                    "width": "float - Calculated gate width",
+                    "result": "dict - Full analysis results",
+                    "result_target": "np.ndarray - Target qubit data",
+                    "result_control": "np.ndarray - Control qubit data"
+                }
+            },
+            "result_target": {
+                "type": "np.ndarray[complex]",
+                "description": "Target qubit tomography data from last iteration"
+            },
+            "result_control": {
+                "type": "np.ndarray[complex]",
+                "description": "Control qubit tomography data from last iteration"
+            },
+            "iz_rates": {
+                "type": "list[float]",
+                "description": "IZ rates at each frequency"
+            },
+            "iz_uncertainties": {
+                "type": "list[float]",
+                "description": "IZ rate uncertainties"
+            },
+            "zz_rates": {
+                "type": "list[float]",
+                "description": "ZZ rates at each frequency"
+            },
+            "zz_uncertainties": {
+                "type": "list[float]",
+                "description": "ZZ rate uncertainties"
+            },
+            "widths": {
+                "type": "list[float]",
+                "description": "Gate widths at each frequency"
+            },
+            "frequencies": {
+                "type": "list[float]",
+                "description": "Tested frequencies (MHz)"
+            }
+        },
+        "notes": [
+            "Sweeps frequency to find optimal ZZ interaction point",
+            "Automatically calculates gate width for pi/4 ZZ rotation",
+            "Uses echo sequences to cancel single-qubit rotations",
+            "Provides 3D visualization of frequency-dependent dynamics"
+        ]
+    }
     @log_and_record
     def run(self, duts, params=None, phase_diff=0, amp_control=0.2, rise=0.0, trunc=1.0,
             t_start=0, t_stop=20, sweep_points=30,
             frequency_start: float = 4800, frequency_stop: float = 4900, frequency_step: float = 10,
             n_start=0, n_stop=32, update_iz=False, update_zz=True
             ):
+        """
+        Execute the experiment on hardware.
+
+        Parameters
+        ----------
+        duts : list[TransmonElement]
+            List of two qubits [control, target].
+        params : dict, optional
+            Initial gate parameters. Default: None
+        phase_diff : float, optional
+            Phase difference between drives. Default: 0
+        amp_control : float, optional
+            Control qubit amplitude. Default: 0.2
+        rise : float, optional
+            Pulse rise time. Default: 0.0
+        trunc : float, optional
+            Pulse truncation. Default: 1.0
+        t_start : float, optional
+            Start time for sweep. Default: 0
+        t_stop : float, optional
+            Stop time for sweep. Default: 20
+        sweep_points : int, optional
+            Number of sweep points. Default: 30
+        frequency_start : float, optional
+            Start frequency (MHz). Default: 4800
+        frequency_stop : float, optional
+            Stop frequency (MHz). Default: 4900
+        frequency_step : float, optional
+            Frequency step (MHz). Default: 10
+        n_start : int, optional
+            Start echo count. Default: 0
+        n_stop : int, optional
+            Stop echo count. Default: 32
+        update_iz : bool, optional
+            Update single-qubit Z rates. Default: False
+        update_zz : bool, optional
+            Update ZZ interaction rate. Default: True
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
+        """
         self.duts = duts
 
         assert not update_iz
@@ -275,13 +388,128 @@ class ConditionalStarkFineFrequencyTuneUp(Experiment):
 
 
 class ConditionalStarkFineAmpTuneUp(Experiment):
+    EPII_INFO = {
+        "name": "ConditionalStarkFineAmpTuneUp",
+        "description": "Fine-tunes Stark amplitude for optimal ZZ interaction",
+        "purpose": "Sweeps the Stark drive amplitude on the control qubit to find the optimal value for ZZ interaction. Maintains constant pulse area while varying amplitude to explore different coupling regimes.",
+        "attributes": {
+            "duts": {
+                "type": "list[TransmonElement]",
+                "description": "List of two qubits [control, target]"
+            },
+            "current_params": {
+                "type": "dict",
+                "description": "Current gate parameters being tested"
+            },
+            "params_list": {
+                "type": "list[dict]",
+                "description": "History of all parameter sets tested"
+            },
+            "results": {
+                "type": "list[dict]",
+                "description": "Results for each amplitude tested",
+                "keys": {
+                    "amp_control": "float - Test amplitude",
+                    "iz_rate": "unc.ufloat - IZ rate",
+                    "zz_rate": "unc.ufloat - ZZ rate",
+                    "width": "float - Calculated gate width",
+                    "result": "dict - Full analysis results",
+                    "result_target": "np.ndarray - Target qubit data",
+                    "result_control": "np.ndarray - Control qubit data"
+                }
+            },
+            "result_target": {
+                "type": "np.ndarray[complex]",
+                "description": "Target qubit tomography data from last iteration"
+            },
+            "result_control": {
+                "type": "np.ndarray[complex]",
+                "description": "Control qubit tomography data from last iteration"
+            },
+            "iz_rates": {
+                "type": "list[float]",
+                "description": "IZ rates at each amplitude"
+            },
+            "iz_uncertainties": {
+                "type": "list[float]",
+                "description": "IZ rate uncertainties"
+            },
+            "zz_rates": {
+                "type": "list[float]",
+                "description": "ZZ rates at each amplitude"
+            },
+            "zz_uncertainties": {
+                "type": "list[float]",
+                "description": "ZZ rate uncertainties"
+            },
+            "widths": {
+                "type": "list[float]",
+                "description": "Gate widths at each amplitude"
+            },
+            "amplitudes": {
+                "type": "list[float]",
+                "description": "Tested amplitudes"
+            }
+        },
+        "notes": [
+            "Sweeps control amplitude while scaling target amplitude",
+            "Maintains constant pulse area ratio between qubits",
+            "Automatically calculates optimal gate width",
+            "Provides 3D visualization of amplitude-dependent dynamics"
+        ]
+    }
     @log_and_record
     def run(self, duts, params=None, frequency=None, phase_diff=0, rise=0.0, trunc=1.0,
             t_start=0, t_stop=20, sweep_points=30, amp_control=0.2,
             amp_control_start: float = 0.1, amp_control_stop: float = 1.0, amp_control_step: float = 0.1,
             n_start=0, n_stop=32, update_iz=False, update_zz=True
             ):
-        self.duts = duts
+        """
+        Execute the experiment on hardware.
+
+        Parameters
+        ----------
+        duts : list[TransmonElement]
+            List of two qubits [control, target].
+        params : dict, optional
+            Initial gate parameters. Default: None
+        frequency : float, optional
+            Stark drive frequency (MHz). Default: None
+        phase_diff : float, optional
+            Phase difference between drives. Default: 0
+        rise : float, optional
+            Pulse rise time. Default: 0.0
+        trunc : float, optional
+            Pulse truncation. Default: 1.0
+        t_start : float, optional
+            Start time for sweep. Default: 0
+        t_stop : float, optional
+            Stop time for sweep. Default: 20
+        sweep_points : int, optional
+            Number of sweep points. Default: 30
+        amp_control : float, optional
+            Control amplitude. Default: 0.2
+        amp_control_start : float, optional
+            Start amplitude. Default: 0.1
+        amp_control_stop : float, optional
+            Stop amplitude. Default: 1.0
+        amp_control_step : float, optional
+            Amplitude step. Default: 0.1
+        n_start : int, optional
+            Start echo count. Default: 0
+        n_stop : int, optional
+            Stop echo count. Default: 32
+        update_iz : bool, optional
+            Update single-qubit Z rates. Default: False
+        update_zz : bool, optional
+            Update ZZ interaction rate. Default: True
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
+        """
+ 
 
         assert not update_iz
 
@@ -545,13 +773,126 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
 
 
 class ConditionalStarkFinePhaseTuneUp(Experiment):
+    EPII_INFO = {
+        "name": "ConditionalStarkFinePhaseTuneUp",
+        "description": "Fine-tunes relative phase between Stark drives",
+        "purpose": "Sweeps the phase difference between control and target Stark drives to optimize the ZZ interaction. This calibration is critical for controlling the sign and magnitude of the effective two-qubit coupling.",
+        "attributes": {
+            "duts": {
+                "type": "list[TransmonElement]",
+                "description": "List of two qubits [control, target]"
+            },
+            "current_params": {
+                "type": "dict",
+                "description": "Current gate parameters being tested"
+            },
+            "params_list": {
+                "type": "list[dict]",
+                "description": "History of all parameter sets tested"
+            },
+            "results": {
+                "type": "list[dict]",
+                "description": "Results for each phase tested",
+                "keys": {
+                    "phase_diff": "float - Test phase difference (radians)",
+                    "iz_rate": "unc.ufloat - IZ rate",
+                    "zz_rate": "unc.ufloat - ZZ rate",
+                    "width": "float - Calculated gate width",
+                    "result": "dict - Full analysis results",
+                    "result_target": "np.ndarray - Target qubit data",
+                    "result_control": "np.ndarray - Control qubit data"
+                }
+            },
+            "result_target": {
+                "type": "np.ndarray[complex]",
+                "description": "Target qubit tomography data from last iteration"
+            },
+            "result_control": {
+                "type": "np.ndarray[complex]",
+                "description": "Control qubit tomography data from last iteration"
+            },
+            "iz_rates": {
+                "type": "list[float]",
+                "description": "IZ rates at each phase"
+            },
+            "iz_uncertainties": {
+                "type": "list[float]",
+                "description": "IZ rate uncertainties"
+            },
+            "zz_rates": {
+                "type": "list[float]",
+                "description": "ZZ rates at each phase"
+            },
+            "zz_uncertainties": {
+                "type": "list[float]",
+                "description": "ZZ rate uncertainties"
+            },
+            "widths": {
+                "type": "list[float]",
+                "description": "Gate widths at each phase"
+            },
+            "phases": {
+                "type": "list[float]",
+                "description": "Tested phase differences (radians)"
+            }
+        },
+        "notes": [
+            "Phase difference controls interaction sign and strength",
+            "Critical for implementing controlled-phase gates",
+            "Can switch between positive and negative ZZ coupling",
+            "Provides visualization of phase-dependent interaction"
+        ]
+    }
     @log_and_record
     def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0, rise=0.0, trunc=1.0,
             t_start=0, t_stop=20, sweep_points=30,
             phase_diff_start: float = 0, phase_diff_stop: float = 2 * np.pi, phase_diff_step: float = np.pi / 10,
             n_start=0, n_stop=32, update_iz=False, update_zz=True
             ):
-        self.duts = duts
+        """
+        Execute the experiment on hardware.
+
+        Parameters
+        ----------
+        duts : list[TransmonElement]
+            List of two qubits [control, target].
+        params : dict, optional
+            Initial gate parameters. Default: None
+        frequency : float, optional
+            Stark drive frequency (MHz). Default: None
+        amp_control : float, optional
+            Control qubit amplitude. Default: 0.2
+        rise : float, optional
+            Pulse rise time. Default: 0.0
+        trunc : float, optional
+            Pulse truncation. Default: 1.0
+        t_start : float, optional
+            Start time for sweep. Default: 0
+        t_stop : float, optional
+            Stop time for sweep. Default: 20
+        sweep_points : int, optional
+            Number of sweep points. Default: 30
+        phase_diff_start : float, optional
+            Start phase difference. Default: -np.pi
+        phase_diff_stop : float, optional
+            Stop phase difference. Default: np.pi
+        phase_diff_step : float, optional
+            Phase difference step. Default: np.pi/10
+        n_start : int, optional
+            Start echo count. Default: 0
+        n_stop : int, optional
+            Stop echo count. Default: 32
+        update_iz : bool, optional
+            Update single-qubit Z rates. Default: False
+        update_zz : bool, optional
+            Update ZZ interaction rate. Default: True
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
+        """
+ 
 
         assert not update_iz
 
@@ -814,12 +1155,125 @@ class ConditionalStarkFinePhaseTuneUp(Experiment):
 
 
 class ConditionalStarkFineRiseTuneUp(Experiment):
+    EPII_INFO = {
+        "name": "ConditionalStarkFineRiseTuneUp",
+        "description": "Fine-tunes pulse rise time for optimal gate performance",
+        "purpose": "Sweeps the rise time of Stark pulses to balance between adiabaticity and gate speed. Shorter rise times enable faster gates but may cause leakage, while longer rise times improve adiabaticity but increase decoherence.",
+        "attributes": {
+            "duts": {
+                "type": "list[TransmonElement]",
+                "description": "List of two qubits [control, target]"
+            },
+            "current_params": {
+                "type": "dict",
+                "description": "Current gate parameters being tested"
+            },
+            "params_list": {
+                "type": "list[dict]",
+                "description": "History of all parameter sets tested"
+            },
+            "results": {
+                "type": "list[dict]",
+                "description": "Results for each rise time tested",
+                "keys": {
+                    "rise": "float - Test rise time (us)",
+                    "iz_rate": "unc.ufloat - IZ rate",
+                    "zz_rate": "unc.ufloat - ZZ rate",
+                    "width": "float - Calculated gate width",
+                    "result": "dict - Full analysis results",
+                    "result_target": "np.ndarray - Target qubit data",
+                    "result_control": "np.ndarray - Control qubit data"
+                }
+            },
+            "result_target": {
+                "type": "np.ndarray[complex]",
+                "description": "Target qubit tomography data from last iteration"
+            },
+            "result_control": {
+                "type": "np.ndarray[complex]",
+                "description": "Control qubit tomography data from last iteration"
+            },
+            "iz_rates": {
+                "type": "list[float]",
+                "description": "IZ rates at each rise time"
+            },
+            "iz_uncertainties": {
+                "type": "list[float]",
+                "description": "IZ rate uncertainties"
+            },
+            "zz_rates": {
+                "type": "list[float]",
+                "description": "ZZ rates at each rise time"
+            },
+            "zz_uncertainties": {
+                "type": "list[float]",
+                "description": "ZZ rate uncertainties"
+            },
+            "widths": {
+                "type": "list[float]",
+                "description": "Gate widths at each rise time"
+            },
+            "rise_times": {
+                "type": "list[float]",
+                "description": "Tested rise times (us)"
+            }
+        },
+        "notes": [
+            "Rise time affects adiabaticity and leakage",
+            "Shorter rise times enable faster gates",
+            "Longer rise times reduce non-adiabatic transitions",
+            "Trade-off between speed and fidelity"
+        ]
+    }
     @log_and_record
     def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0, trunc=1.0,
             rise_start=0.01, rise_stop=0.1, rise_step=0.01,
             t_start=0, t_stop=20, sweep_points=30,
             n_start=0, n_stop=32, update_iz=False, update_zz=True):
-        self.duts = duts
+        """
+        Execute the experiment on hardware.
+
+        Parameters
+        ----------
+        duts : list[TransmonElement]
+            List of two qubits [control, target].
+        params : dict, optional
+            Initial gate parameters. Default: None
+        frequency : float, optional
+            Stark drive frequency (MHz). Default: None
+        amp_control : float, optional
+            Control qubit amplitude. Default: 0.2
+        phase_diff : float, optional
+            Phase difference between drives. Default: 0
+        trunc : float, optional
+            Pulse truncation. Default: 1.0
+        t_start : float, optional
+            Start time for sweep. Default: 0
+        t_stop : float, optional
+            Stop time for sweep. Default: 20
+        sweep_points : int, optional
+            Number of sweep points. Default: 30
+        rise_start : float, optional
+            Start rise time. Default: 0.0
+        rise_stop : float, optional
+            Stop rise time. Default: 0.05
+        rise_step : float, optional
+            Rise time step. Default: 0.005
+        n_start : int, optional
+            Start echo count. Default: 0
+        n_stop : int, optional
+            Stop echo count. Default: 32
+        update_iz : bool, optional
+            Update single-qubit Z rates. Default: False
+        update_zz : bool, optional
+            Update ZZ interaction rate. Default: True
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
+        """
+ 
 
         assert not update_iz
 
@@ -1078,12 +1532,125 @@ class ConditionalStarkFineRiseTuneUp(Experiment):
 
 
 class ConditionalStarkFineTruncTuneUp(Experiment):
+    EPII_INFO = {
+        "name": "ConditionalStarkFineTruncTuneUp",
+        "description": "Fine-tunes pulse truncation for optimal gate fidelity",
+        "purpose": "Sweeps the truncation parameter of Stark pulses to optimize pulse shape. Truncation controls how abruptly the pulse envelope is cut off, affecting both spectral content and gate fidelity.",
+        "attributes": {
+            "duts": {
+                "type": "list[TransmonElement]",
+                "description": "List of two qubits [control, target]"
+            },
+            "current_params": {
+                "type": "dict",
+                "description": "Current gate parameters being tested"
+            },
+            "params_list": {
+                "type": "list[dict]",
+                "description": "History of all parameter sets tested"
+            },
+            "results": {
+                "type": "list[dict]",
+                "description": "Results for each truncation tested",
+                "keys": {
+                    "trunc": "float - Test truncation parameter",
+                    "iz_rate": "unc.ufloat - IZ rate",
+                    "zz_rate": "unc.ufloat - ZZ rate",
+                    "width": "float - Calculated gate width",
+                    "result": "dict - Full analysis results",
+                    "result_target": "np.ndarray - Target qubit data",
+                    "result_control": "np.ndarray - Control qubit data"
+                }
+            },
+            "result_target": {
+                "type": "np.ndarray[complex]",
+                "description": "Target qubit tomography data from last iteration"
+            },
+            "result_control": {
+                "type": "np.ndarray[complex]",
+                "description": "Control qubit tomography data from last iteration"
+            },
+            "iz_rates": {
+                "type": "list[float]",
+                "description": "IZ rates at each truncation"
+            },
+            "iz_uncertainties": {
+                "type": "list[float]",
+                "description": "IZ rate uncertainties"
+            },
+            "zz_rates": {
+                "type": "list[float]",
+                "description": "ZZ rates at each truncation"
+            },
+            "zz_uncertainties": {
+                "type": "list[float]",
+                "description": "ZZ rate uncertainties"
+            },
+            "widths": {
+                "type": "list[float]",
+                "description": "Gate widths at each truncation"
+            },
+            "truncations": {
+                "type": "list[float]",
+                "description": "Tested truncation values"
+            }
+        },
+        "notes": [
+            "Truncation affects pulse spectral content",
+            "Higher truncation gives smoother pulses",
+            "Lower truncation may cause spectral leakage",
+            "Balances pulse duration vs spectral purity"
+        ]
+    }
     @log_and_record
     def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0,
             trunc_start=0.5, trunc_stop=2.0, trunc_step=0.1,
             rise=0.01, t_start=0, t_stop=20, sweep_points=30,
             n_start=0, n_stop=32, update_iz=False, update_zz=True):
-        self.duts = duts
+        """
+        Execute the experiment on hardware.
+
+        Parameters
+        ----------
+        duts : list[TransmonElement]
+            List of two qubits [control, target].
+        params : dict, optional
+            Initial gate parameters. Default: None
+        frequency : float, optional
+            Stark drive frequency (MHz). Default: None
+        amp_control : float, optional
+            Control qubit amplitude. Default: 0.2
+        phase_diff : float, optional
+            Phase difference between drives. Default: 0
+        rise : float, optional
+            Pulse rise time. Default: 0.0
+        t_start : float, optional
+            Start time for sweep. Default: 0
+        t_stop : float, optional
+            Stop time for sweep. Default: 20
+        sweep_points : int, optional
+            Number of sweep points. Default: 30
+        trunc_start : float, optional
+            Start truncation. Default: 0.8
+        trunc_stop : float, optional
+            Stop truncation. Default: 1.2
+        trunc_step : float, optional
+            Truncation step. Default: 0.05
+        n_start : int, optional
+            Start echo count. Default: 0
+        n_stop : int, optional
+            Stop echo count. Default: 32
+        update_iz : bool, optional
+            Update single-qubit Z rates. Default: False
+        update_zz : bool, optional
+            Update ZZ interaction rate. Default: True
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
+        """
+ 
 
         assert not update_iz
 

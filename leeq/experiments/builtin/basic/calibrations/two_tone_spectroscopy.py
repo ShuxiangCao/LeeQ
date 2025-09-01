@@ -21,6 +21,72 @@ def _simulate_two_tone_point_global(drives, readout_params, readout_channel, sim
 
 
 class TwoToneQubitSpectroscopy(Experiment):
+    EPII_INFO = {
+        "name": "TwoToneQubitSpectroscopy",
+        "description": "Two-tone spectroscopy with dual frequency sweeps",
+        "purpose": "Applies two frequency-swept tones simultaneously to probe multi-photon transitions, sideband effects, qubit-resonator coupling, and AC Stark shifts. Useful for characterizing higher-level transitions and understanding qubit interactions.",
+        "attributes": {
+            "dut_qubit": {
+                "type": "Any",
+                "description": "The qubit element being measured"
+            },
+            "trace": {
+                "type": "np.ndarray[complex]",
+                "description": "2D array of complex IQ data",
+                "shape": "(n_freq1_points, n_freq2_points)"
+            },
+            "result": {
+                "type": "dict",
+                "description": "Processed results containing magnitude and phase",
+                "keys": {
+                    "Magnitude": "np.ndarray[float] - 2D magnitude of response",
+                    "Phase": "np.ndarray[float] - 2D phase of response"
+                }
+            },
+            "freq1_arr": {
+                "type": "np.ndarray[float]",
+                "description": "Frequency array for tone 1 (MHz)",
+                "shape": "(n_freq1_points,)"
+            },
+            "freq2_arr": {
+                "type": "np.ndarray[float]",
+                "description": "Frequency array for tone 2 (MHz)",
+                "shape": "(n_freq2_points,)"
+            },
+            "tone1_amp": {
+                "type": "float",
+                "description": "Amplitude for tone 1"
+            },
+            "tone2_amp": {
+                "type": "float",
+                "description": "Amplitude for tone 2"
+            },
+            "same_channel": {
+                "type": "bool",
+                "description": "Whether both tones are on the same channel"
+            },
+            "num_avs": {
+                "type": "int",
+                "description": "Number of averages used"
+            },
+            "drive1": {
+                "type": "Pulse",
+                "description": "Drive pulse object for tone 1 (hardware mode only)"
+            },
+            "drive2": {
+                "type": "Pulse",
+                "description": "Drive pulse object for tone 2 (hardware mode only)"
+            }
+        },
+        "notes": [
+            "Supports both same-channel and cross-channel configurations",
+            "same_channel=True: tones combine on single channel",
+            "same_channel=False: tone2 goes to different transition (f01/f12)",
+            "disable_noise=True provides clean 2D maps in simulation",
+            "Parallel processing available for faster 2D simulation"
+        ]
+    }
+    
     """
     Two-tone spectroscopy with dual frequency sweeps and optional noise-free simulation.
     
@@ -99,44 +165,49 @@ class TwoToneQubitSpectroscopy(Experiment):
         num_workers: Optional[int] = None,
     ):
         """
-        Run two-tone spectroscopy experiment on hardware.
+        Execute the experiment on hardware.
         
         Parameters
         ----------
         dut_qubit : Any
-            The qubit element to perform spectroscopy on.
-        tone1_start : float
-            Start frequency for tone 1 in MHz.
-        tone1_stop : float
-            Stop frequency for tone 1 in MHz.
-        tone1_step : float
-            Step size for tone 1 frequency sweep in MHz.
-        tone1_amp : float
-            Amplitude for tone 1.
-        tone2_start : float
-            Start frequency for tone 2 in MHz.
-        tone2_stop : float
-            Stop frequency for tone 2 in MHz.
-        tone2_step : float
-            Step size for tone 2 frequency sweep in MHz.
-        tone2_amp : float
-            Amplitude for tone 2.
-        same_channel : bool
-            If True, both tones on same channel. If False, tone 2 on f12 channel.
-        num_avs : int
-            Number of averages.
-        rep_rate : float
-            Repetition rate in Hz.
-        mp_width : float
-            Measurement pulse width in microseconds.
-        set_qubit : str
-            Qubit transition to probe ('f01' or 'f12').
-        disable_noise : bool
-            If True, disable noise in simulation mode. Ignored in hardware mode.
-        use_parallel : bool
-            If True, use CPU parallelization for faster processing. Ignored in hardware mode.
-        num_workers : Optional[int]
-            Number of worker processes. If None, uses all CPU cores. Ignored in hardware mode.
+            The device under test (qubit object).
+        tone1_start : float, optional
+            Start frequency for tone 1 (MHz). Default: 4950.0
+        tone1_stop : float, optional
+            Stop frequency for tone 1 (MHz). Default: 5050.0
+        tone1_step : float, optional
+            Frequency increment for tone 1 (MHz). Default: 10.0
+        tone1_amp : float, optional
+            Amplitude for tone 1. Default: 0.1
+        tone2_start : float, optional
+            Start frequency for tone 2 (MHz). Default: 4750.0
+        tone2_stop : float, optional
+            Stop frequency for tone 2 (MHz). Default: 4850.0
+        tone2_step : float, optional
+            Frequency increment for tone 2 (MHz). Default: 10.0
+        tone2_amp : float, optional
+            Amplitude for tone 2. Default: 0.1
+        same_channel : bool, optional
+            If True, both tones on same channel. If False, tone 2 on different transition. Default: False
+        num_avs : int, optional
+            Number of averages. Default: 1000
+        rep_rate : float, optional
+            Repetition rate (Hz). Default: 0.0
+        mp_width : float, optional
+            Measurement pulse width (microseconds). Default: 1.0
+        set_qubit : str, optional
+            Qubit transition to probe ('f01' or 'f12'). Default: 'f01'
+        disable_noise : bool, optional
+            If True, disable noise in simulation mode. Ignored in hardware mode. Default: False
+        use_parallel : bool, optional
+            If True, use CPU parallelization. Ignored in hardware mode. Default: True
+        num_workers : Optional[int], optional
+            Number of worker processes. If None, uses all CPU cores. Ignored in hardware mode. Default: None
+        
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
         """
         self.dut_qubit = dut_qubit
         self.tone1_amp = tone1_amp
@@ -188,50 +259,46 @@ class TwoToneQubitSpectroscopy(Experiment):
         num_workers: Optional[int] = None,
     ):
         """
-        Run two-tone spectroscopy experiment in simulation mode with optional noise-free data and CPU parallelization.
-        
-        Uses CWSpectroscopySimulator for efficient multi-tone simulation. Supports both
-        same-channel (combined amplitude) and cross-channel configurations.
+        Execute the experiment in simulation mode.
         
         Parameters
         ----------
         dut_qubit : Any
-            The qubit element to perform spectroscopy on.
-        tone1_start : float
-            Start frequency for tone 1 in MHz.
-        tone1_stop : float
-            Stop frequency for tone 1 in MHz.
-        tone1_step : float
-            Step size for tone 1 frequency sweep in MHz.
-        tone1_amp : float
-            Amplitude for tone 1.
-        tone2_start : float
-            Start frequency for tone 2 in MHz.
-        tone2_stop : float
-            Stop frequency for tone 2 in MHz.
-        tone2_step : float
-            Step size for tone 2 frequency sweep in MHz.
-        tone2_amp : float
-            Amplitude for tone 2.
-        same_channel : bool
-            If True, both tones on same channel. If False, tone 2 on f12 channel.
-        num_avs : int
-            Number of averages.
-        rep_rate : float
-            Repetition rate in Hz.
-        mp_width : float
-            Measurement pulse width in microseconds.
-        set_qubit : str
-            Qubit transition to probe ('f01' or 'f12').
+            The device under test (qubit object).
+        tone1_start : float, optional
+            Start frequency for tone 1 (MHz). Default: 4950.0
+        tone1_stop : float, optional
+            Stop frequency for tone 1 (MHz). Default: 5050.0
+        tone1_step : float, optional
+            Frequency increment for tone 1 (MHz). Default: 10.0
+        tone1_amp : float, optional
+            Amplitude for tone 1. Default: 0.1
+        tone2_start : float, optional
+            Start frequency for tone 2 (MHz). Default: 4750.0
+        tone2_stop : float, optional
+            Stop frequency for tone 2 (MHz). Default: 4850.0
+        tone2_step : float, optional
+            Frequency increment for tone 2 (MHz). Default: 10.0
+        tone2_amp : float, optional
+            Amplitude for tone 2. Default: 0.1
+        same_channel : bool, optional
+            If True, both tones on same channel. If False, tone 2 on different transition. Default: False
+        num_avs : int, optional
+            Number of averages. Default: 1000
+        rep_rate : float, optional
+            Repetition rate (Hz). Default: 0.0
+        mp_width : float, optional
+            Measurement pulse width (microseconds). Default: 1.0
+        set_qubit : str, optional
+            Qubit transition to probe ('f01' or 'f12'). Default: 'f01'
         disable_noise : bool, optional
             If True, skip Gaussian noise addition for clean simulation data.
-            Useful for physics validation and benchmarking. Default is False.
+            Useful for physics validation and benchmarking. Default: False
         use_parallel : bool, optional
-            If True, use CPU parallelization for faster 2D processing.
-            Default is True for automatic speedup.
+            If True, use CPU parallelization for faster 2D processing. Default: True
         num_workers : Optional[int], optional
             Number of worker processes for parallelization. If None, uses all CPU cores.
-            Only effective when use_parallel=True.
+            Only effective when use_parallel=True. Default: None
             
         Notes
         -----

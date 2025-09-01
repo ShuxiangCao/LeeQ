@@ -338,6 +338,48 @@ def calculate_signal_to_noise_ratio(
 
 
 class MeasurementCalibrationMultilevelGMM(Experiment):
+    EPII_INFO = {
+        "name": "MeasurementCalibrationMultilevelGMM",
+        "description": "Measurement calibration using Gaussian Mixture Model for multi-level systems",
+        "purpose": "Calibrates measurement discrimination using Gaussian Mixture Model (GMM) clustering to identify state distributions in IQ space. Supports multi-level (qudit) systems and calculates signal-to-noise ratios.",
+        "attributes": {
+            "result": {
+                "type": "np.ndarray[complex]",
+                "description": "Raw IQ measurement data for each prepared state",
+                "shape": "(n_shots, n_states)"
+            },
+            "gmm_manager": {
+                "type": "GMMManager",
+                "description": "Gaussian Mixture Model manager for clustering"
+            },
+            "snr": {
+                "type": "dict",
+                "description": "Signal-to-noise ratios between state pairs",
+                "keys": {
+                    "(i, j)": "float - SNR between states i and j"
+                }
+            },
+            "gmm_fit": {
+                "type": "sklearn.mixture.GaussianMixture",
+                "description": "Fitted Gaussian Mixture Model"
+            },
+            "threshold": {
+                "type": "float or np.ndarray",
+                "description": "Discrimination threshold(s) between states"
+            },
+            "fidelity": {
+                "type": "float",
+                "description": "Overall measurement fidelity"
+            }
+        },
+        "notes": [
+            "Supports 2-level (qubit) to 4-level systems",
+            "GMM automatically finds state clusters in IQ space",
+            "SNR > 2 indicates successful discrimination",
+            "Can update measurement primitive with optimal settings"
+        ]
+    }
+    
     _experiment_result_analysis_instructions = """
     Analyze the result data using a Gaussian Mixture Model (GMM) and update the measurement primitive.
     The experiment is considered successful if the SNR ratio is above 2.
