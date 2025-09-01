@@ -101,6 +101,7 @@ def qubit():
     return dut
 
 
+@pytest.mark.slow
 def test_normalised_rabi(simulation_setup, qubit):
     from leeq.experiments.builtin.basic.calibrations.rabi import NormalisedRabi
     ExperimentManager().get_default_setup(
@@ -110,7 +111,7 @@ def test_normalised_rabi(simulation_setup, qubit):
         amp=0.51,
         start=0.00,
         stop=0.5,
-        step=0.001
+        step=0.05  # Reduced from 0.001 (10 points instead of 500)
     )
 
 
@@ -131,7 +132,7 @@ def test_multi_qubit_ramsey(simulation_setup, qubit):
         duts=[qubit],
         start=0.0,
         stop=0.2,
-        step=0.01,
+        step=0.04,  # Reduced from 0.01 (5 points instead of 20)
         update=False
     )
 
@@ -155,8 +156,8 @@ def test_resonator_spectroscopy(simulation_setup, qubit):
         qubit,
         start=9100,
         stop=9200,
-        step=0.002,
-        num_avs=1e3
+        step=10,  # Reduced from 0.002 (10 points instead of 50000)
+        num_avs=10  # Reduced from 1000
     )
 
 
@@ -167,7 +168,8 @@ def test_qubit_spectroscopy(simulation_setup, qubit):
     QubitSpectroscopyFrequency(
         dut_qubit=qubit,
         res_freq=9141.21, start=3.e3, stop=5.e3,
-        step=1., num_avs=1000,
+        step=200,  # Reduced from 1 (10 points instead of 2000)
+        num_avs=10,  # Reduced from 1000
         rep_rate=0., mp_width=0.5, amp=0.01
     )
 

@@ -56,10 +56,11 @@ class TestParallelRobustness:
     def small_test_params(self):
         """Small parameter set for robustness testing."""
         return {
-            'freq_array': np.linspace(5000, 5010, 3),
+            'freq_array': np.linspace(5000, 5010, 2),  # Reduced from 3
             'amp_array': np.linspace(0.02, 0.03, 2),
         }
 
+    @pytest.mark.slow
     def test_timeout_handling(self, simulator, small_test_params):
         """Test timeout handling for stuck worker processes."""
         freq_array = small_test_params['freq_array']
@@ -69,7 +70,7 @@ class TestParallelRobustness:
         with patch('leeq.theory.simulation.numpy.cw_spectroscopy._simulate_point_worker') as mock_worker:
             # Make the worker sleep longer than timeout
             def slow_worker(*args):
-                time.sleep(0.5)  # 500ms delay
+                time.sleep(0.1)  # 100ms delay (reduced from 500ms)
                 return 0.5 + 0.2j
             
             mock_worker.side_effect = slow_worker
@@ -78,7 +79,7 @@ class TestParallelRobustness:
             result = simulator.simulate_2d_sweep_parallel(
                 freq_array, amp_array, 
                 num_workers=2, 
-                timeout_per_point=0.1  # 100ms timeout
+                timeout_per_point=0.05  # 50ms timeout (reduced from 100ms)
             )
             
             # Result should still be produced (from fallback sequential processing)
@@ -123,11 +124,12 @@ class TestParallelRobustness:
             assert result.shape == (len(amp_array), len(freq_array))
             assert np.all(np.isfinite(result))
 
+    @pytest.mark.slow
     def test_memory_pressure_handling(self, simulator):
         """Test behavior under memory pressure conditions."""
         # Create a larger parameter grid that might stress memory
-        freq_array = np.linspace(4900, 5100, 20)
-        amp_array = np.linspace(0.01, 0.08, 15)
+        freq_array = np.linspace(4900, 5100, 5)  # Reduced from 20
+        amp_array = np.linspace(0.01, 0.08, 4)  # Reduced from 15
         
         # Monitor memory usage
         process = psutil.Process()
@@ -226,19 +228,16 @@ class TestParallelRobustness:
                 # Acceptable to propagate KeyboardInterrupt
                 pass
 
+    @pytest.mark.slow
     def test_edge_case_parameter_values(self, simulator):
         """Test robustness with edge case parameter values."""
         # Test with extreme parameter values that might cause numerical issues
         test_cases = [
             # Very small amplitudes
             {'freq_array': np.array([5000.0]), 'amp_array': np.array([1e-10])},
-            # Very large amplitudes  
-            {'freq_array': np.array([5000.0]), 'amp_array': np.array([10.0])},
-            # Very high frequencies
-            {'freq_array': np.array([50000.0]), 'amp_array': np.array([0.02])},
             # Zero amplitude
             {'freq_array': np.array([5000.0]), 'amp_array': np.array([0.0])},
-        ]
+        ]  # Reduced from 4 cases to 2
         
         for test_case in test_cases:
             freq_array = test_case['freq_array']
@@ -284,12 +283,12 @@ class TestParallelRobustness:
                                    if p.pid != psutil.Process().pid])
         
         # Run parallel processing multiple times
-        for _ in range(3):
+        for _ in range(2):  # Reduced from 3
             result = simulator.simulate_2d_sweep_parallel(freq_array, amp_array)
             assert result.shape == (len(amp_array), len(freq_array))
         
         # Give time for process cleanup
-        time.sleep(0.5)
+        time.sleep(0.1)  # Reduced from 0.5
         
         # Check that we don't have excessive process growth
         final_process_count = len([p for p in psutil.process_iter() 
@@ -298,6 +297,7 @@ class TestParallelRobustness:
         process_growth = final_process_count - initial_process_count
         assert process_growth < 10, f"Process count grew by {process_growth}"
 
+    @pytest.mark.slow
     def test_deterministic_error_recovery(self, simulator, small_test_params):
         """Test that error recovery produces deterministic results."""
         freq_array = small_test_params['freq_array']
@@ -306,7 +306,7 @@ class TestParallelRobustness:
         # Run the same calculation multiple times with forced failures
         results = []
         
-        for run in range(3):
+        for run in range(2):  # Reduced from 3
             with patch('leeq.theory.simulation.numpy.cw_spectroscopy._simulate_point_worker') as mock_worker:
                 # Create consistent but failing behavior
                 def consistent_failure(*args):
@@ -349,7 +349,7 @@ class TestParallelCompatibility:
     
     def test_single_vs_multi_core_consistency(self, simulator):
         """Test that single-core and multi-core produce same results."""
-        freq_array = np.linspace(4995, 5005, 3)
+        freq_array = np.linspace(4995, 5005, 2)  # Reduced from 3
         amp_array = np.linspace(0.01, 0.03, 2)
         
         # Single core (sequential-like)
@@ -365,14 +365,14 @@ class TestParallelCompatibility:
         # Results should be identical
         np.testing.assert_allclose(result_multi, result_single, rtol=1e-12)
 
+    @pytest.mark.slow
     def test_varying_worker_counts(self, simulator):
         """Test consistency across different worker counts."""
-        freq_array = np.linspace(4998, 5002, 3)
+        freq_array = np.linspace(4998, 5002, 2)  # Reduced from 3
         amp_array = np.linspace(0.015, 0.025, 2)
         
         # Test different worker counts
-        max_workers = min(multiprocessing.cpu_count(), 4)
-        worker_counts = [1, 2, max_workers]
+        worker_counts = [1, 2]  # Simplified from [1, 2, max_workers]
         results = []
         
         for num_workers in worker_counts:

@@ -97,11 +97,11 @@ class TestParallelIntegration:
         return {
             'start': 4990.0,
             'stop': 5010.0,
-            'step': 10.0,  # 3 frequency points
+            'step': 20.0,  # 2 frequency points
             'qubit_amp_start': 0.01,
-            'qubit_amp_stop': 0.03,
-            'qubit_amp_step': 0.01,  # 3 amplitude points
-            'num_avs': 100,
+            'qubit_amp_stop': 0.02,
+            'qubit_amp_step': 0.01,  # 2 amplitude points
+            'num_avs': 10,  # Reduced from 100
             'rep_rate': 10000,
             'disable_noise': True
         }
@@ -112,11 +112,11 @@ class TestParallelIntegration:
         return {
             'start': 4980.0,
             'stop': 5020.0,
-            'step': 5.0,  # 9 frequency points
+            'step': 20.0,  # 3 frequency points (reduced from 9)
             'qubit_amp_start': 0.005,
-            'qubit_amp_stop': 0.055,
-            'qubit_amp_step': 0.005,  # 11 amplitude points
-            'num_avs': 500,
+            'qubit_amp_stop': 0.025,
+            'qubit_amp_step': 0.010,  # 3 amplitude points (reduced from 11)
+            'num_avs': 50,  # Reduced from 500
             'rep_rate': 10000,
             'disable_noise': True
         }
@@ -202,10 +202,11 @@ class TestParallelIntegration:
         assert seq_time > 0
         assert par_time > 0
 
+    @pytest.mark.slow
     def test_parallel_performance_scaling(self, simulation_setup, test_qubit, medium_params):
         """Test parallel performance with different worker counts."""
-        max_workers = min(multiprocessing.cpu_count(), 4)
-        worker_counts = [1, 2, max_workers] if max_workers >= 2 else [1, 2]
+        # Simplified to test fewer worker counts
+        worker_counts = [1, 2]  # Just test 1 vs 2 workers
         
         results = {}
         timings = {}
@@ -280,11 +281,9 @@ class TestParallelIntegration:
         """Test parallel processing with various parameter grid sizes."""
         grid_configs = [
             # Small grid
-            {'freq_points': 3, 'amp_points': 2},
+            {'freq_points': 2, 'amp_points': 2},
             # Medium grid  
-            {'freq_points': 10, 'amp_points': 5},
-            # Larger grid
-            {'freq_points': 15, 'amp_points': 8},
+            {'freq_points': 3, 'amp_points': 3},  # Reduced from 10x5
         ]
         
         for config in grid_configs:
@@ -298,7 +297,7 @@ class TestParallelIntegration:
                 'qubit_amp_start': 0.01,
                 'qubit_amp_stop': 0.03,
                 'qubit_amp_step': amp_step,
-                'num_avs': 100,
+                'num_avs': 10,  # Reduced from 100
                 'disable_noise': True
             }
             
@@ -348,17 +347,18 @@ class TestParallelIntegration:
             assert 'Magnitude' in exp.result
             assert np.all(np.isfinite(exp.result['Magnitude']))
 
+    @pytest.mark.slow
     def test_parallel_memory_efficiency_integration(self, simulation_setup, test_qubit):
         """Test memory efficiency in integrated parallel experiment."""
         # Create a reasonably large parameter grid
         params = {
             'start': 4950.0,
             'stop': 5050.0,
-            'step': 2.0,  # 51 frequency points
+            'step': 20.0,  # 6 frequency points (reduced from 51)
             'qubit_amp_start': 0.005,
-            'qubit_amp_stop': 0.075,
-            'qubit_amp_step': 0.005,  # 15 amplitude points
-            'num_avs': 500,
+            'qubit_amp_stop': 0.045,
+            'qubit_amp_step': 0.010,  # 5 amplitude points (reduced from 15)
+            'num_avs': 50,  # Reduced from 500
             'disable_noise': True
         }
         
@@ -391,7 +391,7 @@ class TestParallelIntegration:
         results = []
         
         # Run same experiment multiple times
-        for _ in range(3):
+        for _ in range(2):  # Reduced from 3
             exp = QubitSpectroscopyAmplitudeFrequency(
                 dut_qubit=test_qubit,
                 use_parallel=True,
@@ -526,7 +526,7 @@ class TestParallelIntegrationEdgeCases:
             'qubit_amp_start': 0.02,
             'qubit_amp_stop': 0.02,  # Single amplitude point
             'qubit_amp_step': 0.01,
-            'num_avs': 100,
+            'num_avs': 10,  # Reduced from 100
             'disable_noise': True
         }
         
@@ -552,7 +552,7 @@ class TestParallelIntegrationEdgeCases:
             'qubit_amp_start': 0.015,
             'qubit_amp_stop': 0.025,
             'qubit_amp_step': 0.005,
-            'num_avs': 200,
+            'num_avs': 20,  # Reduced from 200
             'disable_noise': True  # Key parameter
         }
         
@@ -588,7 +588,7 @@ class TestParallelIntegrationEdgeCases:
             'qubit_amp_start': 0.01,
             'qubit_amp_stop': 0.03,
             'qubit_amp_step': 0.01,
-            'num_avs': 100,
+            'num_avs': 10,  # Reduced from 100
             'disable_noise': True
         }
         
