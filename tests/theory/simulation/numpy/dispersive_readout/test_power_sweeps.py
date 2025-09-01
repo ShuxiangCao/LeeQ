@@ -951,4 +951,4 @@ class TestPowerSweepIntegration:
 
 # Script-style execution converted to proper pytest discovery
 # Tests will be run by pytest discovery, no manual execution needed
-    pytest.main([__file__, "-v", "--tb=short"])
+    pass  # Tests are run by pytest discovery, no manual execution needed
