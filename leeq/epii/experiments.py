@@ -5,24 +5,11 @@ This module maps EPII experiment names to LeeQ experiment classes
 and handles experiment discovery and execution routing.
 """
 
+import importlib
 import inspect
 import logging
+import pkgutil
 from typing import Any, Dict, List, Optional, Type
-
-from leeq.experiments.builtin.basic.calibrations.drag import (
-    DragCalibrationSingleQubitMultilevel,
-    DragPhaseCalibrationMultiQubitsMultilevel,
-)
-
-# Import LeeQ experiment classes
-from leeq.experiments.builtin.basic.calibrations.rabi import MultiQubitRabi, NormalisedRabi
-from leeq.experiments.builtin.basic.calibrations.ramsey import SimpleRamseyMultilevel
-from leeq.experiments.builtin.basic.characterizations.randomized_benchmarking import (
-    RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem,
-    SingleQubitRandomizedBenchmarking,
-)
-from leeq.experiments.builtin.basic.characterizations.t1 import MultiQubitT1, SimpleT1
-from leeq.experiments.builtin.basic.characterizations.t2 import SpinEchoMultiLevel
 
 logger = logging.getLogger(__name__)
 
@@ -36,54 +23,103 @@ class ExperimentRouter:
     """
 
     def __init__(self):
-        """Initialize the experiment router with default mappings."""
+        """Initialize the experiment router with dynamic discovery."""
         self.experiment_map: Dict[str, Type] = {}
-        self.parameter_map: Dict[str, Dict[str, str]] = {}
-        self._initialize_experiment_map()
-        self._initialize_parameter_map()
+        self._discover_experiments()  # Changed from _initialize_experiment_map
+        self._initialize_parameter_map()  # Restored for backward compatibility
 
-    def _initialize_experiment_map(self):
+    def _discover_experiments(self):
         """
-        Initialize the mapping of EPII names to LeeQ experiments.
-
-        Maps EPII standard experiment names to corresponding LeeQ classes.
+        Dynamically discover all experiments with EPII_INFO.
+        Replaces the static _initialize_experiment_map method.
         """
-        self.experiment_map = {
-            # Basic calibration experiments
-            "rabi": NormalisedRabi,
-            "multi_qubit_rabi": MultiQubitRabi,
-
-            # T1 relaxation experiments
-            "t1": SimpleT1,
-            "multi_qubit_t1": MultiQubitT1,
-
-            # Ramsey experiments (T2*)
-            "ramsey": SimpleRamseyMultilevel,
-
-            # Echo experiments (T2 echo)
-            "echo": SpinEchoMultiLevel,
-            "spin_echo": SpinEchoMultiLevel,
-
-            # DRAG calibration
-            "drag": DragCalibrationSingleQubitMultilevel,
-            "drag_phase": DragPhaseCalibrationMultiQubitsMultilevel,
-
-            # Randomized benchmarking
-            "randomized_benchmarking": RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem,
-            "single_qubit_rb": SingleQubitRandomizedBenchmarking,
+        from leeq.experiments import builtin
+        
+        # Walk through all modules in builtin
+        for importer, modname, ispkg in pkgutil.walk_packages(
+            builtin.__path__,
+            prefix="leeq.experiments.builtin."
+        ):
+            try:
+                module = importlib.import_module(modname)
+                
+                # Check each class in the module
+                for name, obj in inspect.getmembers(module, inspect.isclass):
+                    # Only process classes actually defined in this module (not imported)
+                    if obj.__module__ != modname:
+                        continue
+                    
+                    # Include if has EPII_INFO and run method (not a base class)
+                    if hasattr(obj, 'EPII_INFO') and hasattr(obj, 'run'):
+                        # Build experiment name with module prefix for duplicates
+                        # Extract the last parts of module path for context
+                        module_parts = modname.split('.')
+                        if 'characterizations' in module_parts:
+                            exp_name = f"characterizations.{name}"
+                        elif 'calibrations' in module_parts:
+                            exp_name = f"calibrations.{name}"
+                        elif 'multi_qubit_gates' in module_parts:
+                            exp_name = f"multi_qubit_gates.{name}"
+                        elif 'tomography' in module_parts:
+                            exp_name = f"tomography.{name}"
+                        elif 'hamiltonian_tomography' in module_parts:
+                            exp_name = f"hamiltonian_tomography.{name}"
+                        elif 'optimal_control' in module_parts:
+                            exp_name = f"optimal_control.{name}"
+                        else:
+                            exp_name = name
+                        
+                        # Check for duplicates
+                        if exp_name in self.experiment_map:
+                            # Add more specific module path to disambiguate
+                            specific_path = '.'.join(module_parts[-2:]) if len(module_parts) > 1 else module_parts[-1]
+                            exp_name = f"{specific_path}.{name}"
+                        
+                        self.experiment_map[exp_name] = obj
+                        logger.debug(f"Discovered experiment: {exp_name} -> {name}")
+                        
+            except Exception as e:
+                logger.warning(f"Failed to import {modname}: {e}")
+        
+        logger.info(f"Discovered {len(self.experiment_map)} experiments with EPII_INFO")
+        
+        # Add backward compatibility aliases for common experiments
+        # These map old simple names to new categorized names
+        self._add_backward_compatibility_aliases()
+    
+    def _add_backward_compatibility_aliases(self):
+        """Add backward compatibility aliases for old experiment names."""
+        # Map old simple names to new categorized names
+        aliases = {
+            'rabi': 'calibrations.NormalisedRabi',
+            't1': 'characterizations.SimpleT1',
+            'ramsey': 'calibrations.SimpleRamseyMultilevel',
+            'echo': 'characterizations.SpinEchoMultiLevel',
+            'spin_echo': 'characterizations.SpinEchoMultiLevel',
+            'drag': 'calibrations.DragCalibrationSingleQubitMultilevel',
+            'randomized_benchmarking': 'characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem',
+            'multi_qubit_rabi': 'calibrations.MultiQubitRabi',
+            'multi_qubit_t1': 'characterizations.MultiQubitT1',
+            'multi_qubit_ramsey': 'calibrations.MultiQubitRamseyMultilevel',
+            'qubit_spectroscopy_frequency': 'calibrations.QubitSpectroscopyFrequency',
         }
-
+        
+        # Add aliases that map to existing experiments
+        for old_name, new_name in aliases.items():
+            if new_name in self.experiment_map:
+                self.experiment_map[old_name] = self.experiment_map[new_name]
+                logger.debug(f"Added backward compatibility alias: {old_name} -> {new_name}")
+    
     def _initialize_parameter_map(self):
         """
         Initialize parameter mappings between EPII names and LeeQ parameter names.
-
-        This handles cases where EPII uses different parameter names than LeeQ.
+        Restored for backward compatibility with existing tests.
         """
         self.parameter_map = {
             "rabi": {
                 "amplitude": "amp",
                 "start_width": "start",
-                "stop_width": "stop",
+                "stop_width": "stop", 
                 "width_step": "step",
                 "qubit": "dut_qubit",
             },
@@ -119,6 +155,28 @@ class ExperimentRouter:
             },
         }
 
+    def get_experiment_info(self, name: str) -> Dict[str, Any]:
+        """
+        Get EPII_INFO and run docstring for an experiment.
+        New method to support enhanced responses.
+        """
+        experiment_class = self.get_experiment(name)
+        if not experiment_class:
+            return {}
+        
+        info = {
+            'epii_info': getattr(experiment_class, 'EPII_INFO', {}),
+            'run_docstring': None
+        }
+        
+        # Get run method docstring
+        if hasattr(experiment_class, 'run'):
+            run_method = getattr(experiment_class, 'run')
+            if run_method.__doc__:
+                info['run_docstring'] = inspect.cleandoc(run_method.__doc__)
+        
+        return info
+
     def get_experiment(self, name: str) -> Optional[Type]:
         """
         Get the LeeQ experiment class for an EPII experiment name.
@@ -137,27 +195,16 @@ class ExperimentRouter:
     def list_experiments(self) -> Dict[str, str]:
         """
         List all available experiments with their descriptions.
-
-        Returns:
-            Dictionary mapping experiment names to descriptions
+        Updated to use EPII_INFO descriptions.
         """
-        descriptions = {
-            "rabi": "Rabi oscillation experiment for calibrating pulse amplitude",
-            "multi_qubit_rabi": "Multi-qubit Rabi oscillation experiment",
-            "t1": "T1 relaxation time measurement",
-            "multi_qubit_t1": "Multi-qubit T1 relaxation measurement",
-            "ramsey": "Ramsey experiment for T2* measurement and frequency calibration",
-            "echo": "Spin echo experiment for T2 echo measurement",
-            "spin_echo": "Spin echo experiment for T2 echo measurement (alias)",
-            "drag": "DRAG coefficient calibration using AllXY sequence",
-            "drag_phase": "DRAG phase calibration for multiple qubits",
-            "randomized_benchmarking": "Randomized benchmarking for gate fidelity",
-            "single_qubit_rb": "Single qubit randomized benchmarking",
-        }
-
-        # Only return descriptions for experiments that are actually mapped
-        return {name: desc for name, desc in descriptions.items()
-                if name in self.experiment_map}
+        descriptions = {}
+        for name, exp_class in self.experiment_map.items():
+            if hasattr(exp_class, 'EPII_INFO'):
+                epii_info = exp_class.EPII_INFO
+                descriptions[name] = epii_info.get('description', f'{name} experiment')
+            else:
+                descriptions[name] = f'{name} experiment'
+        return descriptions
 
     def get_experiment_parameters(self, name: str) -> Dict[str, Any]:
         """
@@ -202,27 +249,24 @@ class ExperimentRouter:
 
     def map_parameters(self, experiment_name: str, epii_params: Dict[str, Any], setup=None) -> Dict[str, Any]:
         """
-        Map EPII parameter names to LeeQ parameter names and resolve object references.
-
+        Map EPII parameter names to LeeQ parameter names and resolve qubit references.
+        
         Args:
             experiment_name: Name of the experiment
             epii_params: Parameters with EPII naming convention
             setup: Optional setup instance to resolve qubit references
 
         Returns:
-            Parameters with LeeQ naming convention and resolved objects
+            Parameters with LeeQ naming and resolved qubit objects
         """
-        if experiment_name not in self.parameter_map:
-            # No mapping needed, but still resolve qubit references
-            leeq_params = epii_params.copy()
-        else:
-            mapping = self.parameter_map[experiment_name]
-            leeq_params = {}
-            
-            for epii_name, value in epii_params.items():
-                # Map the parameter name if a mapping exists
-                leeq_name = mapping.get(epii_name, epii_name)
-                leeq_params[leeq_name] = value
+        # Apply parameter name mapping if available
+        leeq_params = {}
+        param_mapping = self.parameter_map.get(experiment_name, {})
+        
+        for epii_name, value in epii_params.items():
+            # Map parameter name if mapping exists, otherwise use original name
+            leeq_name = param_mapping.get(epii_name, epii_name)
+            leeq_params[leeq_name] = value
         
         # Resolve qubit references if setup is provided
         if setup:

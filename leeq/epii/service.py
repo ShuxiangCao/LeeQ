@@ -58,8 +58,12 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
             manager.register_setup(setup)
             logger.info(f"Registered setup '{setup.name}' with LeeQ ExperimentManager")
 
-        # Get supported experiments from router
+        # Get supported experiments from dynamically discovered experiments
         self.supported_experiments = list(self.experiment_router.experiment_map.keys())
+        
+        # Log discovery statistics
+        logger.info(f"Dynamically discovered {len(self.supported_experiments)} experiments")
+        logger.info(f"Available experiments (first 10): {sorted(self.supported_experiments)[:10]}...")
 
         # Parameter types supported
         self.parameter_types = [
@@ -84,7 +88,6 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
         self.performance_monitor = PerformanceMonitor()
 
         logger.info(f"Initialized EPII service for {self.platform_name} v{self.platform_version}")
-        logger.info(f"Available experiments: {self.supported_experiments}")
         logger.info(f"Experiment timeout: {self.experiment_timeout}s, max workers: {self.max_experiment_workers}")
         logger.info(f"Request/response logging enabled, log level: {self.config.get('log_level', 'INFO')}")
 
@@ -364,6 +367,20 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                 except Exception as e:
                     logger.error(f"Could not extract experiment attributes: {e}")
 
+            # Add EPII_INFO and run docstring to extended_data
+            exp_info = self.experiment_router.get_experiment_info(experiment_name)
+            if exp_info:
+                # Add EPII_INFO
+                if exp_info.get('epii_info'):
+                    response.extended_data['epii_info'] = pickle.dumps(exp_info['epii_info'])
+                
+                # Add run docstring
+                if exp_info.get('run_docstring'):
+                    response.extended_data['run_docstring'] = exp_info['run_docstring'].encode('utf-8')
+                
+                # Log that we added metadata
+                logger.debug(f"Added EPII_INFO and docstring for {experiment_name} to response")
+
             logger.info(f"Experiment {experiment_name} completed successfully")
 
             # Record performance metrics
@@ -398,6 +415,7 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                                 context: grpc.ServicerContext) -> epii_pb2.ExperimentsResponse:
         """
         List all available experiments with their specifications.
+        Enhanced to include EPII_INFO and run docstrings.
 
         Args:
             request: Empty request
@@ -408,13 +426,21 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
         """
         response = epii_pb2.ExperimentsResponse()
 
-        # Add experiment specifications from router
-        experiment_descriptions = self.experiment_router.list_experiments()
-        for exp_name in self.supported_experiments:
+        # Get all discovered experiments
+        for exp_name in self.experiment_router.experiment_map.keys():
             exp_spec = epii_pb2.ExperimentSpec()
             exp_spec.name = exp_name
-            default_desc = f"{exp_name.replace('_', ' ').title()} experiment for qubit calibration"
-            exp_spec.description = experiment_descriptions.get(exp_name, default_desc)
+            
+            # Get EPII_INFO and docstring
+            exp_info = self.experiment_router.get_experiment_info(exp_name)
+            epii_info = exp_info.get('epii_info', {})
+            
+            # Use EPII_INFO description
+            exp_spec.description = epii_info.get('description', f'{exp_name} experiment')
+            
+            # Add purpose to description if available
+            if epii_info.get('purpose'):
+                exp_spec.description += f". {epii_info['purpose']}"
 
             # Add parameter specifications from router
             param_schema = self.experiment_router.get_experiment_parameters(exp_name)
