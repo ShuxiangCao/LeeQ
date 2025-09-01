@@ -292,7 +292,8 @@ class TestBaseline:
         print(f"   Magnitude range: [{np.min(magnitude):.3f}, {np.max(magnitude):.3f}]")
         print(f"   Phase range: [{np.min(phase):.3f}, {np.max(phase):.3f}]")
         
-        return baseline_metrics
+        # Baseline metrics recorded successfully
+        assert baseline_metrics is not None
     
     def test_baseline_measurements_recorded_correctly(self, simulation_setup):
         """
@@ -436,7 +437,8 @@ class TestBaseline:
         
         print("✅ Baseline measurements recorded correctly with all required metrics")
         
-        return True
+        # All measurements recorded correctly
+        assert True
 
 
 class TestBaselineReference:
@@ -535,7 +537,8 @@ class TestPerformanceBaseline:
         print(f"   Acceptable rtol: {performance_bounds['acceptable_rtol']}")
         print(f"   Acceptable atol: {performance_bounds['acceptable_atol']}")
         
-        return performance_bounds
+        # Performance bounds established
+        assert performance_bounds is not None
     
     def test_memory_scaling_baseline(self):
         """

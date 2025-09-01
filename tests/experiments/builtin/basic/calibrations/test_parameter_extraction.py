@@ -119,7 +119,7 @@ class TestParameterExtraction:
             assert all(isinstance(idx, int) for idx in resonator_indices)
         
         print("✅ Parameter extraction returns correct structure")
-        return True
+        # Test completed successfully
     
     def test_single_qubit_parameter_extraction(self, experiment, mock_setup_single, mock_dut_qubit):
         """
@@ -169,7 +169,7 @@ class TestParameterExtraction:
         assert string_to_int_channel_map['Q1'] == 0
         
         print(f"✅ Single-qubit parameters extracted: g={actual_g:.1f}")
-        return True
+        # Test completed successfully
     
     def test_multi_qubit_parameter_extraction(self, experiment, mock_setup_multi, mock_dut_qubit):
         """
@@ -226,7 +226,7 @@ class TestParameterExtraction:
         assert string_to_int_channel_map['Q2'] == 1
         
         print("✅ Multi-qubit parameters extracted with couplings")
-        return True
+        # Test completed successfully
     
     def test_coupling_matrix_physics(self, experiment, mock_setup_single, mock_dut_qubit):
         """
@@ -253,7 +253,7 @@ class TestParameterExtraction:
         assert 1 < g < 1000, "Coupling strength should be in reasonable range (1-1000 MHz)"
         
         print(f"✅ Coupling matrix physics validated: g={g:.1f} MHz")
-        return True
+        # Test completed successfully
     
     def test_parameter_extraction_with_missing_attributes(self, experiment, mock_dut_qubit):
         """
@@ -289,7 +289,7 @@ class TestParameterExtraction:
         # Should use default dispersive shift of 1.0
         
         print("✅ Missing attributes handled with defaults")
-        return True
+        # Test completed successfully
     
     def test_channel_map_construction(self, experiment, mock_setup_multi, mock_dut_qubit):
         """
@@ -323,7 +323,7 @@ class TestParameterExtraction:
         assert len(string_to_int_channel_map) == 2
         
         print("✅ Channel map constructed correctly")
-        return True
+        # Test completed successfully
     
     def test_extract_params_empty_setup(self, experiment, mock_dut_qubit):
         """
@@ -346,7 +346,7 @@ class TestParameterExtraction:
         assert channel_map == {}
         
         print("✅ Empty setup handled gracefully")
-        return True
+        # Test completed successfully
     
     def test_parameter_types_and_formats(self, experiment, mock_setup_single, mock_dut_qubit):
         """
@@ -403,7 +403,7 @@ class TestParameterExtraction:
             assert isinstance(channel_id, int)
         
         print("✅ Parameter types and formats validated")
-        return True
+        # Test completed successfully
 
 
 class TestParameterExtractionIntegration:
@@ -447,7 +447,7 @@ class TestParameterExtractionIntegration:
             pytest.fail(f"Parameters not compatible with simulator: {e}")
         
         print("✅ Parameters compatible with MultiQubitDispersiveReadoutSimulator")
-        return True
+        # Test completed successfully
     
     def test_realistic_multi_qubit_system(self):
         """
@@ -524,4 +524,4 @@ class TestParameterExtractionIntegration:
         assert sorted(string_to_int_channel_map.keys()) == expected_string_channels
         
         print("✅ Realistic 3-qubit system parameters extracted successfully")
-        return True
+        # Test completed successfully
