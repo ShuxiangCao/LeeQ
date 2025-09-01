@@ -19,10 +19,10 @@ def get_extended_data(response):
         dict: Deserialized data with attribute names as keys
     """
     data = {}
-    
+
     if not hasattr(response, 'extended_data'):
         return data
-    
+
     for key, value in response.extended_data.items():
         try:
             # Deserialize from pickle
@@ -31,7 +31,7 @@ def get_extended_data(response):
             # If unpickling fails, keep as bytes
             logger.debug(f"Could not unpickle {key}: {e}")
             data[key] = value
-    
+
     return data
 
 
@@ -64,10 +64,10 @@ def get_extended_attribute(response, attribute_name, default=None):
     """
     if not hasattr(response, 'extended_data'):
         return default
-    
+
     if attribute_name not in response.extended_data:
         return default
-    
+
     try:
         return pickle.loads(response.extended_data[attribute_name])
     except Exception as e:

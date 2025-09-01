@@ -584,7 +584,7 @@ def main() -> None:
     parser.add_argument(
         "--test-experiment",
         type=str,
-        help="Test experiment execution and exit (default: rabi)"
+        help="Test experiment execution and exit (default: calibrations.NormalisedRabi)"
     )
 
     args = parser.parse_args()
@@ -664,7 +664,7 @@ def main() -> None:
 
         # Handle test experiment
         if args.test_experiment is not None:
-            experiment_name = args.test_experiment if args.test_experiment else "rabi"
+            experiment_name = args.test_experiment if args.test_experiment else "calibrations.NormalisedRabi"
             print(f"Testing experiment: {experiment_name}")  # noqa: T201
             try:
                 # Create temporary service instance for testing

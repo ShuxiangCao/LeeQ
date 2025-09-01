@@ -89,7 +89,7 @@ def simulation_2q_config(tmp_path) -> Generator[Dict[str, Any], None, None]:
                 "q0": {
                     "f01": 5.0e9,
                     "anharmonicity": -0.33e9,
-                    "t1": 20e-6,
+                    "characterizations.SimpleT1": 20e-6,
                     "t2": 15e-6,
                     "pi_amp": 0.5,
                     "pi_len": 40
@@ -97,7 +97,7 @@ def simulation_2q_config(tmp_path) -> Generator[Dict[str, Any], None, None]:
                 "q1": {
                     "f01": 5.1e9,
                     "anharmonicity": -0.32e9,
-                    "t1": 25e-6,
+                    "characterizations.SimpleT1": 25e-6,
                     "t2": 18e-6,
                     "pi_amp": 0.45,
                     "pi_len": 38
@@ -121,7 +121,7 @@ def sample_experiment_request():
     Creates a sample experiment request dictionary for testing.
     """
     return {
-        "experiment_name": "rabi",
+        "experiment_name": "calibrations.NormalisedRabi",
         "parameters": {
             "qubit": "q0",
             "amp_range": [0.0, 1.0],
@@ -188,7 +188,7 @@ def generate_experiment_result(experiment_type: str, num_points: int = 50):
     Returns:
         Dictionary with 'data' and 'fit_params' keys
     """
-    if experiment_type == "rabi":
+    if experiment_type == "calibrations.NormalisedRabi":
         x = np.linspace(0, 1, num_points)
         y = 0.5 * (1 + np.cos(2 * np.pi * x + 0.1))
         fit_params = {
@@ -197,15 +197,15 @@ def generate_experiment_result(experiment_type: str, num_points: int = 50):
             "phase": 0.1,
             "offset": 0.5
         }
-    elif experiment_type == "t1":
+    elif experiment_type == "characterizations.SimpleT1":
         x = np.linspace(0, 100e-6, num_points)
         y = np.exp(-x / 20e-6) + 0.1 * np.random.randn(num_points)
         fit_params = {
-            "t1": 20e-6,
+            "characterizations.SimpleT1": 20e-6,
             "amplitude": 1.0,
             "offset": 0.0
         }
-    elif experiment_type == "ramsey":
+    elif experiment_type == "calibrations.SimpleRamseyMultilevel":
         x = np.linspace(0, 50e-6, num_points)
         y = np.exp(-x / 15e-6) * np.cos(2 * np.pi * 1e6 * x)
         fit_params = {

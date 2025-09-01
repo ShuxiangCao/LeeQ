@@ -138,7 +138,7 @@ class TestEPIIDaemonIntegration:
                     "q0": {
                         "f01": 5.0e9,
                         "anharmonicity": -0.33e9,
-                        "t1": 20e-6,
+                        "characterizations.SimpleT1": 20e-6,
                         "t2": 15e-6,
                         "pi_amp": 0.5,
                         "pi_len": 40e-9
@@ -146,7 +146,7 @@ class TestEPIIDaemonIntegration:
                     "q1": {
                         "f01": 5.1e9,
                         "anharmonicity": -0.32e9,
-                        "t1": 25e-6,
+                        "characterizations.SimpleT1": 25e-6,
                         "t2": 18e-6,
                         "pi_amp": 0.45,
                         "pi_len": 38e-9
@@ -221,7 +221,7 @@ class TestEPIIDaemonIntegration:
 
             # Should have core experiments (allow for additional experiments)
             experiment_names = [exp.name for exp in response.experiments]
-            expected_core_experiments = ["rabi", "t1", "ramsey", "echo", "drag", "randomized_benchmarking"]
+            expected_core_experiments = ["calibrations.NormalisedRabi", "characterizations.SimpleT1", "calibrations.SimpleRamseyMultilevel", "characterizations.SpinEchoMultiLevel", "calibrations.DragCalibrationSingleQubitMultilevel", "characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem"]
 
             # Check that we have some of the core experiments (flexible for different implementations)
             found_core_experiments = [exp for exp in expected_core_experiments if exp in experiment_names]
@@ -293,7 +293,7 @@ class TestEPIIDaemonIntegration:
         try:
             # Create experiment request
             request = epii_pb2.ExperimentRequest()
-            request.experiment_type = "rabi"
+            request.experiment_type = "calibrations.NormalisedRabi"
             request.parameters["qubit"] = "q0"
             request.parameters["amplitude_range"] = "[0.0, 1.0]"
             request.parameters["num_points"] = "51"
@@ -554,8 +554,8 @@ class TestEPIIMockExperimentIntegration:
         # Test experiment listing
         response = service.ListAvailableExperiments(epii_pb2.Empty(), None)
         experiment_names = [exp.name for exp in response.experiments]
-        assert "rabi" in experiment_names
-        assert "t1" in experiment_names
+        assert "calibrations.NormalisedRabi" in experiment_names
+        assert "characterizations.SimpleT1" in experiment_names
 
         # Test parameter operations (placeholder implementations)
         param_request = epii_pb2.ParameterRequest()

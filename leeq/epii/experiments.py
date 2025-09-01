@@ -26,7 +26,6 @@ class ExperimentRouter:
         """Initialize the experiment router with dynamic discovery."""
         self.experiment_map: Dict[str, Type] = {}
         self._discover_experiments()  # Changed from _initialize_experiment_map
-        self._initialize_parameter_map()  # Restored for backward compatibility
 
     def _discover_experiments(self):
         """
@@ -34,7 +33,7 @@ class ExperimentRouter:
         Replaces the static _initialize_experiment_map method.
         """
         from leeq.experiments import builtin
-        
+
         # Walk through all modules in builtin
         for importer, modname, ispkg in pkgutil.walk_packages(
             builtin.__path__,
@@ -42,13 +41,13 @@ class ExperimentRouter:
         ):
             try:
                 module = importlib.import_module(modname)
-                
+
                 # Check each class in the module
                 for name, obj in inspect.getmembers(module, inspect.isclass):
                     # Only process classes actually defined in this module (not imported)
                     if obj.__module__ != modname:
                         continue
-                    
+
                     # Include if has EPII_INFO and run method (not a base class)
                     if hasattr(obj, 'EPII_INFO') and hasattr(obj, 'run'):
                         # Build experiment name with module prefix for duplicates
@@ -68,92 +67,21 @@ class ExperimentRouter:
                             exp_name = f"optimal_control.{name}"
                         else:
                             exp_name = name
-                        
+
                         # Check for duplicates
                         if exp_name in self.experiment_map:
                             # Add more specific module path to disambiguate
                             specific_path = '.'.join(module_parts[-2:]) if len(module_parts) > 1 else module_parts[-1]
                             exp_name = f"{specific_path}.{name}"
-                        
+
                         self.experiment_map[exp_name] = obj
                         logger.debug(f"Discovered experiment: {exp_name} -> {name}")
-                        
+
             except Exception as e:
                 logger.warning(f"Failed to import {modname}: {e}")
-        
+
         logger.info(f"Discovered {len(self.experiment_map)} experiments with EPII_INFO")
-        
-        # Add backward compatibility aliases for common experiments
-        # These map old simple names to new categorized names
-        self._add_backward_compatibility_aliases()
-    
-    def _add_backward_compatibility_aliases(self):
-        """Add backward compatibility aliases for old experiment names."""
-        # Map old simple names to new categorized names
-        aliases = {
-            'rabi': 'calibrations.NormalisedRabi',
-            't1': 'characterizations.SimpleT1',
-            'ramsey': 'calibrations.SimpleRamseyMultilevel',
-            'echo': 'characterizations.SpinEchoMultiLevel',
-            'spin_echo': 'characterizations.SpinEchoMultiLevel',
-            'drag': 'calibrations.DragCalibrationSingleQubitMultilevel',
-            'randomized_benchmarking': 'characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem',
-            'multi_qubit_rabi': 'calibrations.MultiQubitRabi',
-            'multi_qubit_t1': 'characterizations.MultiQubitT1',
-            'multi_qubit_ramsey': 'calibrations.MultiQubitRamseyMultilevel',
-            'qubit_spectroscopy_frequency': 'calibrations.QubitSpectroscopyFrequency',
-        }
-        
-        # Add aliases that map to existing experiments
-        for old_name, new_name in aliases.items():
-            if new_name in self.experiment_map:
-                self.experiment_map[old_name] = self.experiment_map[new_name]
-                logger.debug(f"Added backward compatibility alias: {old_name} -> {new_name}")
-    
-    def _initialize_parameter_map(self):
-        """
-        Initialize parameter mappings between EPII names and LeeQ parameter names.
-        Restored for backward compatibility with existing tests.
-        """
-        self.parameter_map = {
-            "rabi": {
-                "amplitude": "amp",
-                "start_width": "start",
-                "stop_width": "stop", 
-                "width_step": "step",
-                "qubit": "dut_qubit",
-            },
-            "t1": {
-                "qubit": "qubit",
-                "time_max": "time_length",
-                "time_step": "time_resolution",
-            },
-            "ramsey": {
-                "qubit": "dut",
-                "start_time": "start",
-                "stop_time": "stop",
-                "time_step": "step",
-                "frequency_offset": "set_offset",
-            },
-            "echo": {
-                "qubit": "dut",
-                "evolution_time": "free_evolution_time",
-                "time_step": "time_resolution",
-            },
-            "drag": {
-                "qubit": "dut",
-                "repetitions": "N",
-                "alpha_start": "inv_alpha_start",
-                "alpha_stop": "inv_alpha_stop",
-                "num_points": "num",
-            },
-            "randomized_benchmarking": {
-                "qubits": "dut_list",
-                "max_length": "seq_length",
-                "num_sequences": "kinds",
-                "clifford_set": "cliff_set",
-            },
-        }
+
 
     def get_experiment_info(self, name: str) -> Dict[str, Any]:
         """
@@ -163,18 +91,18 @@ class ExperimentRouter:
         experiment_class = self.get_experiment(name)
         if not experiment_class:
             return {}
-        
+
         info = {
             'epii_info': getattr(experiment_class, 'EPII_INFO', {}),
             'run_docstring': None
         }
-        
+
         # Get run method docstring
         if hasattr(experiment_class, 'run'):
-            run_method = getattr(experiment_class, 'run')
+            run_method = experiment_class.run
             if run_method.__doc__:
                 info['run_docstring'] = inspect.cleandoc(run_method.__doc__)
-        
+
         return info
 
     def get_experiment(self, name: str) -> Optional[Type]:
@@ -249,31 +177,26 @@ class ExperimentRouter:
 
     def map_parameters(self, experiment_name: str, epii_params: Dict[str, Any], setup=None) -> Dict[str, Any]:
         """
-        Map EPII parameter names to LeeQ parameter names and resolve qubit references.
+        Resolve qubit references in experiment parameters.
         
         Args:
             experiment_name: Name of the experiment
-            epii_params: Parameters with EPII naming convention
+            epii_params: Parameters dictionary
             setup: Optional setup instance to resolve qubit references
 
         Returns:
-            Parameters with LeeQ naming and resolved qubit objects
+            Parameters with resolved qubit objects
         """
-        # Apply parameter name mapping if available
-        leeq_params = {}
-        param_mapping = self.parameter_map.get(experiment_name, {})
-        
-        for epii_name, value in epii_params.items():
-            # Map parameter name if mapping exists, otherwise use original name
-            leeq_name = param_mapping.get(epii_name, epii_name)
-            leeq_params[leeq_name] = value
-        
+        # With aliases removed, parameters are passed through directly
+        # Only qubit resolution is performed
+        leeq_params = epii_params.copy()
+
         # Resolve qubit references if setup is provided
         if setup:
             leeq_params = self._resolve_qubit_references(leeq_params, setup)
-        
+
         return leeq_params
-    
+
     def _resolve_qubit_references(self, params: Dict[str, Any], setup) -> Dict[str, Any]:
         """
         Resolve qubit string references to actual qubit objects.
@@ -286,14 +209,14 @@ class ExperimentRouter:
             Parameters with resolved qubit objects
         """
         resolved = params.copy()
-        
+
         # List of parameter names that typically contain qubit references
         qubit_param_names = ['qubit', 'dut_qubit', 'dut', 'qubits', 'dut_list']
-        
+
         for param_name in qubit_param_names:
             if param_name in resolved:
                 value = resolved[param_name]
-                
+
                 # Handle single qubit reference
                 if isinstance(value, str):
                     try:
@@ -317,9 +240,9 @@ class ExperimentRouter:
                         else:
                             resolved_list.append(q)
                     resolved[param_name] = resolved_list
-        
+
         return resolved
-    
+
     def _get_qubit_from_setup(self, qubit_name: str, setup):
         """
         Get a qubit object from the setup by name.
@@ -344,8 +267,8 @@ class ExperimentRouter:
             # Try q{index} attribute
             if hasattr(setup, f'q{index}'):
                 return getattr(setup, f'q{index}')
-        
-        # Handle "q0", "Q0" format  
+
+        # Handle "q0", "Q0" format
         elif qubit_name.lower().startswith('q'):
             try:
                 index = int(qubit_name[1:])
@@ -357,7 +280,7 @@ class ExperimentRouter:
                     return getattr(setup, qubit_name.lower())
             except ValueError:
                 pass
-        
+
         # Fail explicitly instead of returning string
         raise ValueError(f"Cannot resolve qubit '{qubit_name}' from setup. Available: {getattr(setup, 'qubits', [])}")
 

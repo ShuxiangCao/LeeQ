@@ -40,7 +40,7 @@ class TestParameterManager:
         q0._parameters = {
             "f01": 5.0e9,
             "anharmonicity": -0.33e9,
-            "t1": 20e-6,
+            "characterizations.SimpleT1": 20e-6,
             "t2": 15e-6,
             "pi_amp": 0.5,
             "pi_len": 40
@@ -50,14 +50,14 @@ class TestParameterManager:
         q1._parameters = {
             "f01": 5.1e9,
             "anharmonicity": -0.32e9,
-            "t1": 25e-6,
+            "characterizations.SimpleT1": 25e-6,
             "t2": 18e-6,
             "pi_amp": 0.45,
             "pi_len": 38
         }
 
         setup._elements = {"q0": q0, "q1": q1}
-        
+
         # Also add qubits list for testing
         setup.qubits = [q0, q1]
 
@@ -149,19 +149,19 @@ class TestParameterManager:
     def test_get_all_parameters(self, mock_setup):
         """Test getting all parameters as flat dictionary"""
         pm = ParameterManager(mock_setup)
-        
+
         all_params = pm.get_all_parameters()
-        
+
         # Check status parameters are included
         assert "status.shot_number" in all_params
         assert all_params["status.shot_number"] == 2000
-        
+
         # Check element parameters are included
         assert "q0.f01" in all_params
         assert all_params["q0.f01"] == 5.0e9
         assert "q1.pi_amp" in all_params
         assert all_params["q1.pi_amp"] == 0.45
-        
+
         # Check qubit parameters from qubits list
         assert "q0.f01" in all_params
         assert "q1.f01" in all_params
@@ -169,27 +169,27 @@ class TestParameterManager:
     def test_parse_value(self, mock_setup):
         """Test value parsing from strings"""
         pm = ParameterManager(mock_setup)
-        
+
         # Test boolean parsing
         assert pm._parse_value("true") is True
         assert pm._parse_value("false") is False
         assert pm._parse_value("True") is True
         assert pm._parse_value("FALSE") is False
-        
+
         # Test null parsing
         assert pm._parse_value("null") is None
-        
+
         # Test integer parsing
         assert pm._parse_value("123") == 123
         assert pm._parse_value("-456") == -456
-        
+
         # Test float parsing
         assert pm._parse_value("123.45") == 123.45
         assert pm._parse_value("1.23e5") == 1.23e5
-        
+
         # Test string passthrough
         assert pm._parse_value("hello") == "hello"
-        
+
         # Test non-string passthrough
         assert pm._parse_value(123) == 123
         assert pm._parse_value(True) is True
@@ -205,11 +205,11 @@ class TestParameterManager:
         assert pm.serialize_value(123) == "123"
         assert pm.serialize_value(45.6) == "45.6"
         assert pm.serialize_value("test") == "test"
-        
+
         # Test numpy array serialization
         arr = np.array([1, 2, 3])
         assert pm.serialize_value(arr) == [1, 2, 3]
-        
+
         # Test list and dict passthrough
         assert pm.serialize_value([1, 2, 3]) == [1, 2, 3]
         assert pm.serialize_value({"a": 1}) == {"a": 1}
@@ -217,7 +217,7 @@ class TestParameterManager:
     def test_flatten_dict(self, mock_setup):
         """Test dictionary flattening with dot notation"""
         pm = ParameterManager(mock_setup)
-        
+
         nested = {
             "a": 1,
             "b": {
@@ -227,7 +227,7 @@ class TestParameterManager:
                 }
             }
         }
-        
+
         flat = pm._flatten_dict(nested)
         assert flat == {
             "a": 1,
@@ -238,10 +238,10 @@ class TestParameterManager:
     def test_set_nested_parameter(self, mock_setup):
         """Test setting nested parameters"""
         pm = ParameterManager(mock_setup)
-        
+
         # Mock a deeper nested structure
         mock_setup._elements["q0"]._parameters["nested"] = {}
-        
+
         # Set a nested parameter
         success = pm.set_parameter("q0.nested.deep.value", 42)
         assert success is True
@@ -250,13 +250,13 @@ class TestParameterManager:
     def test_cache_fallback(self, mock_setup):
         """Test that cache is used as fallback"""
         pm = ParameterManager(mock_setup)
-        
+
         # Add something to cache
         pm._cache["cached.value"] = 100
-        
+
         # Should be retrievable
         assert pm.get_parameter("cached.value") == 100
-        
+
         # Should be included in all parameters
         all_params = pm.get_all_parameters()
         assert "cached.value" in all_params
@@ -265,9 +265,9 @@ class TestParameterManager:
     def test_qubit_list_parameters(self, mock_setup):
         """Test that parameters from qubits list are retrieved"""
         pm = ParameterManager(mock_setup)
-        
+
         all_params = pm.get_all_parameters()
-        
+
         # Check that qubit parameters are indexed correctly
         assert "q0.f01" in all_params
         assert all_params["q0.f01"] == 5.0e9
@@ -277,11 +277,11 @@ class TestParameterManager:
     def test_set_qubit_parameter(self, mock_setup):
         """Test setting parameters on qubits from the qubits list"""
         pm = ParameterManager(mock_setup)
-        
+
         # Set q0 frequency
         success = pm.set_parameter("q0.f01", 4.9e9)
         assert success is True
         assert mock_setup.qubits[0]._parameters["f01"] == 4.9e9
-        
+
         # Verify it's retrievable
         assert pm.get_parameter("q0.f01") == 4.9e9

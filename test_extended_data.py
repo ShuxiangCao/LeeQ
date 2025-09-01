@@ -33,7 +33,7 @@ def main():
         # Run a simple T1 experiment  
         print("\n2. Running T1 experiment to generate Chronicle data...")
         request = epii_pb2.ExperimentRequest(
-            experiment_type="t1",
+            experiment_type="characterizations.SimpleT1",
             parameters={
                 "qubit": "q0",  # Use proper qubit reference
                 "time_length": "100",

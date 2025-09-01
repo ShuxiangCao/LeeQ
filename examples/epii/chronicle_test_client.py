@@ -78,7 +78,7 @@ def run_resonator_spectroscopy(stub, qubit_id="q0"):
     try:
         # Use a quick Rabi scan as substitute since resonator spectroscopy isn't available
         request = epii_pb2.ExperimentRequest(
-            experiment_type="rabi",
+            experiment_type="calibrations.NormalisedRabi",
             parameters={
                 "qubit": qubit_id,
                 "start": "0",
@@ -124,7 +124,7 @@ def run_rabi_experiment(stub, qubit_id="q0"):
     
     try:
         request = epii_pb2.ExperimentRequest(
-            experiment_type="rabi",
+            experiment_type="calibrations.NormalisedRabi",
             parameters={
                 "qubit": qubit_id,
                 "start": "0",
@@ -168,7 +168,7 @@ def run_ramsey_experiment(stub, qubit_id="q0"):
     try:
         # Fine frequency calibration
         request = epii_pb2.ExperimentRequest(
-            experiment_type="ramsey",
+            experiment_type="calibrations.SimpleRamseyMultilevel",
             parameters={
                 "qubit": qubit_id,
                 "stop": "3",  # microseconds
@@ -211,7 +211,7 @@ def run_t1_experiment(stub, qubit_id="q0"):
     
     try:
         request = epii_pb2.ExperimentRequest(
-            experiment_type="t1",
+            experiment_type="characterizations.SimpleT1",
             parameters={
                 "qubit": qubit_id,
                 "time_length": "100",  # microseconds
@@ -232,7 +232,7 @@ def run_t1_experiment(stub, qubit_id="q0"):
             # Display calibration results
             if response.calibration_results:
                 print_result("T1", 
-                           f"{response.calibration_results.get('t1', 0):.2f} μs", 4)
+                           f"{response.calibration_results.get('characterizations.SimpleT1', 0):.2f} μs", 4)
             
             return True
         else:
@@ -251,7 +251,7 @@ def run_echo_experiment(stub, qubit_id="q0"):
     
     try:
         request = epii_pb2.ExperimentRequest(
-            experiment_type="echo",
+            experiment_type="characterizations.SpinEchoMultiLevel",
             parameters={
                 "qubit": qubit_id,
                 "free_evolution_time": "50",  # microseconds

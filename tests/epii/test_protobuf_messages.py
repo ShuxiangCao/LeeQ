@@ -44,7 +44,7 @@ class TestProtobufMessages:
 
         # Add experiment spec
         exp_spec = msg.experiment_types.add()
-        exp_spec.name = "rabi"
+        exp_spec.name = "calibrations.NormalisedRabi"
         exp_spec.description = "Rabi oscillation experiment"
         exp_spec.output_parameters.extend(["pi_amplitude", "rabi_frequency"])
 
@@ -60,20 +60,20 @@ class TestProtobufMessages:
         assert len(msg.supported_backends) == 2
         assert "simulation" in msg.supported_backends
         assert len(msg.experiment_types) == 1
-        assert msg.experiment_types[0].name == "rabi"
+        assert msg.experiment_types[0].name == "calibrations.NormalisedRabi"
         assert len(msg.experiment_types[0].parameters) == 1
         assert msg.extensions["custom_feature"] == "enabled"
 
     def test_experiment_request(self):
         """Test ExperimentRequest message"""
         msg = epii_pb2.ExperimentRequest()
-        msg.experiment_type = "t1"
+        msg.experiment_type = "characterizations.SimpleT1"
         msg.parameters["delay_range"] = "[0, 100e-6, 1e-6]"
         msg.parameters["initial_state"] = "1"
         msg.return_raw_data = True
         msg.return_plots = False
 
-        assert msg.experiment_type == "t1"
+        assert msg.experiment_type == "characterizations.SimpleT1"
         assert len(msg.parameters) == 2
         assert msg.parameters["delay_range"] == "[0, 100e-6, 1e-6]"
         assert msg.return_raw_data is True
@@ -189,14 +189,14 @@ class TestProtobufMessages:
         msg.shape.extend([1])
         msg.dtype = "float64"
         msg.name = "measurement"
-        msg.metadata["experiment"] = "rabi"
+        msg.metadata["experiment"] = "calibrations.NormalisedRabi"
         msg.metadata["timestamp"] = "2024-01-01T00:00:00"
 
         assert msg.data == b'\x00\x00\x00\x00\x00\x00\xf0?'
         assert list(msg.shape) == [1]
         assert msg.dtype == "float64"
         assert len(msg.metadata) == 2
-        assert msg.metadata["experiment"] == "rabi"
+        assert msg.metadata["experiment"] == "calibrations.NormalisedRabi"
 
     def test_plot_data_message(self):
         """Test PlotData message with traces"""
@@ -230,7 +230,7 @@ class TestProtobufMessages:
 
         # Medium message with some data
         medium = epii_pb2.ExperimentRequest()
-        medium.experiment_type = "ramsey"
+        medium.experiment_type = "calibrations.SimpleRamseyMultilevel"
         for i in range(10):
             medium.parameters[f"param_{i}"] = str(i * 0.1)
         medium_size = len(medium.SerializeToString())

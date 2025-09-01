@@ -234,7 +234,7 @@ class EPIIConfig:
                 name=qubit_name,
                 qubit_frequency=qubit_params.get("f01", 5000 + i * 100) / 1e6,  # Convert Hz to MHz
                 anharmonicity=qubit_params.get("anharmonicity", -330) / 1e6,  # Convert Hz to MHz
-                t1=qubit_params.get("t1", 20e-6) * 1e6,  # Convert seconds to microseconds
+                t1=qubit_params.get("characterizations.SimpleT1", 20e-6) * 1e6,  # Convert seconds to microseconds
                 t2=qubit_params.get("t2", 15e-6) * 1e6,  # Convert seconds to microseconds
                 readout_frequency=qubit_params.get("readout_frequency", 8800 + i * 200),
                 readout_linewith=1,
@@ -263,18 +263,18 @@ class EPIIConfig:
             virtual_qubits=virtual_qubits,
             coupling_strength_map=coupling_map if coupling_map else None
         )
-        
+
         # Create TransmonElement objects and add them to the setup
         setup.qubits = []
         for i in range(num_qubits):
             qubit_name = f"q{i}"
             qubit_params = qubits_config.get(qubit_name, {})
-            
+
             # Get frequencies from config or use defaults
             f01_freq = qubit_params.get("f01", 5000e6 + i * 100e6) / 1e6  # Convert Hz to MHz
             readout_freq = qubit_params.get("readout_frequency", 9645e6 + i * 10e6) / 1e6  # Convert Hz to MHz
             anharmonicity = qubit_params.get("anharmonicity", -330e6) / 1e6  # Convert Hz to MHz
-            
+
             # Create TransmonElement with proper parameter structure
             element_params = {
                 'hrid': qubit_name.upper(),  # Use uppercase for consistency
@@ -316,15 +316,15 @@ class EPIIConfig:
                     }
                 }
             }
-            
+
             # Create the TransmonElement
             transmon = TransmonElement(name=qubit_name.upper(), parameters=element_params)
-            
+
             # Add to setup's qubit list
             setup.qubits.append(transmon)
             # Also set as attribute for direct access
             setattr(setup, qubit_name, transmon)
-        
+
         return setup
 
     def _create_numpy_simulation(self, name: str, num_qubits: int) -> ExperimentalSetup:

@@ -27,23 +27,23 @@ class TestExperimentRouter:
     def test_initialization(self, router):
         """Test that router initializes with correct mappings."""
         assert len(router.experiment_map) > 0
-        assert "rabi" in router.experiment_map
-        assert "t1" in router.experiment_map
-        assert "ramsey" in router.experiment_map
-        assert "echo" in router.experiment_map
-        assert "drag" in router.experiment_map
-        assert "randomized_benchmarking" in router.experiment_map
+        assert "calibrations.NormalisedRabi" in router.experiment_map
+        assert "characterizations.SimpleT1" in router.experiment_map
+        assert "calibrations.SimpleRamseyMultilevel" in router.experiment_map
+        assert "characterizations.SpinEchoMultiLevel" in router.experiment_map
+        assert "calibrations.DragCalibrationSingleQubitMultilevel" in router.experiment_map
+        assert "characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem" in router.experiment_map
 
     def test_get_experiment(self, router):
         """Test getting experiment classes by name."""
         # Test valid experiments
-        assert router.get_experiment("rabi") == NormalisedRabi
-        assert router.get_experiment("t1") == SimpleT1
-        assert router.get_experiment("ramsey") == SimpleRamseyMultilevel
-        assert router.get_experiment("echo") == SpinEchoMultiLevel
-        assert router.get_experiment("spin_echo") == SpinEchoMultiLevel  # Alias
-        assert router.get_experiment("drag") == DragCalibrationSingleQubitMultilevel
-        assert router.get_experiment("randomized_benchmarking") == RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem
+        assert router.get_experiment("calibrations.NormalisedRabi") == NormalisedRabi
+        assert router.get_experiment("characterizations.SimpleT1") == SimpleT1
+        assert router.get_experiment("calibrations.SimpleRamseyMultilevel") == SimpleRamseyMultilevel
+        assert router.get_experiment("characterizations.SpinEchoMultiLevel") == SpinEchoMultiLevel
+        assert router.get_experiment("characterizations.SpinEchoMultiLevel") == SpinEchoMultiLevel  # Alias
+        assert router.get_experiment("calibrations.DragCalibrationSingleQubitMultilevel") == DragCalibrationSingleQubitMultilevel
+        assert router.get_experiment("characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem") == RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem
 
         # Test invalid experiment
         assert router.get_experiment("invalid_experiment") is None
@@ -54,12 +54,12 @@ class TestExperimentRouter:
 
         assert isinstance(experiments, dict)
         assert len(experiments) > 0
-        assert "rabi" in experiments
-        assert "t1" in experiments
-        assert "ramsey" in experiments
-        assert "echo" in experiments
-        assert "drag" in experiments
-        assert "randomized_benchmarking" in experiments
+        assert "calibrations.NormalisedRabi" in experiments
+        assert "characterizations.SimpleT1" in experiments
+        assert "calibrations.SimpleRamseyMultilevel" in experiments
+        assert "characterizations.SpinEchoMultiLevel" in experiments
+        assert "calibrations.DragCalibrationSingleQubitMultilevel" in experiments
+        assert "characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem" in experiments
 
         # Check descriptions are strings
         for name, desc in experiments.items():
@@ -69,7 +69,7 @@ class TestExperimentRouter:
     def test_get_experiment_parameters(self, router):
         """Test getting parameter schema for experiments."""
         # Test Rabi parameters
-        rabi_params = router.get_experiment_parameters("rabi")
+        rabi_params = router.get_experiment_parameters("calibrations.NormalisedRabi")
         assert isinstance(rabi_params, dict)
         assert "dut_qubit" in rabi_params
         assert "amp" in rabi_params
@@ -85,7 +85,7 @@ class TestExperimentRouter:
             assert "type" in param_info
 
         # Test T1 parameters
-        t1_params = router.get_experiment_parameters("t1")
+        t1_params = router.get_experiment_parameters("characterizations.SimpleT1")
         assert isinstance(t1_params, dict)
         assert "qubit" in t1_params or "dut" in t1_params
 
@@ -94,39 +94,42 @@ class TestExperimentRouter:
         assert invalid_params == {}
 
     def test_map_parameters(self, router):
-        """Test parameter name mapping from EPII to LeeQ."""
-        # Test Rabi parameter mapping
-        epii_params = {
-            "amplitude": 0.5,
-            "start_width": 0.01,
-            "stop_width": 0.3,
-            "width_step": 0.002,
-            "qubit": "q0"
+        """Test parameter passthrough and qubit resolution (no more alias mapping)."""
+        # Test parameters pass through unchanged (no alias mapping anymore)
+        test_params = {
+            "amp": 0.5,
+            "start": 0.01,
+            "stop": 0.3,
+            "step": 0.002,
+            "dut_qubit": "q0"
         }
 
-        leeq_params = router.map_parameters("rabi", epii_params)
+        leeq_params = router.map_parameters("calibrations.NormalisedRabi", test_params)
+        # Parameters should pass through unchanged since no setup provided
         assert leeq_params["amp"] == 0.5
         assert leeq_params["start"] == 0.01
         assert leeq_params["stop"] == 0.3
         assert leeq_params["step"] == 0.002
         assert leeq_params["dut_qubit"] == "q0"
 
-        # Test T1 parameter mapping
-        epii_t1_params = {
-            "qubit": "q0",
-            "time_max": 100.0,
-            "time_step": 1.0
+        # Test T1 parameters pass through unchanged
+        t1_params = {
+            "qubit": "q1",
+            "start": 1e-6,
+            "stop": 100e-6,
+            "step": 2e-6
         }
 
-        leeq_t1_params = router.map_parameters("t1", epii_t1_params)
-        assert leeq_t1_params["qubit"] == "q0"
-        assert leeq_t1_params["time_length"] == 100.0
-        assert leeq_t1_params["time_resolution"] == 1.0
+        leeq_t1_params = router.map_parameters("characterizations.SimpleT1", t1_params)
+        assert leeq_t1_params["qubit"] == "q1"
+        assert leeq_t1_params["start"] == 1e-6
+        assert leeq_t1_params["stop"] == 100e-6
+        assert leeq_t1_params["step"] == 2e-6
 
-        # Test unmapped experiment (should return as-is)
-        unmapped_params = {"param1": "value1", "param2": 123}
-        result = router.map_parameters("unmapped_experiment", unmapped_params)
-        assert result == unmapped_params
+        # Test any experiment parameters pass through as-is
+        arbitrary_params = {"param1": "value1", "param2": 123}
+        result = router.map_parameters("any_experiment", arbitrary_params)
+        assert result == arbitrary_params
 
     def test_validate_parameters(self, router):
         """Test parameter validation."""
@@ -135,14 +138,14 @@ class TestExperimentRouter:
             "dut_qubit": "q0",
             "amp": 0.5
         }
-        is_valid, errors = router.validate_parameters("rabi", valid_params)
+        is_valid, errors = router.validate_parameters("calibrations.NormalisedRabi", valid_params)
         assert is_valid is True
         assert len(errors) == 0
 
         # Test missing required parameter
         # Note: Most LeeQ experiments have defaults, so this might not fail
         incomplete_params = {}
-        is_valid, errors = router.validate_parameters("rabi", incomplete_params)
+        is_valid, errors = router.validate_parameters("calibrations.NormalisedRabi", incomplete_params)
         # This depends on whether dut_qubit has a default or not
 
         # Test invalid experiment name
@@ -161,7 +164,7 @@ class TestExperimentRouter:
         # Find rabi experiment in capabilities
         rabi_cap = None
         for cap in capabilities:
-            if cap["name"] == "rabi":
+            if cap["name"] == "calibrations.NormalisedRabi":
                 rabi_cap = cap
                 break
 
@@ -186,16 +189,18 @@ class TestExperimentRouter:
             assert hasattr(experiment_class, 'run')
             assert callable(experiment_class.run)
 
-    def test_parameter_mapping_completeness(self, router):
-        """Test that parameter mappings cover essential experiments."""
-        essential_experiments = ["rabi", "t1", "ramsey", "echo", "drag", "randomized_benchmarking"]
+    def test_experiment_availability(self, router):
+        """Test that essential experiments are available (no parameter mappings needed)."""
+        essential_experiments = ["calibrations.NormalisedRabi", "characterizations.SimpleT1", "calibrations.SimpleRamseyMultilevel", "characterizations.SpinEchoMultiLevel", "calibrations.DragCalibrationSingleQubitMultilevel", "characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem"]
 
         for exp_name in essential_experiments:
-            # Check experiment is mapped
+            # Check experiment is available in experiment_map
             assert exp_name in router.experiment_map
 
-            # Check parameter mapping exists (optional, as not all need mapping)
-            if exp_name in router.parameter_map:
-                mapping = router.parameter_map[exp_name]
-                assert isinstance(mapping, dict)
-                assert len(mapping) > 0
+            # Check we can get the experiment class
+            experiment_class = router.get_experiment(exp_name)
+            assert experiment_class is not None
+
+            # Check it has the required methods
+            assert hasattr(experiment_class, 'run')
+            assert hasattr(experiment_class, 'EPII_INFO')

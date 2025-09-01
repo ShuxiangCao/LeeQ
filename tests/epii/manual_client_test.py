@@ -7,12 +7,14 @@ Then run this test:
     python tests/epii/manual_client_test.py
 """
 
+import pytest
 import grpc
 import sys
 from leeq.epii.proto import epii_pb2
 from leeq.epii.proto import epii_pb2_grpc
 
 
+@pytest.mark.skip(reason="Requires running EPII daemon, use for manual testing only")
 def test_epii_client():
     """Test EPII service with a simple client."""
     # Connect to the daemon

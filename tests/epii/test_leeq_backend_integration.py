@@ -202,7 +202,7 @@ class TestLeeQBackendIntegration:
 
         # Create experiment request
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "rabi"
+        request.experiment_type = "calibrations.NormalisedRabi"
         request.parameters["dut_qubit"] = "q0"  # LeeQ parameter name
         request.parameters["amp"] = "0.5"       # LeeQ parameter name
         request.parameters["start"] = "0.0"     # LeeQ parameter name
@@ -250,7 +250,7 @@ class TestLeeQBackendIntegration:
 
         # Create T1 experiment request
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "t1"
+        request.experiment_type = "characterizations.SimpleT1"
         request.parameters["qubit"] = "q0"
         request.parameters["time_length"] = "50.0"  # μs
         request.parameters["time_resolution"] = "2.0"  # μs
@@ -289,7 +289,7 @@ class TestLeeQBackendIntegration:
 
         # Create Ramsey experiment request
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "ramsey"
+        request.experiment_type = "calibrations.SimpleRamseyMultilevel"
         request.parameters["dut"] = "q0"
         request.parameters["start"] = "0.0"
         request.parameters["stop"] = "20.0"
@@ -330,7 +330,7 @@ class TestLeeQBackendIntegration:
 
         # Test missing required parameters
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "rabi"
+        request.experiment_type = "calibrations.NormalisedRabi"
         # Missing dut_qubit parameter
 
         response = service.RunExperiment(request, context)
@@ -363,7 +363,7 @@ class TestLeeQBackendIntegration:
 
         # Create a request that would take a long time
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "rabi"
+        request.experiment_type = "calibrations.NormalisedRabi"
         request.parameters["dut_qubit"] = "q0"
         request.parameters["amp"] = "0.5"
         request.parameters["start"] = "0.0"
@@ -438,7 +438,7 @@ class TestLeeQBackendIntegration:
 
         # Execute a simple Rabi experiment
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "rabi"
+        request.experiment_type = "calibrations.NormalisedRabi"
         request.parameters["dut_qubit"] = "q0"
         request.parameters["amp"] = "0.5"
         request.parameters["start"] = "0.0"
@@ -517,7 +517,7 @@ class TestLeeQBackendIntegration:
 
         for i in range(3):
             thread = threading.Thread(
-                target=lambda i=i: results.append(execute_experiment("rabi", i))
+                target=lambda i=i: results.append(execute_experiment("calibrations.NormalisedRabi", i))
             )
             threads.append(thread)
             thread.start()
@@ -545,7 +545,7 @@ class TestLeeQBackendIntegration:
         # Test with None setup
         service_no_setup = ExperimentPlatformService(setup=None)
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "rabi"
+        request.experiment_type = "calibrations.NormalisedRabi"
         request.parameters["dut_qubit"] = "q0"
 
         response = service_no_setup.RunExperiment(request, context)
@@ -575,7 +575,7 @@ class TestLeeQBackendIntegration:
 
         # Validate experiment types
         experiment_names = [exp.name for exp in response.experiment_types]
-        required_experiments = ["rabi", "t1", "ramsey", "echo", "drag", "randomized_benchmarking"]
+        required_experiments = ["calibrations.NormalisedRabi", "characterizations.SimpleT1", "calibrations.SimpleRamseyMultilevel", "characterizations.SpinEchoMultiLevel", "calibrations.DragCalibrationSingleQubitMultilevel", "characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem"]
 
         for exp_name in required_experiments:
             assert exp_name in experiment_names, f"Missing required experiment: {exp_name}"

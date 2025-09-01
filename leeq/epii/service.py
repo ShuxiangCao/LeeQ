@@ -60,7 +60,7 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
 
         # Get supported experiments from dynamically discovered experiments
         self.supported_experiments = list(self.experiment_router.experiment_map.keys())
-        
+
         # Log discovery statistics
         logger.info(f"Dynamically discovered {len(self.supported_experiments)} experiments")
         logger.info(f"Available experiments (first 10): {sorted(self.supported_experiments)[:10]}...")
@@ -286,7 +286,7 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                 data_attr = experiment.data
             elif hasattr(experiment, 'trace') and experiment.trace is not None:
                 data_attr = experiment.trace
-            
+
             if data_attr is not None:
                 if isinstance(data_attr, np.ndarray):
                     data_msg = numpy_array_to_protobuf(
@@ -306,7 +306,7 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                         experiment.fitting()
                     except Exception as e:
                         logger.debug(f"fitting() failed for {experiment_name}: {e}")
-            
+
             # Serialize fit parameters (use calibration_results field)
             if hasattr(experiment, 'fit_params') and experiment.fit_params:
                 for key, value in experiment.fit_params.items():
@@ -328,9 +328,9 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
             # Add Chronicle-persisted data OR experiment attributes to extended_data field
             logger.info(f"Checking for Chronicle data on experiment: {type(experiment).__name__}")
             logger.info(f"Has __chronicle_record_entry__: {hasattr(experiment, '__chronicle_record_entry__')}")
-            
+
             import pickle
-            
+
             if hasattr(experiment, '__chronicle_record_entry__'):
                 # Get data from Chronicle if available
                 try:
@@ -338,7 +338,7 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                     logger.info(f"Found Chronicle record entry: {record_entry}")
                     all_attrs = record_entry.load_all_attributes()
                     logger.info(f"Loaded {len(all_attrs)} total attributes from Chronicle")
-                    
+
                     # Add all custom attributes (skip internal and object snapshot)
                     for key, value in all_attrs.items():
                         if not key.startswith('__') and key != '__object__':
@@ -373,11 +373,11 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                 # Add EPII_INFO
                 if exp_info.get('epii_info'):
                     response.extended_data['epii_info'] = pickle.dumps(exp_info['epii_info'])
-                
+
                 # Add run docstring
                 if exp_info.get('run_docstring'):
                     response.extended_data['run_docstring'] = exp_info['run_docstring'].encode('utf-8')
-                
+
                 # Log that we added metadata
                 logger.debug(f"Added EPII_INFO and docstring for {experiment_name} to response")
 
@@ -430,14 +430,14 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
         for exp_name in self.experiment_router.experiment_map.keys():
             exp_spec = epii_pb2.ExperimentSpec()
             exp_spec.name = exp_name
-            
+
             # Get EPII_INFO and docstring
             exp_info = self.experiment_router.get_experiment_info(exp_name)
             epii_info = exp_info.get('epii_info', {})
-            
+
             # Use EPII_INFO description
             exp_spec.description = epii_info.get('description', f'{exp_name} experiment')
-            
+
             # Add purpose to description if available
             if epii_info.get('purpose'):
                 exp_spec.description += f". {epii_info['purpose']}"
@@ -478,17 +478,17 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
             if not request.parameter_names:
                 logger.debug("GetParameters called - returning all parameters")
                 all_params = self.parameter_manager.get_all_parameters()
-                
+
                 # Convert all parameters to protobuf format
                 for name, value in all_params.items():
                     serialized = self.parameter_manager.serialize_value(value)
                     response.parameters[name] = str(serialized)
-                
+
                 logger.debug(f"Returned {len(all_params)} parameters")
             else:
                 # Return only requested parameters
                 logger.debug(f"GetParameters called for {len(request.parameter_names)} specific parameters")
-                
+
                 for param_name in request.parameter_names:
                     value = self.parameter_manager.get_parameter(param_name)
                     if value is not None:
@@ -602,7 +602,7 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
             for param_name, param_value in all_params.items():
                 param_info = epii_pb2.ParameterInfo()
                 param_info.name = param_name
-                
+
                 # Determine type from value
                 if isinstance(param_value, bool):
                     param_info.type = "bool"
@@ -618,16 +618,16 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                     param_info.type = "dict"
                 else:
                     param_info.type = "unknown"
-                
+
                 # Serialize current value
                 param_info.current_value = str(self.parameter_manager.serialize_value(param_value))
-                
+
                 # Simple description
                 param_info.description = f"Parameter {param_name}"
-                
+
                 # No validation means nothing is read-only
                 param_info.read_only = False
-                
+
                 response.parameters.append(param_info)
 
             logger.debug(f"Listed {len(all_params)} parameters")

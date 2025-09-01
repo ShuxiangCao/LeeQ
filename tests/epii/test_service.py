@@ -83,9 +83,9 @@ def test_capabilities(stub):
     # Check experiments are listed
     assert len(response.experiment_types) > 0
     experiment_names = [exp.name for exp in response.experiment_types]
-    assert "rabi" in experiment_names
-    assert "t1" in experiment_names
-    assert "ramsey" in experiment_names
+    assert "calibrations.NormalisedRabi" in experiment_names
+    assert "characterizations.SimpleT1" in experiment_names
+    assert "calibrations.SimpleRamseyMultilevel" in experiment_names
 
     # Check extensions
     assert response.extensions["setup_type"] == "simulation"
@@ -102,19 +102,19 @@ def test_list_available_experiments(stub):
 
     # Check specific experiments
     experiment_names = [exp.name for exp in response.experiments]
-    assert "rabi" in experiment_names
-    assert "t1" in experiment_names
-    assert "ramsey" in experiment_names
-    assert "echo" in experiment_names
-    assert "drag" in experiment_names
-    assert "randomized_benchmarking" in experiment_names
+    assert "calibrations.NormalisedRabi" in experiment_names
+    assert "characterizations.SimpleT1" in experiment_names
+    assert "calibrations.SimpleRamseyMultilevel" in experiment_names
+    assert "characterizations.SpinEchoMultiLevel" in experiment_names
+    assert "calibrations.DragCalibrationSingleQubitMultilevel" in experiment_names
+    assert "characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem" in experiment_names
 
     # Check that experiments have descriptions
     for exp in response.experiments:
         assert exp.description != ""
 
     # Check that some experiments have parameters defined
-    rabi_exp = next(exp for exp in response.experiments if exp.name == "rabi")
+    rabi_exp = next(exp for exp in response.experiments if exp.name == "calibrations.NormalisedRabi")
     assert len(rabi_exp.parameters) > 0
     # Check that dut_qubit parameter is present (from real experiment signature)
     param_names = [p.name for p in rabi_exp.parameters]
@@ -153,7 +153,7 @@ def test_run_experiment_validation(stub):
     import grpc
 
     request = epii_pb2.ExperimentRequest()
-    request.experiment_type = "rabi"
+    request.experiment_type = "calibrations.NormalisedRabi"
     # Missing required parameters
 
     try:
@@ -184,7 +184,7 @@ def test_set_parameters_implemented(stub):
 def test_run_experiment_success(stub):
     """Test successful experiment execution."""
     request = epii_pb2.ExperimentRequest()
-    request.experiment_type = "rabi"
+    request.experiment_type = "calibrations.NormalisedRabi"
     request.parameters["dut_qubit"] = "q0"
     request.parameters["start"] = "0.01"
     request.parameters["stop"] = "0.3"
@@ -211,7 +211,7 @@ def test_run_experiment_invalid_type(stub):
 def test_run_experiment_parameter_error(stub):
     """Test experiment with parameter errors."""
     request = epii_pb2.ExperimentRequest()
-    request.experiment_type = "rabi"
+    request.experiment_type = "calibrations.NormalisedRabi"
     request.parameters["invalid_param"] = "value"
 
     try:
@@ -285,7 +285,7 @@ def test_get_capabilities_complete(stub):
 
     response = stub.GetCapabilities(request)
     assert len(response.supported_experiments) > 0
-    assert "rabi" in response.supported_experiments
+    assert "calibrations.NormalisedRabi" in response.supported_experiments
     assert response.version != ""
     assert len(response.api_methods) > 0
 

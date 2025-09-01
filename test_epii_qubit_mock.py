@@ -69,7 +69,7 @@ for description, params in test_cases:
     except Exception as e:
         print(f"  Error: {e}")
 
-print("\n=== Testing full parameter mapping for 'rabi' experiment ===")
+print("\n=== Testing full parameter mapping for 'calibrations.NormalisedRabi' experiment ===")
 epii_params = {
     "qubit": "0",  # This should map to dut_qubit and resolve to MockQubit(q0)
     "amplitude": "0.5",  # Should map to 'amp'
@@ -79,7 +79,7 @@ epii_params = {
 }
 
 print(f"Input EPII params: {epii_params}")
-leeq_params = router.map_parameters("rabi", epii_params, setup)
+leeq_params = router.map_parameters("calibrations.NormalisedRabi", epii_params, setup)
 print(f"Mapped LeeQ params:")
 for key, value in leeq_params.items():
     print(f"  {key}: {value} (type: {type(value).__name__})")

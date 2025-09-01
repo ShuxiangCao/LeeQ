@@ -125,12 +125,12 @@ def validate_experiment_results(notebook_path, expected_experiments=None):
         
         # Look for experiment patterns in code cells
         experiment_patterns = {
-            'NormalisedRabi': 'rabi',
-            'SimpleRamseyMultilevel': 'ramsey', 
-            'SimpleT1': 't1',
+            'NormalisedRabi': 'calibrations.NormalisedRabi',
+            'SimpleRamseyMultilevel': 'calibrations.SimpleRamseyMultilevel', 
+            'SimpleT1': 'characterizations.SimpleT1',
             'SpinEchoMultiLevel': 't2_echo',
             'AmpPingpongCalibrationSingleQubitMultilevel': 'pingpong',
-            'CrossAllXYDragMultiRunSingleQubitMultilevel': 'drag'
+            'CrossAllXYDragMultiRunSingleQubitMultilevel': 'calibrations.DragCalibrationSingleQubitMultilevel'
         }
         
         found_patterns = set()
@@ -251,9 +251,9 @@ def validate_notebook_content_quality(notebook_path):
         # Check experiments based on notebook type
         if 'tutorial' in notebook_path.lower():
             if '01_basics' in notebook_path:
-                expected = ['rabi']
+                expected = ['calibrations.NormalisedRabi']
             elif '02_single_qubit' in notebook_path:
-                expected = ['rabi', 'ramsey', 't1', 't2_echo']
+                expected = ['calibrations.NormalisedRabi', 'calibrations.SimpleRamseyMultilevel', 'characterizations.SimpleT1', 't2_echo']
             else:
                 expected = None
             
