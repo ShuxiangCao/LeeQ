@@ -9,6 +9,38 @@ from leeq.utils.compatibility import prims
 
 
 class CalibrateFullAssignmentMatrices(Experiment):
+    EPII_INFO = {
+        "name": "CalibrateFullAssignmentMatrices",
+        "description": "Calibrate full assignment matrix for multi-qubit readout correction",
+        "purpose": "Generates complete assignment matrix for readout error mitigation by preparing all computational basis states and measuring outcomes. Exponentially scales with qubit number but provides complete error characterization.",
+        "attributes": {
+            "qubit_number": {
+                "type": "int",
+                "description": "Number of qubits in the system"
+            },
+            "result": {
+                "type": "np.ndarray",
+                "description": "Raw measurement results",
+                "shape": "(n_qubits, n_states, n_measurements)"
+            },
+            "assignment_matrix": {
+                "type": "np.ndarray",
+                "description": "Computed assignment probability matrix",
+                "shape": "(n_basis_states, n_basis_states)"
+            },
+            "max_level": {
+                "type": "int",
+                "description": "Highest distinguishable state level"
+            }
+        },
+        "notes": [
+            "Scales exponentially with qubit number",
+            "Supports multi-level (qudit) systems",
+            "Matrix can be inverted for error mitigation",
+            "Complete characterization of readout errors"
+        ]
+    }
+    
     """
     A class that extends Experiment to perform an assignment matrix experiment
     on a set of Device Under Test (DUTs) based on specified measurement primitives.
@@ -115,6 +147,38 @@ class CalibrateFullAssignmentMatrices(Experiment):
 
 
 class CalibrateSingleDutAssignmentMatrices(Experiment):
+    EPII_INFO = {
+        "name": "CalibrateSingleDutAssignmentMatrices",
+        "description": "Calibrate assignment matrix for single-qubit readout correction",
+        "purpose": "Generates assignment matrix for single-qubit readout error mitigation by preparing basis states and measuring outcomes. More efficient than full calibration for independent errors.",
+        "attributes": {
+            "qubit_number": {
+                "type": "int",
+                "description": "Number of qubits (always 1 for single DUT)"
+            },
+            "result": {
+                "type": "np.ndarray",
+                "description": "Raw measurement results",
+                "shape": "(1, n_states, n_measurements)"
+            },
+            "assignment_matrices": {
+                "type": "list[np.ndarray]",
+                "description": "Individual assignment matrices per qubit",
+                "shape": "List of (n_levels+1, n_levels+1) matrices"
+            },
+            "max_level": {
+                "type": "int",
+                "description": "Highest distinguishable state level"
+            }
+        },
+        "notes": [
+            "Assumes independent readout errors",
+            "Scales linearly with qubit number",
+            "More efficient than full calibration",
+            "Supports multi-level systems"
+        ]
+    }
+    
     """
     A class that extends Experiment to perform an assignment matrix experiment
     on a set of Device Under Test (DUTs) based on specified measurement primitives.

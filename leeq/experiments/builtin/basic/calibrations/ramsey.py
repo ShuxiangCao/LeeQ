@@ -30,6 +30,55 @@ __all__ = ['SimpleRamseyMultilevel', 'MultiQubitRamseyMultilevel']
 
 
 class SimpleRamseyMultilevel(Experiment):
+    EPII_INFO = {
+        "name": "SimpleRamseyMultilevel",
+        "description": "Simple Ramsey experiment with multilevel frequency sweeps",
+        "purpose": "Performs a Ramsey fringe experiment to measure qubit frequency detuning and T2* coherence time. Used for precise frequency calibration and characterizing dephasing.",
+        "attributes": {
+            "data": {
+                "type": "np.ndarray[complex]",
+                "description": "Raw measurement data showing Ramsey fringes",
+                "shape": "(n_time_points,)"
+            },
+            "set_offset": {
+                "type": "float",
+                "description": "Applied frequency offset (MHz)"
+            },
+            "frequency_guess": {
+                "type": "ufloat",
+                "description": "Estimated qubit frequency from fit"
+            },
+            "fit_result": {
+                "type": "dict",
+                "description": "Fitted parameters from sinusoidal decay fit",
+                "keys": {
+                    "Frequency": "float - Detuning frequency",
+                    "Phase": "float - Initial phase",
+                    "Amplitude": "float - Oscillation amplitude",
+                    "Decay": "float - T2* decay rate"
+                }
+            },
+            "mp": {
+                "type": "MeasurementPrimitive",
+                "description": "Measurement primitive used"
+            },
+            "level_diff": {
+                "type": "int",
+                "description": "Energy level difference (e.g., 1 for f01)"
+            },
+            "original_freq": {
+                "type": "float",
+                "description": "Original qubit frequency before offset"
+            }
+        },
+        "notes": [
+            "Shows 3-10 oscillations for optimal results",
+            "Frequency offset creates artificial detuning",
+            "Decay envelope gives T2* coherence time",
+            "Updates qubit frequency if update=True"
+        ]
+    }
+    
     """
     Represents a simple Ramsey experiment with multilevel frequency sweeps.
     This version has changed the step size from 0.001 to 0.005.
@@ -458,6 +507,59 @@ class SimpleRamseyMultilevel(Experiment):
 
 
 class MultiQubitRamseyMultilevel(Experiment):
+    EPII_INFO = {
+        "name": "MultiQubitRamseyMultilevel",
+        "description": "Multi-qubit Ramsey experiment with multilevel frequency sweeps",
+        "purpose": "Performs parallel Ramsey fringe experiments on multiple qubits to measure frequency detuning and T2* coherence times. Efficiently calibrates frequencies for multiple qubits simultaneously.",
+        "attributes": {
+            "data": {
+                "type": "list[np.ndarray[complex]]",
+                "description": "Raw measurement data for each qubit",
+                "shape": "List of arrays, each (n_time_points,)"
+            },
+            "set_offset": {
+                "type": "float",
+                "description": "Applied frequency offset (MHz) for all qubits"
+            },
+            "frequency_guesses": {
+                "type": "list[ufloat]",
+                "description": "Estimated frequencies for each qubit from fit"
+            },
+            "fit_results": {
+                "type": "list[dict]",
+                "description": "Fitted parameters for each qubit",
+                "keys": {
+                    "Frequency": "float - Detuning frequency per qubit",
+                    "Phase": "float - Initial phase per qubit",
+                    "Amplitude": "float - Oscillation amplitude per qubit",
+                    "Decay": "float - T2* decay rate per qubit"
+                }
+            },
+            "mp": {
+                "type": "list[MeasurementPrimitive]",
+                "description": "Measurement primitives for each qubit"
+            },
+            "level_diffs": {
+                "type": "list[int]",
+                "description": "Energy level differences for each qubit"
+            },
+            "original_freqs": {
+                "type": "list[float]",
+                "description": "Original frequencies before offset for each qubit"
+            },
+            "collection_names": {
+                "type": "list[str]",
+                "description": "Collection names used for each qubit"
+            }
+        },
+        "notes": [
+            "Runs Ramsey on multiple qubits in parallel",
+            "Each qubit can have different collection names",
+            "Supports different measurement primitives per qubit",
+            "Efficient for multi-qubit frequency calibration"
+        ]
+    }
+    
     """
     Implement a multi-qubit Ramsey experiment with multilevel frequency sweeps.
     This version has changed the step size from 0.001 to 0.005.

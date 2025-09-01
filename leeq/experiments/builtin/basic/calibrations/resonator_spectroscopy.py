@@ -30,6 +30,45 @@ __all__ = [
 
 
 class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
+    EPII_INFO = {
+        "name": "ResonatorSweepTransmissionWithExtraInitialLPB",
+        "description": "Resonator frequency sweep with optional initial state preparation",
+        "purpose": "Performs a frequency sweep to find and characterize the resonator response. Supports optional initial logical primitive block (LPB) for state preparation, allowing measurement of the resonator in different qubit states. Used for finding resonator frequency and characterizing dispersive shifts.",
+        "attributes": {
+            "mp": {
+                "type": "MeasurementPrimitive",
+                "description": "The measurement primitive used for readout"
+            },
+            "data": {
+                "type": "np.ndarray[complex]",
+                "description": "Raw complex IQ response data",
+                "shape": "(n_frequency_points,)"
+            },
+            "result": {
+                "type": "dict",
+                "description": "Processed results containing magnitude and phase",
+                "keys": {
+                    "Magnitude": "np.ndarray[float] - Magnitude of resonator response",
+                    "Phase": "np.ndarray[float] - Phase of resonator response"
+                }
+            },
+            "use_kerr_nonlinearity": {
+                "type": "bool",
+                "description": "Whether Kerr nonlinearity is enabled (simulation only)"
+            },
+            "drive_power": {
+                "type": "float",
+                "description": "Drive power for Kerr simulation (simulation only)"
+            }
+        },
+        "notes": [
+            "Initial LPB allows measuring dispersive shift by preparing different qubit states",
+            "Supports Kerr nonlinearity simulation for high-power regime",
+            "Provides phase gradient fitting for resonator characterization",
+            "Multi-qubit simulation uses channel-based readout"
+        ]
+    }
+    
     """
     Class representing a resonator sweep transmission experiment with extra initial LPB.
     Inherits from a generic "experiment" class.
@@ -58,20 +97,33 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             initial_lpb=None,
             amp: float = 0.02) -> None:
         """
-        Run the resonator sweep transmission experiment. Usually used to find the resonator.
+        Execute the experiment on hardware.
 
-        The initial lpb is for exciting the qubit to a different state.
+        Parameters
+        ----------
+        dut_qubit : TransmonElement
+            The device under test (qubit object).
+        start : float, optional
+            Start frequency for the sweep (MHz). Default: 8000.0
+        stop : float, optional
+            Stop frequency for the sweep (MHz). Default: 9000.0
+        step : float, optional
+            Frequency increment (MHz). Default: 5.0
+        num_avs : int, optional
+            Number of averages. Default: 5000
+        rep_rate : float, optional
+            Repetition rate. Default: 0.0
+        mp_width : float, optional
+            Measurement pulse width (μs). If None, uses rep_rate. Default: 8.0
+        initial_lpb : LogicalPrimitiveBlock, optional
+            Initial LPB for state preparation. Default: None
+        amp : float, optional
+            Drive amplitude. Default: 0.02
 
-        Parameters:
-            dut_qubit: The device under test (DUT) qubit.
-            start (float): Start frequency for the sweep. Unit: MHz Default is 8000.
-            stop (float): Stop frequency for the sweep. Unit: MHz Default is 9000.
-            step (float): Frequency step for the sweep. Unit: MHz Default is 5.0.
-            num_avs (int): Number of averages. Default is 1000.
-            rep_rate (float): Repetition rate. Default is 0.0.
-            mp_width (float): Measurement pulse width. Unit us.:w If None, uses rep_rate. Default is None.
-            initial_lpb: Initial linear phase behavior (LPB). Default is None.
-            amp (float): Amplitude. Default is 0.02.
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
         """
         # Sweep the frequency
         mp = dut_qubit.get_default_measurement_prim_intlist().clone()
@@ -137,41 +189,50 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
                       use_kerr_nonlinearity: bool = False,
                       power: float = None) -> None:
         """
-        Run simulated resonator sweep transmission experiment using multi-qubit dispersive readout.
+        Execute the experiment in simulation mode.
 
-        This method performs a frequency sweep simulation using the MultiQubitDispersiveReadoutSimulator
-        instead of the legacy VirtualTransmon approach. It supports both linear and nonlinear (Kerr)
-        resonator response regimes and maintains full backward compatibility with single-qubit experiments.
+        Parameters
+        ----------
+        dut_qubit : TransmonElement
+            The device under test (qubit object).
+        start : float, optional
+            Start frequency for the sweep (MHz). Default: 8000.0
+        stop : float, optional
+            Stop frequency for the sweep (MHz). Default: 9000.0
+        step : float, optional
+            Frequency increment (MHz). Default: 5.0
+        num_avs : int, optional
+            Number of averages. Default: 1000
+        rep_rate : float, optional
+            Repetition rate. Default: 0.0
+        mp_width : float, optional
+            Measurement pulse width (μs). If None, uses rep_rate. Default: None
+        initial_lpb : LogicalPrimitiveBlock, optional
+            Initial LPB for state preparation. Must be None for multi-qubit simulation. Default: None
+        amp : float, optional
+            Drive amplitude. Default: 0.02
+        use_kerr_nonlinearity : bool, optional
+            Enable Kerr nonlinearity effects for high-power regime. Default: False
+        power : float, optional
+            Explicit drive power for Kerr simulation. If None, calculated as amp². Default: None
 
-        The simulation uses channel-based readout to properly handle multi-qubit systems with cross-coupling
-        effects. Parameters are automatically extracted from the HighLevelSimulationSetup and a coupling
-        matrix is constructed from dispersive shifts and qubit-qubit interactions.
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
 
-        Parameters:
-            dut_qubit (TransmonElement): The device under test (DUT) qubit element.
-            start (float): Start frequency for the sweep in MHz. Default is 8000.
-            stop (float): Stop frequency for the sweep in MHz. Default is 9000.
-            step (float): Frequency step size for the sweep in MHz. Default is 5.0.
-            num_avs (int): Number of averages for noise simulation. Default is 1000.
-            rep_rate (float): Repetition rate in μs. Default is 0.0.
-            mp_width (float): Measurement pulse width in μs. If None, uses rep_rate. Default is None.
-            initial_lpb: Initial logical primitive block for state preparation.
-                        Must be None for multi-qubit simulation. Default is None.
-            amp (float): Drive amplitude in arbitrary units. Default is 0.02.
-            use_kerr_nonlinearity (bool): Enable Kerr nonlinearity effects for high-power
-                                        regime simulation. Default is False.
-            power (float): Explicit drive power for Kerr simulation. If None, calculated
-                          as amp². Used when use_kerr_nonlinearity=True. Default is None.
+        Raises
+        ------
+        ValueError
+            If initial_lpb is not None (not supported in multi-qubit mode).
 
-        Raises:
-            ValueError: If initial_lpb is not None (not supported in multi-qubit mode).
-
-        Notes:
-            - The simulation assumes ground state initialization for all qubits
-            - Channel mapping is automatically determined from the dut_qubit configuration
-            - Results maintain identical format to hardware experiments: {"Magnitude": array, "Phase": array}
-            - Kerr effects are only applied if use_kerr_nonlinearity=True
-            - Noise is simulated based on num_avs parameter (noise_std = 1/√num_avs)
+        Notes
+        -----
+        - The simulation assumes ground state initialization for all qubits
+        - Channel mapping is automatically determined from the dut_qubit configuration
+        - Results maintain identical format to hardware experiments
+        - Kerr effects are only applied if use_kerr_nonlinearity=True
+        - Noise is simulated based on num_avs parameter (noise_std = 1/√num_avs)
         """
 
         if initial_lpb is not None:
@@ -746,6 +807,29 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
 
 
 class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
+    EPII_INFO = {
+        "name": "ResonatorSweepAmpFreqWithExtraInitialLPB",
+        "description": "2D resonator sweep of frequency and amplitude with optional state preparation",
+        "purpose": "Performs a 2D sweep of both frequency and amplitude to characterize resonator response across different drive powers. Supports optional initial LPB for measuring dispersive shifts in different qubit states. Used for power-dependent characterization and nonlinearity studies.",
+        "attributes": {
+            "mp": {
+                "type": "MeasurementPrimitive",
+                "description": "The measurement primitive used for readout"
+            },
+            "trace": {
+                "type": "np.ndarray[complex]",
+                "description": "2D array of complex IQ response data",
+                "shape": "(n_amplitude_points, n_frequency_points)"
+            }
+        },
+        "notes": [
+            "2D sweep creates amplitude x frequency grid",
+            "Initial LPB allows measuring in different qubit states",
+            "Useful for identifying power-dependent effects",
+            "No run_simulated method currently implemented"
+        ]
+    }
+    
     @log_and_record
     def run(self,
             dut_qubit: TransmonElement,
@@ -760,25 +844,37 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
             amp_stop: float = 1,
             amp_step: float = 0.05) -> None:
         """
-        Run an experiment by sweeping the frequency and amplitude of a qubit. Do not use this
-        if you are not sweeping the amplitude.
+        Execute the experiment on hardware.
 
-        Parameters:
-        - dut_qubit: The qubit under test.
-        - start (float): The starting frequency for the sweep. In MHz
-        - stop (float): The stopping frequency for the sweep. In MHz
-        - step (float): The step size between frequencies in the sweep. In MHz
-        - num_avs (int): The number of averages to take.
-        - rep_rate (float): Repetition rate of the experiment.
-        - mp_width (Optional[float]): Measurement primitive width. If None, `rep_rate` is used.
-        - initial_lpb: Initial LPB to be added to the delay and measurement primitive.
-        - update (bool): Flag to decide whether to update parameters or not.
-        - amp_start (float): The starting amplitude for the amplitude sweep.
-        - amp_stop (float): The stopping amplitude for the amplitude sweep.
-        - amp_step (float): The step size between amplitudes in the amplitude sweep.
+        Parameters
+        ----------
+        dut_qubit : TransmonElement
+            The device under test (qubit object).
+        start : float, optional
+            Start frequency for the sweep (MHz). Default: 8000.0
+        stop : float, optional
+            Stop frequency for the sweep (MHz). Default: 9000.0
+        step : float, optional
+            Frequency increment (MHz). Default: 5.0
+        num_avs : int, optional
+            Number of averages. Default: 200
+        rep_rate : float, optional
+            Repetition rate. Default: 0.0
+        mp_width : Optional[float], optional
+            Measurement primitive width (μs). If None, uses rep_rate. Default: 8.0
+        initial_lpb : LogicalPrimitiveBlock, optional
+            Initial LPB for state preparation. Default: None
+        amp_start : float, optional
+            Start amplitude for the sweep. Default: 0.0
+        amp_stop : float, optional
+            Stop amplitude for the sweep. Default: 1.0
+        amp_step : float, optional
+            Amplitude increment. Default: 0.05
 
-        Returns:
+        Returns
+        -------
         None
+            Results are stored in instance attributes.
         """
         # Get the original measurement primitive.
         mprim_index = '0'
@@ -970,6 +1066,25 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
 
 
 class ResonatorSweepTransmissionXiComparison(Experiment):
+    EPII_INFO = {
+        "name": "ResonatorSweepTransmissionXiComparison",
+        "description": "Compare resonator response across different qubit states",
+        "purpose": "Performs resonator frequency sweeps with different initial qubit states to measure and compare dispersive shifts. This allows extraction of chi (dispersive shift) by comparing resonator response when qubit is in |0> vs |1> or higher states.",
+        "attributes": {
+            "result_dict": {
+                "type": "dict",
+                "description": "Dictionary of ResonatorSweepTransmissionWithExtraInitialLPB experiments",
+                "keys": "State labels mapping to experiment instances"
+            }
+        },
+        "notes": [
+            "Each LPB in lpb_scan prepares a different qubit state",
+            "Useful for measuring dispersive shift chi",
+            "Can compare ground, excited, and higher level states",
+            "No run_simulated method currently implemented"
+        ]
+    }
+    
     """
     Class for comparing resonator sweep transmission with extra initial logical primitive block (LPB).
     It includes methods to run the experiment, and to plot magnitude and phase using both
@@ -988,20 +1103,33 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
             mp_width: Optional[float] = 8,
             amp: Optional[float] = None) -> None:
         """
-        Runs the resonator sweep transmission experiment and compare the response from the different state of the qubit.
-        Not used for resonator discovery.
+        Execute the experiment on hardware.
 
-        Parameters:
-            dut_qubit: The device under test (DUT) qubit.
-            lpb_scan: The LPB to be scanned.
-            start (float): Start frequency for the sweep. Default is 8000.
-            stop (float): Stop frequency for the sweep. Default is 9000.
-            step (float): Frequency step for the sweep. Default is 5.0.
-            res_power (float): Power of the resonator. Default is 15.0.
-            num_avs (int): Number of averages. Default is 1000.
-            rep_rate (float): Repetition rate. Default is 10.0.
-            mp_width (float): Measurement pulse width. If None, uses rep_rate. Default is None.
-            amp (float): Amplitude. Default is None.
+        Parameters
+        ----------
+        dut_qubit : Any
+            The device under test (qubit object).
+        lpb_scan : Union[List, Tuple, Dict]
+            LPBs for different state preparations to compare.
+        start : float, optional
+            Start frequency for the sweep (MHz). Default: 8000.0
+        stop : float, optional
+            Stop frequency for the sweep (MHz). Default: 9000.0
+        step : float, optional
+            Frequency increment (MHz). Default: 5.0
+        num_avs : int, optional
+            Number of averages. Default: 5000
+        rep_rate : float, optional
+            Repetition rate. Default: 0.0
+        mp_width : Optional[float], optional
+            Measurement pulse width (μs). Default: 8.0
+        amp : Optional[float], optional
+            Drive amplitude. Default: None
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
         """
         if isinstance(lpb_scan, (tuple, list)):
             lpb_scan = dict(enumerate(lpb_scan))
@@ -1113,6 +1241,46 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
 # New Kerr-enabled experiments for high-power regime characterization
 
 class ResonatorPowerSweepSpectroscopy(Experiment):
+    EPII_INFO = {
+        "name": "ResonatorPowerSweepSpectroscopy",
+        "description": "Power sweep spectroscopy to observe bistability and S-curves",
+        "purpose": "Sweeps power at a fixed frequency to observe the characteristic S-curve response and bistability phenomena in the high-power regime. Used to characterize nonlinear resonator behavior and find critical powers for bistability.",
+        "attributes": {
+            "data": {
+                "type": "np.ndarray[complex]",
+                "description": "Complex IQ response data at each power point",
+                "shape": "(n_power_points,)"
+            },
+            "result": {
+                "type": "dict",
+                "description": "Processed results containing magnitude and phase",
+                "keys": {
+                    "Magnitude": "np.ndarray[float] - Response magnitude at each power",
+                    "Phase": "np.ndarray[float] - Response phase at each power"
+                }
+            },
+            "freq": {
+                "type": "float",
+                "description": "Fixed frequency for the power sweep (MHz)"
+            },
+            "powers": {
+                "type": "np.ndarray[float]",
+                "description": "Array of drive powers used in sweep",
+                "shape": "(n_power_points,)"
+            },
+            "sweep_direction": {
+                "type": "str",
+                "description": "Direction of power sweep ('up' or 'down')"
+            }
+        },
+        "notes": [
+            "Demonstrates S-curve response in bistable regime",
+            "Sweep direction affects hysteresis behavior",
+            "Critical power marks onset of bistability",
+            "Uses Kerr nonlinearity simulation for realistic modeling"
+        ]
+    }
+    
     """
     Power sweep spectroscopy experiment to observe bistability and S-curves.
 
@@ -1269,12 +1437,100 @@ class ResonatorPowerSweepSpectroscopy(Experiment):
 
 
 class ResonatorBistabilityCharacterization(Experiment):
+    EPII_INFO = {
+        "name": "ResonatorBistabilityCharacterization",
+        "description": "Characterize bistability by measuring hysteresis loops",
+        "purpose": "Performs both forward and backward power sweeps to map out the hysteresis loop and identify critical powers. Used to fully characterize bistable behavior including jump points and hysteresis width.",
+        "attributes": {
+            "forward_result": {
+                "type": "dict",
+                "description": "Results from forward (increasing power) sweep",
+                "keys": {
+                    "Magnitude": "np.ndarray[float] - Forward sweep magnitude",
+                    "Phase": "np.ndarray[float] - Forward sweep phase"
+                }
+            },
+            "backward_result": {
+                "type": "dict",
+                "description": "Results from backward (decreasing power) sweep",
+                "keys": {
+                    "Magnitude": "np.ndarray[float] - Backward sweep magnitude",
+                    "Phase": "np.ndarray[float] - Backward sweep phase"
+                }
+            },
+            "powers_forward": {
+                "type": "np.ndarray[float]",
+                "description": "Power array for forward sweep",
+                "shape": "(n_power_points,)"
+            },
+            "powers_backward": {
+                "type": "np.ndarray[float]",
+                "description": "Power array for backward sweep",
+                "shape": "(n_power_points,)"
+            },
+            "freq": {
+                "type": "float",
+                "description": "Fixed frequency for power sweeps (MHz)"
+            },
+            "forward_jump_power": {
+                "type": "float or None",
+                "description": "Critical power for forward jump (low to high branch)"
+            },
+            "backward_jump_power": {
+                "type": "float or None",
+                "description": "Critical power for backward jump (high to low branch)"
+            },
+            "hysteresis_width": {
+                "type": "float or None",
+                "description": "Width of hysteresis loop (difference in critical powers)"
+            }
+        },
+        "notes": [
+            "Hysteresis loop reveals bistable dynamics",
+            "Jump points indicate critical powers for branch switching",
+            "Hysteresis width quantifies bistability strength",
+            "Requires Kerr nonlinearity simulation for accurate results"
+        ]
+    }
+    
     """
     Characterize bistability by measuring hysteresis loops.
 
     This experiment performs both forward and backward power sweeps
     to map out the hysteresis loop and identify critical powers.
     """
+
+    def run(self,
+             dut_qubit: TransmonElement,
+             freq: float = 7000,
+             power_start: float = 0.01,
+             power_stop: float = 1.0,
+             power_step: float = 0.005,
+             num_avs: int = 1000) -> None:
+        """
+        Execute the experiment on hardware.
+
+        Parameters
+        ----------
+        dut_qubit : TransmonElement
+            The device under test (qubit object).
+        freq : float, optional
+            Fixed probe frequency (MHz). Default: 7000.0
+        power_start : float, optional
+            Start power for sweep. Default: 0.01
+        power_stop : float, optional
+            Stop power for sweep. Default: 1.0
+        power_step : float, optional
+            Power step size. Default: 0.005
+        num_avs : int, optional
+            Number of averages. Default: 1000
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
+        """
+        logger.warning("Hardware version not implemented. Use run_simulated instead.")
 
     @log_and_record
     def run_simulated(self,
@@ -1285,15 +1541,27 @@ class ResonatorBistabilityCharacterization(Experiment):
                       power_step: float = 0.005,
                       num_avs: int = 1000) -> None:
         """
-        Characterize bistability with forward and backward sweeps.
+        Execute the experiment in simulation mode.
 
-        Parameters:
-            dut_qubit: The device under test (DUT) qubit.
-            freq (float): Fixed probe frequency in MHz.
-            power_start (float): Start power for sweep.
-            power_stop (float): Stop power for sweep.
-            power_step (float): Power step size.
-            num_avs (int): Number of averages.
+        Parameters
+        ----------
+        dut_qubit : TransmonElement
+            The device under test (qubit object).
+        freq : float, optional
+            Fixed probe frequency (MHz). Default: 7000.0
+        power_start : float, optional
+            Start power for sweep. Default: 0.01
+        power_stop : float, optional
+            Stop power for sweep. Default: 1.0
+        power_step : float, optional
+            Power step size. Default: 0.005
+        num_avs : int, optional
+            Number of averages. Default: 1000
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
         """
         # Run forward sweep (increasing power)
         forward_exp = ResonatorPowerSweepSpectroscopy()
@@ -1414,12 +1682,100 @@ class ResonatorBistabilityCharacterization(Experiment):
 
 
 class ResonatorThreeRegimeCharacterization(Experiment):
+    EPII_INFO = {
+        "name": "ResonatorThreeRegimeCharacterization",
+        "description": "Comprehensive characterization of all three power regimes",
+        "purpose": "Demonstrates linear, bistable, and high-power regimes by performing frequency sweeps at different power levels. Used to understand the full nonlinear behavior of the resonator across different driving strengths.",
+        "attributes": {
+            "regime_results": {
+                "type": "dict",
+                "description": "Results for each power regime",
+                "keys": {
+                    "linear": "dict - Results from linear regime sweep",
+                    "bistable": "dict - Results from bistable regime sweep",
+                    "high_power": "dict - Results from high-power regime sweep"
+                }
+            },
+            "powers": {
+                "type": "dict",
+                "description": "Power values used for each regime",
+                "keys": {
+                    "linear": "float - Power for linear regime",
+                    "bistable": "float - Power for bistable regime",
+                    "high_power": "float - Power for high-power regime"
+                }
+            },
+            "frequencies": {
+                "type": "np.ndarray[float]",
+                "description": "Frequency array for sweeps (MHz)",
+                "shape": "(n_frequency_points,)"
+            },
+            "regime_analysis": {
+                "type": "dict",
+                "description": "Analyzed characteristics for each regime",
+                "keys": {
+                    "linear": "dict - Linear regime characteristics",
+                    "bistable": "dict - Bistable regime characteristics",
+                    "high_power": "dict - High-power regime characteristics"
+                }
+            }
+        },
+        "notes": [
+            "Auto-selects powers based on critical power if enabled",
+            "Linear regime shows simple Lorentzian response",
+            "Bistable regime exhibits S-curve and hysteresis",
+            "High-power regime shows shifted and distorted lineshapes",
+            "Comprehensive view of nonlinear resonator physics"
+        ]
+    }
+    
     """
     Comprehensive characterization of all three power regimes.
 
     This experiment demonstrates linear, bistable, and high-power regimes
     by performing frequency sweeps at different power levels.
     """
+
+    def run(self,
+             dut_qubit: TransmonElement,
+             start: float = 6500,
+             stop: float = 7500,
+             step: float = 2.0,
+             num_avs: int = 1000,
+             auto_power_selection: bool = True,
+             linear_power: float = 0.05,
+             bistable_power: float = 0.3,
+             high_power: float = 2.0) -> None:
+        """
+        Execute the experiment on hardware.
+
+        Parameters
+        ----------
+        dut_qubit : TransmonElement
+            The device under test (qubit object).
+        start : float, optional
+            Start frequency for sweeps (MHz). Default: 6500.0
+        stop : float, optional
+            Stop frequency for sweeps (MHz). Default: 7500.0
+        step : float, optional
+            Frequency step size (MHz). Default: 2.0
+        num_avs : int, optional
+            Number of averages. Default: 1000
+        auto_power_selection : bool, optional
+            Auto-select powers based on critical power. Default: True
+        linear_power : float, optional
+            Power for linear regime (used if auto=False). Default: 0.05
+        bistable_power : float, optional
+            Power for bistable regime (used if auto=False). Default: 0.3
+        high_power : float, optional
+            Power for high-power regime (used if auto=False). Default: 2.0
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
+        """
+        logger.warning("Hardware version not implemented. Use run_simulated instead.")
 
     @log_and_record
     def run_simulated(self,
@@ -1433,18 +1789,33 @@ class ResonatorThreeRegimeCharacterization(Experiment):
                       bistable_power: float = 0.3,
                       high_power: float = 2.0) -> None:
         """
-        Characterize all three power regimes with frequency sweeps.
+        Execute the experiment in simulation mode.
 
-        Parameters:
-            dut_qubit: The device under test (DUT) qubit.
-            start (float): Start frequency for sweeps in MHz.
-            stop (float): Stop frequency for sweeps in MHz.
-            step (float): Frequency step size in MHz.
-            num_avs (int): Number of averages.
-            auto_power_selection (bool): Auto-select powers based on critical power.
-            linear_power (float): Power for linear regime (used if auto=False).
-            bistable_power (float): Power for bistable regime (used if auto=False).
-            high_power (float): Power for high-power regime (used if auto=False).
+        Parameters
+        ----------
+        dut_qubit : TransmonElement
+            The device under test (qubit object).
+        start : float, optional
+            Start frequency for sweeps (MHz). Default: 6500.0
+        stop : float, optional
+            Stop frequency for sweeps (MHz). Default: 7500.0
+        step : float, optional
+            Frequency step size (MHz). Default: 2.0
+        num_avs : int, optional
+            Number of averages. Default: 1000
+        auto_power_selection : bool, optional
+            Auto-select powers based on critical power. Default: True
+        linear_power : float, optional
+            Power for linear regime (used if auto=False). Default: 0.05
+        bistable_power : float, optional
+            Power for bistable regime (used if auto=False). Default: 0.3
+        high_power : float, optional
+            Power for high-power regime (used if auto=False). Default: 2.0
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
         """
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
         virtual_transmon = simulator_setup.get_virtual_qubit(dut_qubit)
@@ -1641,6 +2012,37 @@ class ResonatorThreeRegimeCharacterization(Experiment):
 # Assuming other necessary modules are imported elsewhere in the project.
 
 class MeasurementScanParams(Experiment):
+    EPII_INFO = {
+        "name": "MeasurementScanParams",
+        "description": "Scan measurement parameters to optimize SNR",
+        "purpose": "Scans measurement frequency and amplitude parameters to find optimal signal-to-noise ratio (SNR) for state discrimination. Used to optimize readout parameters for improved qubit state measurement fidelity.",
+        "attributes": {
+            "snrs": {
+                "type": "np.ndarray[float]",
+                "description": "Signal-to-noise ratios for each scan point",
+                "shape": "(n_freqs, n_amps)"
+            },
+            "scanned_freqs": {
+                "type": "list[float]",
+                "description": "List of scanned frequencies (MHz)"
+            },
+            "scanned_amps": {
+                "type": "list[float]",
+                "description": "List of scanned amplitudes"
+            },
+            "measurement_scan_result": {
+                "type": "list",
+                "description": "List of MeasurementCalibrationMultilevelGMM results for each scan point"
+            }
+        },
+        "notes": [
+            "Optimizes readout SNR for better state discrimination",
+            "Can scan frequency and/or amplitude parameters",
+            "Accumulates SNR across all distinguishable states if enabled",
+            "Results help identify optimal measurement settings"
+        ]
+    }
+    
     """
     Class for managing and executing measurement scan parameters
     in an experimental setup.
@@ -1652,17 +2054,29 @@ class MeasurementScanParams(Experiment):
             accumulate_snr_for_all_distinguishable_state: bool = True,
             disable_sub_plot: bool = True):
         """
-        Execute the measurement scan with given parameters.
+        Execute the experiment on hardware.
 
-        Args:
-            dut: Device under test.
-            sweep_lpb_list: List of sweep parameters.
-            mprim_index (int): Measurement primitive index.
-            amp_scan (dict, optional): Parameters for amplitude scan.
-            freq_scan (dict, optional): Parameters for frequency scan.
-            accumulate_snr_for_all_distinguishable_state (bool, optional):
-                Flag to accumulate SNR for all distinguishable states.
-            disable_sub_plot (bool, optional): Flag to disable subplot.
+        Parameters
+        ----------
+        dut : Any
+            Device under test.
+        sweep_lpb_list : list
+            List of sweep parameters.
+        mprim_index : int
+            Measurement primitive index.
+        amp_scan : dict, optional
+            Parameters for amplitude scan. Default: None
+        freq_scan : dict, optional
+            Parameters for frequency scan. Default: None
+        accumulate_snr_for_all_distinguishable_state : bool, optional
+            Flag to accumulate SNR for all distinguishable states. Default: True
+        disable_sub_plot : bool, optional
+            Flag to disable subplot. Default: True
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
         """
         # Initialize lists to store scan results
         self.snrs = []

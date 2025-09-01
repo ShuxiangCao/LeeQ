@@ -31,6 +31,39 @@ class SpinEchoMultiLevel(
         Plots the results of the echo experiment.
     """
 
+    EPII_INFO = {
+        "name": "SpinEchoMultiLevel",
+        "description": "Spin echo T2 coherence time measurement experiment",
+        "purpose": "Measures the T2 echo coherence time using a spin echo pulse sequence (π/2 - τ/2 - π - τ/2 - π/2 - measure). This refocuses low-frequency noise and provides the intrinsic T2 coherence time, which is typically longer than T2* from Ramsey experiments. Essential for characterizing qubit coherence properties.",
+        "attributes": {
+            "trace": {
+                "type": "np.ndarray[float]",
+                "description": "Population measurements as function of free evolution time",
+                "shape": "(n_time_points,)"
+            },
+            "mp": {
+                "type": "MeasurementPrimitive",
+                "description": "Measurement primitive used for qubit readout"
+            },
+            "fit_params": {
+                "type": "dict",
+                "description": "Fitted exponential decay parameters",
+                "keys": {
+                    "Decay": "ufloat - T2 echo time constant in microseconds",
+                    "Amplitude": "ufloat - Initial amplitude of decay",
+                    "Offset": "ufloat - Steady-state offset value"
+                }
+            }
+        },
+        "notes": [
+            "Free evolution time should be ~5x expected T2 echo value",
+            "The π pulse refocuses static field inhomogeneities",
+            "T2 echo is typically longer than T2* (Ramsey)",
+            "Fits to: A * exp(-t/T2_echo) + Offset",
+            "Time resolution should capture ~50 data points"
+        ]
+    }
+
     _experiment_result_analysis_instructions = """The Spin echo experiment measures the T2 echo relaxation time of a qubit.
     Please analyze the fitted plots and the fitting model to verify the data's validity. Subsequently, determine
     if the experiment needs to be rerun and adjust the experimental parameters as necessary. The suggested time
@@ -49,30 +82,32 @@ class SpinEchoMultiLevel(
             start: float = 0.0,
             initial_lpb: Optional[Any] = None,
     ) -> None:
-        """
-        Run the SpinEchoMultiLevel experiment for measuring the T2 echo coherence value.
+        """Execute the SpinEchoMultiLevel experiment in simulation mode.
 
-        This experiment is implemented in the following way. A pi/2 pulse is applied to the qubit, followed by a delay
-        of free_evolution_time/2. Then a pi pulse is applied, followed by another delay of free_evolution_time/2. Finally,
-        a measurement primitive is applied to the qubit. The experiment is repeated for different values of the delay time
-        to obtain the T2 echo relaxation time.
+        This experiment implements a spin echo sequence: π/2 - τ/2 - π - τ/2 - π/2 - measure.
+        The π pulse refocuses dephasing, measuring intrinsic T2 coherence time.
 
         Parameters
         ----------
         dut : Any
             The qubit to be used in the experiment.
-        collection_name : str
-            The name of the pulse collection.
-        mprim_index : int
-            Index of the measurement primitive.
+        collection_name : str, optional
+            The name of the pulse collection. Default: 'f01'
+        mprim_index : int, optional
+            Index of the measurement primitive. Default: 0
         free_evolution_time : float, optional
-            The free evolution time, by default 0.0.
+            The maximum free evolution time in microseconds. Default: 100.0
         time_resolution : float, optional
-            The time resolution for the experiment, by default 1.0.
+            The time resolution for the experiment in microseconds. Default: 2.0
         start : float, optional
-            Start time of the sweep, by default 0.0.
-        initial_lpb : Any, optional
-            The initial local pulse builder, by default None.
+            Start time of the sweep in microseconds. Default: 0.0
+        initial_lpb : Optional[Any], optional
+            The initial local pulse builder. Default: None
+
+        Returns
+        -------
+        None
+            Updates the instance's trace attribute with simulated data.
         """
 
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
@@ -112,36 +147,39 @@ class SpinEchoMultiLevel(
             start: float = 0.0,
             initial_lpb: Optional[Any] = None,
     ) -> None:
-        """
-        Run the SpinEchoMultiLevel experiment for measuring the T2 echo coherence value.
+        """Execute the SpinEchoMultiLevel experiment on hardware.
 
-        This experiment is implemented in the following way. A pi/2 pulse is applied to the qubit, followed by a delay
-        of free_evolution_time/2. Then a pi pulse is applied, followed by another delay of free_evolution_time/2. Finally,
-        a measurement primitive is applied to the qubit. The experiment is repeated for different values of the delay time
-        to obtain the T2 echo relaxation time.
+        This experiment implements a spin echo sequence: π/2 - τ/2 - π - τ/2 - π/2 - measure.
+        The π pulse refocuses dephasing, measuring intrinsic T2 coherence time.
 
         Parameters
         ----------
         dut : Any
             The qubit to be used in the experiment.
-        collection_name : str
-            The name of the pulse collection.
-        mprim_index : int
-            Index of the measurement primitive.
+        collection_name : str, optional
+            The name of the pulse collection. Default: 'f01'
+        mprim_index : int, optional
+            Index of the measurement primitive. Default: 0
         free_evolution_time : float, optional
-            The free evolution time, by default 0.0.
+            The maximum free evolution time in microseconds. Default: 100.0
         time_resolution : float, optional
-            The time resolution for the experiment, by default 1.0.
+            The time resolution for the experiment in microseconds. Default: 2.0
         start : float, optional
-            Start time of the sweep, by default 0.0.
-        initial_lpb : Any, optional
-            The initial local pulse builder, by default None.
+            Start time of the sweep in microseconds. Default: 0.0
+        initial_lpb : Optional[Any], optional
+            The initial local pulse builder. Default: None
 
-        Example:
-        --------
+        Returns
+        -------
+        None
+            Updates the instance's trace attribute with measured data.
+
+        Example
+        -------
         >>> # Assume 'dut' is the qubit object
         >>> experiment = SpinEchoMultiLevel(
-        >>>     dut=dut, collection_name='f01', mprim_index=0, free_evolution_time=100.0, time_resolution=2.0, start=0.0
+        >>>     dut=dut, collection_name='f01', mprim_index=0, 
+        >>>     free_evolution_time=100.0, time_resolution=2.0, start=0.0
         >>> )
         """
 
@@ -283,6 +321,81 @@ class MultiQubitSpinEchoMultiLevel(
         Plots the results of the echo experiment.
     """
 
+    EPII_INFO = {
+        "name": "MultiQubitSpinEchoMultiLevel",
+        "description": "Parallel spin echo T2 measurement for multiple qubits",
+        "purpose": "Simultaneously measures T2 echo coherence times for multiple qubits using spin echo sequences. Enables efficient characterization of multi-qubit systems by running parallel experiments. Supports multi-level systems and provides normalized population analysis.",
+        "attributes": {
+            "result": {
+                "type": "List[np.ndarray]",
+                "description": "Raw measurement results for each qubit",
+                "shape": "List of arrays with measurement data"
+            },
+            "mp": {
+                "type": "List[MeasurementPrimitive]",
+                "description": "Measurement primitives for each qubit"
+            },
+            "collection_names": {
+                "type": "List[str]",
+                "description": "Collection names for each qubit transition"
+            },
+            "probs": {
+                "type": "np.ndarray",
+                "description": "Probability distributions for all qubits",
+                "shape": "(n_qubits, n_levels, n_time_points)"
+            },
+            "normalized_population": {
+                "type": "np.ndarray",
+                "description": "Normalized population between interested levels",
+                "shape": "(n_qubits, n_time_points)"
+            }
+        },
+        "notes": [
+            "All qubits measured in parallel for efficiency",
+            "Supports different collection names per qubit",
+            "Can handle multi-level systems beyond two-level qubits",
+            "Normalized population computed between specified transition levels"
+        ]
+    }
+
+    @log_and_record(overwrite_func_name='MultiQubitSpinEchoMultiLevel.run')
+    def run_simulated(
+            self,
+            duts: Any,
+            collection_names: Union[str, list[str]] = 'f01',
+            mprim_indexes: Union[int, list[str]] = 0,
+            free_evolution_time: float = 100.0,
+            time_resolution: float = 4.0,
+            start: float = 0.0,
+            initial_lpb: Optional['LogicalPrimitiveBlock'] = None,
+    ) -> None:
+        """Execute the multi-qubit spin echo experiment in simulation mode.
+
+        Parameters
+        ----------
+        duts : List[Any]
+            List of qubit objects to be used in the experiment.
+        collection_names : Union[str, List[str]], optional
+            The pulse collection name(s). If a list, length must match number of qubits. Default: 'f01'
+        mprim_indexes : Union[int, List[int]], optional
+            Measurement primitive index(es). If a list, length must match number of qubits. Default: 0
+        free_evolution_time : float, optional
+            The maximum free evolution time in microseconds. Default: 100.0
+        time_resolution : float, optional
+            The time resolution for the experiment in microseconds. Default: 4.0
+        start : float, optional
+            Start time of the sweep in microseconds. Default: 0.0
+        initial_lpb : Optional[LogicalPrimitiveBlock], optional
+            The initial local pulse builder. Default: None
+
+        Returns
+        -------
+        None
+            Updates the instance's result attribute with simulated data.
+        """
+        # Simulation implementation placeholder
+        raise NotImplementedError("Simulation for MultiQubitSpinEchoMultiLevel not yet implemented")
+
     @log_and_record
     def run(
             self,
@@ -294,25 +407,29 @@ class MultiQubitSpinEchoMultiLevel(
             start: float = 0.0,
             initial_lpb: Optional['LogicalPrimitiveBlock'] = None,
     ) -> None:
-        """
-        Run the SpinEchoMultiLevel experiment.
+        """Execute the multi-qubit spin echo experiment on hardware.
 
         Parameters
         ----------
-        duts : Any
-            The qubit to be used in the experiment.
-        collection_names : Union[str, list[str]]
-            The name of the pulse collection. if a list is given, the length should be the same as the number of qubits.
-        mprim_indexes : Union[int, list[str]]
-            Index of the measurement primitive. if a list is given, the length should be the same as the number of qubits.
+        duts : List[Any]
+            List of qubit objects to be used in the experiment.
+        collection_names : Union[str, List[str]], optional
+            The pulse collection name(s). If a list, length must match number of qubits. Default: 'f01'
+        mprim_indexes : Union[int, List[int]], optional
+            Measurement primitive index(es). If a list, length must match number of qubits. Default: 0
         free_evolution_time : float, optional
-            The free evolution time, by default 0.0.
+            The maximum free evolution time in microseconds. Default: 100.0
         time_resolution : float, optional
-            The time resolution for the experiment, by default 1.0.
+            The time resolution for the experiment in microseconds. Default: 4.0
         start : float, optional
-            Start time of the sweep, by default 0.0.
-        initial_lpb : Any, optional
-            The initial local pulse builder, by default None.
+            Start time of the sweep in microseconds. Default: 0.0
+        initial_lpb : Optional[LogicalPrimitiveBlock], optional
+            The initial local pulse builder. Default: None
+
+        Returns
+        -------
+        None
+            Updates the instance's result attribute with measured data.
         """
 
         if isinstance(collection_names, str):

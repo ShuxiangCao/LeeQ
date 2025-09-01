@@ -14,29 +14,75 @@ class ConditionalStarkSpectroscopyDiffAmpFreq(experiment):
     A class to execute conditional Stark spectroscopy differential experiments on devices under test (DUTs).
     This involves varying the frequency and amplitude parameters to generate Stark spectroscopy data.
     """
+    
+    EPII_INFO = {
+        "name": "ConditionalStarkSpectroscopyDiffAmpFreq",
+        "description": "2D spectroscopy sweeping amplitude and frequency for ZZ interaction",
+        "purpose": "Performs 2D spectroscopy by sweeping both Stark drive amplitude and frequency to map out the ZZ interaction landscape. Measures the difference in expectation values with control qubit in ground vs excited state to isolate conditional effects.",
+        "attributes": {
+            "mp_control": {
+                "type": "MeasurementPrimitive",
+                "description": "Control qubit measurement primitive"
+            },
+            "mp_target": {
+                "type": "MeasurementPrimitive",
+                "description": "Target qubit measurement primitive"
+            },
+            "result": {
+                "type": "np.ndarray[complex]",
+                "description": "Target qubit measurement results",
+                "shape": "(n_amp_points, n_freq_points, 2)"
+            },
+            "result_control": {
+                "type": "np.ndarray[complex]",
+                "description": "Control qubit measurement results",
+                "shape": "(n_amp_points, n_freq_points, 2)"
+            }
+        },
+        "notes": [
+            "Sweeps amplitude and frequency in 2D grid",
+            "Measures conditional phase accumulation",
+            "Difference measurement isolates ZZ interaction",
+            "Can use echo sequences to cancel single-qubit effects"
+        ]
+    }
 
     @log_and_record
     def run(self, duts: List[Any], freq_start: float = 4100, freq_stop: float = 4144, freq_step: float = 1,
             amp_start: float = 0, amp_stop: float = 0.2, amp_step: float = 0.02,
             rise: float = 0.01, trunc: float = 1.2, width: float = 0.7, echo=False) -> None:
         """
-        Executes the spectroscopy experiment by sweeping the amplitude and frequency and observing the difference in measuring Y axis.
+        Execute 2D spectroscopy on hardware.
 
-        Args:
-            duts (List[Any]): List of device under test instances.
-            freq_start (float): Starting frequency for the sweep (MHz).
-            freq_stop (float): Stopping frequency for the sweep (MHz).
-            freq_step (float): Step size for the frequency sweep (MHz).
-            amp_start (float): Starting amplitude for the sweep.
-            amp_stop (float): Stopping amplitude for the sweep.
-            amp_step (float): Step size for the amplitude sweep.
-            rise (float): Rise time for the pulse shape.
-            trunc (float): Truncation factor for the pulse shape.
-            width (float): Width of the pulse shape.
-            echo (bool): Whether to include an echo pulse in the sequence.
+        Parameters
+        ----------
+        duts : list[Any]
+            List of device under test instances [control, target].
+        freq_start : float, optional
+            Starting frequency for the sweep (MHz). Default: 4100.
+        freq_stop : float, optional
+            Stopping frequency for the sweep (MHz). Default: 4144.
+        freq_step : float, optional
+            Step size for the frequency sweep (MHz). Default: 1.
+        amp_start : float, optional
+            Starting amplitude for the sweep. Default: 0.
+        amp_stop : float, optional
+            Stopping amplitude for the sweep. Default: 0.2.
+        amp_step : float, optional
+            Step size for the amplitude sweep. Default: 0.02.
+        rise : float, optional
+            Rise time for the pulse shape. Default: 0.01.
+        trunc : float, optional
+            Truncation factor for the pulse shape. Default: 1.2.
+        width : float, optional
+            Width of the pulse shape. Default: 0.7.
+        echo : bool, optional
+            Whether to include an echo pulse in the sequence. Default: False.
 
-        Returns:
-            None
+        Returns
+        -------
+        None
+            Results stored in instance attributes.
         """
         # Clone the control pulse from each DUT for manipulation.
         cs_pulses = [dut.get_c1('f01')['X'].clone() for dut in duts]
@@ -218,6 +264,37 @@ class ConditionalStarkSpectroscopyDiffAmpFreq(experiment):
 
 
 class ConditionalStarkSpectroscopyDiffAmpTargetFreq(experiment):
+    EPII_INFO = {
+        "name": "ConditionalStarkSpectroscopyDiffAmpTargetFreq",
+        "description": "2D spectroscopy sweeping target amplitude and frequency",
+        "purpose": "Performs 2D spectroscopy by sweeping the target qubit Stark drive amplitude and frequency while keeping control amplitude fixed. Maps out how target qubit parameters affect the ZZ interaction.",
+        "attributes": {
+            "mp_control": {
+                "type": "MeasurementPrimitive",
+                "description": "Control qubit measurement primitive"
+            },
+            "mp_target": {
+                "type": "MeasurementPrimitive",
+                "description": "Target qubit measurement primitive"
+            },
+            "result": {
+                "type": "np.ndarray[complex]",
+                "description": "Target qubit measurement results",
+                "shape": "(n_amp_points, n_freq_points, 2)"
+            },
+            "result_control": {
+                "type": "np.ndarray[complex]",
+                "description": "Control qubit measurement results",
+                "shape": "(n_amp_points, n_freq_points, 2)"
+            }
+        },
+        "notes": [
+            "Varies only target qubit parameters",
+            "Control amplitude remains fixed",
+            "Useful for asymmetric coupling calibration",
+            "Difference measurement isolates conditional effects"
+        ]
+    }
     """
     A class to execute conditional Stark spectroscopy differential experiments on devices under test (DUTs).
     This involves varying the frequency and amplitude parameters to generate Stark spectroscopy data.
@@ -436,6 +513,37 @@ class ConditionalStarkSpectroscopyDiffAmpTargetFreq(experiment):
 
 
 class ConditionalStarkSpectroscopyDiffPhaseFreq(experiment):
+    EPII_INFO = {
+        "name": "ConditionalStarkSpectroscopyDiffPhaseFreq",
+        "description": "2D spectroscopy sweeping phase difference and frequency",
+        "purpose": "Performs 2D spectroscopy by sweeping the phase difference between control and target Stark drives along with frequency. Maps how relative phase affects the sign and magnitude of ZZ interaction.",
+        "attributes": {
+            "mp_control": {
+                "type": "MeasurementPrimitive",
+                "description": "Control qubit measurement primitive"
+            },
+            "mp_target": {
+                "type": "MeasurementPrimitive",
+                "description": "Target qubit measurement primitive"
+            },
+            "result": {
+                "type": "np.ndarray[complex]",
+                "description": "Target qubit measurement results",
+                "shape": "(n_phase_points, n_freq_points, 2)"
+            },
+            "result_control": {
+                "type": "np.ndarray[complex]",
+                "description": "Control qubit measurement results",
+                "shape": "(n_phase_points, n_freq_points, 2)"
+            }
+        },
+        "notes": [
+            "Phase difference controls interaction sign",
+            "Can switch between attractive and repulsive coupling",
+            "Critical for controlled-phase gate calibration",
+            "Shows phase-frequency coupling landscape"
+        ]
+    }
     """
     A class to execute conditional Stark spectroscopy differential experiments on devices under test (DUTs).
     This involves varying the frequency and phase parameters to generate Stark spectroscopy data.
@@ -624,6 +732,37 @@ class ConditionalStarkSpectroscopyDiffPhaseFreq(experiment):
 
 
 class ConditionalStarkSpectroscopyDiffAmpPhase(experiment):
+    EPII_INFO = {
+        "name": "ConditionalStarkSpectroscopyDiffAmpPhase",
+        "description": "2D spectroscopy sweeping amplitude and phase difference",
+        "purpose": "Performs 2D spectroscopy by sweeping both Stark drive amplitude and the phase difference between control and target drives. Maps the amplitude-phase parameter space for ZZ interaction optimization.",
+        "attributes": {
+            "mp_control": {
+                "type": "MeasurementPrimitive",
+                "description": "Control qubit measurement primitive"
+            },
+            "mp_target": {
+                "type": "MeasurementPrimitive",
+                "description": "Target qubit measurement primitive"
+            },
+            "result": {
+                "type": "np.ndarray[complex]",
+                "description": "Target qubit measurement results",
+                "shape": "(n_amp_points, n_phase_points, 2)"
+            },
+            "result_control": {
+                "type": "np.ndarray[complex]",
+                "description": "Control qubit measurement results",
+                "shape": "(n_amp_points, n_phase_points, 2)"
+            }
+        },
+        "notes": [
+            "Maps amplitude-phase coupling space",
+            "Fixed frequency operation",
+            "Useful for finding optimal operating point",
+            "Shows how amplitude and phase jointly affect ZZ"
+        ]
+    }
     """
     A class to execute conditional Stark spectroscopy differential experiments on devices under test (DUTs).
     This involves varying the amplitude and phase parameters to generate Stark spectroscopy data.

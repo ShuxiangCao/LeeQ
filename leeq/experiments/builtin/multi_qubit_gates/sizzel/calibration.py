@@ -21,10 +21,140 @@ logger = setup_logging(__name__)
 
 
 class ConditionalStarkTuneUpRabiXY(experiment):
+    EPII_INFO = {
+        "name": "ConditionalStarkTuneUpRabiXY",
+        "description": "Calibrates ZZ interaction using Rabi-like oscillations in XY plane",
+        "purpose": "Performs Hamiltonian tomography to calibrate the ZZ interaction strength and single-qubit Z rotations in conditional Stark shift gates. Uses Rabi-like oscillations while sweeping pulse width to extract interaction parameters.",
+        "attributes": {
+            "duts": {
+                "type": "list[TransmonElement]",
+                "description": "List of two qubits [control, target]"
+            },
+            "frequency": {
+                "type": "float",
+                "description": "Stark drive frequency (MHz)"
+            },
+            "amp_control": {
+                "type": "float",
+                "description": "Stark drive amplitude on control qubit"
+            },
+            "amp_target": {
+                "type": "float",
+                "description": "Stark drive amplitude on target qubit"
+            },
+            "phase": {
+                "type": "float",
+                "description": "Phase of Stark drives"
+            },
+            "phase_diff": {
+                "type": "float",
+                "description": "Phase difference between drives"
+            },
+            "width": {
+                "type": "float",
+                "description": "Pulse width"
+            },
+            "start": {
+                "type": "float",
+                "description": "Start time (us)"
+            },
+            "stop": {
+                "type": "float",
+                "description": "Stop time (us)"
+            },
+            "step": {
+                "type": "float",
+                "description": "Time step (us)"
+            },
+            "rise": {
+                "type": "float",
+                "description": "Pulse rise time"
+            },
+            "trunc": {
+                "type": "float",
+                "description": "Pulse truncation"
+            },
+            "result": {
+                "type": "np.ndarray[complex]",
+                "description": "Tomography results for target qubit",
+                "shape": "(n_time_points, 2, 2)"
+            },
+            "result_control": {
+                "type": "np.ndarray[complex]",
+                "description": "Tomography results for control qubit",
+                "shape": "(n_time_points, 2, 2)"
+            },
+            "fitting_2D": {
+                "type": "list[dict]",
+                "description": "Fitted parameters for both control states"
+            },
+            "iz_rate": {
+                "type": "unc.ufloat",
+                "description": "Single-qubit Z rotation rate (MHz)"
+            },
+            "zz_rate": {
+                "type": "unc.ufloat",
+                "description": "ZZ interaction rate (MHz)"
+            },
+            "iz_from_pulse_rise_drop": {
+                "type": "unc.ufloat",
+                "description": "IZ phase from pulse rise/drop"
+            },
+            "zz_from_pulse_rise_drop": {
+                "type": "unc.ufloat",
+                "description": "ZZ phase from pulse rise/drop"
+            }
+        },
+        "notes": [
+            "Performs tomography with control qubit in both ground and excited states",
+            "Fits 2D oscillations to extract IZ and ZZ rates",
+            "Can use echo sequences to cancel unwanted rotations",
+            "Automatically calculates Stark frequency if not provided"
+        ]
+    }
     @log_and_record
     def run(self, qubits, amp_control, amp_target, frequency=None, rise=0.01, trunc=1.0, start=0, stop=3, step=0.03,
             axis='Y',
             echo=False, iz_rate_cancel=0, phase_diff=0, iz_rise_drop=0):
+        """
+        Execute conditional Stark tune-up on hardware.
+        
+        Parameters
+        ----------
+        qubits : list
+            List of two qubits [control, target].
+        amp_control : float
+            Stark drive amplitude on control qubit.
+        amp_target : float
+            Stark drive amplitude on target qubit.
+        frequency : float, optional
+            Stark drive frequency (MHz). Auto-calculated if None.
+        rise : float, optional
+            Pulse rise time. Default: 0.01.
+        trunc : float, optional
+            Pulse truncation. Default: 1.0.
+        start : float, optional
+            Start time (us). Default: 0.
+        stop : float, optional
+            Stop time (us). Default: 3.
+        step : float, optional
+            Time step (us). Default: 0.03.
+        axis : str, optional
+            Tomography axis. Default: 'Y'.
+        echo : bool, optional
+            Use echo sequence. Default: False.
+        iz_rate_cancel : float, optional
+            IZ cancellation rate. Default: 0.
+        phase_diff : float, optional
+            Phase difference between drives. Default: 0.
+        iz_rise_drop : float, optional
+            IZ compensation for rise/drop. Default: 0.
+            
+        Returns
+        -------
+        None
+            Results stored in instance attributes.
+        """
         self.duts = qubits
         self.frequency = frequency
         self.amp_control = amp_control
@@ -591,6 +721,101 @@ class ConditionalStarkTuneUpRabiXY(experiment):
 
 
 class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
+    EPII_INFO = {
+        "name": "ConditionalStarkTuneUpRepeatedGateXY",
+        "description": "Calibrates ZZ interaction using repeated gate sequences",
+        "purpose": "Characterizes ZZ interaction by applying repeated conditional Stark gates and performing tomography. This amplifies small errors and provides more accurate calibration of interaction parameters.",
+        "attributes": {
+            "duts": {
+                "type": "list[TransmonElement]",
+                "description": "List of two qubits [control, target]"
+            },
+            "frequency": {
+                "type": "float",
+                "description": "Stark drive frequency (MHz)"
+            },
+            "amp_control": {
+                "type": "float",
+                "description": "Stark drive amplitude on control qubit"
+            },
+            "amp_target": {
+                "type": "float",
+                "description": "Stark drive amplitude on target qubit"
+            },
+            "phase": {
+                "type": "float",
+                "description": "Phase of Stark drives"
+            },
+            "width": {
+                "type": "float",
+                "description": "Gate width"
+            },
+            "iz_control": {
+                "type": "float",
+                "description": "IZ rotation on control qubit"
+            },
+            "iz_target": {
+                "type": "float",
+                "description": "IZ rotation on target qubit"
+            },
+            "rise": {
+                "type": "float",
+                "description": "Pulse rise time"
+            },
+            "trunc": {
+                "type": "float",
+                "description": "Pulse truncation"
+            },
+            "start_gate_number": {
+                "type": "int",
+                "description": "Starting number of gates"
+            },
+            "gate_count": {
+                "type": "int",
+                "description": "Number of gate counts to sweep"
+            },
+            "result": {
+                "type": "np.ndarray[complex]",
+                "description": "Tomography results for target qubit",
+                "shape": "(gate_count, 2, 2)"
+            },
+            "result_control": {
+                "type": "np.ndarray[complex]",
+                "description": "Tomography results for control qubit",
+                "shape": "(gate_count, 2, 2)"
+            },
+            "fitting_2D": {
+                "type": "list[dict]",
+                "description": "Fitted parameters for both control states"
+            },
+            "iz_rate": {
+                "type": "unc.ufloat",
+                "description": "Single-qubit Z rotation rate per gate"
+            },
+            "zz_rate": {
+                "type": "unc.ufloat",
+                "description": "ZZ interaction rate per gate"
+            },
+            "pulse_train": {
+                "type": "LogicalPrimitiveBlock",
+                "description": "The pulse sequence used"
+            },
+            "pulse_count": {
+                "type": "range",
+                "description": "Range of pulse counts used"
+            },
+            "N": {
+                "type": "int",
+                "description": "Number of repetitions"
+            }
+        },
+        "notes": [
+            "Sweeps number of repeated gates instead of pulse width",
+            "More sensitive to small interaction rates",
+            "Uses frequency bounds in fitting for better convergence",
+            "Can detect and calibrate gate errors accumulated over multiple operations"
+        ]
+    }
 
     @log_and_record
     def run(self, duts, amp_control, amp_target, frequency, phase=0, rise=0.01, trunc=1.0, axis='Y',
@@ -872,12 +1097,130 @@ class ConditionalStarkTuneUpRepeatedGateXY(Experiment):
 
 
 class ConditionalStarkEchoTuneUp(Experiment):
+    EPII_INFO = {
+        "name": "ConditionalStarkEchoTuneUp",
+        "description": "Iterative calibration of conditional Stark gates using echo sequences",
+        "purpose": "Performs iterative calibration of conditional Stark shift gates using echo sequences to cancel unwanted single-qubit rotations. Uses Kalman filtering for optimal parameter estimation across multiple iterations.",
+        "attributes": {
+            "duts": {
+                "type": "list[TransmonElement]",
+                "description": "List of two qubits [control, target]"
+            },
+            "n_max_iteration": {
+                "type": "int",
+                "description": "Maximum number of iterations"
+            },
+            "params": {
+                "type": "dict",
+                "description": "Initial gate parameters"
+            },
+            "frequency": {
+                "type": "float",
+                "description": "Stark drive frequency (MHz)"
+            },
+            "amp_control": {
+                "type": "float",
+                "description": "Control qubit amplitude"
+            },
+            "phase_diff": {
+                "type": "float",
+                "description": "Phase difference between drives"
+            },
+            "rise": {
+                "type": "float",
+                "description": "Pulse rise time"
+            },
+            "trunc": {
+                "type": "float",
+                "description": "Pulse truncation"
+            },
+            "iz_control_history": {
+                "type": "list[float]",
+                "description": "History of control IZ rates"
+            },
+            "iz_target_history": {
+                "type": "list[float]",
+                "description": "History of target IZ rates"
+            },
+            "zz_history": {
+                "type": "list[float]",
+                "description": "History of ZZ interaction rates"
+            },
+            "width_history": {
+                "type": "list[float]",
+                "description": "History of gate widths"
+            },
+            "kalman_iz_control": {
+                "type": "KalmanFilter1D",
+                "description": "Kalman filter for control IZ"
+            },
+            "kalman_iz_target": {
+                "type": "KalmanFilter1D",
+                "description": "Kalman filter for target IZ"
+            },
+            "kalman_zz": {
+                "type": "KalmanFilter1D",
+                "description": "Kalman filter for ZZ rate"
+            },
+            "best_params": {
+                "type": "dict",
+                "description": "Optimized gate parameters"
+            }
+        },
+        "notes": [
+            "Uses iterative refinement with Kalman filtering",
+            "Echo sequences cancel single-qubit phase accumulation",
+            "Automatically determines optimal gate width for target ZZ angle",
+            "Can update either IZ or ZZ parameters selectively"
+        ]
+    }
 
     @log_and_record
     def run(self, duts, params=None, frequency=None, amp_control=None, phase_diff=0, rise=0.01, trunc=1.0,
             t_start=0, t_stop=20, sweep_points=40,
             n_start=0, n_stop=21, update_iz=False, update_zz=True, n_max_iteration=20
             ):
+        """
+        Execute the experiment on hardware.
+
+        Parameters
+        ----------
+        duts : list[TransmonElement]
+            List of two qubits [control, target].
+        params : dict, optional
+            Initial gate parameters. Default: None (auto-calculated)
+        frequency : float, optional
+            Stark drive frequency (MHz). Default: None
+        amp_control : float, optional
+            Control qubit amplitude. Default: None
+        phase_diff : float, optional
+            Phase difference between drives. Default: 0
+        rise : float, optional
+            Pulse rise time. Default: 0.01
+        trunc : float, optional
+            Pulse truncation. Default: 1.0
+        t_start : float, optional
+            Start time for sweep. Default: 0
+        t_stop : float, optional
+            Stop time for sweep. Default: 20
+        sweep_points : int, optional
+            Number of sweep points. Default: 40
+        n_start : int, optional
+            Start echo count. Default: 0
+        n_stop : int, optional
+            Stop echo count. Default: 21
+        update_iz : bool, optional
+            Update single-qubit Z rates. Default: False
+        update_zz : bool, optional
+            Update ZZ interaction rate. Default: True
+        n_max_iteration : int, optional
+            Maximum iterations. Default: 20
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
+        """
         self.duts = duts
         self.n_max_iteration = n_max_iteration
 

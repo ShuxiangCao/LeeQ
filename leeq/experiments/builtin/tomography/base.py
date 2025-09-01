@@ -22,7 +22,69 @@ class GeneralisedTomographyBase(object):
 
 
 class GeneralisedSingleDutStateTomography(Experiment, GeneralisedTomographyBase):
+    EPII_INFO = {
+        "name": "GeneralisedSingleDutStateTomography",
+        "description": "Base class for single-DUT quantum state tomography experiments",
+        "purpose": "Performs state tomography on a single quantum device under test (DUT) using linear inversion. This base class provides the framework for reconstructing quantum states from measurement data.",
+        "attributes": {
+            "model": {
+                "type": "Any",
+                "description": "Tomography model defining measurement and reconstruction methods"
+            },
+            "state_tomography_model": {
+                "type": "Any",
+                "description": "State tomography model constructed from the base model"
+            },
+            "result": {
+                "type": "np.ndarray",
+                "description": "Raw measurement results",
+                "shape": "(n_measurements,)"
+            },
+            "vec": {
+                "type": "np.ndarray[complex]",
+                "description": "Reconstructed state vector",
+                "shape": "(d,)" 
+            },
+            "dm": {
+                "type": "np.ndarray[complex]",
+                "description": "Reconstructed density matrix",
+                "shape": "(d, d)"
+            },
+            "_gate_lpbs": {
+                "type": "dict",
+                "description": "Dictionary mapping gate names to logical primitive blocks"
+            }
+        },
+        "notes": [
+            "This is a base class that requires a specific tomography model",
+            "The model defines the measurement sequences and reconstruction method",
+            "Results are reconstructed using linear inversion",
+            "Subclasses should implement initialize_gate_lpbs for specific gate sets"
+        ]
+    }
+
     def run(self, dut, model, mprim_index=1, initial_lpb=None, extra_measurement_duts=None):
+        """
+        Execute state tomography on a single DUT.
+        
+        Parameters
+        ----------
+        dut : Any
+            The device under test (quantum system).
+        model : Any
+            Tomography model defining measurement and reconstruction methods.
+        mprim_index : int, optional
+            Measurement primitive index. Default: 1
+        initial_lpb : LogicalPrimitiveBlock, optional
+            Initial logical primitive block to prepare the state. Default: None
+        extra_measurement_duts : List[Any], optional
+            Additional DUTs for extra measurements. Default: None
+            
+        Returns
+        -------
+        None
+            Results are stored in instance attributes (result, vec, dm).
+        """
         self.model = model
         self.initialize_gate_lpbs(dut=dut)
 
@@ -52,9 +114,65 @@ class GeneralisedSingleDutStateTomography(Experiment, GeneralisedTomographyBase)
 
 
 class GeneralisedSingleDutProcessTomography(Experiment, GeneralisedTomographyBase):
+    EPII_INFO = {
+        "name": "GeneralisedSingleDutProcessTomography",
+        "description": "Base class for single-DUT quantum process tomography experiments",
+        "purpose": "Performs process tomography on a single quantum device under test (DUT) to characterize quantum operations. Reconstructs the process matrix using linear inversion from measurement data.",
+        "attributes": {
+            "model": {
+                "type": "Any",
+                "description": "Tomography model defining measurement and reconstruction methods"
+            },
+            "process_tomography_model": {
+                "type": "Any",
+                "description": "Process tomography model constructed from the base model"
+            },
+            "result": {
+                "type": "np.ndarray",
+                "description": "Raw measurement results",
+                "shape": "(n_prep, n_meas, n_outcomes)"
+            },
+            "ptm": {
+                "type": "np.ndarray[complex]",
+                "description": "Reconstructed process transfer matrix",
+                "shape": "(d^2, d^2)"
+            },
+            "_gate_lpbs": {
+                "type": "dict",
+                "description": "Dictionary mapping gate names to logical primitive blocks"
+            }
+        },
+        "notes": [
+            "This is a base class that requires a specific tomography model",
+            "The model defines preparation and measurement sequences",
+            "The lpb parameter contains the process to be characterized",
+            "Results are reconstructed using linear inversion process tomography"
+        ]
+    }
 
     @log_and_record
     def run(self, dut, model, lpb=None, mprim_index=1, extra_measurement_duts=None):
+        """
+        Execute process tomography on a single DUT.
+        
+        Parameters
+        ----------
+        dut : Any
+            The device under test (quantum system).
+        model : Any
+            Tomography model defining measurement and reconstruction methods.
+        lpb : LogicalPrimitiveBlock, optional
+            The logical primitive block (process) to characterize. Default: None
+        mprim_index : int, optional
+            Measurement primitive index. Default: 1
+        extra_measurement_duts : List[Any], optional
+            Additional DUTs for extra measurements. Default: None
+            
+        Returns
+        -------
+        None
+            Results are stored in instance attributes (result, ptm).
+        """
         self.model = model
         self.initialize_gate_lpbs(dut=dut)
 
@@ -88,8 +206,87 @@ class GeneralisedSingleDutProcessTomography(Experiment, GeneralisedTomographyBas
 
 
 class GeneralisedStateTomography(Experiment, GeneralisedTomographyBase):
+    EPII_INFO = {
+        "name": "GeneralisedStateTomography",
+        "description": "Base class for multi-DUT quantum state tomography experiments",
+        "purpose": "Performs state tomography on multiple quantum devices under test (DUTs) simultaneously. Supports measurement error mitigation and different qudit bases (qubit, qutrit, qudit).",
+        "attributes": {
+            "model": {
+                "type": "Any",
+                "description": "Tomography model defining measurement and reconstruction methods"
+            },
+            "base": {
+                "type": "int",
+                "description": "Qudit base (2 for qubit, 3 for qutrit, 4 for qudit)"
+            },
+            "state_tomography_model": {
+                "type": "Any",
+                "description": "State tomography model constructed from the base model"
+            },
+            "measurement_mitigation": {
+                "type": "CalibrateFullAssignmentMatrices or None",
+                "description": "Measurement error mitigation calibration object"
+            },
+            "result": {
+                "type": "np.ndarray",
+                "description": "Raw measurement results",
+                "shape": "(n_duts, n_measurements, n_outcomes)"
+            },
+            "prob": {
+                "type": "np.ndarray[float]",
+                "description": "Probability distributions after processing",
+                "shape": "(n_measurements, base^n_duts)"
+            },
+            "vec": {
+                "type": "np.ndarray[complex]",
+                "description": "Reconstructed state vector",
+                "shape": "(base^n_duts,)"
+            },
+            "dm": {
+                "type": "np.ndarray[complex]",
+                "description": "Reconstructed density matrix",
+                "shape": "(base^n_duts, base^n_duts)"
+            },
+            "_gate_lpbs": {
+                "type": "dict",
+                "description": "Dictionary mapping gate names to logical primitive blocks"
+            }
+        },
+        "notes": [
+            "Supports multi-qudit systems with configurable base",
+            "Measurement mitigation can be enabled for error correction",
+            "Data analysis must be called before accessing vec and dm",
+            "Results are reconstructed using linear inversion"
+        ]
+    }
+
     def run(self, duts, model, mprim_index=1, initial_lpb=None, extra_measurement_duts=None, base=2,
             measurement_mitigation=None):
+        """
+        Execute state tomography on multiple DUTs.
+        
+        Parameters
+        ----------
+        duts : List[Any]
+            List of devices under test (quantum systems).
+        model : Any
+            Tomography model defining measurement and reconstruction methods.
+        mprim_index : int, optional
+            Measurement primitive index. Default: 1
+        initial_lpb : LogicalPrimitiveBlock, optional
+            Initial logical primitive block to prepare the state. Default: None
+        extra_measurement_duts : List[Any], optional
+            Additional DUTs for extra measurements. Default: None
+        base : int, optional
+            Qudit base (2 for qubit, 3 for qutrit, 4 for qudit). Default: 2
+        measurement_mitigation : CalibrateFullAssignmentMatrices or bool or None, optional
+            Measurement error mitigation. If True, creates default calibration. Default: None
+            
+        Returns
+        -------
+        None
+            Results are stored in instance attributes (result, prob, vec, dm).
+        """
         self.model = model
         self.base = base
         self.initialize_gate_lpbs(duts=duts)
@@ -135,10 +332,84 @@ class GeneralisedStateTomography(Experiment, GeneralisedTomographyBase):
 
 
 class GeneralisedProcessTomography(Experiment, GeneralisedTomographyBase):
+    EPII_INFO = {
+        "name": "GeneralisedProcessTomography",
+        "description": "Base class for multi-DUT quantum process tomography experiments",
+        "purpose": "Performs process tomography on multiple quantum devices under test (DUTs) to characterize multi-qudit quantum operations. Supports measurement error mitigation and different qudit bases.",
+        "attributes": {
+            "model": {
+                "type": "Any",
+                "description": "Tomography model defining measurement and reconstruction methods"
+            },
+            "base": {
+                "type": "int",
+                "description": "Qudit base (2 for qubit, 3 for qutrit, 4 for qudit)"
+            },
+            "process_tomography_model": {
+                "type": "Any",
+                "description": "Process tomography model constructed from the base model"
+            },
+            "measurement_mitigation": {
+                "type": "CalibrateFullAssignmentMatrices or None",
+                "description": "Measurement error mitigation calibration object"
+            },
+            "result": {
+                "type": "np.ndarray",
+                "description": "Raw measurement results",
+                "shape": "(n_duts, n_prep, n_meas, n_outcomes)"
+            },
+            "prob": {
+                "type": "np.ndarray[float]",
+                "description": "Probability distributions after processing",
+                "shape": "(n_prep, n_meas, base^n_duts)"
+            },
+            "ptm": {
+                "type": "np.ndarray[complex]",
+                "description": "Reconstructed process transfer matrix",
+                "shape": "((base^n_duts)^2, (base^n_duts)^2)"
+            },
+            "_gate_lpbs": {
+                "type": "dict",
+                "description": "Dictionary mapping gate names to logical primitive blocks"
+            }
+        },
+        "notes": [
+            "Supports multi-qudit systems with configurable base",
+            "The lpb parameter contains the process to be characterized",
+            "Measurement mitigation can be enabled for error correction",
+            "Data analysis must be called before accessing ptm",
+            "Results are reconstructed using linear inversion process tomography"
+        ]
+    }
 
     @log_and_record
     def run(self, duts, model, lpb=None, mprim_index=1, extra_measurement_duts=None, base=2,
             measurement_mitigation=None):
+        """
+        Execute process tomography on multiple DUTs.
+        
+        Parameters
+        ----------
+        duts : List[Any]
+            List of devices under test (quantum systems).
+        model : Any
+            Tomography model defining measurement and reconstruction methods.
+        lpb : LogicalPrimitiveBlock, optional
+            The logical primitive block (process) to characterize. Default: None
+        mprim_index : int, optional
+            Measurement primitive index. Default: 1
+        extra_measurement_duts : List[Any], optional
+            Additional DUTs for extra measurements. Default: None
+        base : int, optional
+            Qudit base (2 for qubit, 3 for qutrit, 4 for qudit). Default: 2
+        measurement_mitigation : CalibrateFullAssignmentMatrices or bool or None, optional
+            Measurement error mitigation. If True, creates default calibration. Default: None
+            
+        Returns
+        -------
+        None
+            Results are stored in instance attributes (result, prob, ptm).
+        """
         self.model = model
         self.initialize_gate_lpbs(duts=duts)
         self.base = base

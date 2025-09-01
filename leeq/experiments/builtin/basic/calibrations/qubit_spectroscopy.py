@@ -71,6 +71,46 @@ def _simulate_iq_point(freq: float,
 
 
 class QubitSpectroscopyFrequency(Experiment):
+    EPII_INFO = {
+        "name": "QubitSpectroscopyFrequency",
+        "description": "Frequency sweep spectroscopy to find qubit resonances",
+        "purpose": "Performs a frequency sweep on a qubit while keeping the drive amplitude fixed to identify the qubit's resonant frequency. The experiment drives the qubit at various frequencies and measures the resonator response to detect when the qubit is excited.",
+        "attributes": {
+            "mp": {
+                "type": "MeasurementPrimitive",
+                "description": "The measurement primitive used for the experiment"
+            },
+            "trace": {
+                "type": "np.ndarray[complex]",
+                "description": "Raw IQ trace data from the measurement",
+                "shape": "(n_frequency_points,)"
+            },
+            "result": {
+                "type": "dict",
+                "description": "Processed results containing magnitude and phase",
+                "keys": {
+                    "Magnitude": "np.ndarray[float] - Magnitude of IQ response",
+                    "Phase": "np.ndarray[float] - Unwrapped phase of IQ response"
+                }
+            },
+            "freq_arr": {
+                "type": "np.ndarray[float]",
+                "description": "Frequency array for the sweep (MHz)",
+                "shape": "(n_frequency_points,)"
+            },
+            "frequency_guess": {
+                "type": "float",
+                "description": "Estimated resonant frequency based on maximum deviation from baseline (MHz)"
+            }
+        },
+        "notes": [
+            "The frequency_guess uses first 10 points as baseline reference",
+            "Phase is automatically unwrapped for continuity",
+            "In simulation, disable_noise=True provides deterministic results",
+            "Hardware mode ignores the disable_noise parameter"
+        ]
+    }
+    
     """
     A class used to represent the QubitSweepPlottly experiment,
     specialized for conducting frequency sweeps on qubits and visualizing the results.
@@ -140,36 +180,36 @@ class QubitSpectroscopyFrequency(Experiment):
             amp: float = 0.01,
             disable_noise: bool = False) -> None:
         """
-        Conducts a qubit spectroscopy experiment which fixes the resonator frequency and probes the qubit at different
-         frequencies. Records the response.
+        Execute the experiment on hardware.
 
         Parameters
         ----------
         dut_qubit : Any
-            The device under test (DUT), which is the qubit on which the experiment is performed.
+            The device under test (qubit object).
         res_freq : float, optional
-            The resonant frequency to set for the measurement primitive (default is None).
-        start : float
-            The start frequency for the sweep (default is 3000 MHz).
-        stop : float
-            The stop frequency for the sweep (default is 8000 MHz).
-        step : float
-            The frequency increment for the sweep (default is 5 MHz).
-        num_avs : int
-            The number of averages to take during the measurement (default is 500).
-        rep_rate : float
-            The repetition rate for the pulse (default is 0).
-        mp_width : float
-            The width for the measurement primitive pulse (default is 0.5).
-        amp : float
-            The amplitude of the pulse (default is 1).
+            The resonant frequency to set for the measurement primitive (MHz). Default: None.
+        start : float, optional
+            Start frequency for the sweep (MHz). Default: 3000.0
+        stop : float, optional
+            Stop frequency for the sweep (MHz). Default: 8000.0
+        step : float, optional
+            Frequency increment (MHz). Default: 5.0
+        num_avs : int, optional
+            Number of averages. Default: 1000
+        rep_rate : float, optional
+            Repetition rate for the pulse. Default: 0.0
+        mp_width : float, optional
+            Width for the measurement primitive pulse. Default: 0.5
+        amp : float, optional
+            Amplitude of the drive pulse. Default: 0.01
         disable_noise : bool, optional
             If True, disable noise in simulation mode for clean data generation.
-            Ignored in hardware mode. Default is False.
+            Ignored in hardware mode. Default: False.
 
         Returns
         -------
         None
+            Results are stored in instance attributes.
         
         Notes
         -----
@@ -250,36 +290,36 @@ class QubitSpectroscopyFrequency(Experiment):
             amp: float = 0.01,
             disable_noise: bool = False) -> None:
         """
-        Conducts a frequency sweep on the designated qubit and records the response.
-        Generate simulated result with optional noise-free mode.
+        Execute the experiment in simulation mode.
 
         Parameters
         ----------
         dut_qubit : Any
-            The device under test (DUT), which is the qubit on which the experiment is performed.
+            The device under test (qubit object).
         res_freq : float, optional
-            The resonant frequency to set for the measurement primitive (default is None).
-        start : float
-            The start frequency for the sweep (default is 3000 MHz).
-        stop : float
-            The stop frequency for the sweep (default is 8000 MHz).
-        step : float
-            The frequency increment for the sweep (default is 5 MHz).
-        num_avs : int
-            The number of averages to take during the measurement (default is 500).
-        rep_rate : float
-            The repetition rate for the pulse (default is 0).
-        mp_width : float
-            The width for the measurement primitive pulse (default is 0.5).
-        amp : float
-            The amplitude of the pulse (default is 1).
+            The resonant frequency to set for the measurement primitive (MHz). Default: None.
+        start : float, optional
+            Start frequency for the sweep (MHz). Default: 3000.0
+        stop : float, optional
+            Stop frequency for the sweep (MHz). Default: 8000.0
+        step : float, optional
+            Frequency increment (MHz). Default: 5.0
+        num_avs : int, optional
+            Number of averages. Default: 1000
+        rep_rate : float, optional
+            Repetition rate for the pulse. Default: 0.0
+        mp_width : float, optional
+            Width for the measurement primitive pulse. Default: 0.5
+        amp : float, optional
+            Amplitude of the drive pulse. Default: 0.01
         disable_noise : bool, optional
             If True, skip noise addition (baseline dropout and Gaussian noise) for clean 
-            simulation data. Useful for physics validation and testing. Default is False.
+            simulation data. Useful for physics validation and testing. Default: False.
 
         Returns
         -------
         None
+            Results are stored in instance attributes.
         
         Notes
         -----
@@ -485,6 +525,59 @@ class QubitSpectroscopyFrequency(Experiment):
 
 
 class QubitSpectroscopyAmplitudeFrequency(Experiment):
+    EPII_INFO = {
+        "name": "QubitSpectroscopyAmplitudeFrequency",
+        "description": "2D spectroscopy sweeping both frequency and amplitude",
+        "purpose": "Performs a 2D sweep of both frequency and amplitude to map out the qubit response across different drive conditions. This helps identify power-dependent effects, multiphoton transitions, and optimal drive parameters for qubit control.",
+        "attributes": {
+            "mp": {
+                "type": "MeasurementPrimitive or _MockMP",
+                "description": "The measurement primitive used for the experiment"
+            },
+            "trace": {
+                "type": "np.ndarray[complex]",
+                "description": "2D array of raw IQ trace data",
+                "shape": "(n_amplitude_points, n_frequency_points)"
+            },
+            "result": {
+                "type": "dict",
+                "description": "Processed results containing magnitude and phase",
+                "keys": {
+                    "Magnitude": "np.ndarray[float] - 2D magnitude of IQ response",
+                    "Phase": "np.ndarray[float] - 2D phase of IQ response"
+                }
+            },
+            "freq_arr": {
+                "type": "np.ndarray[float]",
+                "description": "Frequency array for the sweep (MHz)",
+                "shape": "(n_frequency_points,)"
+            },
+            "amp_arr": {
+                "type": "np.ndarray[float]",
+                "description": "Amplitude array for the sweep",
+                "shape": "(n_amplitude_points,)"
+            },
+            "performance_metrics": {
+                "type": "dict",
+                "description": "Performance metrics for simulation (simulation mode only)",
+                "keys": {
+                    "execution_time": "float - Time taken in seconds",
+                    "memory_used_mb": "float - Memory usage in MB",
+                    "parallel_enabled": "bool - Whether parallel processing was used",
+                    "num_workers": "int - Number of worker processes",
+                    "grid_size": "tuple - (n_amps, n_freqs)",
+                    "total_points": "int - Total number of points simulated"
+                }
+            }
+        },
+        "notes": [
+            "2D sweep creates amplitude x frequency grid",
+            "Parallel processing available in simulation for 4-8x speedup",
+            "disable_noise=True provides clean 2D maps for validation",
+            "Phase is not unwrapped in 2D to preserve structure"
+        ]
+    }
+    
     """
     A class used to represent the Qubit Spectroscopy Amplitude Frequency experiment.
     
@@ -555,39 +648,44 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
             use_parallel: bool = True,
             num_workers: Union[int, None] = None) -> None:
         """
-        Executes the qubit spectroscopy experiment by sweeping both the frequency and amplitude.
+        Execute the experiment on hardware.
 
         Parameters
         ----------
         dut_qubit : Any
-            The device under test (DUT) - qubit.
-        start : float
-            The starting frequency in MHz.
-        stop : float
-            The stopping frequency in MHz.
-        step : float
-            The frequency step in MHz.
-        num_avs : int
-            Number of averages for measurement.
-        rep_rate : float
-            The repetition rate in some units (needs clarification).
-        mp_width : Union[int, None]
-            Measurement primitive width, if None, width is set to rep_rate.
-        qubit_amp_start : float
-            The start amplitude for qubit.
-        qubit_amp_stop : float
-            The stop amplitude for qubit.
-        qubit_amp_step : float
-            The amplitude step for qubit.
+            The device under test (qubit object).
+        start : float, optional
+            Start frequency for the sweep (MHz). Default: 3000.0
+        stop : float, optional
+            Stop frequency for the sweep (MHz). Default: 8000.0
+        step : float, optional
+            Frequency increment (MHz). Default: 5.0
+        num_avs : int, optional
+            Number of averages. Default: 1000
+        rep_rate : float, optional
+            Repetition rate for the pulse. Default: 0.0
+        mp_width : Union[int, None], optional
+            Measurement primitive width, if None uses rep_rate. Default: 0.5
+        qubit_amp_start : float, optional
+            Start amplitude for qubit drive. Default: 0.01
+        qubit_amp_stop : float, optional
+            Stop amplitude for qubit drive. Default: 0.03
+        qubit_amp_step : float, optional
+            Amplitude increment for qubit drive. Default: 0.001
         disable_noise : bool, optional
             If True, disable noise in simulation mode for clean data generation.
-            Ignored in hardware mode. Default is False.
+            Ignored in hardware mode. Default: False.
         use_parallel : bool, optional
             If True, use CPU parallelization for steady-state calculations to achieve 
-            4-8x speedup. Only effective in simulation mode. Default is False.
+            4-8x speedup. Only effective in simulation mode. Default: True.
         num_workers : Union[int, None], optional
             Number of worker processes for parallel execution. If None, auto-detect
-            CPU cores. Only used when use_parallel=True. Default is None.
+            CPU cores. Only used when use_parallel=True. Default: None.
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
         
         Notes
         -----
@@ -673,40 +771,39 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
             use_parallel: bool = True,
             num_workers: Union[int, None] = None) -> None:
         """
-        Simulates the qubit spectroscopy experiment by sweeping both frequency and amplitude.
-        Uses the CW spectroscopy simulator for high-level simulation with optional noise-free mode.
+        Execute the experiment in simulation mode.
 
         Parameters
         ----------
         dut_qubit : Any
-            The device under test (DUT) - qubit.
-        start : float
-            The starting frequency in MHz.
-        stop : float
-            The stopping frequency in MHz.
-        step : float
-            The frequency step in MHz.
-        num_avs : int
-            Number of averages for measurement.
-        rep_rate : float
-            The repetition rate.
-        mp_width : Union[int, None]
-            Measurement primitive width, if None, width is set to rep_rate.
-        qubit_amp_start : float
-            The start amplitude for qubit.
-        qubit_amp_stop : float
-            The stop amplitude for qubit.
-        qubit_amp_step : float
-            The amplitude step for qubit.
+            The device under test (qubit object).
+        start : float, optional
+            Start frequency for the sweep (MHz). Default: 3000.0
+        stop : float, optional
+            Stop frequency for the sweep (MHz). Default: 8000.0
+        step : float, optional
+            Frequency increment (MHz). Default: 5.0
+        num_avs : int, optional
+            Number of averages. Default: 1000
+        rep_rate : float, optional
+            Repetition rate for the pulse. Default: 0.0
+        mp_width : Union[int, None], optional
+            Measurement primitive width, if None uses rep_rate. Default: 0.5
+        qubit_amp_start : float, optional
+            Start amplitude for qubit drive. Default: 0.01
+        qubit_amp_stop : float, optional
+            Stop amplitude for qubit drive. Default: 0.03
+        qubit_amp_step : float, optional
+            Amplitude increment for qubit drive. Default: 0.001
         disable_noise : bool, optional
             If True, skip noise addition (baseline dropout and Gaussian noise) for clean 
-            2D simulation data. Useful for physics validation and testing. Default is False.
+            2D simulation data. Useful for physics validation and testing. Default: False.
         use_parallel : bool, optional
             If True, use CPU parallelization for steady-state calculations to achieve 
-            4-8x speedup. Default is False for backward compatibility.
+            4-8x speedup. Default: True.
         num_workers : Union[int, None], optional
             Number of worker processes for parallel execution. If None, auto-detect
-            CPU cores. Only used when use_parallel=True. Default is None.
+            CPU cores. Only used when use_parallel=True. Default: None.
         
         Notes
         -----
