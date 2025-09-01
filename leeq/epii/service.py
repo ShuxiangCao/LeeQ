@@ -280,24 +280,6 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
             # Collect results
             response.success = True
 
-            # Serialize measurement data (check both 'data' and 'trace' attributes)
-            data_attr = None
-            if hasattr(experiment, 'data') and experiment.data is not None:
-                data_attr = experiment.data
-            elif hasattr(experiment, 'trace') and experiment.trace is not None:
-                data_attr = experiment.trace
-
-            if data_attr is not None:
-                if isinstance(data_attr, np.ndarray):
-                    data_msg = numpy_array_to_protobuf(
-                        data_attr,
-                        name="measurement_data",
-                        metadata={"experiment": experiment_name}
-                    )
-                    response.measurement_data.append(data_msg)
-                else:
-                    logger.warning(f"Experiment data is not a numpy array: {type(data_attr)}")
-
             # Try to get fit parameters - call fitting() if needed
             if hasattr(experiment, 'fitting') and callable(experiment.fitting):
                 if not hasattr(experiment, 'fit_params') or not experiment.fit_params:
@@ -306,14 +288,6 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                         experiment.fitting()
                     except Exception as e:
                         logger.debug(f"fitting() failed for {experiment_name}: {e}")
-
-            # Serialize fit parameters (use calibration_results field)
-            if hasattr(experiment, 'fit_params') and experiment.fit_params:
-                for key, value in experiment.fit_params.items():
-                    if isinstance(value, (int, float)):
-                        response.calibration_results[key] = float(value)
-                    else:
-                        logger.debug(f"Skipping non-numeric fit parameter {key}: {type(value)}")
 
             # Serialize plot data if available
             if hasattr(experiment, 'plot') and callable(experiment.plot):
@@ -325,11 +299,61 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                 except Exception as e:
                     logger.warning(f"Failed to generate plot for {experiment_name}: {e}")
 
-            # Add Chronicle-persisted data OR experiment attributes to extended_data field
-            logger.info(f"Checking for Chronicle data on experiment: {type(experiment).__name__}")
-            logger.info(f"Has __chronicle_record_entry__: {hasattr(experiment, '__chronicle_record_entry__')}")
+            # 1. Create Documentation message
+            import json
+            exp_info = self.experiment_router.get_experiment_info(experiment_name)
+            response.docs.CopyFrom(epii_pb2.Documentation())  # Initialize the docs message
 
-            import pickle
+            if exp_info and exp_info.get('run_docstring'):
+                response.docs.run = exp_info['run_docstring']
+
+            # 2. Add EPII data documentation and metadata
+            epii_info = {}
+            if exp_info and exp_info.get('epii_info'):
+                epii_info = exp_info['epii_info']
+
+                # Extract data documentation (description of what the data means)
+                if 'description' in epii_info:
+                    response.docs.data = epii_info['description']
+
+                # Store other EPII_INFO as metadata
+                for key, value in epii_info.items():
+                    if key != 'description':  # Description goes in docs.data
+                        if isinstance(value, str):
+                            response.metadata[key] = value
+                        else:
+                            response.metadata[key] = json.dumps(value)
+
+            # 3. Add calibration results to data
+            if hasattr(experiment, 'fit_params') and experiment.fit_params:
+                for key, value in experiment.fit_params.items():
+                    if isinstance(value, (int, float)):
+                        item = epii_pb2.DataItem()
+                        item.name = key
+                        item.description = f"Fitted calibration parameter: {key}"
+                        item.number = float(value)
+                        response.data.append(item)
+
+            # 4. Add measurement data
+            data_attr = None
+            if hasattr(experiment, 'data') and experiment.data is not None:
+                data_attr = experiment.data
+            elif hasattr(experiment, 'trace') and experiment.trace is not None:
+                data_attr = experiment.trace
+
+            if data_attr is not None and isinstance(data_attr, np.ndarray):
+                item = epii_pb2.DataItem()
+                item.name = "raw_data"
+                item.description = "Raw measurement data from experiment"
+                array = epii_pb2.NumpyArray()
+                array.data = data_attr.tobytes()
+                array.shape.extend(data_attr.shape)
+                array.dtype = str(data_attr.dtype)
+                item.array.CopyFrom(array)
+                response.data.append(item)
+
+            # 5. Add all other experiment attributes
+            experiment_attrs = {}
 
             if hasattr(experiment, '__chronicle_record_entry__'):
                 # Get data from Chronicle if available
@@ -342,10 +366,9 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                     # Add all custom attributes (skip internal and object snapshot)
                     for key, value in all_attrs.items():
                         if not key.startswith('__') and key != '__object__':
-                            # Simple pickle for all data types
-                            response.extended_data[key] = pickle.dumps(value)
-                            logger.debug(f"Added attribute {key} to extended_data")
-                    logger.info(f"Added {len(response.extended_data)} Chronicle attributes to response")
+                            experiment_attrs[key] = value
+                            logger.debug(f"Added Chronicle attribute {key}")
+                    logger.info(f"Collected {len(experiment_attrs)} Chronicle attributes")
                 except Exception as e:
                     logger.error(f"Could not extract Chronicle data: {e}", exc_info=True)
             else:
@@ -359,33 +382,59 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                                 if not callable(value) and value is not None:
                                     # Skip already serialized data
                                     if attr_name not in ['data', 'trace', 'fit_params']:
-                                        response.extended_data[attr_name] = pickle.dumps(value)
+                                        experiment_attrs[attr_name] = value
                                         logger.debug(f"Added experiment attribute {attr_name}")
                             except Exception as e:
                                 logger.debug(f"Could not serialize {attr_name}: {e}")
-                    logger.info(f"Added {len(response.extended_data)} experiment attributes to extended_data")
+                    logger.info(f"Collected {len(experiment_attrs)} experiment attributes")
                 except Exception as e:
                     logger.error(f"Could not extract experiment attributes: {e}")
 
-            # Add EPII_INFO and run docstring to extended_data
-            exp_info = self.experiment_router.get_experiment_info(experiment_name)
-            if exp_info:
-                # Add EPII_INFO
-                if exp_info.get('epii_info'):
-                    response.extended_data['epii_info'] = pickle.dumps(exp_info['epii_info'])
+            # Convert to protobuf DataItem messages
+            for key, value in experiment_attrs.items():
+                # Skip already processed data
+                if key in ['data', 'fit_params']:
+                    continue
 
-                # Add run docstring
-                if exp_info.get('run_docstring'):
-                    response.extended_data['run_docstring'] = exp_info['run_docstring'].encode('utf-8')
+                item = epii_pb2.DataItem()
+                item.name = key
 
-                # Log that we added metadata
-                logger.debug(f"Added EPII_INFO and docstring for {experiment_name} to response")
+                # Get description from EPII_INFO if available
+                if epii_info and 'attributes' in epii_info and key in epii_info['attributes']:
+                    item.description = epii_info['attributes'][key]
+                else:
+                    item.description = f"Experiment attribute: {key}"
+
+                if isinstance(value, bool):  # Check bool before int (bool is subclass of int)
+                    item.boolean = value
+                elif isinstance(value, (int, float)):
+                    item.number = float(value)
+                elif isinstance(value, str):
+                    item.text = value
+                elif isinstance(value, np.ndarray):
+                    array = epii_pb2.NumpyArray()
+                    array.data = value.tobytes()
+                    array.shape.extend(value.shape)
+                    array.dtype = str(value.dtype)
+                    item.array.CopyFrom(array)
+                else:
+                    # Fallback: convert to string
+                    item.text = str(value)
+
+                response.data.append(item)
+
+            # Log that we added metadata
+            logger.debug(f"Added EPII metadata and documentation for {experiment_name} to response")
 
             logger.info(f"Experiment {experiment_name} completed successfully")
 
             # Record performance metrics
             duration_ms = (time.time() - start_time) * 1000
-            data_size = sum(len(data.data) for data in response.measurement_data) if response.measurement_data else 0
+            # Calculate data size from DataItem messages with arrays
+            data_size = 0
+            for item in response.data:
+                if item.HasField('array'):
+                    data_size += len(item.array.data)
             self.performance_monitor.record_experiment(experiment_name, duration_ms, True, data_size)
 
             self.request_logger.log_response(request_id, response, start_time)

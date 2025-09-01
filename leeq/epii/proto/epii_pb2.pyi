@@ -1,18 +1,22 @@
-from collections.abc import Iterable as _Iterable
-from collections.abc import Mapping as _Mapping
-from typing import ClassVar as _ClassVar
-from typing import Optional as _Optional
-from typing import Union as _Union
-
+from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from google.protobuf.internal import containers as _containers
+from collections.abc import Iterable as _Iterable, Mapping as _Mapping
+from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class Empty(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
+
+class PingResponse(_message.Message):
+    __slots__ = ("message", "timestamp")
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
+    message: str
+    timestamp: float
+    def __init__(self, message: _Optional[str] = ..., timestamp: _Optional[float] = ...) -> None: ...
 
 class CapabilitiesResponse(_message.Message):
     __slots__ = ("framework_name", "framework_version", "epii_version", "supported_backends", "experiment_types", "extensions", "data_formats")
@@ -67,14 +71,6 @@ class ParameterSpec(_message.Message):
     allowed_values: _containers.RepeatedScalarFieldContainer[str]
     def __init__(self, name: _Optional[str] = ..., type: _Optional[str] = ..., required: bool = ..., default_value: _Optional[str] = ..., description: _Optional[str] = ..., allowed_values: _Optional[_Iterable[str]] = ...) -> None: ...
 
-class PingResponse(_message.Message):
-    __slots__ = ("message", "timestamp")
-    MESSAGE_FIELD_NUMBER: _ClassVar[int]
-    TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
-    message: str
-    timestamp: int
-    def __init__(self, message: _Optional[str] = ..., timestamp: _Optional[int] = ...) -> None: ...
-
 class ExperimentRequest(_message.Message):
     __slots__ = ("experiment_type", "parameters", "return_raw_data", "return_plots")
     class ParametersEntry(_message.Message):
@@ -95,27 +91,29 @@ class ExperimentRequest(_message.Message):
     def __init__(self, experiment_type: _Optional[str] = ..., parameters: _Optional[_Mapping[str, str]] = ..., return_raw_data: bool = ..., return_plots: bool = ...) -> None: ...
 
 class ExperimentResponse(_message.Message):
-    __slots__ = ("success", "error_message", "calibration_results", "measurement_data", "plots", "execution_time_seconds")
-    class CalibrationResultsEntry(_message.Message):
+    __slots__ = ("success", "error_message", "execution_time_seconds", "docs", "metadata", "data", "plots")
+    class MetadataEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
         VALUE_FIELD_NUMBER: _ClassVar[int]
         key: str
-        value: float
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[float] = ...) -> None: ...
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     SUCCESS_FIELD_NUMBER: _ClassVar[int]
     ERROR_MESSAGE_FIELD_NUMBER: _ClassVar[int]
-    CALIBRATION_RESULTS_FIELD_NUMBER: _ClassVar[int]
-    MEASUREMENT_DATA_FIELD_NUMBER: _ClassVar[int]
-    PLOTS_FIELD_NUMBER: _ClassVar[int]
     EXECUTION_TIME_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    DOCS_FIELD_NUMBER: _ClassVar[int]
+    METADATA_FIELD_NUMBER: _ClassVar[int]
+    DATA_FIELD_NUMBER: _ClassVar[int]
+    PLOTS_FIELD_NUMBER: _ClassVar[int]
     success: bool
     error_message: str
-    calibration_results: _containers.ScalarMap[str, float]
-    measurement_data: _containers.RepeatedCompositeFieldContainer[NumpyArray]
-    plots: _containers.RepeatedCompositeFieldContainer[PlotData]
     execution_time_seconds: float
-    def __init__(self, success: bool = ..., error_message: _Optional[str] = ..., calibration_results: _Optional[_Mapping[str, float]] = ..., measurement_data: _Optional[_Iterable[_Union[NumpyArray, _Mapping]]] = ..., plots: _Optional[_Iterable[_Union[PlotData, _Mapping]]] = ..., execution_time_seconds: _Optional[float] = ...) -> None: ...
+    docs: Documentation
+    metadata: _containers.ScalarMap[str, str]
+    data: _containers.RepeatedCompositeFieldContainer[DataItem]
+    plots: _containers.RepeatedCompositeFieldContainer[PlotData]
+    def __init__(self, success: bool = ..., error_message: _Optional[str] = ..., execution_time_seconds: _Optional[float] = ..., docs: _Optional[_Union[Documentation, _Mapping]] = ..., metadata: _Optional[_Mapping[str, str]] = ..., data: _Optional[_Iterable[_Union[DataItem, _Mapping]]] = ..., plots: _Optional[_Iterable[_Union[PlotData, _Mapping]]] = ...) -> None: ...
 
 class NumpyArray(_message.Message):
     __slots__ = ("data", "shape", "dtype", "name", "metadata")
@@ -170,6 +168,30 @@ class PlotTrace(_message.Message):
     name: str
     type: str
     def __init__(self, x: _Optional[_Iterable[float]] = ..., y: _Optional[_Iterable[float]] = ..., z: _Optional[_Iterable[float]] = ..., name: _Optional[str] = ..., type: _Optional[str] = ...) -> None: ...
+
+class Documentation(_message.Message):
+    __slots__ = ("run", "data")
+    RUN_FIELD_NUMBER: _ClassVar[int]
+    DATA_FIELD_NUMBER: _ClassVar[int]
+    run: str
+    data: str
+    def __init__(self, run: _Optional[str] = ..., data: _Optional[str] = ...) -> None: ...
+
+class DataItem(_message.Message):
+    __slots__ = ("name", "description", "number", "text", "boolean", "array")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    NUMBER_FIELD_NUMBER: _ClassVar[int]
+    TEXT_FIELD_NUMBER: _ClassVar[int]
+    BOOLEAN_FIELD_NUMBER: _ClassVar[int]
+    ARRAY_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    description: str
+    number: float
+    text: str
+    boolean: bool
+    array: NumpyArray
+    def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., number: _Optional[float] = ..., text: _Optional[str] = ..., boolean: bool = ..., array: _Optional[_Union[NumpyArray, _Mapping]] = ...) -> None: ...
 
 class ExperimentsResponse(_message.Message):
     __slots__ = ("experiments",)

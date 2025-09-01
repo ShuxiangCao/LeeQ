@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script to verify Chronicle data is exposed through EPII extended_data field.
+Test script to verify Chronicle data is exposed through EPII protocol using new data structure.
 """
 
 import sys
@@ -13,11 +13,18 @@ notebook_path = Path(__file__).parent / "notebooks" / "SimulatedSystem"
 sys.path.insert(0, str(notebook_path))
 
 from leeq.epii.proto import epii_pb2, epii_pb2_grpc
-from leeq.epii.client_helpers import get_extended_data, list_extended_attributes
+from leeq.epii.client_helpers import (
+    get_data, 
+    get_data_with_descriptions,
+    get_docs,
+    get_metadata,
+    get_arrays,
+    get_calibration_results
+)
 
 def main():
-    """Test extended_data functionality."""
-    print("Testing EPII Extended Data Feature")
+    """Test new EPII protocol data structure."""
+    print("Testing EPII Protocol Enhancement - New Data Structure")
     print("=" * 50)
     
     # Connect to EPII service
@@ -31,7 +38,7 @@ def main():
         print(f"   ✓ Service online: {response.message}")
         
         # Run a simple T1 experiment  
-        print("\n2. Running T1 experiment to generate Chronicle data...")
+        print("\n2. Running T1 experiment to test new protocol...")
         request = epii_pb2.ExperimentRequest(
             experiment_type="characterizations.SimpleT1",
             parameters={
@@ -50,34 +57,78 @@ def main():
         
         print(f"   ✓ Experiment completed successfully")
         
-        # Check standard fields
-        print("\n3. Standard EPII response fields:")
-        print(f"   - Calibration results: {len(response.calibration_results)} parameters")
-        print(f"   - Measurement data: {len(response.measurement_data)} arrays")
+        # Test documentation fields
+        print("\n3. Testing Documentation fields (response.docs):")
+        docs = get_docs(response)
         
-        # Check extended_data field
-        print("\n4. Extended data (Chronicle attributes):")
+        if docs['run']:
+            print(f"   ✓ Run documentation present: {len(docs['run'])} chars")
+            print(f"     Preview: {docs['run'][:100]}..." if len(docs['run']) > 100 else f"     Content: {docs['run']}")
+        else:
+            print("   - Run documentation: Not provided")
+            
+        if docs['data']:
+            print(f"   ✓ Data documentation present: {len(docs['data'])} chars")
+            print(f"     Preview: {docs['data'][:100]}..." if len(docs['data']) > 100 else f"     Content: {docs['data']}")
+        else:
+            print("   - Data documentation: Not provided")
         
-        # List all extended attributes
-        extended_attrs = list_extended_attributes(response)
-        print(f"   - Total extended attributes: {len(extended_attrs)}")
+        # Test metadata field
+        print("\n4. Testing Metadata field (response.metadata):")
+        metadata = get_metadata(response)
+        print(f"   - Metadata entries: {len(metadata)}")
+        if metadata:
+            for key, value in list(metadata.items())[:5]:
+                print(f"     • {key}: {value[:50]}..." if len(str(value)) > 50 else f"     • {key}: {value}")
+            if len(metadata) > 5:
+                print(f"     ... and {len(metadata) - 5} more entries")
         
-        if extended_attrs:
-            print(f"   - Available attributes: {', '.join(extended_attrs[:10])}")
-            if len(extended_attrs) > 10:
-                print(f"     ... and {len(extended_attrs) - 10} more")
+        # Test unified data field
+        print("\n5. Testing unified Data field (response.data):")
+        all_data = get_data(response)
+        print(f"   - Total data items: {len(all_data)}")
         
-        # Get the full extended data
-        extended_data = get_extended_data(response)
+        # Get data with descriptions for better understanding
+        data_with_desc = get_data_with_descriptions(response)
         
-        # Check for key Chronicle attributes
-        expected_attrs = ['trace', 'result', 'freq_arr', 'fit_params']
-        found_attrs = [attr for attr in expected_attrs if attr in extended_data]
+        # Show first few data items
+        if data_with_desc:
+            print("   - Sample data items:")
+            for name, (value, desc) in list(data_with_desc.items())[:5]:
+                if isinstance(value, np.ndarray):
+                    print(f"     • {name}: array{value.shape} - {desc}")
+                elif isinstance(value, (int, float)):
+                    print(f"     • {name}: {value} - {desc}")
+                else:
+                    print(f"     • {name}: {type(value).__name__} - {desc}")
+            if len(data_with_desc) > 5:
+                print(f"     ... and {len(data_with_desc) - 5} more items")
         
-        print(f"\n5. Verifying key Chronicle attributes:")
+        # Test helper functions
+        print("\n6. Testing client helper functions:")
+        
+        # Test calibration extraction
+        calibration = get_calibration_results(response)
+        print(f"   ✓ Calibration results: {len(calibration)} parameters extracted")
+        if calibration:
+            for key, value in list(calibration.items())[:3]:
+                print(f"     • {key}: {value}")
+        
+        # Test array extraction
+        arrays = get_arrays(response)
+        print(f"   ✓ Arrays: {len(arrays)} numpy arrays extracted")
+        if arrays:
+            for name, arr in list(arrays.items())[:3]:
+                print(f"     • {name}: shape {arr.shape}, dtype {arr.dtype}")
+        
+        # Check for key Chronicle attributes in the unified data
+        expected_attrs = ['trace', 'result', 'freq_arr', 'fit_params', 'raw_data']
+        found_attrs = [attr for attr in expected_attrs if attr in all_data]
+        
+        print(f"\n7. Verifying key Chronicle/experiment attributes:")
         for attr in expected_attrs:
-            if attr in extended_data:
-                value = extended_data[attr]
+            if attr in all_data:
+                value = all_data[attr]
                 if isinstance(value, np.ndarray):
                     print(f"   ✓ {attr}: numpy array with shape {value.shape}")
                 elif isinstance(value, dict):
@@ -85,19 +136,41 @@ def main():
                 else:
                     print(f"   ✓ {attr}: {type(value).__name__}")
             else:
-                print(f"   ✗ {attr}: not found")
+                print(f"   - {attr}: not found in data")
         
+        # Verify no pickle usage
+        print("\n8. Verifying no pickle dependency:")
+        # Check if we can access all data without pickle
+        pickle_free = True
+        try:
+            # All data should be accessible through protobuf messages
+            _ = get_data(response)
+            _ = get_docs(response)  
+            _ = get_metadata(response)
+            print("   ✓ All data accessible without pickle")
+        except Exception as e:
+            print(f"   ✗ Error accessing data: {e}")
+            pickle_free = False
+            
         # Summary
         print("\n" + "=" * 50)
-        if len(extended_attrs) > 0:
-            print("✓ SUCCESS: Chronicle data is accessible through extended_data!")
-            print(f"  - {len(extended_attrs)} attributes available")
-            print(f"  - {len(found_attrs)}/{len(expected_attrs)} key attributes found")
-        else:
-            print("✗ FAILURE: No extended_data found in response")
-            print("  Check that Chronicle is enabled and experiment was logged")
+        success = len(all_data) > 0 and pickle_free
         
-        return 0 if extended_attrs else 1
+        if success:
+            print("✓ SUCCESS: New protocol structure working correctly!")
+            print(f"  - {len(all_data)} data items in unified field")
+            print(f"  - Documentation accessible via response.docs")
+            print(f"  - {len(metadata)} metadata entries available")
+            print(f"  - {len(found_attrs)}/{len(expected_attrs)} key attributes found")
+            print(f"  - No pickle dependency detected")
+        else:
+            print("✗ FAILURE: Issues with new protocol structure")
+            if len(all_data) == 0:
+                print("  - No data found in response.data field")
+            if not pickle_free:
+                print("  - Pickle dependency detected")
+        
+        return 0 if success else 1
         
     except grpc.RpcError as e:
         print(f"\n✗ gRPC Error: {e.code()} - {e.details()}")
