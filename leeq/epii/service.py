@@ -307,6 +307,28 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                 except Exception as e:
                     logger.warning(f"Failed to generate plot for {experiment_name}: {e}")
 
+            # Add Chronicle-persisted data to extended_data field
+            logger.info(f"Checking for Chronicle data on experiment: {type(experiment).__name__}")
+            logger.info(f"Has __chronicle_record_entry__: {hasattr(experiment, '__chronicle_record_entry__')}")
+            
+            if hasattr(experiment, '__chronicle_record_entry__'):
+                try:
+                    import pickle
+                    record_entry = experiment.__chronicle_record_entry__
+                    logger.info(f"Found Chronicle record entry: {record_entry}")
+                    all_attrs = record_entry.load_all_attributes()
+                    logger.info(f"Loaded {len(all_attrs)} total attributes from Chronicle")
+                    
+                    # Add all custom attributes (skip internal and object snapshot)
+                    for key, value in all_attrs.items():
+                        if not key.startswith('__') and key != '__object__':
+                            # Simple pickle for all data types
+                            response.extended_data[key] = pickle.dumps(value)
+                            logger.debug(f"Added attribute {key} to extended_data")
+                    logger.info(f"Added {len(response.extended_data)} Chronicle attributes to response")
+                except Exception as e:
+                    logger.error(f"Could not extract Chronicle data: {e}", exc_info=True)
+
             logger.info(f"Experiment {experiment_name} completed successfully")
 
             # Record performance metrics

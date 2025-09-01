@@ -57,6 +57,9 @@ message ExperimentResponse {
     
     // Metadata
     double execution_time_seconds = 6;
+    
+    // Extended data for any additional experiment attributes
+    map<string, bytes> extended_data = 7;
 }
 
 message NumpyArray {
