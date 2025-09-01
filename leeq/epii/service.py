@@ -401,7 +401,12 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
 
                 # Get description from EPII_INFO if available
                 if epii_info and 'attributes' in epii_info and key in epii_info['attributes']:
-                    item.description = epii_info['attributes'][key]
+                    attr_info = epii_info['attributes'][key]
+                    # Handle case where attribute info is a dict with 'description' field
+                    if isinstance(attr_info, dict):
+                        item.description = attr_info.get('description', f"Experiment attribute: {key}")
+                    else:
+                        item.description = str(attr_info)
                 else:
                     item.description = f"Experiment attribute: {key}"
 
