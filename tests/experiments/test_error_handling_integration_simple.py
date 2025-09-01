@@ -15,6 +15,11 @@ import logging
 from unittest.mock import Mock, patch, MagicMock, call
 import sys
 
+# Clean up any mocked plotly modules before importing
+for module in list(sys.modules.keys()):
+    if module.startswith('plotly'):
+        del sys.modules[module]
+
 from leeq.experiments.builtin.basic.calibrations.qubit_spectroscopy import QubitSpectroscopyFrequency
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 from leeq.chronicle.decorators import log_and_record

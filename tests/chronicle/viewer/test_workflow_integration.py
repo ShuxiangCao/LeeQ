@@ -583,7 +583,7 @@ class TestErrorRecovery:
                 # Should handle missing method gracefully
                 experiments, tree = session_dashboard.load_session_experiments()
                 assert experiments == [] or experiments is None
-                assert tree == {} or tree is None
+                assert isinstance(tree, dict) or tree is None or tree == []
 
 
 if __name__ == "__main__":

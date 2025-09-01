@@ -5,6 +5,12 @@ Tests for EPII serialization utilities.
 import json
 import numpy as np
 import pytest
+import sys
+
+# Clean up any mocked plotly modules before importing
+for module in list(sys.modules.keys()):
+    if module.startswith('plotly'):
+        del sys.modules[module]
 
 from leeq.epii.serialization import (
     numpy_array_to_protobuf,
