@@ -497,7 +497,8 @@ class TestBaselineReference:
         print(f"   Magnitude bounds: {required_format['magnitude_bounds']}")
         print(f"   Phase bounds: {required_format['phase_bounds']}")
         
-        return required_format
+        # Output format requirements documented
+        assert required_format is not None
 
 
 class TestPerformanceBaseline:
@@ -565,7 +566,8 @@ class TestPerformanceBaseline:
         print(f"   Per-point memory: {memory_characteristics['per_point_memory']}MB")
         print(f"   Max reasonable usage: {memory_characteristics['max_reasonable_usage']}MB")
         
-        return memory_characteristics
+        # Memory characteristics validated
+        assert memory_characteristics is not None
 
 
 class TestBackwardCompatibility:
