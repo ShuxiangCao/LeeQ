@@ -277,18 +277,33 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
             # Collect results
             response.success = True
 
-            # Serialize measurement data
+            # Serialize measurement data (check both 'data' and 'trace' attributes)
+            data_attr = None
             if hasattr(experiment, 'data') and experiment.data is not None:
-                if isinstance(experiment.data, np.ndarray):
+                data_attr = experiment.data
+            elif hasattr(experiment, 'trace') and experiment.trace is not None:
+                data_attr = experiment.trace
+            
+            if data_attr is not None:
+                if isinstance(data_attr, np.ndarray):
                     data_msg = numpy_array_to_protobuf(
-                        experiment.data,
+                        data_attr,
                         name="measurement_data",
                         metadata={"experiment": experiment_name}
                     )
                     response.measurement_data.append(data_msg)
                 else:
-                    logger.warning(f"Experiment data is not a numpy array: {type(experiment.data)}")
+                    logger.warning(f"Experiment data is not a numpy array: {type(data_attr)}")
 
+            # Try to get fit parameters - call fitting() if needed
+            if hasattr(experiment, 'fitting') and callable(experiment.fitting):
+                if not hasattr(experiment, 'fit_params') or not experiment.fit_params:
+                    try:
+                        logger.debug(f"Calling fitting() for {experiment_name}")
+                        experiment.fitting()
+                    except Exception as e:
+                        logger.debug(f"fitting() failed for {experiment_name}: {e}")
+            
             # Serialize fit parameters (use calibration_results field)
             if hasattr(experiment, 'fit_params') and experiment.fit_params:
                 for key, value in experiment.fit_params.items():
@@ -307,13 +322,15 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                 except Exception as e:
                     logger.warning(f"Failed to generate plot for {experiment_name}: {e}")
 
-            # Add Chronicle-persisted data to extended_data field
+            # Add Chronicle-persisted data OR experiment attributes to extended_data field
             logger.info(f"Checking for Chronicle data on experiment: {type(experiment).__name__}")
             logger.info(f"Has __chronicle_record_entry__: {hasattr(experiment, '__chronicle_record_entry__')}")
             
+            import pickle
+            
             if hasattr(experiment, '__chronicle_record_entry__'):
+                # Get data from Chronicle if available
                 try:
-                    import pickle
                     record_entry = experiment.__chronicle_record_entry__
                     logger.info(f"Found Chronicle record entry: {record_entry}")
                     all_attrs = record_entry.load_all_attributes()
@@ -328,6 +345,24 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                     logger.info(f"Added {len(response.extended_data)} Chronicle attributes to response")
                 except Exception as e:
                     logger.error(f"Could not extract Chronicle data: {e}", exc_info=True)
+            else:
+                # Fallback: Get attributes directly from experiment object
+                logger.info("No Chronicle record, extracting attributes directly from experiment")
+                try:
+                    for attr_name in dir(experiment):
+                        if not attr_name.startswith('_') and not attr_name.startswith('chronicle'):
+                            try:
+                                value = getattr(experiment, attr_name)
+                                if not callable(value) and value is not None:
+                                    # Skip already serialized data
+                                    if attr_name not in ['data', 'trace', 'fit_params']:
+                                        response.extended_data[attr_name] = pickle.dumps(value)
+                                        logger.debug(f"Added experiment attribute {attr_name}")
+                            except Exception as e:
+                                logger.debug(f"Could not serialize {attr_name}: {e}")
+                    logger.info(f"Added {len(response.extended_data)} experiment attributes to extended_data")
+                except Exception as e:
+                    logger.error(f"Could not extract experiment attributes: {e}")
 
             logger.info(f"Experiment {experiment_name} completed successfully")
 
