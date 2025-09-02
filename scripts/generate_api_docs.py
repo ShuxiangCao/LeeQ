@@ -56,6 +56,11 @@ def main():
         # Compiler modules
         "docs/api/compiler/lbnl_qubic.md": ("leeq.compiler.lbnl_qubic", "LBNL QubiC Compiler"),
         "docs/api/compiler/base.md": ("leeq.compiler.base", "Compiler Base Classes"),
+        
+        # EPII modules
+        "docs/api/epii/overview.md": ("leeq.epii", "EPII Module Overview"),
+        "docs/api/epii/experiments.md": ("leeq.epii.experiments", "EPII Experiment Router"),
+        "docs/api/epii/service.md": ("leeq.epii.service", "EPII gRPC Service"),
     }
     
     # Get base path from script location

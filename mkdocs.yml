@@ -50,9 +50,18 @@ nav:
     - Testing: development/testing.md
     - Architecture: development/architecture.md
   - EPII:
+    - Overview: epii/overview.md
     - Deployment Guide: epii/deployment-guide.md
     - Client Usage: epii/client-usage.md
     - Operations Guide: epii-operations-guide.md
+    - Migration Guide: epii/migration-guide.md
+    - Release Notes v0.2.0: epii/release-notes-v0.2.0.md
+    - Quick Reference: epii/quick-reference.md
+    - Troubleshooting: epii/troubleshooting.md
+    - API Reference:
+      - Overview: api/epii/overview.md
+      - Experiments: api/epii/experiments.md
+      - Service: api/epii/service.md
 
 markdown_extensions:
   - pymdownx.highlight
