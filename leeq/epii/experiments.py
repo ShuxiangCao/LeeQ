@@ -24,7 +24,7 @@ class ExperimentRouter:
 
     def __init__(self, setup=None):
         """Initialize the experiment router with dynamic discovery.
-        
+
         Args:
             setup: Optional LeeQ setup instance for backend-aware filtering
         """
@@ -36,39 +36,39 @@ class ExperimentRouter:
     def _detect_simulation_setup(self) -> bool:
         """
         Check if the setup is a high-level simulation setup.
-        
+
         Returns:
             True if setup is HighLevelSimulationSetup, False otherwise
         """
         if not self.setup:
             return False
-        
+
         try:
             from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
             return isinstance(self.setup, HighLevelSimulationSetup)
         except ImportError:
             logger.warning("Could not import HighLevelSimulationSetup")
             return False
-    
+
     def _has_own_run_simulated(self, exp_class: Type) -> bool:
         """
         Check if an experiment class has its own run_simulated implementation
         (not just inherited from base class).
-        
+
         Args:
             exp_class: The experiment class to check
-            
+
         Returns:
             True if the class implements its own run_simulated method
         """
         if not hasattr(exp_class, 'run_simulated'):
             return False
-        
+
         # Check if run_simulated is defined in this class, not inherited
         # We check the class itself, not parent classes
         if 'run_simulated' in exp_class.__dict__:
             return True
-        
+
         # Also check if any direct parent (not base Experiment) has it
         # This handles cases where a specialized experiment base class implements it
         for base in exp_class.__bases__:
@@ -77,9 +77,9 @@ class ExperimentRouter:
                 continue
             if 'run_simulated' in base.__dict__:
                 return True
-        
+
         return False
-    
+
     def _discover_experiments(self):
         """
         Dynamically discover all experiments with EPII_INFO.
@@ -110,7 +110,7 @@ class ExperimentRouter:
                             if not self._has_own_run_simulated(obj):
                                 logger.debug(f"Skipping {name} - no run_simulated implementation for simulation setup")
                                 continue
-                        
+
                         # Build experiment name with module prefix for duplicates
                         # Extract the last parts of module path for context
                         module_parts = modname.split('.')
@@ -242,7 +242,7 @@ class ExperimentRouter:
     def map_parameters(self, experiment_name: str, epii_params: Dict[str, Any], setup=None) -> Dict[str, Any]:
         """
         Resolve qubit references in experiment parameters.
-        
+
         Args:
             experiment_name: Name of the experiment
             epii_params: Parameters dictionary
@@ -264,11 +264,11 @@ class ExperimentRouter:
     def _resolve_qubit_references(self, params: Dict[str, Any], setup) -> Dict[str, Any]:
         """
         Resolve qubit string references to actual qubit objects.
-        
+
         Args:
             params: Parameters dictionary
             setup: Setup instance with qubit registry
-            
+
         Returns:
             Parameters with resolved qubit objects
         """
@@ -281,25 +281,29 @@ class ExperimentRouter:
             if param_name in resolved:
                 value = resolved[param_name]
 
-                # Handle single qubit reference
-                if isinstance(value, str):
+                # Handle single qubit reference (string or int)
+                if isinstance(value, (str, int)):
                     try:
-                        resolved[param_name] = self._get_qubit_from_setup(value, setup)
+                        # Convert int to string for resolution
+                        qubit_ref = str(value) if isinstance(value, int) else value
+                        resolved[param_name] = self._get_qubit_from_setup(qubit_ref, setup)
                     except ValueError as e:
                         logger.warning(f"Failed to resolve qubit for {param_name}: {e}")
-                        # Keep the string value if resolution fails
-                        # This allows experiments to handle string references themselves
+                        # Keep the original value if resolution fails
+                        # This allows experiments to handle references themselves
                         pass
                 # Handle list of qubit references
                 elif isinstance(value, list):
                     resolved_list = []
                     for q in value:
-                        if isinstance(q, str):
+                        if isinstance(q, (str, int)):
                             try:
-                                resolved_list.append(self._get_qubit_from_setup(q, setup))
+                                # Convert int to string for resolution
+                                qubit_ref = str(q) if isinstance(q, int) else q
+                                resolved_list.append(self._get_qubit_from_setup(qubit_ref, setup))
                             except ValueError as e:
                                 logger.warning(f"Failed to resolve qubit '{q}': {e}")
-                                # Keep string if resolution fails
+                                # Keep original value if resolution fails
                                 resolved_list.append(q)
                         else:
                             resolved_list.append(q)
@@ -310,14 +314,14 @@ class ExperimentRouter:
     def _get_qubit_from_setup(self, qubit_name: str, setup):
         """
         Get a qubit object from the setup by name.
-        
+
         Args:
             qubit_name: Name of the qubit (e.g., '0', '1', 'q0', 'Q0')
             setup: Setup instance
-            
+
         Returns:
             Qubit object from setup
-            
+
         Raises:
             ValueError: If qubit cannot be resolved
         """
