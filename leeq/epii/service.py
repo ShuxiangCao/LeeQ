@@ -326,13 +326,26 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
 
             # 3. Add calibration results to data
             if hasattr(experiment, 'fit_params') and experiment.fit_params:
-                for key, value in experiment.fit_params.items():
-                    if isinstance(value, (int, float)):
-                        item = epii_pb2.DataItem()
-                        item.name = key
-                        item.description = f"Fitted calibration parameter: {key}"
-                        item.number = float(value)
-                        response.data.append(item)
+                if isinstance(experiment.fit_params, dict):
+                    # Handle dict fit_params (single qubit experiments)
+                    for key, value in experiment.fit_params.items():
+                        if isinstance(value, (int, float)):
+                            item = epii_pb2.DataItem()
+                            item.name = key
+                            item.description = f"Fitted calibration parameter: {key}"
+                            item.number = float(value)
+                            response.data.append(item)
+                elif isinstance(experiment.fit_params, list):
+                    # Handle list fit_params (multi-qubit experiments)
+                    for i, fit_param in enumerate(experiment.fit_params):
+                        if isinstance(fit_param, dict):
+                            for key, value in fit_param.items():
+                                if isinstance(value, (int, float)):
+                                    item = epii_pb2.DataItem()
+                                    item.name = f"{key}_qubit_{i}"
+                                    item.description = f"Fitted calibration parameter: {key} for qubit {i}"
+                                    item.number = float(value)
+                                    response.data.append(item)
 
             # 4. Add measurement data
             data_attr = None
