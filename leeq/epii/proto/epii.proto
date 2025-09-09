@@ -60,7 +60,7 @@ message ExperimentResponse {
     repeated DataItem data = 6;                  // All experiment results
     
     // Visualization
-    repeated PlotData plots = 7;                 // Plot data (keeping existing message)
+    repeated PlotComponent plots = 7;            // Plot components with JSON and images
 }
 
 message NumpyArray {
@@ -71,19 +71,10 @@ message NumpyArray {
     map<string, string> metadata = 5;   // Array-specific metadata
 }
 
-message PlotData {
-    string plot_type = 1;                // "line", "scatter", "heatmap"
-    string title = 2;
-    repeated PlotTrace traces = 3;
-    map<string, string> layout = 4;     // JSON-serialized layout
-}
-
-message PlotTrace {
-    repeated double x = 1;
-    repeated double y = 2;
-    repeated double z = 3;               // For 3D plots
-    string name = 4;
-    string type = 5;                     // "scatter", "line", etc.
+message PlotComponent {
+    string description = 1;              // Plot title and browser function name
+    string plotly_json = 2;              // Empty initially
+    bytes image_png = 3;                 // Empty initially
 }
 
 // Documentation message for clean access pattern

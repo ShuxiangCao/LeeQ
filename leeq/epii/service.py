@@ -17,7 +17,7 @@ import numpy as np
 from .experiments import ExperimentRouter
 from .parameters import ParameterManager
 from .proto import epii_pb2, epii_pb2_grpc
-from .serialization import deserialize_value, numpy_array_to_protobuf, plotly_figure_to_protobuf
+from .serialization import deserialize_value, numpy_array_to_protobuf, browser_function_to_plot_component
 from .utils import PerformanceMonitor, RequestResponseLogger
 from pprint import pprint
 
@@ -384,64 +384,48 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                     except Exception as e:
                         logger.debug(f"fitting() failed for {experiment_name}: {e}")
 
-            # Serialize plot data from all registered browser functions
+            # Simplified plot generation 
             plot_count = 0
             if hasattr(experiment, 'get_browser_functions'):
                 try:
                     browser_functions = experiment.get_browser_functions()
-                    logger.debug(f"Found {len(browser_functions)} browser functions: {[name for name, _ in browser_functions]}")
+                    logger.debug(f"Found {len(browser_functions)} browser functions")
                     
                     for func_name, func_method in browser_functions:
                         try:
-                            logger.debug(f"Calling browser function: {func_name}")
                             result = func_method()
-                            
                             plot_figure = None
                             
-                            # Handle different return types
+                            # Handle matplotlib and plotly returns
                             if result is None:
-                                # Matplotlib case - function called plt.show(), get current figure
+                                # Matplotlib case - convert to plotly
                                 try:
                                     import matplotlib.pyplot as plt
                                     current_fig = plt.gcf()
-                                    if current_fig and current_fig.get_axes():  # Has content
-                                        # Use existing plotly.tools conversion like Chronicle viewer
+                                    if current_fig and current_fig.get_axes():
                                         import plotly.tools
                                         if hasattr(plotly.tools, 'mpl_to_plotly'):
                                             plot_figure = plotly.tools.mpl_to_plotly(current_fig)
-                                            logger.debug(f"Converted matplotlib figure from {func_name}")
-                                        plt.close(current_fig)  # Clean up
+                                        plt.close(current_fig)
                                 except Exception as e:
-                                    logger.debug(f"Failed to convert matplotlib figure from {func_name}: {e}")
+                                    logger.debug(f"Failed to convert matplotlib from {func_name}: {e}")
                                     
-                            elif hasattr(result, 'to_dict'):
-                                # Plotly Figure object
+                            elif hasattr(result, 'to_json') or isinstance(result, dict):
                                 plot_figure = result
-                                logger.debug(f"Got Plotly figure from {func_name}")
-                                
-                            elif isinstance(result, dict):
-                                # Plotly dict representation  
-                                plot_figure = result
-                                logger.debug(f"Got Plotly dict from {func_name}")
                             
-                            # Convert to protobuf if we have a valid figure
+                            # Create component if we have a figure
                             if plot_figure:
-                                plot_msg = plotly_figure_to_protobuf(plot_figure)
-                                response.plots.append(plot_msg)
+                                component = browser_function_to_plot_component(func_name, plot_figure)
+                                response.plots.append(component)
                                 plot_count += 1
-                                logger.debug(f"Added plot from browser function: {func_name}")
-                            else:
-                                logger.debug(f"Browser function {func_name} returned no valid plot: {type(result)}")
                                 
                         except Exception as e:
                             logger.warning(f"Failed to call browser function {func_name}: {e}")
                     
-                    logger.info(f"Generated {plot_count} plots from {len(browser_functions)} browser functions")
+                    logger.info(f"Generated {plot_count} plot components")
                     
                 except Exception as e:
-                    logger.warning(f"Failed to get browser functions for {experiment_name}: {e}")
-            else:
-                logger.debug(f"Experiment {experiment_name} has no get_browser_functions method")
+                    logger.warning(f"Failed to get browser functions: {e}")
 
             # 1. Create Documentation message
             import json
@@ -617,6 +601,12 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                 if item.HasField('array'):
                     data_size += len(item.array.data)
             self.performance_monitor.record_experiment(experiment_name, duration_ms, True, data_size)
+
+            # Log final response structure before sending
+            logger.info(f"Final response structure: success={response.success}, data_items={len(response.data)}, plots={len(response.plots)}")
+            if response.plots:
+                for i, plot in enumerate(response.plots):
+                    logger.info(f"Plot {i}: description='{plot.description}', has_json={len(plot.plotly_json) > 0}, has_png={len(plot.image_png) > 0}")
 
             self.request_logger.log_response(request_id, response, start_time)
             return response

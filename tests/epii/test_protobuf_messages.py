@@ -115,16 +115,11 @@ class TestProtobufMessages:
         item3.array.name = "raw_data"
         item3.array.metadata["units"] = "V"
 
-        # Add plot data
-        plot = msg.plots.add()
-        plot.plot_type = "scatter"
-        plot.title = "T1 Decay"
-
-        trace = plot.traces.add()
-        trace.x.extend([0.0, 1.0, 2.0])
-        trace.y.extend([1.0, 0.5, 0.25])
-        trace.name = "Data"
-        trace.type = "scatter"
+        # Add plot component
+        component = msg.plots.add()
+        component.description = "T1 Decay (from plot)"
+        component.plotly_json = ""
+        component.image_png = b""
 
         # Validate
         assert msg.success is True
@@ -143,8 +138,9 @@ class TestProtobufMessages:
         assert msg.metadata["purpose"] == "testing"
         assert msg.metadata["category"] == "unit_test"
         assert len(msg.plots) == 1
-        assert len(msg.plots[0].traces) == 1
-        assert len(msg.plots[0].traces[0].x) == 3
+        assert msg.plots[0].description == "T1 Decay (from plot)"
+        assert msg.plots[0].plotly_json == ""
+        assert msg.plots[0].image_png == b""
 
     def test_parameter_info(self):
         """Test ParameterInfo message"""
@@ -225,27 +221,34 @@ class TestProtobufMessages:
         assert len(msg.metadata) == 2
         assert msg.metadata["experiment"] == "calibrations.NormalisedRabi"
 
-    def test_plot_data_message(self):
-        """Test PlotData message with traces"""
-        msg = epii_pb2.PlotData()
-        msg.plot_type = "line"
-        msg.title = "Rabi Oscillation"
-        msg.layout["xaxis_title"] = "Amplitude"
-        msg.layout["yaxis_title"] = "Population"
+    def test_plot_component_message(self):
+        """Test PlotComponent message creation and serialization"""
+        component = epii_pb2.PlotComponent()
+        component.description = "Time Rabi (from plot)"
+        component.plotly_json = ""
+        component.image_png = b""
+        
+        # Test serialization roundtrip
+        serialized = component.SerializeToString()
+        component_copy = epii_pb2.PlotComponent()
+        component_copy.ParseFromString(serialized)
+        
+        assert component_copy.description == component.description
+        assert component_copy.plotly_json == ""
+        assert component_copy.image_png == b""
 
-        # Add trace
-        trace = msg.traces.add()
-        trace.x.extend([0.0, 0.1, 0.2, 0.3])
-        trace.y.extend([0.0, 0.5, 1.0, 0.5])
-        trace.name = "Qubit 0"
-        trace.type = "scatter"
-
-        assert msg.plot_type == "line"
-        assert msg.title == "Rabi Oscillation"
-        assert len(msg.layout) == 2
-        assert len(msg.traces) == 1
-        assert len(msg.traces[0].x) == 4
-        assert msg.traces[0].name == "Qubit 0"
+    def test_experiment_response_with_plot_components(self):
+        """Test ExperimentResponse with PlotComponent array"""
+        response = epii_pb2.ExperimentResponse()
+        
+        # Add plot component
+        component = response.plots.add()
+        component.description = "Test Plot (from plot_function)"
+        component.plotly_json = ""
+        component.image_png = b""
+        
+        assert len(response.plots) == 1
+        assert response.plots[0].description == "Test Plot (from plot_function)"
 
     def test_documentation_message(self):
         """Test Documentation message creation and serialization"""

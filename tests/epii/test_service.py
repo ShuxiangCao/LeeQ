@@ -193,6 +193,13 @@ def test_run_experiment_success(stub):
     response = stub.RunExperiment(request)
     assert response.success
     assert len(response.data.data) > 0
+    # Verify plots field exists and can contain PlotComponent objects
+    assert hasattr(response, 'plots')
+    # If plots are generated, they should be PlotComponent objects
+    for plot in response.plots:
+        assert hasattr(plot, 'description')
+        assert hasattr(plot, 'plotly_json')
+        assert hasattr(plot, 'image_png')
 
 
 def test_run_experiment_invalid_type(stub):
@@ -342,5 +349,27 @@ def test_metadata_field_in_response(stub):
         assert hasattr(response, 'metadata')
         # metadata should be dict-like (protobuf map)
         assert hasattr(response.metadata, '__getitem__')
+    except grpc.RpcError:
+        pass
+
+
+def test_plots_field_in_response(stub):
+    """Test that plots field is present and contains PlotComponent messages."""
+    request = epii_pb2.ExperimentRequest()
+    request.experiment_type = "invalid_for_testing"
+    
+    try:
+        response = stub.RunExperiment(request)
+        # Response should have plots field that's a repeated PlotComponent
+        assert hasattr(response, 'plots')
+        # Even on error, plots should be an iterable (empty or not)
+        assert hasattr(response.plots, '__iter__')
+        # Verify it can hold PlotComponent objects
+        component = epii_pb2.PlotComponent()
+        component.description = "Test plot"
+        component.plotly_json = ""
+        component.image_png = b""
+        # Should be able to add to response.plots
+        assert hasattr(response.plots, 'append')
     except grpc.RpcError:
         pass
