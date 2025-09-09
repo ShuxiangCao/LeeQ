@@ -19,6 +19,7 @@ from .parameters import ParameterManager
 from .proto import epii_pb2, epii_pb2_grpc
 from .serialization import deserialize_value, numpy_array_to_protobuf, plotly_figure_to_protobuf
 from .utils import PerformanceMonitor, RequestResponseLogger
+from pprint import pprint
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,74 @@ def flatten_dict(d, parent_key='', sep='.'):
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+def get_flattened_description(flat_key, epii_info):
+    """
+    Get proper description for a flattened attribute key from EPII_INFO.
+    
+    Args:
+        flat_key: Flattened key like 'fit_params.Frequency'
+        epii_info: EPII_INFO dictionary
+    
+    Returns:
+        Proper description string or generic fallback
+    
+    Example:
+        flat_key='fit_params.Frequency' -> 'float - Rabi oscillation frequency'
+    """
+    if not epii_info or 'attributes' not in epii_info:
+        return f"Experiment attribute: {flat_key}"
+    
+    attributes = epii_info['attributes']
+    key_parts = flat_key.split('.')
+    
+    # Navigate through nested EPII_INFO structure
+    current = attributes
+    for i, part in enumerate(key_parts):
+        if isinstance(current, dict) and part in current:
+            current = current[part]
+            
+            # If we've reached the end and have a description
+            if i == len(key_parts) - 1:
+                if isinstance(current, str):
+                    return current
+                elif isinstance(current, dict) and 'description' in current:
+                    return current['description']
+            
+            # Navigate deeper for nested structures like fit_params.keys.Frequency
+            if isinstance(current, dict) and 'keys' in current and i < len(key_parts) - 1:
+                current = current['keys']
+        else:
+            break
+    
+    # Fallback to generic description
+    return f"Experiment attribute: {flat_key}"
+
+
+def get_attribute_description(key, epii_info):
+    """
+    Get proper description for a non-flattened attribute key from EPII_INFO.
+    
+    Args:
+        key: Attribute key like 'data' or 'guess_amp'
+        epii_info: EPII_INFO dictionary
+    
+    Returns:
+        Proper description string or generic fallback
+    """
+    if not epii_info or 'attributes' not in epii_info:
+        return f"Experiment attribute: {key}"
+    
+    if key in epii_info['attributes']:
+        attr_info = epii_info['attributes'][key]
+        # Handle case where attribute info is a dict with 'description' field
+        if isinstance(attr_info, dict):
+            return attr_info.get('description', f"Experiment attribute: {key}")
+        else:
+            return str(attr_info)
+    else:
+        return f"Experiment attribute: {key}"
 
 
 class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer):
@@ -315,15 +384,64 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                     except Exception as e:
                         logger.debug(f"fitting() failed for {experiment_name}: {e}")
 
-            # Serialize plot data if available
-            if hasattr(experiment, 'plot') and callable(experiment.plot):
+            # Serialize plot data from all registered browser functions
+            plot_count = 0
+            if hasattr(experiment, 'get_browser_functions'):
                 try:
-                    figure = experiment.plot()
-                    if figure:
-                        plot_msg = plotly_figure_to_protobuf(figure)
-                        response.plots.append(plot_msg)
+                    browser_functions = experiment.get_browser_functions()
+                    logger.debug(f"Found {len(browser_functions)} browser functions: {[name for name, _ in browser_functions]}")
+                    
+                    for func_name, func_method in browser_functions:
+                        try:
+                            logger.debug(f"Calling browser function: {func_name}")
+                            result = func_method()
+                            
+                            plot_figure = None
+                            
+                            # Handle different return types
+                            if result is None:
+                                # Matplotlib case - function called plt.show(), get current figure
+                                try:
+                                    import matplotlib.pyplot as plt
+                                    current_fig = plt.gcf()
+                                    if current_fig and current_fig.get_axes():  # Has content
+                                        # Use existing plotly.tools conversion like Chronicle viewer
+                                        import plotly.tools
+                                        if hasattr(plotly.tools, 'mpl_to_plotly'):
+                                            plot_figure = plotly.tools.mpl_to_plotly(current_fig)
+                                            logger.debug(f"Converted matplotlib figure from {func_name}")
+                                        plt.close(current_fig)  # Clean up
+                                except Exception as e:
+                                    logger.debug(f"Failed to convert matplotlib figure from {func_name}: {e}")
+                                    
+                            elif hasattr(result, 'to_dict'):
+                                # Plotly Figure object
+                                plot_figure = result
+                                logger.debug(f"Got Plotly figure from {func_name}")
+                                
+                            elif isinstance(result, dict):
+                                # Plotly dict representation  
+                                plot_figure = result
+                                logger.debug(f"Got Plotly dict from {func_name}")
+                            
+                            # Convert to protobuf if we have a valid figure
+                            if plot_figure:
+                                plot_msg = plotly_figure_to_protobuf(plot_figure)
+                                response.plots.append(plot_msg)
+                                plot_count += 1
+                                logger.debug(f"Added plot from browser function: {func_name}")
+                            else:
+                                logger.debug(f"Browser function {func_name} returned no valid plot: {type(result)}")
+                                
+                        except Exception as e:
+                            logger.warning(f"Failed to call browser function {func_name}: {e}")
+                    
+                    logger.info(f"Generated {plot_count} plots from {len(browser_functions)} browser functions")
+                    
                 except Exception as e:
-                    logger.warning(f"Failed to generate plot for {experiment_name}: {e}")
+                    logger.warning(f"Failed to get browser functions for {experiment_name}: {e}")
+            else:
+                logger.debug(f"Experiment {experiment_name} has no get_browser_functions method")
 
             # 1. Create Documentation message
             import json
@@ -359,9 +477,81 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                     
                     # Flatten nested dictionaries and convert ALL attributes
                     for key, value in all_attrs.items():
-                        if key.startswith('__') or key == '__object__':
+                        if key.startswith('__') or key == '__object__' or key == 'EPII_INFO':
                             continue
                             
+                        if isinstance(value, dict):
+                            # Flatten nested dictionaries  
+                            flat_dict = flatten_dict(value, parent_key=key, sep='.')
+                            for flat_key, flat_value in flat_dict.items():
+                                item = epii_pb2.DataItem()
+                                item.name = flat_key
+                                item.description = get_flattened_description(flat_key, epii_info)
+                                
+                                # Simple type-based serialization
+                                if isinstance(flat_value, bool):
+                                    item.boolean = flat_value
+                                elif isinstance(flat_value, (int, float, np.integer, np.floating)):
+                                    item.number = float(flat_value)
+                                elif isinstance(flat_value, str):
+                                    item.text = flat_value
+                                elif isinstance(flat_value, np.ndarray):
+                                    array = epii_pb2.NumpyArray()
+                                    array.data = flat_value.tobytes()
+                                    array.shape.extend(flat_value.shape)
+                                    array.dtype = str(flat_value.dtype)
+                                    item.array.CopyFrom(array)
+                                else:
+                                    item.text = str(flat_value)
+                                
+                                response.data.append(item)
+                                logger.debug(f"Added flattened DataItem: {flat_key}")
+                        else:
+                            # Handle non-dict values directly
+                            item = epii_pb2.DataItem()
+                            item.name = key
+                            item.description = get_attribute_description(key, epii_info)
+                            
+                            # Simple type-based serialization
+                            if isinstance(value, bool):
+                                item.boolean = value
+                            elif isinstance(value, (int, float, np.integer, np.floating)):
+                                item.number = float(value)
+                            elif isinstance(value, str):
+                                item.text = value
+                            elif isinstance(value, np.ndarray):
+                                array = epii_pb2.NumpyArray()
+                                array.data = value.tobytes()
+                                array.shape.extend(value.shape)
+                                array.dtype = str(value.dtype)
+                                item.array.CopyFrom(array)
+                            else:
+                                item.text = str(value)
+                            
+                            response.data.append(item)
+                            logger.debug(f"Added DataItem: {key}")
+                            
+                    logger.info(f"Added {len(response.data)} DataItems from Chronicle to EPII response")
+                except Exception as e:
+                    logger.error(f"Could not extract Chronicle data: {e}", exc_info=True)
+            else:
+                # Fallback: Get attributes directly from experiment object when no Chronicle record
+                logger.info("No Chronicle record, extracting attributes directly from experiment")
+                try:
+                    # Collect all experiment attributes first
+                    experiment_attrs = {}
+                    for attr_name in dir(experiment):
+                        if not attr_name.startswith('_') and not attr_name.startswith('chronicle') and attr_name != 'EPII_INFO':
+                            try:
+                                value = getattr(experiment, attr_name)
+                                if not callable(value) and value is not None:
+                                    experiment_attrs[attr_name] = value
+                                    logger.debug(f"Collected experiment attribute {attr_name}")
+                            except Exception as e:
+                                logger.debug(f"Could not collect {attr_name}: {e}")
+                    pprint(experiment_attrs)
+                    # Process attributes (ignore EPII_INFO since it's already in docs section)
+                    for key, value in experiment_attrs.items():
                         if isinstance(value, dict):
                             # Flatten nested dictionaries  
                             flat_dict = flatten_dict(value, parent_key=key, sep='.')
@@ -412,10 +602,10 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                             
                             response.data.append(item)
                             logger.debug(f"Added DataItem: {key}")
-                            
-                    logger.info(f"Added {len(response.data)} DataItems from Chronicle to EPII response")
+                    
+                    logger.info(f"Added {len(response.data)} DataItems from experiment object")
                 except Exception as e:
-                    logger.error(f"Could not extract Chronicle data: {e}", exc_info=True)
+                    logger.error(f"Could not extract experiment attributes: {e}")
 
             logger.info(f"Experiment {experiment_name} completed successfully")
 
