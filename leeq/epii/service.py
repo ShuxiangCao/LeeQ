@@ -23,21 +23,21 @@ from .utils import PerformanceMonitor, RequestResponseLogger
 logger = logging.getLogger(__name__)
 
 
-def flatten_dict(d, parent_key='', sep='/'):
+def flatten_dict(d, parent_key='', sep='.'):
     """
-    Flatten nested dictionary using Unix path-like separators.
+    Flatten nested dictionary using dot notation.
     
     Args:
         d: Dictionary to flatten
         parent_key: Parent key for recursion  
-        sep: Separator to use (default: '/')
+        sep: Separator to use (default: '.')
     
     Returns:
-        Flattened dictionary with path-like keys
+        Flattened dictionary with dot notation keys
     
     Example:
         {'fit_params': {'Frequency': 1.23, 'Amplitude': 0.45}}
-        -> {'fit_params/Frequency': 1.23, 'fit_params/Amplitude': 0.45}
+        -> {'fit_params.Frequency': 1.23, 'fit_params.Amplitude': 0.45}
     """
     items = []
     for k, v in d.items():
@@ -364,7 +364,7 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                             
                         if isinstance(value, dict):
                             # Flatten nested dictionaries  
-                            flat_dict = flatten_dict(value, parent_key=key, sep='/')
+                            flat_dict = flatten_dict(value, parent_key=key, sep='.')
                             for flat_key, flat_value in flat_dict.items():
                                 item = epii_pb2.DataItem()
                                 item.name = flat_key
