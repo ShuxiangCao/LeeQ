@@ -23,6 +23,32 @@ from .utils import PerformanceMonitor, RequestResponseLogger
 logger = logging.getLogger(__name__)
 
 
+def flatten_dict(d, parent_key='', sep='/'):
+    """
+    Flatten nested dictionary using Unix path-like separators.
+    
+    Args:
+        d: Dictionary to flatten
+        parent_key: Parent key for recursion  
+        sep: Separator to use (default: '/')
+    
+    Returns:
+        Flattened dictionary with path-like keys
+    
+    Example:
+        {'fit_params': {'Frequency': 1.23, 'Amplitude': 0.45}}
+        -> {'fit_params/Frequency': 1.23, 'fit_params/Amplitude': 0.45}
+    """
+    items = []
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+
 class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer):
     """
     Implementation of the EPII ExperimentPlatformService.
@@ -324,125 +350,72 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                         else:
                             response.metadata[key] = json.dumps(value)
 
-            # 3. Add calibration results to data
-            if hasattr(experiment, 'fit_params') and experiment.fit_params:
-                if isinstance(experiment.fit_params, dict):
-                    # Handle dict fit_params (single qubit experiments)
-                    for key, value in experiment.fit_params.items():
-                        if isinstance(value, (int, float)):
-                            item = epii_pb2.DataItem()
-                            item.name = key
-                            item.description = f"Fitted calibration parameter: {key}"
-                            item.number = float(value)
-                            response.data.append(item)
-                elif isinstance(experiment.fit_params, list):
-                    # Handle list fit_params (multi-qubit experiments)
-                    for i, fit_param in enumerate(experiment.fit_params):
-                        if isinstance(fit_param, dict):
-                            for key, value in fit_param.items():
-                                if isinstance(value, (int, float)):
-                                    item = epii_pb2.DataItem()
-                                    item.name = f"{key}_qubit_{i}"
-                                    item.description = f"Fitted calibration parameter: {key} for qubit {i}"
-                                    item.number = float(value)
-                                    response.data.append(item)
-
-            # 4. Add measurement data
-            data_attr = None
-            if hasattr(experiment, 'data') and experiment.data is not None:
-                data_attr = experiment.data
-            elif hasattr(experiment, 'trace') and experiment.trace is not None:
-                data_attr = experiment.trace
-
-            if data_attr is not None and isinstance(data_attr, np.ndarray):
-                item = epii_pb2.DataItem()
-                item.name = "raw_data"
-                item.description = "Raw measurement data from experiment"
-                array = epii_pb2.NumpyArray()
-                array.data = data_attr.tobytes()
-                array.shape.extend(data_attr.shape)
-                array.dtype = str(data_attr.dtype)
-                item.array.CopyFrom(array)
-                response.data.append(item)
-
-            # 5. Add all other experiment attributes
-            experiment_attrs = {}
-
+            # Get ALL attributes from Chronicle and convert to protobuf
             if hasattr(experiment, '__chronicle_record_entry__'):
-                # Get data from Chronicle if available
                 try:
                     record_entry = experiment.__chronicle_record_entry__
-                    logger.info(f"Found Chronicle record entry: {record_entry}")
                     all_attrs = record_entry.load_all_attributes()
-                    logger.info(f"Loaded {len(all_attrs)} total attributes from Chronicle")
-
-                    # Add all custom attributes (skip internal and object snapshot)
+                    logger.info(f"Loaded {len(all_attrs)} Chronicle attributes")
+                    
+                    # Flatten nested dictionaries and convert ALL attributes
                     for key, value in all_attrs.items():
-                        if not key.startswith('__') and key != '__object__':
-                            experiment_attrs[key] = value
-                            logger.debug(f"Added Chronicle attribute {key}")
-                    logger.info(f"Collected {len(experiment_attrs)} Chronicle attributes")
+                        if key.startswith('__') or key == '__object__':
+                            continue
+                            
+                        if isinstance(value, dict):
+                            # Flatten nested dictionaries  
+                            flat_dict = flatten_dict(value, parent_key=key, sep='/')
+                            for flat_key, flat_value in flat_dict.items():
+                                item = epii_pb2.DataItem()
+                                item.name = flat_key
+                                item.description = f"Experiment attribute: {flat_key}"
+                                
+                                # Simple type-based serialization
+                                if isinstance(flat_value, bool):
+                                    item.boolean = flat_value
+                                elif isinstance(flat_value, (int, float, np.integer, np.floating)):
+                                    item.number = float(flat_value)
+                                elif isinstance(flat_value, str):
+                                    item.text = flat_value
+                                elif isinstance(flat_value, np.ndarray):
+                                    array = epii_pb2.NumpyArray()
+                                    array.data = flat_value.tobytes()
+                                    array.shape.extend(flat_value.shape)
+                                    array.dtype = str(flat_value.dtype)
+                                    item.array.CopyFrom(array)
+                                else:
+                                    item.text = str(flat_value)
+                                
+                                response.data.append(item)
+                                logger.debug(f"Added flattened DataItem: {flat_key}")
+                        else:
+                            # Handle non-dict values directly
+                            item = epii_pb2.DataItem()
+                            item.name = key
+                            item.description = f"Experiment attribute: {key}"
+                            
+                            # Simple type-based serialization
+                            if isinstance(value, bool):
+                                item.boolean = value
+                            elif isinstance(value, (int, float, np.integer, np.floating)):
+                                item.number = float(value)
+                            elif isinstance(value, str):
+                                item.text = value
+                            elif isinstance(value, np.ndarray):
+                                array = epii_pb2.NumpyArray()
+                                array.data = value.tobytes()
+                                array.shape.extend(value.shape)
+                                array.dtype = str(value.dtype)
+                                item.array.CopyFrom(array)
+                            else:
+                                item.text = str(value)
+                            
+                            response.data.append(item)
+                            logger.debug(f"Added DataItem: {key}")
+                            
+                    logger.info(f"Added {len(response.data)} DataItems from Chronicle to EPII response")
                 except Exception as e:
                     logger.error(f"Could not extract Chronicle data: {e}", exc_info=True)
-            else:
-                # Fallback: Get attributes directly from experiment object
-                logger.info("No Chronicle record, extracting attributes directly from experiment")
-                try:
-                    for attr_name in dir(experiment):
-                        if not attr_name.startswith('_') and not attr_name.startswith('chronicle'):
-                            try:
-                                value = getattr(experiment, attr_name)
-                                if not callable(value) and value is not None:
-                                    # Skip already serialized data
-                                    if attr_name not in ['data', 'trace', 'fit_params']:
-                                        experiment_attrs[attr_name] = value
-                                        logger.debug(f"Added experiment attribute {attr_name}")
-                            except Exception as e:
-                                logger.debug(f"Could not serialize {attr_name}: {e}")
-                    logger.info(f"Collected {len(experiment_attrs)} experiment attributes")
-                except Exception as e:
-                    logger.error(f"Could not extract experiment attributes: {e}")
-
-            # Convert to protobuf DataItem messages
-            for key, value in experiment_attrs.items():
-                # Skip already processed data
-                if key in ['data', 'fit_params']:
-                    continue
-
-                item = epii_pb2.DataItem()
-                item.name = key
-
-                # Get description from EPII_INFO if available
-                if epii_info and 'attributes' in epii_info and key in epii_info['attributes']:
-                    attr_info = epii_info['attributes'][key]
-                    # Handle case where attribute info is a dict with 'description' field
-                    if isinstance(attr_info, dict):
-                        item.description = attr_info.get('description', f"Experiment attribute: {key}")
-                    else:
-                        item.description = str(attr_info)
-                else:
-                    item.description = f"Experiment attribute: {key}"
-
-                if isinstance(value, bool):  # Check bool before int (bool is subclass of int)
-                    item.boolean = value
-                elif isinstance(value, (int, float)):
-                    item.number = float(value)
-                elif isinstance(value, str):
-                    item.text = value
-                elif isinstance(value, np.ndarray):
-                    array = epii_pb2.NumpyArray()
-                    array.data = value.tobytes()
-                    array.shape.extend(value.shape)
-                    array.dtype = str(value.dtype)
-                    item.array.CopyFrom(array)
-                else:
-                    # Fallback: convert to string
-                    item.text = str(value)
-
-                response.data.append(item)
-
-            # Log that we added metadata
-            logger.debug(f"Added EPII metadata and documentation for {experiment_name} to response")
 
             logger.info(f"Experiment {experiment_name} completed successfully")
 
