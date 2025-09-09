@@ -105,39 +105,57 @@ def protobuf_to_numpy_array(numpy_msg: epii_pb2.NumpyArray) -> np.ndarray:
 
 def browser_function_to_plot_component(func_name: str, figure: Any) -> epii_pb2.PlotComponent:
     """
-    Convert browser function result to PlotComponent.
-    Initially creates component with description only.
+    Convert browser function result to PlotComponent with JSON and PNG data.
     
     Args:
         func_name: Name of browser function
-        figure: Plotly figure object
+        figure: Plotly or matplotlib figure object
     
     Returns:
-        PlotComponent with description, empty JSON and PNG
+        PlotComponent with description, JSON, and PNG data
     """
+    import plotly.io as pio
+    from plotly.tools import mpl_to_plotly
+    
     component = epii_pb2.PlotComponent()
+    
+    # Convert matplotlib to plotly if needed
+    if hasattr(figure, 'savefig'):  # matplotlib figure
+        try:
+            plotly_fig = mpl_to_plotly(figure)
+        except:
+            # Fallback if conversion fails
+            plotly_fig = figure
+    else:  # assume plotly figure
+        plotly_fig = figure
     
     # Extract plot title from figure
     plot_title = ""
     try:
-        if hasattr(figure, 'layout') and hasattr(figure.layout, 'title'):
-            title_obj = figure.layout.title
+        if hasattr(plotly_fig, 'layout') and hasattr(plotly_fig.layout, 'title'):
+            title_obj = plotly_fig.layout.title
             if hasattr(title_obj, 'text') and title_obj.text:
                 plot_title = str(title_obj.text)
             elif title_obj and str(title_obj) != 'layout.Title()':
                 plot_title = str(title_obj)
+        elif hasattr(figure, '_suptitle') and figure._suptitle:
+            plot_title = figure._suptitle.get_text()
     except Exception:
         pass
     
     # Create description including function name
     if plot_title:
-        component.description = f"{plot_title} (from {func_name})"
+        component.description = f"{plot_title} [{func_name}]"
     else:
         component.description = f"Plot from {func_name}"
     
-    # Leave fields empty as requested
-    component.plotly_json = ""
-    component.image_png = b""
+    # Generate JSON and PNG with simple error handling
+    try:
+        component.plotly_json = plotly_fig.to_json()
+        component.image_png = pio.to_image(plotly_fig, format='png')
+    except Exception:
+        component.plotly_json = ""
+        component.image_png = b""
     
     return component
 

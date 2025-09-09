@@ -2,7 +2,7 @@ scipy
 matplotlib
 matplotlib-inline
 numpy>=2.0.0
-plotly
+plotly>=5.17.0
 dash
 dash_bootstrap_components
 qutip
