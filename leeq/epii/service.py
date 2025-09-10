@@ -153,6 +153,20 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
             manager.register_setup(setup)
             logger.info(f"Registered setup '{setup.name}' with LeeQ ExperimentManager")
 
+        # Initialize Chronicle if enabled in config
+        self._chronicle = None
+        chronicle_config = self.config.get("chronicle", {})
+        if chronicle_config.get("enabled", True):  # Default enabled for EPII
+            try:
+                from leeq.chronicle import Chronicle
+                self._chronicle = Chronicle()
+                session_name = chronicle_config.get("session_name", "epii_session")
+                self._chronicle.start_log(session_name)
+                logger.info(f"Chronicle session started: {session_name}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Chronicle: {e}")
+                self._chronicle = None
+
         # Get supported experiments from dynamically discovered experiments
         self.supported_experiments = list(self.experiment_router.experiment_map.keys())
 
@@ -384,48 +398,75 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                     except Exception as e:
                         logger.debug(f"fitting() failed for {experiment_name}: {e}")
 
-            # Simplified plot generation 
+            # Enhanced plot generation with detailed logging
             plot_count = 0
             if hasattr(experiment, 'get_browser_functions'):
                 try:
                     browser_functions = experiment.get_browser_functions()
-                    logger.debug(f"Found {len(browser_functions)} browser functions")
+                    logger.info(f"Found {len(browser_functions)} browser functions: {[name for name, _ in browser_functions]}")
                     
                     for func_name, func_method in browser_functions:
+                        logger.debug(f"Processing browser function: {func_name}")
                         try:
                             result = func_method()
+                            logger.debug(f"Browser function {func_name} returned: {type(result)}")
                             plot_figure = None
                             
+
                             # Handle matplotlib and plotly returns
                             if result is None:
-                                # Matplotlib case - convert to plotly
-                                try:
-                                    import matplotlib.pyplot as plt
-                                    current_fig = plt.gcf()
-                                    if current_fig and current_fig.get_axes():
-                                        import plotly.tools
-                                        if hasattr(plotly.tools, 'mpl_to_plotly'):
-                                            plot_figure = plotly.tools.mpl_to_plotly(current_fig)
-                                        plt.close(current_fig)
-                                except Exception as e:
-                                    logger.debug(f"Failed to convert matplotlib from {func_name}: {e}")
+                                logger.debug(f"Browser function {func_name} returned None")
+                                plot_figure = None
                                     
                             elif hasattr(result, 'to_json') or isinstance(result, dict):
+                                logger.debug(f"Browser function {func_name} returned plotly figure")
                                 plot_figure = result
+                                
+                            elif hasattr(result, 'savefig') or hasattr(result, 'get_axes'):
+                                # Matplotlib figure case - convert to plotly
+                                logger.debug(f"Browser function {func_name} returned matplotlib figure")
+                                try:
+                                    import plotly.tools
+                                    if hasattr(plotly.tools, 'mpl_to_plotly'):
+                                        plot_figure = plotly.tools.mpl_to_plotly(result)
+                                        logger.info(f"Successfully converted matplotlib figure from {func_name}")
+                                        # Close the matplotlib figure after conversion
+                                        import matplotlib.pyplot as plt
+                                        plt.close(result)
+                                    else:
+                                        logger.warning(f"plotly.tools.mpl_to_plotly not available")
+                                        plot_figure = None
+                                except Exception as e:
+                                    logger.warning(f"Failed to convert matplotlib figure from {func_name}: {e}")
+                                    plot_figure = None
+                            else:
+                                logger.debug(f"Browser function {func_name} returned unrecognized type: {type(result)}")
+                                plot_figure = None
                             
+                            logger.debug(f"Result: {result}")
+
                             # Create component if we have a figure
                             if plot_figure:
-                                component = browser_function_to_plot_component(func_name, plot_figure)
-                                response.plots.append(component)
-                                plot_count += 1
+                                logger.debug(f"Creating plot component for {func_name}")
+                                try:
+                                    component = browser_function_to_plot_component(func_name, plot_figure)
+                                    response.plots.append(component)
+                                    plot_count += 1
+                                    logger.info(f"Successfully created plot component for {func_name}: description='{component.description}', json_len={len(component.plotly_json)}, png_len={len(component.image_png)}")
+                                except Exception as e:
+                                    logger.error(f"Failed to create plot component for {func_name}: {e}")
+                            else:
+                                logger.warning(f"No valid plot figure found for browser function {func_name}")
                                 
                         except Exception as e:
-                            logger.warning(f"Failed to call browser function {func_name}: {e}")
+                            logger.error(f"Failed to call browser function {func_name}: {e}")
                     
-                    logger.info(f"Generated {plot_count} plot components")
+                    logger.info(f"Generated {plot_count} plot components from {len(browser_functions)} browser functions")
                     
                 except Exception as e:
-                    logger.warning(f"Failed to get browser functions: {e}")
+                    logger.error(f"Failed to get browser functions: {e}")
+            else:
+                logger.info(f"Experiment {experiment_name} has no get_browser_functions method")
 
             # 1. Create Documentation message
             import json
@@ -928,4 +969,14 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
 
         # Shutdown executor
         self._experiment_executor.shutdown(wait=True, timeout=30.0)
+        
+        # End Chronicle logging if active
+        if hasattr(self, '_chronicle') and self._chronicle:
+            try:
+                if hasattr(self._chronicle, 'is_recording') and self._chronicle.is_recording():
+                    self._chronicle.end_log()
+                    logger.info("Chronicle session ended")
+            except Exception as e:
+                logger.warning(f"Error ending Chronicle session: {e}")
+        
         logger.info("EPII service shutdown complete")

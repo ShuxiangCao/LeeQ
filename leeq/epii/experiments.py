@@ -111,21 +111,22 @@ class ExperimentRouter:
                                 logger.debug(f"Skipping {name} - no run_simulated implementation for simulation setup")
                                 continue
 
-                        # Build experiment name with module prefix for duplicates
-                        # Extract the last parts of module path for context
+                        # Build experiment name with submodule prefix
+                        # Extract submodule name from module path dynamically
                         module_parts = modname.split('.')
-                        if 'characterizations' in module_parts:
-                            exp_name = f"characterizations.{name}"
-                        elif 'calibrations' in module_parts:
-                            exp_name = f"calibrations.{name}"
-                        elif 'multi_qubit_gates' in module_parts:
-                            exp_name = f"multi_qubit_gates.{name}"
-                        elif 'tomography' in module_parts:
-                            exp_name = f"tomography.{name}"
-                        elif 'hamiltonian_tomography' in module_parts:
-                            exp_name = f"hamiltonian_tomography.{name}"
-                        elif 'optimal_control' in module_parts:
-                            exp_name = f"optimal_control.{name}"
+
+                        # Find the submodule name by looking for the meaningful directory after 'basic'
+                        # Skip 'leeq.experiments.builtin.basic' and find the actual submodule
+                        submodule_name = None
+                        for i, part in enumerate(module_parts):
+                            if part == 'builtin' and i + 2 < len(module_parts):
+                                # Skip 'basic' and take the next meaningful part (calibrations, characterizations, etc.)
+                                submodule_name = module_parts[i + 2]
+                                break
+
+                        # Use submodule name if available, otherwise use experiment name directly
+                        if submodule_name:
+                            exp_name = f"{submodule_name}.{name}"
                         else:
                             exp_name = name
 

@@ -115,24 +115,58 @@ def browser_function_to_plot_component(func_name: str, figure: Any) -> epii_pb2.
         PlotComponent with description, JSON, and PNG data
     """
     import plotly.io as pio
-    from plotly.tools import mpl_to_plotly
+    import json
     
     component = epii_pb2.PlotComponent()
     
-    # Convert matplotlib to plotly if needed
+    # Handle matplotlib figures by converting to static image instead of plotly
     if hasattr(figure, 'savefig'):  # matplotlib figure
         try:
-            plotly_fig = mpl_to_plotly(figure)
-        except:
-            # Fallback if conversion fails
-            plotly_fig = figure
+            # Convert matplotlib to static image instead of plotly to avoid JS code
+            import io
+            import base64
+            
+            img_buffer = io.BytesIO()
+            figure.savefig(img_buffer, format='png', bbox_inches='tight', dpi=150)
+            img_buffer.seek(0)
+            component.image_png = img_buffer.getvalue()
+            
+            # Create a simple plotly figure with the embedded image
+            import plotly.graph_objects as go
+            img_b64 = base64.b64encode(component.image_png).decode()
+            
+            plotly_fig = go.Figure()
+            plotly_fig.add_layout_image(
+                dict(
+                    source=f"data:image/png;base64,{img_b64}",
+                    xref="paper", yref="paper",
+                    x=0, y=1, sizex=1, sizey=1,
+                    xanchor="left", yanchor="top",
+                    layer="below"
+                )
+            )
+            plotly_fig.update_layout(
+                xaxis=dict(visible=False),
+                yaxis=dict(visible=False),
+                margin=dict(l=0, r=0, t=0, b=0),
+                showlegend=False
+            )
+            
+            # Close matplotlib figure to free memory
+            import matplotlib.pyplot as plt
+            plt.close(figure)
+            
+        except Exception as e:
+            # Fallback: just create empty component
+            component.image_png = b""
+            plotly_fig = None
     else:  # assume plotly figure
         plotly_fig = figure
     
     # Extract plot title from figure
     plot_title = ""
     try:
-        if hasattr(plotly_fig, 'layout') and hasattr(plotly_fig.layout, 'title'):
+        if plotly_fig and hasattr(plotly_fig, 'layout') and hasattr(plotly_fig.layout, 'title'):
             title_obj = plotly_fig.layout.title
             if hasattr(title_obj, 'text') and title_obj.text:
                 plot_title = str(title_obj.text)
@@ -149,13 +183,21 @@ def browser_function_to_plot_component(func_name: str, figure: Any) -> epii_pb2.
     else:
         component.description = f"Plot from {func_name}"
     
-    # Generate JSON and PNG with simple error handling
+    # Generate JSON and PNG with clean serialization
     try:
-        component.plotly_json = plotly_fig.to_json()
-        component.image_png = pio.to_image(plotly_fig, format='png')
-    except Exception:
+        if plotly_fig:
+            fig_dict = plotly_fig.to_json()
+            component.plotly_json = json.dumps(fig_dict)
+            
+            # Generate PNG if not already done (for plotly figures)
+            if not component.image_png:
+                component.image_png = pio.to_image(plotly_fig, format='png')
+        else:
+            component.plotly_json = ""
+    except Exception as e:
         component.plotly_json = ""
-        component.image_png = b""
+        if not component.image_png:
+            component.image_png = b""
     
     return component
 
