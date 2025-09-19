@@ -225,3 +225,8 @@ class ZZShiftTwoQubitMultilevel(Experiment):
         ]
 
         setup().status().set_param("Plot_Result_In_Jupyter", plot_result_in_jupyter)
+
+    @property
+    def zz_shift(self) -> float:
+        """Return the average ZZ shift value across both qubits."""
+        return np.mean(self.zz)

@@ -20,11 +20,20 @@ message CapabilitiesResponse {
     repeated string data_formats = 7;          // "numpy", "json", "hdf5"
 }
 
+// NEW: Attribute specification for EPII_INFO attributes
+message AttributeSpec {
+    string name = 1;                     // Attribute name (e.g., "dm", "fidelity")
+    string type = 2;                     // Data type (e.g., "np.ndarray", "float")
+    string description = 3;              // Description of what this attribute represents
+    string shape = 4;                    // Optional shape for array types (e.g., "(2, 2)")
+}
+
 message ExperimentSpec {
     string name = 1;                     // "rabi", "t1", "ramsey"
     repeated ParameterSpec parameters = 2;
     repeated string output_parameters = 3;
     string description = 4;
+    repeated AttributeSpec attributes = 5;  // NEW: EPII_INFO attributes
 }
 
 message ParameterSpec {

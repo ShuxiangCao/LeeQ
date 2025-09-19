@@ -715,6 +715,17 @@ class ExperimentPlatformService(epii_pb2_grpc.ExperimentPlatformServiceServicer)
                     param_spec.default_value = str(param_info["default"])
                 exp_spec.parameters.append(param_spec)
 
+            # Add attribute specifications from EPII_INFO
+            if epii_info.get('attributes'):
+                for attr_name, attr_info in epii_info['attributes'].items():
+                    attr_spec = epii_pb2.AttributeSpec()
+                    attr_spec.name = attr_name
+                    attr_spec.type = attr_info.get('type', 'unknown')
+                    attr_spec.description = attr_info.get('description', '')
+                    if 'shape' in attr_info:
+                        attr_spec.shape = str(attr_info['shape'])
+                    exp_spec.attributes.append(attr_spec)
+
             response.experiments.append(exp_spec)
 
         logger.debug("ListAvailableExperiments called")
