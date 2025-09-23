@@ -80,6 +80,28 @@ class ExperimentRouter:
 
         return False
 
+    def _has_text_inspection(self, exp_class: Type) -> bool:
+        """
+        Check if an experiment class has at least one text inspection method.
+
+        Args:
+            exp_class: The experiment class to check
+
+        Returns:
+            True if the class has at least one text inspection method
+        """
+        try:
+            from k_agents.inspection.agents import TextInspectionAgent
+
+            for name, method in inspect.getmembers(exp_class, predicate=inspect.isfunction):
+                agent = getattr(method, "_inspection_agent", None)
+                if agent is not None and isinstance(agent, TextInspectionAgent):
+                    return True
+            return False
+        except ImportError:
+            logger.warning("Could not import TextInspectionAgent - skipping text inspection filter")
+            return True  # Allow experiments if we can't check
+
     def _discover_experiments(self):
         """
         Dynamically discover all experiments with EPII_INFO.
@@ -110,6 +132,11 @@ class ExperimentRouter:
                             if not self._has_own_run_simulated(obj):
                                 logger.debug(f"Skipping {name} - no run_simulated implementation for simulation setup")
                                 continue
+
+                        # Filter for text inspection capability
+                        if not self._has_text_inspection(obj):
+                            logger.debug(f"Skipping {name} - no text inspection methods found")
+                            continue
 
                         # Build experiment name with submodule prefix
                         # Extract submodule name from module path dynamically
@@ -143,9 +170,9 @@ class ExperimentRouter:
                 logger.warning(f"Failed to import {modname}: {e}")
 
         if self.is_simulation:
-            logger.info(f"Discovered {len(self.experiment_map)} experiments with run_simulated method for simulation setup")
+            logger.info(f"Discovered {len(self.experiment_map)} experiments with run_simulated method and text inspection for simulation setup")
         else:
-            logger.info(f"Discovered {len(self.experiment_map)} experiments with EPII_INFO")
+            logger.info(f"Discovered {len(self.experiment_map)} experiments with EPII_INFO and text inspection")
 
 
     def get_experiment_info(self, name: str) -> Dict[str, Any]:
