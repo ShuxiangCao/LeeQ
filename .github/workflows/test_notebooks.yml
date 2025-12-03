@@ -91,7 +91,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: notebook-test-reports-py${{ matrix.python-version }}
+        name: notebook-test-reports-py${{ matrix.python-version }}-${{ matrix.notebook-type }}
         path: |
           notebooks_test_report_*.md
           notebooks_test_results_*.json
