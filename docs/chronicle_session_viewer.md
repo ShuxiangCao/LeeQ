@@ -473,13 +473,6 @@ calibrate_qubits(setup)
 # python scripts/chronicle_viewer.py
 ```
 
-## Additional Resources
-
-- [Chronicle API Documentation](../api/chronicle.html)
-- [LeeQ Experiments Guide](../experiments/index.html)
-- [Historical Viewer Documentation](./chronicle_viewer.md)
-- [LeeQ Setup Configuration](../setups/configuration.html)
-
 ## Support
 
 For issues or questions:

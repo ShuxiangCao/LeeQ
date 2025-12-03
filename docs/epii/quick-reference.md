@@ -183,6 +183,5 @@ print("✓ All aliases successfully removed")
 ## Links
 
 - [EPII Overview](overview.md) - Complete user guide
-- [Migration Guide](migration-guide.md) - Detailed migration instructions  
 - [API Reference](../api/epii/overview.md) - Technical documentation
 - [Troubleshooting](troubleshooting.md) - Common issues and solutions

@@ -82,8 +82,6 @@ sim_experiments = sim_router.list_experiments()  # Only includes experiments wit
 2. Update configuration files and scripts
 3. Test experiment discovery with your setup type
 
-See [Migration Guide](../../epii/migration-guide.md) for detailed instructions.
-
 ## Module Documentation
 
 ::: leeq.epii

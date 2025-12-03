@@ -178,15 +178,6 @@ def test_with_mock_hardware(mock_device):
 - Explain complex test scenarios
 - Document expected behaviors
 
-## Comprehensive Testing Documentation
-
-For detailed testing information, see the specialized documentation:
-
-- **[Test Execution Patterns](test_execution_patterns.md)** - Patterns and best practices for running tests
-- **[Test Troubleshooting Guide](test_troubleshooting_guide.md)** - Solutions to common test issues  
-- **[Test Contribution Guidelines](test_contribution_guidelines.md)** - Standards for writing tests
-- **[CI/CD Configuration Examples](ci_cd_configuration_examples.md)** - CI/CD pipeline configurations
-
 ## Continuous Integration
 
 Tests run automatically on:
@@ -206,7 +197,7 @@ export QT_QPA_PLATFORM=offscreen
 
 ### Current CI Configuration
 
-The project uses GitHub Actions with configurations in `.github/workflows/`. See [CI/CD Configuration Examples](ci_cd_configuration_examples.md) for comprehensive pipeline examples.
+The project uses GitHub Actions with configurations in `.github/workflows/`.
 
 ## Performance Testing
 

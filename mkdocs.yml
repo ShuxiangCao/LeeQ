@@ -54,8 +54,6 @@ nav:
     - Deployment Guide: epii/deployment-guide.md
     - Client Usage: epii/client-usage.md
     - Operations Guide: epii-operations-guide.md
-    - Migration Guide: epii/migration-guide.md
-    - Release Notes v0.2.0: epii/release-notes-v0.2.0.md
     - Quick Reference: epii/quick-reference.md
     - Troubleshooting: epii/troubleshooting.md
     - API Reference:

@@ -221,10 +221,6 @@ if "my_experiment" not in experiments:
 - Ensure all LeeQ dependencies are installed
 - Check that experiment modules are in Python path
 
-## Migration Guide
-
-See the detailed [Migration Guide](migration-guide.md) for step-by-step instructions on updating from EPII v0.1.x.
-
 ## API Reference
 
 For detailed API documentation, see:
