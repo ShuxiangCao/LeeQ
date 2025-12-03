@@ -218,25 +218,26 @@ class TestLegacyFunctions:
 def test_browser_function_to_plot_component():
     """Test conversion of plotly figure to plot component"""
     import plotly.graph_objects as go
-    
+
     # Test with titled figure
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[1,2,3], y=[4,5,6]))
     fig.update_layout(title="Test Rabi Oscillation")
-    
+
     component = browser_function_to_plot_component("plot", fig)
-    
+
     assert component.description == "Test Rabi Oscillation [plot]"
-    assert component.plotly_json == ""
-    assert component.image_png == b""
-    
+    # plotly_json should contain JSON data (not empty)
+    assert component.plotly_json != ""
+    assert "data" in component.plotly_json
+    # image_png may or may not be generated depending on kaleido availability
+
     # Test with untitled figure
     fig2 = go.Figure()
     component2 = browser_function_to_plot_component("plot_raw", fig2)
-    
+
     assert component2.description == "Plot from plot_raw"
-    assert component2.plotly_json == ""
-    assert component2.image_png == b""
+    assert component2.plotly_json != ""
 
 
 def test_performance_large_array():
