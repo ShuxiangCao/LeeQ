@@ -10,17 +10,18 @@ from typing import List, Dict, Tuple, Optional
 class CWSpectroscopySimulator:
     """
     Continuous-wave spectroscopy simulator for multi-qubit systems.
-    
+
     Supports:
-    - Single and multiple drives per channel
-    - Automatic drive combination for same-channel multi-tone experiments
+    - Single and multiple drives per channel (true multi-tone)
+    - Independent drive terms in Hamiltonian for each frequency
     - Coupling-induced crosstalk between qubits
     - Realistic noise modeling and IQ readout simulation
-    
-    Drive Combination:
-    - Same frequency drives: amplitudes are added linearly
-    - Different frequency drives: amplitude-weighted effective frequency
-    - Preserves total energy and maintains physics accuracy
+
+    Multi-Tone Physics:
+    - Each drive creates independent term in Hamiltonian: H_drive_i = Ω_i/2 * (a + a†)
+    - Total drive Hamiltonian: H_drive = Σ H_drive_i
+    - All drives applied simultaneously to steady-state calculation
+    - No frequency averaging - preserves true multi-tone spectroscopy
 
     Parameters
     ----------
@@ -39,20 +40,20 @@ class CWSpectroscopySimulator:
     Examples
     --------
     Single drive spectroscopy:
-    
+
     >>> sim = CWSpectroscopySimulator(setup)
     >>> drives = [(1, 5000.0, 50.0)]  # channel, freq, amplitude
     >>> readout = {1: {'frequency': 6000.0, 'amplitude': 10.0}}
     >>> iq = sim.simulate_spectroscopy_iq(drives, readout)
-    
+
     Two-tone same-channel spectroscopy:
-    
-    >>> drives = [(1, 5000.0, 30.0), (1, 5010.0, 20.0)]
+
+    >>> drives = [(1, 5000.0, 30.0), (1, 4802.0, 20.0)]
     >>> iq = sim.simulate_spectroscopy_iq(drives, readout)
-    # Drives automatically combined: effective freq ≈ 5004 MHz, amp = 50.0
-    
+    # Both drives applied independently - resonances at 5000 MHz and 4802 MHz
+
     Multi-qubit with crosstalk:
-    
+
     >>> drives = [(1, 5000.0, 50.0)]  # Drive qubit 1
     >>> iq = sim.simulate_spectroscopy_iq(drives, readout)
     # Automatic crosstalk to coupled qubits based on coupling strengths
@@ -88,57 +89,50 @@ class CWSpectroscopySimulator:
         # Set truncation level
         self.truncation = min(5, list(self.virtual_qubits.values())[0].truncate_level)
 
-        # Cache for single-qubit Hamiltonians
-        self._hamiltonian_cache = {}
-
-    def _get_cached_hamiltonian(self, channel: int, freq: float, amp: float):
+    def _build_hamiltonian(self, channel: int, drives: List[Tuple[float, float]]):
         """
-        Get cached Hamiltonian for single qubit simulation.
+        Build Hamiltonian for multi-tone spectroscopy with all drive terms.
 
         Parameters
         ----------
         channel : int
             Qubit channel
-        freq : float
-            Drive frequency in MHz
-        amp : float
-            Drive amplitude in MHz
+        drives : List[Tuple[float, float]]
+            List of (frequency, amplitude) tuples for this channel
 
         Returns
         -------
         qutip.Qobj
-            Hamiltonian for the single qubit system
+            Complete Hamiltonian including qubit + all drive terms
         """
-        cache_key = (channel, round(freq, 2), round(amp, 4))
+        vqubit = self.virtual_qubits[channel]
+        N = self.truncation
+        a = qt.destroy(N)
+        n = a.dag() * a
 
-        if cache_key not in self._hamiltonian_cache:
-            # Build and cache Hamiltonian
-            vqubit = self.virtual_qubits[channel]
-            N = self.truncation
-            a = qt.destroy(N)
-            n = a.dag() * a
+        # Qubit Hamiltonian (in rotating frame of qubit)
+        H_qubit = 2 * np.pi * (vqubit.anharmonicity / 2 * (n**2 - n))
+
+        # Add all drive terms independently
+        H_drive_total = 0
+        for freq, amp in drives:
             detuning = freq - vqubit.qubit_frequency
+            # Each drive adds independent term in rotating frame
+            H_drive_i = 2 * np.pi * (detuning * n + amp * (a + a.dag()))
+            H_drive_total += H_drive_i
 
-            H = 2 * np.pi * (detuning * n
-                             + vqubit.anharmonicity / 2 * (n**2 - n)
-                             + amp * (a + a.dag()))
+        return H_qubit + H_drive_total
 
-            self._hamiltonian_cache[cache_key] = H
-
-        return self._hamiltonian_cache[cache_key]
-
-    def _simulate_single_qubit(self, channel: int, freq: float, amp: float) -> np.ndarray:
+    def _simulate_single_qubit(self, channel: int, drives: List[Tuple[float, float]]) -> np.ndarray:
         """
-        Simulate single qubit response in rotating frame using steady-state master equation.
+        Simulate single qubit response with multi-tone drives using steady-state master equation.
 
         Parameters
         ----------
         channel : int
             Qubit channel
-        freq : float
-            Drive frequency in MHz
-        amp : float
-            Drive amplitude in MHz
+        drives : List[Tuple[float, float]]
+            List of (frequency, amplitude) tuples for all drives on this channel
 
         Returns
         -------
@@ -148,74 +142,67 @@ class CWSpectroscopySimulator:
         N = self.truncation
         vqubit = self.virtual_qubits[channel]
 
-        # Get Hamiltonian
-        H = self._get_cached_hamiltonian(channel, freq, amp)
+        # Build Hamiltonian with all drive terms
+        H = self._build_hamiltonian(channel, drives)
 
         # Create collapse operators for T1 and T2 processes
         c_ops = []
-        
+
         # T1 decay (energy relaxation)
-        a = qt.destroy(N)
+        qt.destroy(N)
         # Convert T1 from us to 1/MHz (since H is in MHz after scaling)
         # T1 is in us, we want gamma in MHz
         # gamma = 1/T1[us] * 1[us/MHz] = 1/T1 MHz
         gamma1 = 1.0 / vqubit.t1  # in MHz
-        
+
         # Add decay from each level (scales with sqrt(n))
         for n in range(1, N):
             c_ops.append(np.sqrt(gamma1 * n) * qt.basis(N, n-1) * qt.basis(N, n).dag())
-        
+
         # T2 dephasing (pure dephasing contribution)
         # T2 includes both T1 contribution and pure dephasing: 1/T2 = 1/(2*T1) + 1/T_phi
         gamma_phi = 1.0 / vqubit.t2 - 1.0 / (2 * vqubit.t1)
-        
+
         if gamma_phi > 0:  # Only add if there's pure dephasing
             # Dephasing operator
             for level in range(1, N):
                 c_ops.append(np.sqrt(gamma_phi * level) * qt.basis(N, level) * qt.basis(N, level).dag())
-        
+
         # Find steady state using QuTiP's solver
         try:
             # The Hamiltonian H is in 2π*MHz (angular frequency)
             # Convert to regular frequency (MHz) for consistency with decay rates
             H_MHz = H / (2 * np.pi)
-            
+
             # Calculate steady state
             rho_ss = qt.steadystate(H_MHz, c_ops, method='direct')
-            
+
             # Extract populations from density matrix
             populations = np.zeros(N)
             for i in range(N):
                 populations[i] = np.real(rho_ss[i, i])
-                
-        except Exception as e:
+
+        except Exception:
             # Fallback to original method if steady state fails
-            print(f"Warning: Steady state calculation failed: {e}")
-            print("Falling back to dressed state approximation")
             eigenvalues, eigenstates = H.eigenstates()
             ground_bare = qt.basis(N, 0)
             overlaps = [np.abs(es.overlap(ground_bare))**2 for es in eigenstates]
             dressed_ground = eigenstates[np.argmax(overlaps)]
-            
+
             populations = np.zeros(N)
             for i in range(N):
                 populations[i] = np.abs(dressed_ground.overlap(qt.basis(N, i)))**2
 
         return populations
 
-    def _calculate_effective_drives(self, drives: List[Tuple[int, float, float]]) -> Dict[int, Tuple[float, float]]:
+    def _calculate_effective_drives(self, drives: List[Tuple[int, float, float]]) -> Dict[int, List[Tuple[float, float]]]:
         """
-        Calculate effective drives including coupling-induced crosstalk and drive combination.
-        
+        Calculate effective drives including coupling-induced crosstalk.
+
         This method handles:
-        1. Multiple drives on the same channel (combines them appropriately)
+        1. Multiple drives on the same channel (keeps them separate for multi-tone)
         2. Coupling-induced crosstalk between qubits
-        3. Frequency and amplitude preservation according to physics principles
-        
-        Drive Combination Algorithm:
-        - Drives with same frequency (within 1 MHz): amplitudes added, frequency averaged
-        - Drives with different frequencies: amplitude-weighted effective frequency
-        - Crosstalk contributions are added to each channel's drive list before combination
+        3. All drives preserved independently - no frequency averaging
 
         Parameters
         ----------
@@ -224,28 +211,22 @@ class CWSpectroscopySimulator:
 
         Returns
         -------
-        Dict[int, Tuple[float, float]]
-            Dictionary mapping channel to (effective_frequency, effective_amplitude)
-            
+        Dict[int, List[Tuple[float, float]]]
+            Dictionary mapping channel to list of (frequency, amplitude) tuples
+
         Examples
         --------
-        Single drive (unchanged behavior):
-        
+        Single drive:
+
         >>> drives = [(1, 5000.0, 50.0)]
         >>> effective = sim._calculate_effective_drives(drives)
-        >>> effective[1]  # (5000.0, 50.0)
-        
-        Same frequency combination:
-        
-        >>> drives = [(1, 5000.0, 30.0), (1, 5000.0, 20.0)]
+        >>> effective[1]  # [(5000.0, 50.0)]
+
+        Multi-tone on same channel (both preserved):
+
+        >>> drives = [(1, 5000.0, 30.0), (1, 4802.0, 20.0)]
         >>> effective = sim._calculate_effective_drives(drives)
-        >>> effective[1]  # (5000.0, 50.0) - amplitudes added
-        
-        Different frequency combination:
-        
-        >>> drives = [(1, 5000.0, 40.0), (1, 5020.0, 20.0)]
-        >>> effective = sim._calculate_effective_drives(drives)
-        >>> effective[1]  # (~5006.7, 60.0) - weighted frequency, total amplitude
+        >>> effective[1]  # [(5000.0, 30.0), (4802.0, 20.0)] - both kept
 
         Raises
         ------
@@ -253,107 +234,36 @@ class CWSpectroscopySimulator:
             If any drive channel is not found in the simulation setup
         """
         from collections import defaultdict
-        
+
         # Step 1: Group drives by channel (including direct drives)
         drives_by_channel = defaultdict(list)
-        
+
         # Add direct drives
         for channel, freq, amp in drives:
             if channel not in self.channels:
                 raise ValueError(f"Channel {channel} not found")
             drives_by_channel[channel].append((freq, amp))
-        
+
         # Step 2: Add crosstalk contributions
         for ch_driven, freq_drive, amp_drive in drives:
             vq_driven = self.virtual_qubits[ch_driven]
-            
+
             for ch_other in self.channels:
                 if ch_other == ch_driven:
                     continue
-                
+
                 vq_other = self.virtual_qubits[ch_other]
                 coupling = self.setup.get_coupling_strength_by_qubit(vq_driven, vq_other)
-                
+
                 if coupling != 0:
                     detuning = max(abs(freq_drive - vq_other.qubit_frequency), 1.0)
                     transfer = coupling / detuning * amp_drive
-                    
+
                     # Add crosstalk contribution to channel's drive list
                     drives_by_channel[ch_other].append((freq_drive, transfer))
-        
-        # Step 3: Combine multiple drives per channel
-        effective_drives = {}
-        for channel, drive_list in drives_by_channel.items():
-            if len(drive_list) == 1:
-                effective_drives[channel] = drive_list[0]
-            else:
-                effective_drives[channel] = self._combine_drives(drive_list)
-        
-        return effective_drives
 
-    def _combine_drives(self, drive_list: List[Tuple[float, float]], freq_tolerance: float = 1.0) -> Tuple[float, float]:
-        """
-        Combine multiple drives on the same channel.
-        
-        Parameters
-        ----------
-        drive_list : List[Tuple[float, float]]
-            List of (frequency, amplitude) pairs to combine
-        freq_tolerance : float, optional
-            Frequency tolerance for considering drives as same frequency (default: 1.0 MHz)
-        
-        Returns
-        -------
-        Tuple[float, float]
-            Combined (effective_frequency, total_amplitude)
-        
-        Algorithm
-        ---------
-        - Same frequency (within tolerance): amplitudes are added, frequency averaged
-        - Different frequencies: amplitude-weighted effective frequency is calculated
-        - Preserves total amplitude for energy conservation
-        """
-        if not drive_list:
-            return (0.0, 0.0)
-        if len(drive_list) == 1:
-            return drive_list[0]
-        
-        # Group drives by frequency within tolerance
-        from collections import defaultdict
-        freq_groups = defaultdict(list)
-        
-        for freq, amp in drive_list:
-            # Find existing group within tolerance
-            group_key = None
-            for existing_freq in freq_groups.keys():
-                if abs(freq - existing_freq) <= freq_tolerance:
-                    group_key = existing_freq
-                    break
-            
-            if group_key is None:
-                group_key = freq
-            
-            freq_groups[group_key].append((freq, amp))
-        
-        # Combine frequency groups
-        if len(freq_groups) == 1:
-            # All frequencies within tolerance - amplitude addition with frequency averaging
-            total_amp = sum(amp for freq, amp in drive_list)
-            if total_amp == 0:
-                return (drive_list[0][0], 0.0)
-            
-            # Amplitude-weighted average frequency
-            avg_freq = sum(freq * abs(amp) for freq, amp in drive_list) / sum(abs(amp) for freq, amp in drive_list)
-            return (avg_freq, total_amp)
-        else:
-            # Multiple frequency groups - amplitude-weighted effective frequency
-            total_amp = sum(amp for freq, amp in drive_list)
-            if total_amp == 0:
-                return (drive_list[0][0], 0.0)
-            
-            # Use amplitude weighting for effective frequency
-            effective_freq = sum(freq * abs(amp) for freq, amp in drive_list) / sum(abs(amp) for freq, amp in drive_list)
-            return (effective_freq, total_amp)
+        # Return all drives per channel as lists (no combining)
+        return dict(drives_by_channel)
 
     def simulate_spectroscopy_iq(self,
                                  drives: List[Tuple[int, float, float]],
@@ -385,7 +295,7 @@ class CWSpectroscopySimulator:
         if not readout_params:
             raise ValueError("Readout parameters must be specified")
 
-        # Calculate effective drives
+        # Calculate effective drives (now returns list of drives per channel)
         effective_drives = self._calculate_effective_drives(drives)
 
         # Simulate each qubit and get populations
@@ -393,8 +303,8 @@ class CWSpectroscopySimulator:
         for channel in self.channels:
             # Get populations
             if channel in effective_drives:
-                freq, amp = effective_drives[channel]
-                populations = self._simulate_single_qubit(channel, freq, amp)
+                drive_list = effective_drives[channel]
+                populations = self._simulate_single_qubit(channel, drive_list)
             else:
                 populations = np.zeros(self.truncation)
                 populations[0] = 1.0
@@ -405,7 +315,7 @@ class CWSpectroscopySimulator:
         for readout_channel, readout_config in readout_params.items():
             f_readout = readout_config['frequency']
             amp_readout = readout_config['amplitude']
-            
+
             # Find which virtual qubit this readout should use
             # For single-qubit systems, use the only available virtual qubit
             # For multi-qubit, we may need more sophisticated mapping
@@ -425,14 +335,14 @@ class CWSpectroscopySimulator:
                 drive_channel = self.channels[0]
                 vqubit = self.virtual_qubits[drive_channel]
                 populations = populations_by_channel[drive_channel]
-            
+
             # Use VirtualTransmon's resonator response with population weighting
             resonator_responses = vqubit.get_resonator_response(
-                f=f_readout, 
-                amp=amp_readout, 
+                f=f_readout,
+                amp=amp_readout,
                 baseline=0
             )
-            
+
             # Weight by populations to get effective IQ response
             # Each element of resonator_responses corresponds to a qubit state
             iq = np.dot(populations, resonator_responses)
@@ -440,64 +350,64 @@ class CWSpectroscopySimulator:
 
         return iq_responses
 
-    def simulate_2d_sweep_parallel(self, 
-                                   freq_array: np.ndarray, 
+    def simulate_2d_sweep_parallel(self,
+                                   freq_array: np.ndarray,
                                    amp_array: np.ndarray,
                                    num_workers: Optional[int] = None,
                                    timeout_per_point: Optional[float] = 60.0) -> np.ndarray:
         """
         Parallel version of 2D parameter sweep for CPU parallelization.
-        
+
         Distributes steady-state calculations across CPU cores to achieve
         4-8x speedup on typical multi-core machines.
-        
+
         Parameters
         ----------
         freq_array : np.ndarray
             Array of frequencies to sweep (MHz)
-        amp_array : np.ndarray 
+        amp_array : np.ndarray
             Array of amplitudes to sweep (MHz)
         num_workers : Optional[int]
             Number of worker processes. If None, auto-detect CPU cores
         timeout_per_point : Optional[float]
             Timeout in seconds for each parameter point calculation.
             If None, no timeout is applied. Default is 60.0 seconds.
-            
+
         Returns
         -------
         np.ndarray
             2D array with shape (len(amp_array), len(freq_array)) containing
             complex readout values
-            
+
         Notes
         -----
         This method parallelizes the QuTiP steady-state calculations which
         represent 98% of the computational bottleneck. Each parameter point
         is calculated independently across CPU cores.
-        
+
         Examples
         --------
         >>> sim = CWSpectroscopySimulator(setup)
         >>> freq_arr = np.linspace(4990, 5010, 21)
-        >>> amp_arr = np.linspace(0.01, 0.05, 5) 
+        >>> amp_arr = np.linspace(0.01, 0.05, 5)
         >>> result = sim.simulate_2d_sweep_parallel(freq_arr, amp_arr)
         >>> print(f'Result shape: {result.shape}')  # (5, 21)
         """
         # Auto-detect CPU cores if not specified
         if num_workers is None:
             num_workers = multiprocessing.cpu_count()
-            
+
         # Validate inputs
         if len(freq_array) == 0 or len(amp_array) == 0:
             raise ValueError("Frequency and amplitude arrays must not be empty")
-            
+
         # Create all parameter combinations
         param_points = [(freq, amp) for amp in amp_array for freq in freq_array]
-        
+
         # Process parameter points in parallel with robust error handling
         results_flat = []
         failed_points = []
-        
+
         try:
             with ProcessPoolExecutor(max_workers=num_workers) as executor:
                 # Submit all work to parallel processes
@@ -505,7 +415,7 @@ class CWSpectroscopySimulator:
                     executor.submit(_simulate_point_worker, freq, amp, self): (freq, amp, i)
                     for i, (freq, amp) in enumerate(param_points)
                 }
-                
+
                 # Collect results with timeout handling
                 for future in as_completed(future_to_point, timeout=timeout_per_point * len(param_points)):
                     freq, amp, idx = future_to_point[future]
@@ -516,107 +426,99 @@ class CWSpectroscopySimulator:
                             result = future.result()
                         results_flat.append((idx, result))
                     except TimeoutError:
-                        print(f"Warning: Timeout for point ({freq:.2f}, {amp:.4f})")
                         failed_points.append((idx, freq, amp))
-                    except Exception as e:
-                        print(f"Warning: Worker failed for point ({freq:.2f}, {amp:.4f}): {e}")
+                    except Exception:
                         failed_points.append((idx, freq, amp))
-        
-        except Exception as e:
+
+        except Exception:
             # Major parallel processing failure
-            print(f"Warning: Parallel processing failed ({e}), falling back to sequential")
             return self._fallback_sequential_processing(freq_array, amp_array)
-        
+
         # Sort results by original index to maintain order
         results_flat.sort(key=lambda x: x[0])
         results_values = [result for _, result in results_flat]
-        
+
         # Retry failed points sequentially
         if failed_points:
-            print(f"Retrying {len(failed_points)} failed points sequentially...")
             for idx, freq, amp in failed_points:
                 try:
                     result = _simulate_point_worker(freq, amp, self)
                     # Insert result at correct position
                     results_values.insert(idx, result)
-                except Exception as e:
-                    print(f"Error: Sequential retry also failed for ({freq:.2f}, {amp:.4f}): {e}")
+                except Exception:
                     # Use default value (could be NaN or zero)
                     results_values.insert(idx, 0.0 + 0.0j)
-        
+
         # Ensure we have the correct number of results
         if len(results_values) != len(param_points):
-            print(f"Warning: Result count mismatch. Expected {len(param_points)}, got {len(results_values)}")
             # Fallback to sequential processing
             return self._fallback_sequential_processing(freq_array, amp_array)
-        
+
         # Reshape flat results back into 2D array
         results_2d = np.array(results_values, dtype=complex).reshape(
             len(amp_array), len(freq_array))
-            
+
         return results_2d
-    
+
     def _fallback_sequential_processing(self, freq_array: np.ndarray, amp_array: np.ndarray) -> np.ndarray:
         """
         Fallback to sequential processing when parallel processing fails.
-        
+
         This method provides a reliable backup when parallel processing encounters
         errors or resource constraints.
-        
+
         Parameters
         ----------
         freq_array : np.ndarray
             Array of frequencies to sweep (MHz)
         amp_array : np.ndarray
             Array of amplitudes to sweep (MHz)
-            
+
         Returns
         -------
         np.ndarray
             2D array with shape (len(amp_array), len(freq_array)) containing
             complex readout values
         """
-        print("Executing sequential fallback processing...")
         param_points = [(freq, amp) for amp in amp_array for freq in freq_array]
-        
+
         results_flat = []
         for i, (freq, amp) in enumerate(param_points):
             try:
                 result = _simulate_point_worker(freq, amp, self)
                 results_flat.append(result)
-            except Exception as e:
-                print(f"Warning: Sequential calculation failed for point {i} ({freq:.2f}, {amp:.4f}): {e}")
+            except Exception:
                 results_flat.append(0.0 + 0.0j)  # Default fallback value
-        
+
         # Reshape to 2D array
         results_2d = np.array(results_flat, dtype=complex).reshape(
             len(amp_array), len(freq_array))
-        
+
         return results_2d
 
 
-def _simulate_point_worker(freq: float, amp: float, 
+def _simulate_point_worker(freq: float, amp: float,
                           simulator: 'CWSpectroscopySimulator') -> complex:
     """
     Standalone worker function for parallel steady-state calculation.
-    
+
     This function runs in a separate process and must be pickle-able.
     It handles a single parameter point (freq, amp) independently.
-    
+
     Parameters
-    ---------- 
+    ----------
     freq : float
         Drive frequency in MHz
     amp : float
         Drive amplitude in MHz
     simulator : CWSpectroscopySimulator
         Simulator instance (will be pickled/unpickled across processes)
-        
+
     Returns
     -------
     complex
         Complex readout response for this parameter point
-        
+
     Notes
     -----
     This is the core bottleneck function - the QuTiP steady-state calculation
@@ -625,12 +527,13 @@ def _simulate_point_worker(freq: float, amp: float,
     """
     # Use first available channel (simplified for Phase 1)
     channel = simulator.channels[0]
-    
+
     # Get populations from steady-state calculation (this is the bottleneck)
-    populations = simulator._simulate_single_qubit(channel, freq, amp)
-    
+    # New API: _simulate_single_qubit takes channel and list of (freq, amp) tuples
+    populations = simulator._simulate_single_qubit(channel, [(freq, amp)])
+
     # Simple readout calculation - extract ground state population
     # This is a simplified version for Phase 1 - just return population weighting
     readout_value = populations[0] + 1j * populations[1] if len(populations) > 1 else populations[0]
-    
+
     return readout_value

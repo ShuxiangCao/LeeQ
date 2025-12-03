@@ -590,7 +590,7 @@ class TestLeeQBackendIntegration:
 
         # Validate experiment types
         experiment_names = [exp.name for exp in response.experiment_types]
-        required_experiments = ["calibrations.NormalisedRabi", "characterizations.SimpleT1", "calibrations.SimpleRamseyMultilevel", "characterizations.SpinEchoMultiLevel", "calibrations.DragCalibrationSingleQubitMultilevel", "characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem"]
+        required_experiments = ["calibrations.NormalisedRabi", "characterizations.SimpleT1", "calibrations.SimpleRamseyMultilevel", "characterizations.SpinEchoMultiLevel", "calibrations.DragCalibrationSingleQubitMultilevel", "characterizations.SingleQubitRandomizedBenchmarking"]
 
         for exp_name in required_experiments:
             assert exp_name in experiment_names, f"Missing required experiment: {exp_name}"

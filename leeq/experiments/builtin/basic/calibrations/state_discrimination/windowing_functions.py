@@ -60,7 +60,7 @@ class MeasurementCollectTraces(Experiment):
             "Can identify optimal integration windows"
         ]
     }
-    
+
     @log_and_record
     def run(self,
             duts: 'TransmonElement',

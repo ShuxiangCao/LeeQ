@@ -70,17 +70,20 @@ def test_simulator_init(single_qubit_setup):
 def test_crosstalk_calculation(coupled_qubits_setup):
     """Test crosstalk is calculated correctly."""
     sim = CWSpectroscopySimulator(coupled_qubits_setup)
-    
+
     # Strong drive on Q1 should create crosstalk to Q2
     effective = sim._calculate_effective_drives([(1, 5000.0, 100.0)])
-    
+
     assert 1 in effective  # Direct drive
     assert 2 in effective  # Crosstalk
-    assert effective[2][1] > 0  # Non-zero crosstalk amplitude
-    
+    # New API returns List[Tuple[freq, amp]] per channel
+    assert len(effective[2]) > 0  # Has crosstalk entries
+    crosstalk_amp = effective[2][0][1]  # First entry's amplitude
+    assert crosstalk_amp > 0  # Non-zero crosstalk amplitude
+
     # Verify crosstalk scaling
     expected_crosstalk = 20.0 / 200.0 * 100.0  # coupling/detuning * amp
-    assert abs(effective[2][1] - expected_crosstalk) < 1.0
+    assert abs(crosstalk_amp - expected_crosstalk) < 1.0
 
 
 def test_multi_qubit_iq_response(coupled_qubits_setup):
@@ -191,22 +194,19 @@ def test_input_validation():
         )
 
 
-def test_hamiltonian_caching(single_qubit_setup):
-    """Test Hamiltonian caching functionality."""
+def test_hamiltonian_building(single_qubit_setup):
+    """Test Hamiltonian building functionality."""
     sim = CWSpectroscopySimulator(single_qubit_setup)
-    
-    # First call should cache the Hamiltonian
-    H1 = sim._get_cached_hamiltonian(1, 5000.0, 10.0)
-    
-    # Second call with same parameters should return cached version
-    H2 = sim._get_cached_hamiltonian(1, 5000.0, 10.0)
-    
-    # Should be the same object (cached)
-    assert H1 is H2
-    
-    # Different parameters should create new Hamiltonian
-    H3 = sim._get_cached_hamiltonian(1, 5100.0, 10.0)
-    assert H1 is not H3
+
+    # Test that Hamiltonian can be built with different parameters
+    drives1 = [(5000.0, 10.0)]
+    drives2 = [(5100.0, 10.0)]
+
+    H1 = sim._build_hamiltonian(1, drives1)
+    H2 = sim._build_hamiltonian(1, drives2)
+
+    # Different drive frequencies should produce different Hamiltonians
+    assert not np.allclose(H1.full(), H2.full())
 
 
 def test_edge_cases(coupled_qubits_setup):
@@ -277,64 +277,68 @@ def test_partial_readout(coupled_qubits_setup):
 def test_crosstalk_scaling(coupled_qubits_setup):
     """Test that crosstalk scales correctly with coupling and detuning."""
     sim = CWSpectroscopySimulator(coupled_qubits_setup)
-    
+
     # Test different drive amplitudes
     effective_small = sim._calculate_effective_drives([(1, 5000.0, 10.0)])
     effective_large = sim._calculate_effective_drives([(1, 5000.0, 100.0)])
-    
+
     # Crosstalk should scale with drive amplitude
-    crosstalk_small = effective_small[2][1]  # Channel 2 crosstalk
-    crosstalk_large = effective_large[2][1]
-    
+    # New API returns List[Tuple[freq, amp]] per channel
+    crosstalk_small = effective_small[2][0][1]  # Channel 2, first entry, amplitude
+    crosstalk_large = effective_large[2][0][1]
+
     assert crosstalk_large > crosstalk_small
     assert abs(crosstalk_large / crosstalk_small - 10.0) < 1.0  # Should be ~10x
 
 
 def test_detuning_protection():
     """Test protection against division by very small detuning."""
-    vq1 = VirtualTransmon(name="Q1", qubit_frequency=5000.0, 
-                         anharmonicity=-200.0, t1=50.0, t2=30.0, 
+    vq1 = VirtualTransmon(name="Q1", qubit_frequency=5000.0,
+                         anharmonicity=-200.0, t1=50.0, t2=30.0,
                          readout_frequency=7000.0, truncate_level=3)
     vq2 = VirtualTransmon(name="Q2", qubit_frequency=5000.0,  # Same frequency!
-                         anharmonicity=-210.0, t1=50.0, t2=30.0, 
+                         anharmonicity=-210.0, t1=50.0, t2=30.0,
                          readout_frequency=7100.0, truncate_level=3)
-    
+
     setup = HighLevelSimulationSetup(
         name="test",
         virtual_qubits={1: vq1, 2: vq2},
         omega_to_amp_map={1: 500.0, 2: 500.0},
         coupling_strength_map={frozenset(["Q1", "Q2"]): 20.0}
     )
-    
+
     sim = CWSpectroscopySimulator(setup)
-    
+
     # Drive at qubit frequency - zero detuning should be protected
     effective = sim._calculate_effective_drives([(1, 5000.0, 100.0)])
-    
+
     # Should not crash and should have reasonable crosstalk
+    # New API returns List[Tuple[freq, amp]] per channel
     assert 2 in effective
-    assert effective[2][1] > 0  # Non-zero crosstalk despite zero detuning
+    assert len(effective[2]) > 0
+    assert effective[2][0][1] > 0  # Non-zero crosstalk despite zero detuning
 
 
 def test_population_extraction(single_qubit_setup):
     """Test population extraction from dressed states."""
     sim = CWSpectroscopySimulator(single_qubit_setup)
-    
+
     # Test different drive conditions
-    pops_off_res = sim._simulate_single_qubit(1, 5200.0, 10.0)  # 200 MHz detuned
-    pops_on_res = sim._simulate_single_qubit(1, 5000.0, 10.0)   # On resonance
-    pops_strong = sim._simulate_single_qubit(1, 5000.0, 100.0)  # Strong drive
-    
+    # New API: _simulate_single_qubit(channel, drives) where drives is List[Tuple[freq, amp]]
+    pops_off_res = sim._simulate_single_qubit(1, [(5200.0, 10.0)])  # 200 MHz detuned
+    pops_on_res = sim._simulate_single_qubit(1, [(5000.0, 10.0)])   # On resonance
+    pops_strong = sim._simulate_single_qubit(1, [(5000.0, 100.0)])  # Strong drive
+
     # Basic physical requirements
     # 1. All populations should sum to 1
     assert abs(np.sum(pops_off_res) - 1.0) < 1e-10
     assert abs(np.sum(pops_on_res) - 1.0) < 1e-10
     assert abs(np.sum(pops_strong) - 1.0) < 1e-10
-    
+
     # 2. Different drives should produce different populations
     assert not np.allclose(pops_off_res, pops_on_res)
     assert not np.allclose(pops_on_res, pops_strong)
-    
+
     # 3. Off-resonance should have more ground state population than on-resonance
     assert pops_off_res[0] > pops_on_res[0]
 

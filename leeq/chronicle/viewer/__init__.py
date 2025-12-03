@@ -10,10 +10,10 @@ Main Components:
 
 Usage:
     from leeq.chronicle.viewer import dashboard
-    
+
     # Run the dashboard
     dashboard.main()
-    
+
     # Or use the app object directly
     app = dashboard.app
     app.run_server(debug=True)

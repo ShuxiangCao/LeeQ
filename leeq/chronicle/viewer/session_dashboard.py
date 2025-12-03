@@ -61,7 +61,7 @@ app.layout = dbc.Container([
         "Active Chronicle Session Viewer",
         "Live monitoring of active Chronicle recording session"
     ),
-    
+
     # Main layout with resizable three panels
     html.Div([
         # Left Sidebar - Experiment Selection (Resizable)
@@ -95,7 +95,7 @@ app.layout = dbc.Container([
                         ], className="mb-3 w-100"),
                         html.Div(id="refresh-status", className="text-muted small mb-3"),
                     ], className="file-input-section"),
-                    
+
                     # Experiment tree section
                     html.Div([
                         html.Hr(className="my-3"),
@@ -106,7 +106,7 @@ app.layout = dbc.Container([
             # Resize handle
             html.Div(className="resize-handle", title="Drag to resize sidebar")
         ], className="sidebar-resizable"),
-        
+
         # Right Content Area - Plot & Attributes
         html.Div([
             dbc.Row([
@@ -121,7 +121,7 @@ app.layout = dbc.Container([
                                 children=html.Div(id="session-experiment-info", className="mb-3"),
                                 color="#0d6efd"
                             ),
-                            
+
                             # Plot controls section
                             dcc.Loading(
                                 id="loading-plot-controls",
@@ -129,13 +129,13 @@ app.layout = dbc.Container([
                                 children=html.Div(id="plot-controls", className="mb-3"),
                                 color="#0d6efd"
                             ),
-                            
+
                             # Plot display section
                             create_plot_display_section(),
                         ])
                     ], className="main-content-card")
                 ], width=8, className="main-content-column pe-2"),
-                
+
                 # Right Panel - Experiment Attributes
                 dbc.Col([
                     dbc.Card([
@@ -148,7 +148,7 @@ app.layout = dbc.Container([
                                 id="loading-attributes",
                                 type="dot",
                                 children=html.Div(
-                                    id="session-experiment-attributes", 
+                                    id="session-experiment-attributes",
                                     children=[
                                         dbc.Alert(
                                             [
@@ -169,7 +169,7 @@ app.layout = dbc.Container([
             ], className="g-0 h-100")
         ], className="main-content-resizable")
     ], className="resizable-container content-row"),
-    
+
     # Hidden stores for state management
     dcc.Store(id='selected-experiment-id', storage_type='memory'),
     dcc.Store(id='experiment-data-store', storage_type='memory'),
@@ -185,33 +185,31 @@ def load_session_experiments():
     """
     Load experiments from the active Chronicle session.
     Returns a tuple of (experiments_list, tree_structure).
-    
+
     This function is specific to live session monitoring.
     """
-    global chronicle_instance
-    
     if not chronicle_instance:
         return [], {}
-    
+
     try:
         # Check if Chronicle is recording
         if not chronicle_instance.is_recording():
             return [], {}
-        
+
         # Access the active record book
         record_book = chronicle_instance._active_record_book
         if not record_book:
             return [], {}
-        
+
         # Get all experiments from the session
         root = record_book.get_root_entry()
         experiments = []
-        
+
         def traverse_entry(entry, path_prefix=""):
             """Recursively traverse the record tree to collect all experiments."""
             # Get entry path
             entry_path = str(entry.get_path())
-            
+
             # Add this entry as an experiment
             if entry != root:  # Don't include root itself
                 # Parse path parts correctly - remove '/root' prefix if present
@@ -221,10 +219,10 @@ def load_session_experiments():
                     path_parts = entry_path[1:].split('/')  # Remove leading '/'
                 else:
                     path_parts = entry_path.split('/')
-                
+
                 # Filter out empty parts
                 path_parts = [p for p in path_parts if p]
-                
+
                 experiments.append({
                     'record_id': entry.record_id,
                     'entry_path': entry_path,
@@ -232,7 +230,7 @@ def load_session_experiments():
                     'name': entry.name,
                     'path_parts': path_parts
                 })
-            
+
             # Recursively traverse children
             try:
                 for child in entry.children:
@@ -240,20 +238,19 @@ def load_session_experiments():
             except Exception:
                 # Some entries may not have accessible children
                 pass
-        
+
         # Start traversal from root
         traverse_entry(root)
-        
+
         # Sort by timestamp (older first)
         experiments.sort(key=lambda x: x['timestamp'])
-        
+
         # Build tree structure using the common function
         tree_structure = create_tree_view_items(experiments)
-        
+
         return experiments, tree_structure
-        
-    except Exception as e:
-        print(f"Error loading session experiments: {str(e)}")
+
+    except Exception:
         return [], {}
 
 
@@ -272,7 +269,7 @@ def update_session_view(n_intervals, n_clicks):
     """
     Update the session view with current experiments.
     Triggered by both automatic interval and manual refresh button.
-    
+
     This callback handles:
     - Automatic updates every 5 seconds via interval component
     - Manual refresh via button click
@@ -281,7 +278,7 @@ def update_session_view(n_intervals, n_clicks):
     # Determine trigger source
     ctx = callback_context
     trigger_source = "auto" if not ctx.triggered else ctx.triggered[0]['prop_id'].split('.')[0]
-    
+
     # Check if chronicle instance is available
     if not chronicle_instance:
         no_chronicle_alert = dbc.Alert(
@@ -292,10 +289,10 @@ def update_session_view(n_intervals, n_clicks):
             color="warning"
         )
         return no_chronicle_alert, "Chronicle not initialized", {}
-    
+
     try:
         experiments, tree_structure = load_session_experiments()
-        
+
         if not experiments:
             # Check if recording is active
             if not chronicle_instance.is_recording():
@@ -318,12 +315,12 @@ def update_session_view(n_intervals, n_clicks):
                     color="info"
                 )
                 status_msg = "Session active, no experiments yet"
-            
+
             return tree_content, status_msg, []
-        
+
         # Render the tree view using common function
         tree_content = render_tree_nodes(tree_structure)
-        
+
         # Create informative status message
         if trigger_source == "manual-refresh":
             status_msg = f"✓ Manual refresh - {len(experiments)} experiment(s) found"
@@ -334,12 +331,12 @@ def update_session_view(n_intervals, n_clicks):
             seconds = interval_seconds % 60
             time_str = f"{minutes}m {seconds}s" if minutes > 0 else f"{seconds}s"
             status_msg = f"Auto-refresh active ({time_str}) - {len(experiments)} experiment(s)"
-        
+
         # Store experiment data for other callbacks
         experiment_data = {exp['record_id']: exp for exp in experiments}
-        
+
         return tree_content, status_msg, experiment_data
-        
+
     except AttributeError as e:
         # Handle missing Chronicle attributes
         error_alert = dbc.Alert(
@@ -350,7 +347,7 @@ def update_session_view(n_intervals, n_clicks):
             color="danger"
         )
         return error_alert, f"API Error: {str(e)}", {}
-        
+
     except Exception as e:
         # Generic error handling
         error_alert = dbc.Alert(
@@ -373,12 +370,12 @@ def select_experiment(n_clicks, button_ids):
     """Handle experiment selection from the tree view."""
     if not any(n_clicks):
         raise PreventUpdate
-    
+
     # Find which button was clicked
     for i, clicks in enumerate(n_clicks):
         if clicks:
             return button_ids[i]["index"]
-    
+
     raise PreventUpdate
 
 
@@ -393,7 +390,7 @@ def select_experiment(n_clicks, button_ids):
 def update_experiment_display(selected_id, experiment_data):
     """
     Update the experiment info and attributes panels when an experiment is selected.
-    
+
     This callback handles:
     - Displaying experiment details when selected from tree
     - Loading experiment object and attributes from Chronicle
@@ -412,7 +409,7 @@ def update_experiment_display(selected_id, experiment_data):
         plot_controls = []
         attributes_content = create_experiment_attributes_panel()
         return info_content, plot_controls, attributes_content, None
-    
+
     # Check chronicle instance is available
     if not chronicle_instance:
         error_content = dbc.Alert(
@@ -423,7 +420,7 @@ def update_experiment_display(selected_id, experiment_data):
             color="warning"
         )
         return error_content, [], create_experiment_attributes_panel(error_msg="Chronicle not available"), None
-    
+
     try:
         # Verify Chronicle is still recording
         if not chronicle_instance.is_recording():
@@ -435,16 +432,16 @@ def update_experiment_display(selected_id, experiment_data):
                 color="warning"
             )
             return error_content, [], create_experiment_attributes_panel(error_msg="Session ended"), None
-        
+
         # Access the record book and get the specific record
         record_book = chronicle_instance._active_record_book
         if not record_book:
             raise Exception("Record book not accessible")
-            
+
         record = record_book.get_record_by_id(selected_id)
         if not record:
             raise Exception(f"Record {selected_id} not found")
-        
+
         # Attempt to load experiment object
         experiment_obj = None
         obj_error = None
@@ -452,7 +449,7 @@ def update_experiment_display(selected_id, experiment_data):
             experiment_obj = record.get_object()
         except Exception as e:
             obj_error = f"Could not load object: {str(e)}"
-        
+
         # Attempt to load attributes
         attributes = {}
         attr_error = None
@@ -460,13 +457,13 @@ def update_experiment_display(selected_id, experiment_data):
             attributes = record.load_all_attributes()
         except Exception as e:
             attr_error = f"Could not load attributes: {str(e)}"
-        
+
         # Build info panel content
         info_sections = [
             html.H5(f"Experiment: {record.name}"),
             html.Hr()
         ]
-        
+
         # Basic information
         info_sections.extend([
             html.P([
@@ -482,7 +479,7 @@ def update_experiment_display(selected_id, experiment_data):
                 f"{record.timestamp:.2f}s from session start"
             ])
         ])
-        
+
         # Add experiment metadata if available from store
         if experiment_data and selected_id in experiment_data:
             exp_meta = experiment_data[selected_id]
@@ -493,9 +490,9 @@ def update_experiment_display(selected_id, experiment_data):
                         html.Code(exp_meta['entry_path'], style={'fontSize': '0.9em'})
                     ])
                 )
-        
+
         info_sections.append(html.Hr())
-        
+
         # Experiment object section
         info_sections.append(html.H6("Experiment Object"))
         if experiment_obj:
@@ -513,13 +510,13 @@ def update_experiment_display(selected_id, experiment_data):
             info_sections.append(
                 html.P("Object data not available", className="text-muted")
             )
-        
+
         info_content = html.Div(info_sections)
-        
+
         # Generate plot controls if experiment object is available
         plot_controls = []
         plot_functions_data = None
-        
+
         if experiment_obj:
             try:
                 # Get available plot functions
@@ -536,7 +533,7 @@ def update_experiment_display(selected_id, experiment_data):
                             size="sm"
                         )
                         buttons.append(btn)
-                    
+
                     plot_controls = dbc.Card([
                         dbc.CardBody([
                             html.H5([
@@ -546,7 +543,7 @@ def update_experiment_display(selected_id, experiment_data):
                             html.Div(buttons)
                         ])
                     ], color="light", className="shadow-sm")
-                    
+
                     # Store plot functions for later use
                     plot_functions_data = {
                         "record_id": selected_id,
@@ -568,7 +565,7 @@ def update_experiment_display(selected_id, experiment_data):
                     ],
                     color="warning"
                 )
-        
+
         # Create attributes panel using common function
         if attr_error:
             attributes_content = create_experiment_attributes_panel(error_msg=attr_error)
@@ -586,9 +583,9 @@ def update_experiment_display(selected_id, experiment_data):
             attributes_content = create_experiment_attributes_panel(
                 error_msg="No attributes available"
             )
-        
+
         return info_content, plot_controls, attributes_content, plot_functions_data
-        
+
     except Exception as e:
         # Handle unexpected errors gracefully
         error_content = dbc.Alert(
@@ -612,13 +609,13 @@ def update_experiment_display(selected_id, experiment_data):
 def display_plot(n_clicks, plot_functions_data, selected_id):
     """
     Generate and display a plot based on the selected browser function.
-    
+
     This callback generates plots from live Chronicle session experiments.
     Unlike the file-based viewer, this accesses experiments directly from memory.
     """
     if not any(n_clicks):
         return go.Figure()
-    
+
     # Check chronicle instance and selected experiment
     if not chronicle_instance or not selected_id:
         return go.Figure().add_annotation(
@@ -626,21 +623,21 @@ def display_plot(n_clicks, plot_functions_data, selected_id):
             xref="paper", yref="paper",
             x=0.5, y=0.5, showarrow=False
         )
-    
+
     # Get which button was clicked
     ctx = callback_context
     if not ctx.triggered:
         return go.Figure()
-    
+
     # Extract the button ID that was clicked
     button_id = ctx.triggered[0]['prop_id']
     if '"index":' not in button_id:
         return go.Figure()
-    
+
     # Parse the method name from the button ID
     button_dict = json.loads(button_id.split('.')[0])
     method_name = button_dict['index']
-    
+
     try:
         # Verify Chronicle is still recording
         if not chronicle_instance.is_recording():
@@ -649,22 +646,22 @@ def display_plot(n_clicks, plot_functions_data, selected_id):
                 xref="paper", yref="paper",
                 x=0.5, y=0.5, showarrow=False
             )
-        
+
         # Access the record book and get the specific record
         record_book = chronicle_instance._active_record_book
         if not record_book:
             raise Exception("Record book not accessible")
-            
+
         record = record_book.get_record_by_id(selected_id)
         if not record:
             raise Exception(f"Record {selected_id} not found")
-        
+
         # Load the experiment object
         experiment = record.get_object()
-        
+
         # Get plot functions and find the selected one
         plot_functions = experiment.get_browser_functions()
-        
+
         for name, method in plot_functions:
             if name == method_name:
                 try:
@@ -679,13 +676,13 @@ def display_plot(n_clicks, plot_functions_data, selected_id):
                         xref="paper", yref="paper",
                         x=0.5, y=0.5, showarrow=False
                     )
-        
+
         return go.Figure().add_annotation(
             text=f"Plot method '{method_name}' not found",
             xref="paper", yref="paper",
             x=0.5, y=0.5, showarrow=False
         )
-        
+
     except Exception as e:
         return go.Figure().add_annotation(
             text=f"Error: {str(e)[:200]}",
@@ -697,7 +694,7 @@ def display_plot(n_clicks, plot_functions_data, selected_id):
 def start_viewer(**kwargs):
     """
     Start the session viewer dashboard with a Chronicle instance.
-    
+
     Args:
         chronicle_instance: The Chronicle singleton instance
         debug: Whether to run in debug mode (default: True)
@@ -705,13 +702,13 @@ def start_viewer(**kwargs):
         **kwargs: Additional arguments passed to app.run()
     """
     global chronicle_instance
-    
+
     # Extract Chronicle instance from kwargs
     chronicle_instance = kwargs.pop('chronicle_instance', None)
-    
+
     if not chronicle_instance:
         raise ValueError("Chronicle instance must be provided to start_viewer()")
-    
+
     # Set default arguments
     default_args = {
         'debug': True,
@@ -719,15 +716,12 @@ def start_viewer(**kwargs):
         'host': '127.0.0.1'
     }
     default_args.update(kwargs)
-    
-    print(f"Starting Chronicle Session Viewer on http://{default_args['host']}:{default_args['port']}")
-    print("Monitoring active Chronicle session for completed experiments...")
-    print("Press Ctrl+C to stop the viewer")
-    
+
+
     # Start the Dash server
     app.run(**default_args)
 
 
 # For testing import
 if __name__ == "__main__":
-    print("Session dashboard module loaded. Use Chronicle.launch_viewer() to start.")
+    pass

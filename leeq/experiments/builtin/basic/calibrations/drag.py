@@ -60,7 +60,7 @@ class DragCalibrationSingleQubitMultilevel(Experiment):
             "Optimal value should be in central half of sweep range"
         ]
     }
-    
+
     """
     Class for running a single AllXY drag experiment on a single qubit with a multilevel system.
     """
@@ -375,7 +375,7 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
             "Updates qubit parameters if update=True"
         ]
     }
-    
+
     """
     Class for running experiments to calibrate the alpha parameter (DRAG coefficient)
     by performing an all XY drag on a single qubit with a multilevel system.
@@ -523,7 +523,7 @@ class DragPhaseCalibrationMultiQubitsMultilevel(Experiment):
             "Currently not fully implemented (placeholder)"
         ]
     }
-    
+
     @log_and_record
     def run(self,
             duts,

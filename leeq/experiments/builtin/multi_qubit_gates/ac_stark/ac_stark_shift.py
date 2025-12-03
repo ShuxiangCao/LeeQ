@@ -29,7 +29,7 @@ logger = setup_logging(__name__)
 # Conditional Stark Spectroscopy
 class StarkSingleQubitT1(experiment):
     """Perform a T1 experiment applying a Stark shifting drive instead of the delay time."""
-    
+
     EPII_INFO = {
         "name": "StarkSingleQubitT1",
         "description": "T1 decay measurement with AC Stark shift drive",
@@ -102,7 +102,7 @@ class StarkSingleQubitT1(experiment):
             trunc=1.2):
         """
         Execute Stark T1 experiment on hardware.
-        
+
         Parameters
         ----------
         qubit : Any
@@ -129,7 +129,7 @@ class StarkSingleQubitT1(experiment):
             Pulse rise time. Default: 0.01.
         trunc : float, optional
             Pulse truncation. Default: 1.2.
-            
+
         Returns
         -------
         None
@@ -258,7 +258,7 @@ class StarkSingleQubitT1(experiment):
 
 class StarkTwoQubitsSWAP(experiment):
     """Perform a Stark Shifted T1 experiment on one qubit while measuring another."""
-    
+
     EPII_INFO = {
         "name": "StarkTwoQubitsSWAP",
         "description": "Two-qubit T1 measurement with Stark shift on control qubit",
@@ -327,7 +327,7 @@ class StarkTwoQubitsSWAP(experiment):
             trunc=1.2):
         """
         Execute Stark T1 experiment on two qubits on hardware.
-        
+
         Parameters
         ----------
         qubits : list
@@ -348,7 +348,7 @@ class StarkTwoQubitsSWAP(experiment):
             Initial pulse sequence. Default: None.
         trunc : float, optional
             Pulse truncation. Default: 1.2.
-            
+
         Returns
         -------
         None
@@ -464,7 +464,7 @@ class StarkTwoQubitsSWAP(experiment):
 
 class StarkTwoQubitsSWAPTwoDrives(experiment):
     """Perform Stark Shifted T1 with independent drives on both qubits."""
-    
+
     EPII_INFO = {
         "name": "StarkTwoQubitsSWAPTwoDrives",
         "description": "Two-qubit T1 with independent Stark drives on both qubits",
@@ -544,7 +544,7 @@ class StarkTwoQubitsSWAPTwoDrives(experiment):
             phase_diff=0, stark_offset=50, initial_lpb=None):
         """
         Execute Stark T1 with two drives on hardware.
-        
+
         Parameters
         ----------
         qubits : list
@@ -567,7 +567,7 @@ class StarkTwoQubitsSWAPTwoDrives(experiment):
             Stark frequency offset (MHz). Default: 50.
         initial_lpb : Any, optional
             Initial pulse sequence. Default: None.
-            
+
         Returns
         -------
         None
@@ -690,7 +690,7 @@ class StarkRamseyMultilevel(Experiment):
     Represents a simple Ramsey experiment with multilevel frequency sweeps.
     This version has changed the step size from 0.001 to 0.005.
     """
-    
+
     EPII_INFO = {
         "name": "StarkRamseyMultilevel",
         "description": "Ramsey experiment with AC Stark shift for multilevel systems",
@@ -1189,7 +1189,7 @@ class StarkRamseyMultilevel(Experiment):
 
 class StarkDriveRamseyTwoQubits(experiment):
     """Performs Ramsey on two qubits with Stark shift on one."""
-    
+
     EPII_INFO = {
         "name": "StarkDriveRamseyTwoQubits",
         "description": "Two-qubit Ramsey with Stark shift on first qubit",
@@ -1500,7 +1500,7 @@ class StarkDriveRamseyTwoQubits(experiment):
 
 class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
     """Performs Ramsey on two qubits with independent Stark drives."""
-    
+
     EPII_INFO = {
         "name": "StarkDriveRamseyTwoQubitsTwoStarkDrives",
         "description": "Two-qubit Ramsey with independent Stark drives on both qubits",
@@ -1818,7 +1818,7 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
 
 class StarkDriveRamseyMultiQubits(experiment):
     """Performs Ramsey on multiple qubits with Stark shift on first."""
-    
+
     EPII_INFO = {
         "name": "StarkDriveRamseyMultiQubits",
         "description": "Multi-qubit Ramsey with Stark shift on first qubit",
@@ -2131,7 +2131,7 @@ class StarkDriveRamseyMultiQubits(experiment):
 
 class StarkZZShiftTwoQubitMultilevel(Experiment):
     """Class to compute ZZ Shift for Two Qubit Multilevel system."""
-    
+
     EPII_INFO = {
         "name": "StarkZZShiftTwoQubitMultilevel",
         "description": "Measures ZZ interaction strength in multilevel two-qubit systems",

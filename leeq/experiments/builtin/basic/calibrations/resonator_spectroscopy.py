@@ -68,7 +68,7 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
             "Multi-qubit simulation uses channel-based readout"
         ]
     }
-    
+
     """
     Class representing a resonator sweep transmission experiment with extra initial LPB.
     Inherits from a generic "experiment" class.
@@ -829,7 +829,7 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
             "No run_simulated method currently implemented"
         ]
     }
-    
+
     @log_and_record
     def run(self,
             dut_qubit: TransmonElement,
@@ -1084,7 +1084,7 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
             "No run_simulated method currently implemented"
         ]
     }
-    
+
     """
     Class for comparing resonator sweep transmission with extra initial logical primitive block (LPB).
     It includes methods to run the experiment, and to plot magnitude and phase using both
@@ -1280,7 +1280,7 @@ class ResonatorPowerSweepSpectroscopy(Experiment):
             "Uses Kerr nonlinearity simulation for realistic modeling"
         ]
     }
-    
+
     """
     Power sweep spectroscopy experiment to observe bistability and S-curves.
 
@@ -1492,7 +1492,7 @@ class ResonatorBistabilityCharacterization(Experiment):
             "Requires Kerr nonlinearity simulation for accurate results"
         ]
     }
-    
+
     """
     Characterize bistability by measuring hysteresis loops.
 
@@ -1728,7 +1728,7 @@ class ResonatorThreeRegimeCharacterization(Experiment):
             "Comprehensive view of nonlinear resonator physics"
         ]
     }
-    
+
     """
     Comprehensive characterization of all three power regimes.
 
@@ -2042,7 +2042,7 @@ class MeasurementScanParams(Experiment):
             "Results help identify optimal measurement settings"
         ]
     }
-    
+
     """
     Class for managing and executing measurement scan parameters
     in an experimental setup.

@@ -58,7 +58,7 @@ class NormalisedRabi(Experiment):
             "Supports pulse discretization for efficiency"
         ]
     }
-    
+
     _experiment_result_analysis_instructions = """
     The Normalised Rabi experiment is a quantum mechanics experiment that involves the measurement of oscillations.
     A successful Rabi experiment will show a clear, regular oscillatory pattern with amplitude greater than 0.2.
@@ -455,7 +455,7 @@ class PowerRabi(Experiment):
             "Updates qubit parameters if update=True"
         ]
     }
-    
+
     @log_and_record
     def run(self,
             dut_qubit: Any,
@@ -776,7 +776,7 @@ class MultiQubitRabi(Experiment):
             "Efficient for multi-qubit calibration"
         ]
     }
-    
+
     @log_and_record
     def run(self,
             duts: list[Any],

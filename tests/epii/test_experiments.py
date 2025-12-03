@@ -12,7 +12,7 @@ from leeq.experiments.builtin.basic.calibrations.ramsey import SimpleRamseyMulti
 from leeq.experiments.builtin.basic.characterizations.t2 import SpinEchoMultiLevel
 from leeq.experiments.builtin.basic.calibrations.drag import DragCalibrationSingleQubitMultilevel
 from leeq.experiments.builtin.basic.characterizations.randomized_benchmarking import (
-    RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem
+    SingleQubitRandomizedBenchmarking
 )
 
 
@@ -32,7 +32,7 @@ class TestExperimentRouter:
         assert "calibrations.SimpleRamseyMultilevel" in router.experiment_map
         assert "characterizations.SpinEchoMultiLevel" in router.experiment_map
         assert "calibrations.DragCalibrationSingleQubitMultilevel" in router.experiment_map
-        assert "characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem" in router.experiment_map
+        assert "characterizations.SingleQubitRandomizedBenchmarking" in router.experiment_map
 
     def test_get_experiment(self, router):
         """Test getting experiment classes by name."""
@@ -43,7 +43,7 @@ class TestExperimentRouter:
         assert router.get_experiment("characterizations.SpinEchoMultiLevel") == SpinEchoMultiLevel
         assert router.get_experiment("characterizations.SpinEchoMultiLevel") == SpinEchoMultiLevel  # Alias
         assert router.get_experiment("calibrations.DragCalibrationSingleQubitMultilevel") == DragCalibrationSingleQubitMultilevel
-        assert router.get_experiment("characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem") == RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem
+        assert router.get_experiment("characterizations.SingleQubitRandomizedBenchmarking") == SingleQubitRandomizedBenchmarking
 
         # Test invalid experiment
         assert router.get_experiment("invalid_experiment") is None
@@ -59,7 +59,7 @@ class TestExperimentRouter:
         assert "calibrations.SimpleRamseyMultilevel" in experiments
         assert "characterizations.SpinEchoMultiLevel" in experiments
         assert "calibrations.DragCalibrationSingleQubitMultilevel" in experiments
-        assert "characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem" in experiments
+        assert "characterizations.SingleQubitRandomizedBenchmarking" in experiments
 
         # Check descriptions are strings
         for name, desc in experiments.items():
@@ -191,7 +191,7 @@ class TestExperimentRouter:
 
     def test_experiment_availability(self, router):
         """Test that essential experiments are available (no parameter mappings needed)."""
-        essential_experiments = ["calibrations.NormalisedRabi", "characterizations.SimpleT1", "calibrations.SimpleRamseyMultilevel", "characterizations.SpinEchoMultiLevel", "calibrations.DragCalibrationSingleQubitMultilevel", "characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem"]
+        essential_experiments = ["calibrations.NormalisedRabi", "characterizations.SimpleT1", "calibrations.SimpleRamseyMultilevel", "characterizations.SpinEchoMultiLevel", "calibrations.DragCalibrationSingleQubitMultilevel", "characterizations.SingleQubitRandomizedBenchmarking"]
 
         for exp_name in essential_experiments:
             # Check experiment is available in experiment_map

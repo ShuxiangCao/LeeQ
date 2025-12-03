@@ -102,7 +102,7 @@ class MultiQuditsStateTomography(GeneralisedStateTomography, QuditTomographyBase
     def run(self, duts, mprim_index=2, initial_lpb=None, extra_measurement_duts=None):
         """
         Execute multi-qudit state tomography.
-        
+
         Parameters
         ----------
         duts : List[Any]
@@ -113,7 +113,7 @@ class MultiQuditsStateTomography(GeneralisedStateTomography, QuditTomographyBase
             Initial logical primitive block to prepare the state. Default: None
         extra_measurement_duts : List[Any], optional
             Additional DUTs for extra measurements. Default: None
-            
+
         Returns
         -------
         None
@@ -179,7 +179,7 @@ class MultiQuditsProcessTomography(GeneralisedProcessTomography, QuditTomography
     def run(self, duts, lpb, mprim_index=2, initial_lpb=None, extra_measurement_duts=None):
         """
         Execute multi-qudit process tomography.
-        
+
         Parameters
         ----------
         duts : List[Any]
@@ -192,7 +192,7 @@ class MultiQuditsProcessTomography(GeneralisedProcessTomography, QuditTomography
             Not used - kept for compatibility. Default: None
         extra_measurement_duts : List[Any], optional
             Additional DUTs for extra measurements. Default: None
-            
+
         Returns
         -------
         None

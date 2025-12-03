@@ -62,7 +62,7 @@ class MultilevelTransmonTuneup(Experiment):
             "Tracks intermediate configurations for debugging"
         ]
     }
-    
+
     """
     A class that extends Experiment to perform a multilevel transmon tuneup experiment.
     The experiment tunes up a multilevel transmon qubit to optimize its performance.

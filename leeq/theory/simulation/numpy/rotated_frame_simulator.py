@@ -49,7 +49,7 @@ class VirtualTransmon(object):
             coupling_strength (Optional[float]): Qubit-resonator coupling strength (MHz). Required if use_physics_chi=True.
             use_physics_chi (bool): Whether to use physics-based chi shift calculation instead of constant dispersive shift.
             use_kerr_nonlinearity (bool): Whether to enable Kerr nonlinearity effects for power-dependent response.
-            kerr_coefficient (Optional[float]): Kerr coefficient K (Hz). If None and use_kerr_nonlinearity=True, 
+            kerr_coefficient (Optional[float]): Kerr coefficient K (Hz). If None and use_kerr_nonlinearity=True,
                 will be calculated from transmon parameters.
         """
 
@@ -67,19 +67,19 @@ class VirtualTransmon(object):
         self.coupling_strength = coupling_strength
         self.use_physics_chi = use_physics_chi
         self.use_kerr_nonlinearity = use_kerr_nonlinearity
-        
+
         # Initialize Kerr nonlinearity
         if use_kerr_nonlinearity:
             from leeq.theory.simulation.numpy.dispersive_readout.kerr_physics import KerrBistabilityCalculator
             self.kerr_calculator = KerrBistabilityCalculator()
-            
+
             # Calculate or use provided Kerr coefficient
             if kerr_coefficient is None:
                 if coupling_strength is None:
                     raise ValueError("coupling_strength must be specified when use_kerr_nonlinearity=True and kerr_coefficient=None")
                 self.kerr_coefficient = self.kerr_calculator.calculate_kerr_coefficient(
                     f_r=readout_frequency,
-                    f_q=qubit_frequency, 
+                    f_q=qubit_frequency,
                     anharmonicity=anharmonicity,
                     g=coupling_strength
                 )
@@ -88,7 +88,7 @@ class VirtualTransmon(object):
         else:
             self.kerr_calculator = None
             self.kerr_coefficient = None
-            
+
         self._density_matrix = None
 
         self._transition_ops = {}
@@ -108,9 +108,9 @@ class VirtualTransmon(object):
             # Use physics-based chi shift calculation
             if self.coupling_strength is None:
                 raise ValueError("coupling_strength must be specified when use_physics_chi=True")
-            
+
             from leeq.theory.simulation.numpy.dispersive_readout.physics import ChiShiftCalculator
-            
+
             calculator = ChiShiftCalculator()
             chi_shifts = calculator.calculate_chi_shifts(
                 f_r=self.readout_frequency,
@@ -120,7 +120,7 @@ class VirtualTransmon(object):
                 num_levels=self.truncate_level,
                 relative=True  # Get relative chi shifts (chi[0] = 0)
             )
-            
+
             # Convert chi shifts to resonator frequencies
             # Resonator frequency shifts by -chi when qubit is in state |n>
             self._resonator_frequencies = np.asarray([
@@ -164,14 +164,14 @@ class VirtualTransmon(object):
             # Here we use a simpler approximation: n ∝ Power / (linewidth * frequency_detuning)
             detuning = f - self.readout_frequency
             effective_kappa = self.readout_linewidth
-            
+
             # Estimate photon number (this is a simplified model)
             # More accurate would be to solve the steady-state equation
             photon_number = power / (effective_kappa + abs(detuning) + 1e-6)  # Add small term to avoid division by zero
-            
+
             # Calculate Kerr frequency shift
             kerr_shift = self.kerr_coefficient * photon_number
-            
+
             # Apply Kerr shift to resonator frequencies
             effective_resonator_frequencies = self._resonator_frequencies + kerr_shift
         else:

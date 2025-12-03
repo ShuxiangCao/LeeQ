@@ -226,7 +226,7 @@ def test_browser_function_to_plot_component():
     
     component = browser_function_to_plot_component("plot", fig)
     
-    assert component.description == "Test Rabi Oscillation (from plot)"
+    assert component.description == "Test Rabi Oscillation [plot]"
     assert component.plotly_json == ""
     assert component.image_png == b""
     

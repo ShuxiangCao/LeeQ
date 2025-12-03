@@ -32,7 +32,7 @@ class CalibrateOptimizedFrequencyWith2QZZShift(Experiment):
             "Reduces unwanted ZZ coupling"
         ]
     }
-    
+
     """Class to calibrate optimized frequency with 2Q ZZ Shift."""
 
     @log_and_record
@@ -124,7 +124,7 @@ class ZZShiftTwoQubitMultilevel(Experiment):
             "Used to optimize operating frequencies"
         ]
     }
-    
+
     """Class to compute ZZ Shift for Two Qubit Multilevel system."""
 
     @log_and_record

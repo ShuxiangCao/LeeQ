@@ -86,19 +86,19 @@ class TwoToneQubitSpectroscopy(Experiment):
             "Parallel processing available for faster 2D simulation"
         ]
     }
-    
+
     """
     Two-tone spectroscopy with dual frequency sweeps and optional noise-free simulation.
-    
+
     This experiment applies two frequency-swept tones simultaneously to probe:
     - Multi-photon transitions
-    - Sideband effects  
+    - Sideband effects
     - Qubit-resonator coupling
     - AC Stark shifts
-    
+
     In simulation mode, the disable_noise parameter allows generation of clean data
     without Gaussian noise for validation and benchmarking purposes.
-    
+
     Attributes
     ----------
     trace : ndarray
@@ -109,20 +109,20 @@ class TwoToneQubitSpectroscopy(Experiment):
         Array of frequencies for tone 1.
     freq2_arr : ndarray
         Array of frequencies for tone 2.
-        
+
     Examples
     --------
     Standard two-tone spectroscopy with noise:
-    
+
     >>> exp = TwoToneQubitSpectroscopy(
     ...     dut_qubit=qubit,
     ...     tone1_start=4950.0, tone1_stop=5050.0, tone1_step=10.0,
     ...     tone2_start=4750.0, tone2_stop=4850.0, tone2_step=10.0,
     ...     num_avs=1000
     ... )
-    
+
     Clean simulation for theoretical comparison:
-    
+
     >>> exp_clean = TwoToneQubitSpectroscopy(
     ...     dut_qubit=qubit,
     ...     tone1_start=4950.0, tone1_stop=5050.0, tone1_step=10.0,
@@ -130,9 +130,9 @@ class TwoToneQubitSpectroscopy(Experiment):
     ...     num_avs=1000,
     ...     disable_noise=True
     ... )
-    
+
     Cross-channel measurement (tone2 on f12):
-    
+
     >>> exp_cross = TwoToneQubitSpectroscopy(
     ...     dut_qubit=qubit,
     ...     tone1_start=4950.0, tone1_stop=5050.0, tone1_step=10.0,
@@ -142,7 +142,7 @@ class TwoToneQubitSpectroscopy(Experiment):
     ...     disable_noise=True
     ... )
     """
-    
+
     @log_and_record
     def run(
         self,
@@ -166,7 +166,7 @@ class TwoToneQubitSpectroscopy(Experiment):
     ):
         """
         Execute the experiment on hardware.
-        
+
         Parameters
         ----------
         dut_qubit : Any
@@ -203,7 +203,7 @@ class TwoToneQubitSpectroscopy(Experiment):
             If True, use CPU parallelization. Ignored in hardware mode. Default: True
         num_workers : Optional[int], optional
             Number of worker processes. If None, uses all CPU cores. Ignored in hardware mode. Default: None
-        
+
         Returns
         -------
         None
@@ -214,29 +214,29 @@ class TwoToneQubitSpectroscopy(Experiment):
         self.tone2_amp = tone2_amp
         self.same_channel = same_channel
         self.num_avs = num_avs
-        
+
         # Setup frequency arrays
         self.freq1_arr = np.arange(tone1_start, tone1_stop + tone1_step/2, tone1_step)
         self.freq2_arr = np.arange(tone2_start, tone2_stop + tone2_step/2, tone2_step)
-        
+
         # Build pulse sequence
         lpb = self._build_pulse_sequence(
-            dut_qubit, same_channel, set_qubit, 
+            dut_qubit, same_channel, set_qubit,
             tone1_amp, tone2_amp, mp_width
         )
-        
+
         # Setup sweepers
         swp = self._setup_sweepers(
             tone1_start, tone1_stop, tone1_step,
             tone2_start, tone2_stop, tone2_step
         )
-        
+
         # Run experiment
         ExperimentManager().run(lpb, swp)
-        
+
         # Process results
         self._process_results()
-    
+
     @log_and_record(overwrite_func_name='TwoToneQubitSpectroscopy.run')
     def run_simulated(
         self,
@@ -260,7 +260,7 @@ class TwoToneQubitSpectroscopy(Experiment):
     ):
         """
         Execute the experiment in simulation mode.
-        
+
         Parameters
         ----------
         dut_qubit : Any
@@ -299,7 +299,7 @@ class TwoToneQubitSpectroscopy(Experiment):
         num_workers : Optional[int], optional
             Number of worker processes for parallelization. If None, uses all CPU cores.
             Only effective when use_parallel=True. Default: None
-            
+
         Notes
         -----
         When disable_noise=True:
@@ -307,24 +307,24 @@ class TwoToneQubitSpectroscopy(Experiment):
         - Results are deterministic and repeatable across the entire 2D map
         - Ideal for comparing against theoretical models
         - Note: This experiment uses simpler noise model (Gaussian only, no baseline dropout)
-        
+
         Channel Configuration:
         - same_channel=True: Both tones on same drive channel, amplitudes combine
         - same_channel=False: Tone 1 on primary channel, tone 2 on secondary (f01/f12)
-        
+
         Examples
         --------
         Standard two-tone simulation with noise:
-        
+
         >>> exp = TwoToneQubitSpectroscopy(
         ...     dut_qubit=qubit,
         ...     tone1_start=4950.0, tone1_stop=5050.0, tone1_step=10.0,
         ...     tone2_start=4750.0, tone2_stop=4850.0, tone2_step=10.0,
         ...     same_channel=True, num_avs=1000
         ... )
-        
+
         Clean cross-channel analysis:
-        
+
         >>> exp_clean = TwoToneQubitSpectroscopy(
         ...     dut_qubit=qubit,
         ...     tone1_start=4950.0, tone1_stop=5050.0, tone1_step=10.0,
@@ -334,21 +334,21 @@ class TwoToneQubitSpectroscopy(Experiment):
         ... )
         """
         from leeq.theory.simulation.numpy.cw_spectroscopy import CWSpectroscopySimulator
-        
+
         self.dut_qubit = dut_qubit
         self.tone1_amp = tone1_amp
         self.tone2_amp = tone2_amp
         self.same_channel = same_channel
         self.num_avs = num_avs
-        
+
         # Setup frequency arrays
         self.freq1_arr = np.arange(tone1_start, tone1_stop + tone1_step/2, tone1_step)
         self.freq2_arr = np.arange(tone2_start, tone2_stop + tone2_step/2, tone2_step)
-        
+
         # Get setup and simulator
         setup = ExperimentManager().get_default_setup()
         simulator = CWSpectroscopySimulator(setup)
-        
+
         # Get channels
         c1 = dut_qubit.get_c1(set_qubit)
         channel1 = c1.channel
@@ -360,25 +360,25 @@ class TwoToneQubitSpectroscopy(Experiment):
             else:
                 c2 = dut_qubit.get_c1('f01')
             channel2 = c2.channel
-        
+
         # Get readout parameters
         mp = dut_qubit.get_default_measurement_prim_int()
         readout_channel = mp.channel
         readout_freq = mp.freq
         readout_amp = mp.amp
-        
+
         # 2D sweep simulation with optional parallelization
         if use_parallel:
             try:
                 import time
                 from concurrent.futures import ProcessPoolExecutor
                 import multiprocessing
-                
+
                 start_time = time.time()
-                
+
                 if num_workers is None:
                     num_workers = multiprocessing.cpu_count()
-                
+
                 # Create parameter combinations for parallel processing
                 param_combinations = []
                 for f1 in self.freq1_arr:
@@ -388,7 +388,7 @@ class TwoToneQubitSpectroscopy(Experiment):
                             drives = [(channel1, f1, tone1_amp + tone2_amp)]
                         else:
                             drives = [(channel1, f1, tone1_amp), (channel2, f2, tone2_amp)]
-                        
+
                         readout_params = {
                             readout_channel: {
                                 'frequency': readout_freq,
@@ -396,24 +396,22 @@ class TwoToneQubitSpectroscopy(Experiment):
                             }
                         }
                         param_combinations.append((drives, readout_params, readout_channel))
-                
+
                 # Process in parallel
                 with ProcessPoolExecutor(max_workers=num_workers) as executor:
-                    futures = [executor.submit(_simulate_two_tone_point_global, 
+                    futures = [executor.submit(_simulate_two_tone_point_global,
                                              drives, readout_params, readout_channel, simulator)
                              for drives, readout_params, readout_channel in param_combinations]
                     result_flat = [f.result() for f in futures]
-                
+
                 # Reshape to 2D array
                 result = np.array(result_flat).reshape(len(self.freq1_arr), len(self.freq2_arr))
-                
-                parallel_time = time.time() - start_time
-                print(f"Two-tone parallel processing completed in {parallel_time:.2f}s using {num_workers} workers")
-                
-            except Exception as e:
-                print(f"Two-tone parallel processing failed ({e}), falling back to sequential")
+
+                time.time() - start_time
+
+            except Exception:
                 use_parallel = False
-        
+
         if not use_parallel:
             # Sequential processing (original implementation)
             result = []
@@ -426,7 +424,7 @@ class TwoToneQubitSpectroscopy(Experiment):
                         drives = [(channel1, f1, tone1_amp), (channel1, f2, tone2_amp)]
                     else:
                         drives = [(channel1, f1, tone1_amp), (channel2, f2, tone2_amp)]
-                    
+
                     # Simulate
                     readout_params = {
                         readout_channel: {
@@ -437,25 +435,25 @@ class TwoToneQubitSpectroscopy(Experiment):
                     iq_response = simulator.simulate_spectroscopy_iq(drives, readout_params)
                     row.append(iq_response[readout_channel])
                 result.append(row)
-        
+
         # Store results
         self.trace = np.array(result)
-        
+
         # Add realistic noise (only if noise is enabled)
         if not disable_noise:
             self.trace = self._add_realistic_noise(self.trace, num_avs)
-        
+
         # Process results
         self._process_results()
-    
-    def _build_pulse_sequence(self, dut_qubit, same_channel, set_qubit, 
+
+    def _build_pulse_sequence(self, dut_qubit, same_channel, set_qubit,
                               tone1_amp, tone2_amp, mp_width):
         """Build logical primitive blocks for the pulse sequence."""
         # Get drive primitives
         c1 = dut_qubit.get_c1(set_qubit)
         drive1 = c1['X'].clone()
         drive1.update_pulse_args(amp=tone1_amp, width=mp_width)
-        
+
         if same_channel:
             drive2 = c1['X'].clone()
         else:
@@ -466,19 +464,19 @@ class TwoToneQubitSpectroscopy(Experiment):
                 c2 = dut_qubit.get_c1('f01')
             drive2 = c2['X'].clone()
         drive2.update_pulse_args(amp=tone2_amp, width=mp_width)
-        
+
         # Store for sweeper access
         self.drive1 = drive1
         self.drive2 = drive2
-        
+
         # Get measurement primitive
         mp = dut_qubit.get_default_measurement_prim_int()
-        
+
         # Build sequence: parallel drives followed by measurement
         lpb = (drive1 * drive2) + mp
-        
+
         return lpb
-    
+
     def _setup_sweepers(self, tone1_start, tone1_stop, tone1_step,
                        tone2_start, tone2_stop, tone2_step):
         """Setup 2D frequency sweepers."""
@@ -496,7 +494,7 @@ class TwoToneQubitSpectroscopy(Experiment):
                 )
             ]
         )
-        
+
         # Frequency sweep for tone 2
         swp_freq2 = Sweeper(
             np.arange,
@@ -511,17 +509,17 @@ class TwoToneQubitSpectroscopy(Experiment):
                 )
             ]
         )
-        
+
         # Chain sweepers for 2D sweep (freq2 is inner loop)
         return swp_freq1 + swp_freq2
-    
+
     def _add_realistic_noise(self, data, num_avs):
         """Add realistic noise to simulated data."""
         noise_scale = 10.0 / np.sqrt(num_avs)
-        noise = (np.random.normal(0, noise_scale, data.shape) + 
+        noise = (np.random.normal(0, noise_scale, data.shape) +
                  1j * np.random.normal(0, noise_scale, data.shape))
         return data + noise
-    
+
     def _process_results(self):
         """Process raw trace data into magnitude and phase."""
         if not hasattr(self, 'trace'):
@@ -530,12 +528,12 @@ class TwoToneQubitSpectroscopy(Experiment):
             raw_data = setup.get_sweep_result()
             # Reshape to 2D
             self.trace = raw_data.reshape(len(self.freq1_arr), len(self.freq2_arr))
-        
+
         self.result = {
             'Magnitude': np.abs(self.trace),
             'Phase': np.angle(self.trace)
         }
-    
+
     @register_browser_function()
     @visual_inspection("""
     Determine if the two-tone spectroscopy shows clear resonances.
@@ -552,9 +550,9 @@ class TwoToneQubitSpectroscopy(Experiment):
             y=self.freq1_arr,
             z=self.result['Magnitude'],
             colorscale='Viridis',
-            colorbar=dict(title='Magnitude')
+            colorbar={'title': 'Magnitude'}
         ))
-        
+
         fig.update_layout(
             title='Two-Tone Qubit Spectroscopy',
             xaxis_title='Tone 2 Frequency (MHz)',
@@ -562,23 +560,23 @@ class TwoToneQubitSpectroscopy(Experiment):
             width=800,
             height=600
         )
-        
+
         return fig
-    
+
     @register_browser_function()
     def plot_phase(self):
         """Plot 2D phase heatmap."""
         # Unwrap phase in both dimensions
         phase_unwrapped = np.unwrap(np.unwrap(self.result['Phase'], axis=0), axis=1)
-        
+
         fig = go.Figure(data=go.Heatmap(
             x=self.freq2_arr,
             y=self.freq1_arr,
             z=phase_unwrapped,
             colorscale='RdBu',
-            colorbar=dict(title='Phase (rad)')
+            colorbar={'title': 'Phase (rad)'}
         ))
-        
+
         fig.update_layout(
             title='Two-Tone Spectroscopy - Phase',
             xaxis_title='Tone 2 Frequency (MHz)',
@@ -586,31 +584,31 @@ class TwoToneQubitSpectroscopy(Experiment):
             width=800,
             height=600
         )
-        
+
         return fig
-    
+
     def find_peaks(self):
         """Find resonance peaks in 2D spectrum."""
         magnitude = self.result['Magnitude']
         peak_idx = np.unravel_index(np.argmax(magnitude), magnitude.shape)
-        
+
         return {
             'peak_freq1': self.freq1_arr[peak_idx[0]],
             'peak_freq2': self.freq2_arr[peak_idx[1]],
             'peak_magnitude': magnitude[peak_idx],
             'peak_index': peak_idx
         }
-    
+
     def get_cross_section(self, axis='freq1', value=None):
         """Get 1D cross-section of 2D spectrum.
-        
+
         Parameters
         ----------
         axis : str
             'freq1' or 'freq2' - which axis to slice along
         value : float
             Frequency value to slice at. If None, uses peak location.
-        
+
         Returns
         -------
         dict

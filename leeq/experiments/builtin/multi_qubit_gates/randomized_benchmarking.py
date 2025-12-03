@@ -113,7 +113,7 @@ class RandomizedBenchmarking2Qubits(Experiment):
     def run(self, duts, c2, seq_length: int, kinds: int, interleaved: Optional[bool] = None):
         """
         Execute randomized benchmarking on hardware.
-        
+
         Parameters
         ----------
         duts : list
@@ -126,7 +126,7 @@ class RandomizedBenchmarking2Qubits(Experiment):
             Number of random sequences to generate for each length.
         interleaved : int, optional
             Gate index for interleaved RB. None for standard RB.
-            
+
         Returns
         -------
         None
@@ -232,7 +232,7 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         success_probability (Dict[str, List[float]]): Success probabilities for standard and interleaved RB.
         infidelity (float): Calculated relative infidelity between standard and interleaved RB.
     """
-    
+
     EPII_INFO = {
         "name": "RandomizedBenchmarking2QubitsInterleavedComparison",
         "description": "Compares standard and interleaved randomized benchmarking for specific gate fidelity",

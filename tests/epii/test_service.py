@@ -107,7 +107,7 @@ def test_list_available_experiments(stub):
     assert "calibrations.SimpleRamseyMultilevel" in experiment_names
     assert "characterizations.SpinEchoMultiLevel" in experiment_names
     assert "calibrations.DragCalibrationSingleQubitMultilevel" in experiment_names
-    assert "characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem" in experiment_names
+    assert "characterizations.SingleQubitRandomizedBenchmarking" in experiment_names
 
     # Check that experiments have descriptions
     for exp in response.experiments:

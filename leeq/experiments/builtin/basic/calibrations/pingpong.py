@@ -61,7 +61,7 @@ class PingPongSingleQubitMultilevel(Experiment):
             "Works for both pi and pi/2 pulses"
         ]
     }
-    
+
     """
     Class representing a Ping Pong experiment with a single qubit in a multilevel setup.
 
@@ -305,7 +305,7 @@ class AmpPingpongCalibrationSingleQubitMultilevel(Experiment):
             "Tracks uncertainty through iterations"
         ]
     }
-    
+
     """
     This class represents an amplitude tuning experiment for a single qubit multilevel system.
     """
@@ -482,7 +482,7 @@ class PingPongMultiQubitMultilevel(Experiment):
             "Supports different gates per qubit"
         ]
     }
-    
+
     """
     Class representing a Ping Pong experiment with a multi qubit in a multilevel setup.
 
@@ -653,7 +653,7 @@ class AmpTuneUpMultiQubitMultilevel(Experiment):
             "Requires rough calibration beforehand"
         ]
     }
-    
+
     """
     This class represents an amplitude tuning experiment for a multi qubit multilevel system.
     """

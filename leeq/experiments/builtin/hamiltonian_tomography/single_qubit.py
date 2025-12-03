@@ -25,7 +25,7 @@ class HamiltonianTomographySingleQubitBase(Experiment):
     Base class for implementing Hamiltonian tomography.
 
     """
-    
+
     EPII_INFO = {
         "name": "HamiltonianTomographySingleQubitBase",
         "description": "Base class for single-qubit Hamiltonian tomography experiments",
@@ -96,7 +96,7 @@ class HamiltonianTomographySingleQubitBase(Experiment):
         mprim_index : str, optional
             Index of the measurement primitive to be used.
             Default: '0'
-            
+
         Returns
         -------
         None
@@ -158,12 +158,12 @@ class HamiltonianTomographySingleQubitBase(Experiment):
         ----------
         step_t : float
             Step time of the Hamiltonian under characterization (us).
-            
+
         Returns
         -------
         None
             Results are stored in the instance attribute `analyzed_results`.
-            
+
         Raises
         ------
         ValueError
@@ -195,7 +195,7 @@ class HamiltonianTomographySingleQubitXYBase(HamiltonianTomographySingleQubitBas
     """
     Hamiltonian tomography equivalent to the ramsey experiment.
     """
-    
+
     EPII_INFO = {
         "name": "HamiltonianTomographySingleQubitXYBase",
         "description": "XY-plane Hamiltonian tomography for single qubits (Ramsey-like)",
@@ -262,7 +262,7 @@ class HamiltonianTomographySingleQubitXYBase(HamiltonianTomographySingleQubitBas
         mprim_index : str, optional
             Index of the measurement primitive to be used.
             Default: '0'
-            
+
         Returns
         -------
         None
@@ -297,7 +297,7 @@ class HamiltonianTomographySingleQubitXYBase(HamiltonianTomographySingleQubitBas
         ----------
         i : int
             The index of the qubit for which to plot the data.
-            
+
         Returns
         -------
         plotly.graph_objects.Figure
@@ -372,7 +372,7 @@ class HamiltonianTomographySingleQubitStarkShift(HamiltonianTomographySingleQubi
     """
     Hamiltonian tomography reveals the Z term under the stark shift drive.
     """
-    
+
     EPII_INFO = {
         "name": "HamiltonianTomographySingleQubitStarkShift",
         "description": "Characterizes AC Stark shift effects on single qubits",
@@ -448,7 +448,7 @@ class HamiltonianTomographySingleQubitStarkShift(HamiltonianTomographySingleQubi
         mprim_index : str, optional
             Index of the measurement primitive to be used.
             Default: '0'
-            
+
         Returns
         -------
         None
@@ -496,10 +496,10 @@ class HamiltonianTomographySingleQubitStarkShift(HamiltonianTomographySingleQubi
     def analyze_data(self):
         """
         Analyze the data obtained from the Stark shift tomography experiment.
-        
+
         This method extracts the Stark shift frequency from the measured
         phase evolution data using frequency fitting.
-        
+
         Returns
         -------
         None
@@ -513,7 +513,7 @@ class HamiltonianTomographySingleQubitOffresonanceDrive(HamiltonianTomographySin
     """
     Hamiltonian tomography equivalent to the ramsey experiment.
     """
-    
+
     EPII_INFO = {
         "name": "HamiltonianTomographySingleQubitOffresonanceDrive",
         "description": "Characterizes qubit evolution under off-resonant drive conditions",
@@ -587,7 +587,7 @@ class HamiltonianTomographySingleQubitOffresonanceDrive(HamiltonianTomographySin
         mprim_index : str, optional
             Index of the measurement primitive to be used.
             Default: '0'
-            
+
         Returns
         -------
         None
@@ -633,10 +633,10 @@ class HamiltonianTomographySingleQubitOffresonanceDrive(HamiltonianTomographySin
     def analyze_data(self):
         """
         Analyze the data obtained from the off-resonance drive experiment.
-        
+
         This method extracts the detuning frequency from the measured
         oscillation data using frequency fitting.
-        
+
         Returns
         -------
         None

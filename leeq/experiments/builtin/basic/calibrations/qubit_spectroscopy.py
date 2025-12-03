@@ -20,25 +20,25 @@ class _MockMP:
         self.freq = mprim.freq
         self.channel = mprim.channel
         self.amp = mprim.amp
-    
+
     def result(self):
         return self.parent.trace
 
 
 # Worker function for parallel IQ simulation - moved outside class for pickling
-def _simulate_iq_point(freq: float, 
+def _simulate_iq_point(freq: float,
                        effective_amp_drive: float,
                        drive_channel: int,
-                       readout_channel: int, 
+                       readout_channel: int,
                        f_readout: float,
                        effective_amp_readout: float,
                        sim) -> complex:
     """
     Worker function for parallel IQ response calculation.
-    
+
     This function runs in a separate process and must be pickle-able.
     It calculates the IQ response for a single parameter point.
-    
+
     Parameters
     ----------
     freq : float
@@ -55,7 +55,7 @@ def _simulate_iq_point(freq: float,
         Effective readout amplitude in MHz
     sim : CWSpectroscopySimulator
         Simulator instance (will be pickled/unpickled across processes)
-        
+
     Returns
     -------
     complex
@@ -64,7 +64,7 @@ def _simulate_iq_point(freq: float,
     # Simulate for this frequency and amplitude using the same interface
     iq_responses = sim.simulate_spectroscopy_iq(
         drives=[(drive_channel, freq, effective_amp_drive)],
-        readout_params={readout_channel: {'frequency': f_readout, 
+        readout_params={readout_channel: {'frequency': f_readout,
                                         'amplitude': effective_amp_readout}}
     )
     return iq_responses[readout_channel]
@@ -110,7 +110,7 @@ class QubitSpectroscopyFrequency(Experiment):
             "Hardware mode ignores the disable_noise parameter"
         ]
     }
-    
+
     """
     A class used to represent the QubitSweepPlottly experiment,
     specialized for conducting frequency sweeps on qubits and visualizing the results.
@@ -138,11 +138,11 @@ class QubitSpectroscopyFrequency(Experiment):
         Plots the magnitude component of the results from the frequency sweep.
     plot_phase():
         Plots the phase component of the results from the frequency sweep.
-    
+
     Examples
     --------
     Basic usage with default noisy simulation:
-    
+
     >>> exp = QubitSpectroscopyFrequency(
     ...     dut_qubit=qubit,
     ...     start=4900.0,
@@ -150,9 +150,9 @@ class QubitSpectroscopyFrequency(Experiment):
     ...     step=2.0,
     ...     num_avs=1000
     ... )
-    
+
     Clean data generation for validation (simulation only):
-    
+
     >>> exp_clean = QubitSpectroscopyFrequency(
     ...     dut_qubit=qubit,
     ...     start=4900.0,
@@ -161,7 +161,7 @@ class QubitSpectroscopyFrequency(Experiment):
     ...     num_avs=1000,
     ...     disable_noise=True
     ... )
-    
+
     The disable_noise parameter provides deterministic results without baseline
     dropout or Gaussian noise, ideal for physics validation and testing.
     """
@@ -210,7 +210,7 @@ class QubitSpectroscopyFrequency(Experiment):
         -------
         None
             Results are stored in instance attributes.
-        
+
         Notes
         -----
         The disable_noise parameter is only effective when running in simulation mode.
@@ -267,7 +267,7 @@ class QubitSpectroscopyFrequency(Experiment):
             'Magnitude': np.absolute(self.trace),
             'Phase': np.unwrap(np.angle(self.trace)),
         }
-        
+
         # Store frequency array for later access
         self.freq_arr = np.arange(start=start, stop=stop, step=step)
 
@@ -313,14 +313,14 @@ class QubitSpectroscopyFrequency(Experiment):
         amp : float, optional
             Amplitude of the drive pulse. Default: 0.01
         disable_noise : bool, optional
-            If True, skip noise addition (baseline dropout and Gaussian noise) for clean 
+            If True, skip noise addition (baseline dropout and Gaussian noise) for clean
             simulation data. Useful for physics validation and testing. Default: False.
 
         Returns
         -------
         None
             Results are stored in instance attributes.
-        
+
         Notes
         -----
         When disable_noise=True:
@@ -328,19 +328,19 @@ class QubitSpectroscopyFrequency(Experiment):
         - No Gaussian noise (normally scaled by 100/log(num_avs)/sqrt(mp_width))
         - Results are deterministic and repeatable
         - Ideal for comparing against theoretical models
-        
+
         Examples
         --------
         Standard noisy simulation:
-        
+
         >>> exp = QubitSpectroscopyFrequency(
         ...     dut_qubit=qubit,
         ...     start=4900.0, stop=5100.0, step=2.0,
         ...     num_avs=1000
         ... )
-        
+
         Clean simulation for validation:
-        
+
         >>> exp_clean = QubitSpectroscopyFrequency(
         ...     dut_qubit=qubit,
         ...     start=4900.0, stop=5100.0, step=2.0,
@@ -350,50 +350,50 @@ class QubitSpectroscopyFrequency(Experiment):
         """
 
         simulator_setup = setup().get_default_setup()
-        
+
         # Prepare parameters
         mprim = dut_qubit.get_default_measurement_prim_intlist()
         f_readout = mprim.freq if res_freq is None else res_freq
-        
+
         # Get drive channel info
         drive_channel = dut_qubit.get_default_c1().channel
         omega_per_amp_drive = simulator_setup.get_omega_per_amp(drive_channel)
         effective_amp_drive = amp * omega_per_amp_drive
-        
+
         # For readout, we need to check if there's a separate readout channel
         # If the measurement primitive has a different channel, use that
         # Otherwise use the drive channel (single-channel case)
         readout_channel = mprim.channel if hasattr(mprim, 'channel') else drive_channel
         omega_per_amp_readout = simulator_setup.get_omega_per_amp(readout_channel)
         effective_amp_readout = mprim.amp * omega_per_amp_readout
-        
+
         # Use new CW spectroscopy simulator
         from leeq.theory.simulation.numpy.cw_spectroscopy import CWSpectroscopySimulator
-        
+
         sim = CWSpectroscopySimulator(simulator_setup)
         freq_qdrive = np.arange(start, stop, step)
         response = []
-        
+
         for freq in freq_qdrive:
             iq_responses = sim.simulate_spectroscopy_iq(
                 drives=[(drive_channel, freq, effective_amp_drive)],
-                readout_params={readout_channel: {'frequency': f_readout, 
+                readout_params={readout_channel: {'frequency': f_readout,
                                                'amplitude': effective_amp_readout}}
             )
             response.append(iq_responses[readout_channel])
-        
+
         response = np.array(response)
-        
+
         if not disable_noise:
             # Add noise (same as original)
             num_elements_to_baseline = int(len(response) * 0.2)
             indices_to_baseline = np.random.choice(response.size, num_elements_to_baseline, replace=False)
             response[indices_to_baseline] = response.mean()
-            
+
             noise_scale = 100 / np.log(num_avs) / np.sqrt(mp_width if mp_width else 0.5)
-            noise = (np.random.normal(0, noise_scale, response.shape) + 
+            noise = (np.random.normal(0, noise_scale, response.shape) +
                      1j * np.random.normal(0, noise_scale, response.shape))
-            
+
             self.trace = response + noise
         else:
             # Clean response without noise
@@ -402,10 +402,10 @@ class QubitSpectroscopyFrequency(Experiment):
             'Magnitude': np.absolute(self.trace),
             'Phase': np.unwrap(np.angle(self.trace)),
         }
-        
+
         # Store frequency array for later access
         self.freq_arr = freq_qdrive
-        
+
         # Frequency guess
         mean_level = np.average(self.result['Magnitude'][:10])
         self.frequency_guess = freq_qdrive[np.argmax(abs(self.result['Magnitude'] - mean_level))]
@@ -577,10 +577,10 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
             "Phase is not unwrapped in 2D to preserve structure"
         ]
     }
-    
+
     """
     A class used to represent the Qubit Spectroscopy Amplitude Frequency experiment.
-    
+
     This experiment performs a 2D sweep of both frequency and amplitude to map out
     the qubit response across different drive conditions. In simulation mode,
     a noise-free option is available via the disable_noise parameter.
@@ -608,20 +608,20 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         Plots the phase from the experiment results.
     _plot(data, name, log_scale=False):
         Helper function to create a plotly plot.
-        
+
     Examples
     --------
     Standard 2D spectroscopy with noise:
-    
+
     >>> exp = QubitSpectroscopyAmplitudeFrequency(
     ...     dut_qubit=qubit,
     ...     start=4900.0, stop=5100.0, step=5.0,
     ...     qubit_amp_start=0.01, qubit_amp_stop=0.05, qubit_amp_step=0.002,
     ...     num_avs=1000
     ... )
-    
+
     Clean 2D map for validation:
-    
+
     >>> exp_clean = QubitSpectroscopyAmplitudeFrequency(
     ...     dut_qubit=qubit,
     ...     start=4900.0, stop=5100.0, step=5.0,
@@ -676,7 +676,7 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
             If True, disable noise in simulation mode for clean data generation.
             Ignored in hardware mode. Default: False.
         use_parallel : bool, optional
-            If True, use CPU parallelization for steady-state calculations to achieve 
+            If True, use CPU parallelization for steady-state calculations to achieve
             4-8x speedup. Only effective in simulation mode. Default: True.
         num_workers : Union[int, None], optional
             Number of worker processes for parallel execution. If None, auto-detect
@@ -686,11 +686,11 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         -------
         None
             Results are stored in instance attributes.
-        
+
         Notes
         -----
-        The disable_noise and use_parallel parameters are only effective when running 
-        in simulation mode. Hardware experiments will ignore these parameters for 
+        The disable_noise and use_parallel parameters are only effective when running
+        in simulation mode. Hardware experiments will ignore these parameters for
         safety reasons.
         """
 
@@ -702,7 +702,7 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         mp.set_transform_function(None)
 
         self.mp = mp
-        
+
         # Store frequency and amplitude arrays
         self.freq_arr = np.arange(start, stop, step)
         self.amp_arr = np.arange(qubit_amp_start, qubit_amp_stop, qubit_amp_step)
@@ -796,15 +796,15 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         qubit_amp_step : float, optional
             Amplitude increment for qubit drive. Default: 0.001
         disable_noise : bool, optional
-            If True, skip noise addition (baseline dropout and Gaussian noise) for clean 
+            If True, skip noise addition (baseline dropout and Gaussian noise) for clean
             2D simulation data. Useful for physics validation and testing. Default: False.
         use_parallel : bool, optional
-            If True, use CPU parallelization for steady-state calculations to achieve 
+            If True, use CPU parallelization for steady-state calculations to achieve
             4-8x speedup. Default: True.
         num_workers : Union[int, None], optional
             Number of worker processes for parallel execution. If None, auto-detect
             CPU cores. Only used when use_parallel=True. Default: None.
-        
+
         Notes
         -----
         When disable_noise=True:
@@ -812,20 +812,20 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         - No Gaussian noise (normally scaled by 100/log(num_avs)/sqrt(mp_width))
         - Results are deterministic and repeatable across the entire 2D map
         - Ideal for comparing against theoretical models or benchmarking
-        
+
         Examples
         --------
         Standard 2D noisy simulation:
-        
+
         >>> exp = QubitSpectroscopyAmplitudeFrequency(
         ...     dut_qubit=qubit,
         ...     start=4900.0, stop=5100.0, step=5.0,
         ...     qubit_amp_start=0.01, qubit_amp_stop=0.05, qubit_amp_step=0.002,
         ...     num_avs=1000
         ... )
-        
+
         Clean 2D map for analysis:
-        
+
         >>> exp_clean = QubitSpectroscopyAmplitudeFrequency(
         ...     dut_qubit=qubit,
         ...     start=4900.0, stop=5100.0, step=5.0,
@@ -833,9 +833,9 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         ...     num_avs=1000,
         ...     disable_noise=True
         ... )
-        
+
         Fast parallel 2D sweep (4-8x speedup):
-        
+
         >>> exp_parallel = QubitSpectroscopyAmplitudeFrequency(
         ...     dut_qubit=qubit,
         ...     start=4900.0, stop=5100.0, step=5.0,
@@ -845,112 +845,109 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
         ...     disable_noise=True
         ... )
         """
-        
+
         # Get simulation setup
         simulator_setup = setup().get_default_setup()
-        
+
         # Prepare parameters
         mprim = dut_qubit.get_default_measurement_prim_intlist()
-        
+
         # Create a mock mp object that returns our simulated data
         self.mp = _MockMP(self, mprim)  # Store for plotting compatibility
-        
+
         f_readout = mprim.freq
-        
+
         # Get drive channel info
         drive_channel = dut_qubit.get_default_c1().channel
         omega_per_amp_drive = simulator_setup.get_omega_per_amp(drive_channel)
-        
+
         # For readout, check if there's a separate readout channel
         readout_channel = mprim.channel if hasattr(mprim, 'channel') else drive_channel
         omega_per_amp_readout = simulator_setup.get_omega_per_amp(readout_channel)
         effective_amp_readout = mprim.amp * omega_per_amp_readout
-        
+
         # Use new CW spectroscopy simulator
         from leeq.theory.simulation.numpy.cw_spectroscopy import CWSpectroscopySimulator
-        
+
         sim = CWSpectroscopySimulator(simulator_setup)
-        
+
         # Create frequency and amplitude arrays
         freq_array = np.arange(start, stop, step)
         amp_array = np.arange(qubit_amp_start, qubit_amp_stop, qubit_amp_step)
-        
+
         # Store arrays as attributes for later access
         self.freq_arr = freq_array
         self.amp_arr = amp_array
-        
+
         # Create 2D array to store results
         response_2d = np.zeros((len(amp_array), len(freq_array)), dtype=complex)
-        
+
         # Performance monitoring setup
         import time
         import psutil
         process = psutil.Process()
         memory_before = process.memory_info().rss / 1024 / 1024  # MB
         start_time = time.time()
-        
+
         # Perform 2D sweep - choose parallel or sequential
         if use_parallel:
             # Parallel processing using ProcessPoolExecutor
             try:
                 import multiprocessing
                 from concurrent.futures import ProcessPoolExecutor
-                
+
                 # Auto-detect workers if not specified
                 if num_workers is None:
                     num_workers = multiprocessing.cpu_count()
-                
-                print(f"Using parallel processing with {num_workers} workers...")
-                
+
+
                 # Create all parameter combinations
                 param_points = []
                 for i, amp in enumerate(amp_array):
                     effective_amp_drive = amp * omega_per_amp_drive
                     for j, freq in enumerate(freq_array):
                         param_points.append((i, j, freq, effective_amp_drive))
-                
+
                 # Process points in parallel
                 with ProcessPoolExecutor(max_workers=num_workers) as executor:
                     futures = [
                         executor.submit(
                             _simulate_iq_point,
-                            freq, effective_amp_drive, drive_channel, 
+                            freq, effective_amp_drive, drive_channel,
                             readout_channel, f_readout, effective_amp_readout, sim
                         )
                         for i, j, freq, effective_amp_drive in param_points
                     ]
-                    
+
                     # Collect results and place in 2D array
                     for idx, future in enumerate(futures):
                         i, j = param_points[idx][0], param_points[idx][1]
                         response_2d[i, j] = future.result()
-                        
-                print("Parallel processing completed successfully")
-                
-            except Exception as e:
-                print(f"Warning: Parallel processing failed ({e}), falling back to sequential")
+
+
+            except Exception:
                 use_parallel = False  # Fall back to sequential
-        
+
         if not use_parallel:
             # Sequential processing (original implementation)
             for i, amp in enumerate(amp_array):
                 effective_amp_drive = amp * omega_per_amp_drive
-                
+
                 for j, freq in enumerate(freq_array):
                     # Simulate for this frequency and amplitude
                     iq_responses = sim.simulate_spectroscopy_iq(
                         drives=[(drive_channel, freq, effective_amp_drive)],
-                        readout_params={readout_channel: {'frequency': f_readout, 
+                        readout_params={readout_channel: {'frequency': f_readout,
                                                        'amplitude': effective_amp_readout}}
                     )
                     response_2d[i, j] = iq_responses[readout_channel]
-        
+
         # Performance monitoring results
         end_time = time.time()
         memory_after = process.memory_info().rss / 1024 / 1024  # MB
         execution_time = end_time - start_time
         memory_used = memory_after - memory_before
-        
+
         # Store performance metrics as attributes
         self.performance_metrics = {
             'execution_time': execution_time,
@@ -960,17 +957,14 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
             'grid_size': (len(amp_array), len(freq_array)),
             'total_points': len(amp_array) * len(freq_array)
         }
-        
-        print(f"2D sweep completed in {execution_time:.2f} seconds "
-              f"({'parallel' if use_parallel else 'sequential'})")
-        print(f"Memory usage: {memory_used:.1f} MB, Grid: {len(amp_array)}x{len(freq_array)} points")
-        
+
+
         # Add noise to simulate realistic measurements
         if not disable_noise:
             width = mp_width if mp_width is not None else rep_rate
             if width is None:
                 width = 0.5
-                
+
             # Add baseline dropout (similar to 1D spectroscopy)
             num_elements_to_baseline = int(response_2d.size * 0.2)
             indices_to_baseline = np.random.choice(response_2d.size, num_elements_to_baseline, replace=False)
@@ -978,14 +972,14 @@ class QubitSpectroscopyAmplitudeFrequency(Experiment):
             mean_value = response_2d_flat.mean()
             response_2d_flat[indices_to_baseline] = mean_value
             response_2d = response_2d_flat.reshape(response_2d.shape)
-            
+
             # Add Gaussian noise
             noise_scale = 100 / np.log(num_avs) / np.sqrt(width)
-            noise = (np.random.normal(0, noise_scale, response_2d.shape) + 
+            noise = (np.random.normal(0, noise_scale, response_2d.shape) +
                      1j * np.random.normal(0, noise_scale, response_2d.shape))
-            
+
             response_2d = response_2d + noise
-        
+
         # Store results in the same format as the regular run method
         self.trace = response_2d
         self.result = {

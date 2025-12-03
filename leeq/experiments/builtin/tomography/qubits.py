@@ -96,7 +96,7 @@ class SingleQubitStateTomography(GeneralisedSingleDutStateTomography):
     def run(self, dut, mprim_index=0, initial_lpb=None, extra_measurement_duts=None):
         """
         Execute single-qubit state tomography.
-        
+
         Parameters
         ----------
         dut : Any
@@ -107,7 +107,7 @@ class SingleQubitStateTomography(GeneralisedSingleDutStateTomography):
             Initial logical primitive block to prepare the state. Default: None
         extra_measurement_duts : List[Any], optional
             Additional DUTs for extra measurements. Default: None
-            
+
         Returns
         -------
         None

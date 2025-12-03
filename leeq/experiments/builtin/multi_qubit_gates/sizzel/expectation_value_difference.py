@@ -14,7 +14,7 @@ class ConditionalStarkSpectroscopyDiffAmpFreq(experiment):
     A class to execute conditional Stark spectroscopy differential experiments on devices under test (DUTs).
     This involves varying the frequency and amplitude parameters to generate Stark spectroscopy data.
     """
-    
+
     EPII_INFO = {
         "name": "ConditionalStarkSpectroscopyDiffAmpFreq",
         "description": "2D spectroscopy sweeping amplitude and frequency for ZZ interaction",

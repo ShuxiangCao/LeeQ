@@ -31,7 +31,7 @@ def setup_logging(name, level=logging.INFO):
         logger.addHandler(console_handler)
 
     # Prevent propagation to parent loggers to avoid duplicate messages
-    # This is especially important for chronicle loggers since the parent 
+    # This is especially important for chronicle loggers since the parent
     # leeq.chronicle namespace also has a handler
     if name.startswith('leeq.chronicle.'):
         logger.propagate = False

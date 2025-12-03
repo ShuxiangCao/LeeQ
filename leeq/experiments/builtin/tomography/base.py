@@ -43,7 +43,7 @@ class GeneralisedSingleDutStateTomography(Experiment, GeneralisedTomographyBase)
             "vec": {
                 "type": "np.ndarray[complex]",
                 "description": "Reconstructed state vector",
-                "shape": "(d,)" 
+                "shape": "(d,)"
             },
             "dm": {
                 "type": "np.ndarray[complex]",
@@ -66,7 +66,7 @@ class GeneralisedSingleDutStateTomography(Experiment, GeneralisedTomographyBase)
     def run(self, dut, model, mprim_index=1, initial_lpb=None, extra_measurement_duts=None):
         """
         Execute state tomography on a single DUT.
-        
+
         Parameters
         ----------
         dut : Any
@@ -79,7 +79,7 @@ class GeneralisedSingleDutStateTomography(Experiment, GeneralisedTomographyBase)
             Initial logical primitive block to prepare the state. Default: None
         extra_measurement_duts : List[Any], optional
             Additional DUTs for extra measurements. Default: None
-            
+
         Returns
         -------
         None
@@ -154,7 +154,7 @@ class GeneralisedSingleDutProcessTomography(Experiment, GeneralisedTomographyBas
     def run(self, dut, model, lpb=None, mprim_index=1, extra_measurement_duts=None):
         """
         Execute process tomography on a single DUT.
-        
+
         Parameters
         ----------
         dut : Any
@@ -167,7 +167,7 @@ class GeneralisedSingleDutProcessTomography(Experiment, GeneralisedTomographyBas
             Measurement primitive index. Default: 1
         extra_measurement_duts : List[Any], optional
             Additional DUTs for extra measurements. Default: None
-            
+
         Returns
         -------
         None
@@ -264,7 +264,7 @@ class GeneralisedStateTomography(Experiment, GeneralisedTomographyBase):
             measurement_mitigation=None):
         """
         Execute state tomography on multiple DUTs.
-        
+
         Parameters
         ----------
         duts : List[Any]
@@ -281,7 +281,7 @@ class GeneralisedStateTomography(Experiment, GeneralisedTomographyBase):
             Qudit base (2 for qubit, 3 for qutrit, 4 for qudit). Default: 2
         measurement_mitigation : CalibrateFullAssignmentMatrices or bool or None, optional
             Measurement error mitigation. If True, creates default calibration. Default: None
-            
+
         Returns
         -------
         None
@@ -387,7 +387,7 @@ class GeneralisedProcessTomography(Experiment, GeneralisedTomographyBase):
             measurement_mitigation=None):
         """
         Execute process tomography on multiple DUTs.
-        
+
         Parameters
         ----------
         duts : List[Any]
@@ -404,7 +404,7 @@ class GeneralisedProcessTomography(Experiment, GeneralisedTomographyBase):
             Qudit base (2 for qubit, 3 for qutrit, 4 for qudit). Default: 2
         measurement_mitigation : CalibrateFullAssignmentMatrices or bool or None, optional
             Measurement error mitigation. If True, creates default calibration. Default: None
-            
+
         Returns
         -------
         None

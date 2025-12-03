@@ -379,7 +379,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
             "Can update measurement primitive with optimal settings"
         ]
     }
-    
+
     _experiment_result_analysis_instructions = """
     Analyze the result data using a Gaussian Mixture Model (GMM) and update the measurement primitive.
     The experiment is considered successful if the SNR ratio is above 2.
@@ -592,7 +592,7 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         f_r = virtual_transmon.readout_frequency
         kappa = virtual_transmon.readout_linewidth
         quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
-        
+
         # Determine chi shifts based on virtual transmon configuration
         if hasattr(virtual_transmon, 'use_physics_chi') and virtual_transmon.use_physics_chi:
             # Use physics-based chi calculation via simulator

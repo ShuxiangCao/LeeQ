@@ -40,7 +40,7 @@ class CalibrateFullAssignmentMatrices(Experiment):
             "Complete characterization of readout errors"
         ]
     }
-    
+
     """
     A class that extends Experiment to perform an assignment matrix experiment
     on a set of Device Under Test (DUTs) based on specified measurement primitives.
@@ -178,7 +178,7 @@ class CalibrateSingleDutAssignmentMatrices(Experiment):
             "Supports multi-level systems"
         ]
     }
-    
+
     """
     A class that extends Experiment to perform an assignment matrix experiment
     on a set of Device Under Test (DUTs) based on specified measurement primitives.

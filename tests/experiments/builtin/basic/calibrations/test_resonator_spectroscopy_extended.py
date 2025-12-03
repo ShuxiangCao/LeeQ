@@ -710,22 +710,26 @@ class TestResonatorSpectroscopyIntegrationWorkflows:
     
     def test_existing_test_suite_compatibility(self):
         """Test that all existing resonator spectroscopy tests still pass."""
-        
+
         # Import and run existing test modules to ensure compatibility
         import subprocess
         import sys
-        
+        from pathlib import Path
+
+        # Get the repository root directory (5 levels up from this test file)
+        repo_root = Path(__file__).parent.parent.parent.parent.parent.parent
+
         # Run the existing extended tests
         result = subprocess.run([
             sys.executable, '-m', 'pytest',
             'tests/experiments/builtin/basic/calibrations/test_resonator_spectroscopy_extended.py::TestResonatorSpectroscopyBasics',
             'tests/experiments/builtin/basic/calibrations/test_resonator_spectroscopy_extended.py::TestParameterExtraction',
             '-v'
-        ], capture_output=True, text=True, cwd='/home/coxious/Projects/VILA_training/LeeQ')
-        
+        ], capture_output=True, text=True, cwd=str(repo_root))
+
         # Check that tests passed
         assert result.returncode == 0, f"Existing tests failed:\n{result.stdout}\n{result.stderr}"
-        
+
         # Verify specific test classes passed
         assert "TestResonatorSpectroscopyBasics" in result.stdout
         assert "TestParameterExtraction" in result.stdout

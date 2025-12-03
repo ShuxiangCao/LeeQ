@@ -118,7 +118,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
             echo=False, iz_rate_cancel=0, phase_diff=0, iz_rise_drop=0):
         """
         Execute conditional Stark tune-up on hardware.
-        
+
         Parameters
         ----------
         qubits : list
@@ -149,7 +149,7 @@ class ConditionalStarkTuneUpRabiXY(experiment):
             Phase difference between drives. Default: 0.
         iz_rise_drop : float, optional
             IZ compensation for rise/drop. Default: 0.
-            
+
         Returns
         -------
         None

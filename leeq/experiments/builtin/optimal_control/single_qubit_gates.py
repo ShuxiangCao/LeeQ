@@ -64,8 +64,8 @@ class GRAPESingleQubitGate(Experiment):
         Execute the GRAPE optimization experiment on hardware.
 
         Generates a GRAPE (Gradient Ascent Pulse Engineering) pulse for a single qubit gate.
-        Creates a new collection with the optimized pulse shape. The experiment first calls 
-        the GRAPE method to obtain a pulse shape, then uses a Rabi experiment to extract 
+        Creates a new collection with the optimized pulse shape. The experiment first calls
+        the GRAPE method to obtain a pulse shape, then uses a Rabi experiment to extract
         the Rabi rate-amplitude relation for calibration.
 
         Parameters
@@ -163,8 +163,8 @@ class GRAPESingleQubitGate(Experiment):
         Execute the GRAPE optimization experiment in simulation mode.
 
         Generates a GRAPE (Gradient Ascent Pulse Engineering) pulse for a single qubit gate.
-        Creates a new collection with the optimized pulse shape. The experiment first calls 
-        the GRAPE method to obtain a pulse shape, then uses a Rabi experiment to extract 
+        Creates a new collection with the optimized pulse shape. The experiment first calls
+        the GRAPE method to obtain a pulse shape, then uses a Rabi experiment to extract
         the Rabi rate-amplitude relation for calibration.
 
         Parameters

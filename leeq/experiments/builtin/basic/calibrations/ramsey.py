@@ -78,7 +78,7 @@ class SimpleRamseyMultilevel(Experiment):
             "Updates qubit frequency if update=True"
         ]
     }
-    
+
     """
     Represents a simple Ramsey experiment with multilevel frequency sweeps.
     This version has changed the step size from 0.001 to 0.005.
@@ -559,7 +559,7 @@ class MultiQubitRamseyMultilevel(Experiment):
             "Efficient for multi-qubit frequency calibration"
         ]
     }
-    
+
     """
     Implement a multi-qubit Ramsey experiment with multilevel frequency sweeps.
     This version has changed the step size from 0.001 to 0.005.

@@ -178,7 +178,7 @@ class SpinEchoMultiLevel(
         -------
         >>> # Assume 'dut' is the qubit object
         >>> experiment = SpinEchoMultiLevel(
-        >>>     dut=dut, collection_name='f01', mprim_index=0, 
+        >>>     dut=dut, collection_name='f01', mprim_index=0,
         >>>     free_evolution_time=100.0, time_resolution=2.0, start=0.0
         >>> )
         """

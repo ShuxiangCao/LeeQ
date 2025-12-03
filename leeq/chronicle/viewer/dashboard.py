@@ -23,7 +23,7 @@ Requirements:
 Usage:
     Run as a standalone application:
         python chronicle_viewer.py
-    
+
     Or import and customize:
         from chronicle_viewer import app
         app.run(debug=True)
@@ -69,7 +69,7 @@ app.layout = dbc.Container([
         "Chronicle Log Viewer",
         "Load and visualize LeeQ experiment chronicle files"
     ),
-    
+
     # Main layout with resizable three panels
     html.Div([
         # Left Sidebar - File & Experiment Selection (Resizable)
@@ -102,7 +102,7 @@ app.layout = dbc.Container([
                             ),
                         ], className="mb-3"),
                     ], className="file-input-section"),
-                    
+
                     # Experiment selection section
                     html.Div([
                         html.Hr(className="my-3"),
@@ -113,7 +113,7 @@ app.layout = dbc.Container([
             # Resize handle
             html.Div(className="resize-handle", title="Drag to resize sidebar")
         ], className="sidebar-resizable"),
-        
+
         # Right Content Area - Plot & Attributes
         html.Div([
             dbc.Row([
@@ -128,7 +128,7 @@ app.layout = dbc.Container([
                                 children=html.Div(id="experiment-info", className="mb-3"),
                                 color="#0d6efd"
                             ),
-                            
+
                             # Plot controls section
                             dcc.Loading(
                                 id="loading-plot-controls",
@@ -136,13 +136,13 @@ app.layout = dbc.Container([
                                 children=html.Div(id="plot-controls", className="mb-3"),
                                 color="#0d6efd"
                             ),
-                            
+
                             # Plot display section
                             create_plot_display_section(),
                         ])
                     ], className="main-content-card")
                 ], width=8, className="main-content-column pe-2"),
-                
+
                 # Right Panel - Experiment Attributes
                 dbc.Col([
                     dbc.Card([
@@ -155,7 +155,7 @@ app.layout = dbc.Container([
                                 id="loading-attributes",
                                 type="dot",
                                 children=html.Div(
-                                    id="experiment-attributes", 
+                                    id="experiment-attributes",
                                     children=[
                                         dbc.Alert(
                                             [
@@ -176,7 +176,7 @@ app.layout = dbc.Container([
             ], className="h-100")
         ], className="main-content-resizable")
     ], className="resizable-container content-row"),
-    
+
     # Hidden storage for file path
     dcc.Store(id="file-store"),
 ], fluid=True, className="p-4 main-container", style={"maxWidth": "1600px"})
@@ -190,7 +190,7 @@ def build_experiment_tree(file_path):
     """
     Build a hierarchical tree structure of experiments from the chronicle file.
     Returns experiments organized by their entry paths with timestamps.
-    
+
     This function is specific to file-based loading.
     """
     try:
@@ -198,10 +198,10 @@ def build_experiment_tree(file_path):
         chronicle = Chronicle()
         record_book = chronicle.open_record_book(file_path.strip())
         record_ids = record_book.get_available_record_ids()
-        
+
         if not record_ids:
             return []
-        
+
         # Collect all experiments with their paths and timestamps
         experiments = []
         for record_id in record_ids:
@@ -209,7 +209,7 @@ def build_experiment_tree(file_path):
                 record = record_book.get_record_by_id(record_id)
                 entry_path = str(record.get_path())
                 timestamp = record.timestamp
-                
+
                 experiments.append({
                     'record_id': record_id,
                     'entry_path': entry_path,
@@ -218,12 +218,12 @@ def build_experiment_tree(file_path):
                 })
             except Exception:
                 continue
-        
+
         # Sort by timestamp (older first)
         experiments.sort(key=lambda x: x['timestamp'])
-        
+
         return experiments
-        
+
     except Exception as e:
         raise e
 
@@ -245,10 +245,10 @@ def populate_experiment_selector(file_path):
     """
     if not file_path:
         return []
-    
+
     try:
         experiments = build_experiment_tree(file_path)
-        
+
         if not experiments:
             return [
                 dbc.Alert(
@@ -257,14 +257,14 @@ def populate_experiment_selector(file_path):
                     className="mb-3"
                 )
             ]
-        
+
         # Create tree structure using common functions
         tree_nodes = create_tree_view_items(experiments)
         tree_items = render_tree_nodes(tree_nodes)
-        
+
         return [
             dbc.Label("Select Experiment:", className="fw-bold mb-2"),
-            html.Small(f"({len(experiments)} experiments, ordered by timestamp)", 
+            html.Small(f"({len(experiments)} experiments, ordered by timestamp)",
                       className="text-muted mb-2 d-block"),
             html.Div(
                 tree_items,
@@ -275,7 +275,7 @@ def populate_experiment_selector(file_path):
                 }
             )
         ]
-        
+
     except Exception as e:
         return [
             dbc.Alert(
@@ -299,7 +299,7 @@ def populate_experiment_selector(file_path):
 def load_selected_experiment(n_clicks_list, file_path):
     """
     Load the selected chronicle experiment from the file and extract metadata.
-    
+
     This callback is triggered when the user clicks an experiment button in the tree view.
     It loads the specific experiment using the record ID and prepares UI components.
     """
@@ -307,16 +307,16 @@ def load_selected_experiment(n_clicks_list, file_path):
     ctx = callback_context
     if not ctx.triggered:
         raise PreventUpdate
-    
+
     # Extract record_id from the triggered button
     triggered_id = ctx.triggered[0]['prop_id']
     if not triggered_id or 'experiment-btn' not in triggered_id:
         raise PreventUpdate
-    
+
     # Parse the button ID to get the record_id
     button_id = json.loads(triggered_id.split('.')[0])
     selected_record_id = button_id['index']
-    
+
     if not selected_record_id or not file_path or file_path.strip() == "":
         return (
             dbc.Alert(
@@ -331,26 +331,26 @@ def load_selected_experiment(n_clicks_list, file_path):
             create_experiment_attributes_panel(),
             None
         )
-    
+
     try:
         # Load the specific experiment using the selected record ID
         experiment = load_object(file_path.strip(), record_id=selected_record_id)
-        
+
         # Create experiment info display with improved styling
         exp_type = type(experiment).__name__
-        
+
         # Try to get additional experiment attributes if available
         exp_attrs = []
         exp_attrs.append(html.P(f"Record ID: {selected_record_id}", className="mb-1 small"))
         exp_attrs.append(html.P(f"File: {file_path}", className="mb-1 small text-truncate"))
-        
+
         if hasattr(experiment, '__dict__'):
             for attr in ['name', 'description', 'timestamp', 'date']:
                 if hasattr(experiment, attr):
                     value = getattr(experiment, attr)
                     if value:
                         exp_attrs.append(html.P(f"{attr.title()}: {str(value)[:100]}", className="mb-1 small"))
-        
+
         info_card = dbc.Card([
             dbc.CardBody([
                 html.H5([
@@ -369,7 +369,7 @@ def load_selected_experiment(n_clicks_list, file_path):
                 *exp_attrs  # Include any additional attributes found
             ])
         ], color="success", outline=True, className="shadow-sm")
-        
+
         # Get available plot functions using built-in method
         try:
             plot_functions = experiment.get_browser_functions()
@@ -391,7 +391,7 @@ def load_selected_experiment(n_clicks_list, file_path):
                 attributes_panel,
                 store_data
             )
-        
+
         if plot_functions:
             # Create buttons for each plot function
             buttons = []
@@ -404,7 +404,7 @@ def load_selected_experiment(n_clicks_list, file_path):
                     size="sm"
                 )
                 buttons.append(btn)
-            
+
             plot_control_div = dbc.Card([
                 dbc.CardBody([
                     html.H5([
@@ -415,7 +415,7 @@ def load_selected_experiment(n_clicks_list, file_path):
                     html.Div(buttons, className="d-flex flex-wrap")
                 ])
             ], color="primary", outline=True, className="shadow-sm")
-            
+
             # Store both file path and record ID for plot callbacks
             store_data = {"file_path": file_path.strip(), "record_id": selected_record_id}
             attributes_panel = create_experiment_attributes_panel(experiment, selected_record_id)
@@ -429,7 +429,7 @@ def load_selected_experiment(n_clicks_list, file_path):
                 attributes_panel,
                 store_data
             )
-            
+
     except FileNotFoundError:
         return (
             dbc.Alert(
@@ -517,7 +517,7 @@ def load_selected_experiment(n_clicks_list, file_path):
 def display_plot(n_clicks, store_data):
     """
     Generate and display a plot based on the selected browser function.
-    
+
     This callback is triggered when any plot button is clicked. It identifies
     which button was clicked, reloads the experiment, calls the corresponding
     browser function, and returns the generated Plotly figure.
@@ -528,37 +528,37 @@ def display_plot(n_clicks, store_data):
             xref="paper", yref="paper",
             x=0.5, y=0.5, showarrow=False
         )
-    
+
     file_path = store_data.get("file_path")
     record_id = store_data.get("record_id")
-    
+
     if not file_path or not record_id:
         return go.Figure().add_annotation(
             text="Invalid experiment data",
-            xref="paper", yref="paper", 
+            xref="paper", yref="paper",
             x=0.5, y=0.5, showarrow=False
         )
-    
+
     # Get which button was clicked
     ctx = callback_context
     if not ctx.triggered:
         return go.Figure()
-    
+
     # Extract the button ID that was clicked
     button_id = ctx.triggered[0]['prop_id']
     if '"index":' not in button_id:
         return go.Figure()
-    
+
     # Parse the method name from the button ID
     button_dict = json.loads(button_id.split('.')[0])
     method_name = button_dict['index']
-    
+
     try:
         # Load the specific experiment using the selected record ID
         experiment = load_object(file_path, record_id=record_id)
-        
+
         plot_functions = experiment.get_browser_functions()
-        
+
         # Find and call the selected plot method
         for name, method in plot_functions:
             if name == method_name:
@@ -573,13 +573,13 @@ def display_plot(n_clicks, store_data):
                         xref="paper", yref="paper",
                         x=0.5, y=0.5, showarrow=False
                     )
-        
+
         return go.Figure().add_annotation(
             text=f"Plot method '{method_name}' not found",
             xref="paper", yref="paper",
             x=0.5, y=0.5, showarrow=False
         )
-        
+
     except Exception as e:
         return go.Figure().add_annotation(
             text=f"Error loading experiment: {str(e)[:200]}",
@@ -591,7 +591,7 @@ def display_plot(n_clicks, store_data):
 def main():
     """
     Main entry point for the chronicle viewer app.
-    
+
     Starts the Dash server with configurable options.
     By default runs on http://localhost:8050 in debug mode.
     """
@@ -602,13 +602,13 @@ def main():
 Usage Examples:
   Start the viewer on default port (8050):
     python chronicle_viewer.py
-    
+
   Start on a different port:
     python chronicle_viewer.py --port 8080
-    
+
   Start in production mode (no debug):
     python chronicle_viewer.py --no-debug
-    
+
   View this help:
     python chronicle_viewer.py --help
 
@@ -619,16 +619,14 @@ and enter the path to a chronicle log file to visualize.
     parser.add_argument("--host", default="0.0.0.0", help="Host to run the server on")
     parser.add_argument("--port", type=int, default=8050, help="Port to run the server on")
     parser.add_argument("--no-debug", action="store_true", help="Disable debug mode")
-    
+
     args = parser.parse_args()
-    
+
     debug = not args.no_debug
-    
-    print(f"Starting Chronicle Log Viewer...")
-    print(f"Server will be available at http://localhost:{args.port}")
+
     if debug:
-        print("Debug mode is ON - auto-reload enabled")
-    
+        pass
+
     app.run(debug=debug, host=args.host, port=args.port)
 
 
