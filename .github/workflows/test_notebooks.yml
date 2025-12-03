@@ -64,7 +64,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install nbval pytest-nbval jupyter nbconvert
+        pip install nbval jupyter nbconvert
     
     - name: Check notebook testing dependencies
       run: |
@@ -153,20 +153,20 @@ jobs:
         import json
         import glob
         from pathlib import Path
-        
+
         all_results = {}
         for json_file in glob.glob('test-artifacts/**/notebooks_test_results_*.json', recursive=True):
             with open(json_file) as f:
                 data = json.load(f)
                 all_results[Path(json_file).stem] = data
-        
+
         with open('consolidated_results.json', 'w') as f:
             json.dump(all_results, f, indent=2)
-        
+
         # Generate summary
         total_passed = 0
         total_failed = 0
-        
+
         for test_set in all_results.values():
             for directory in test_set.values():
                 for notebook in directory.values():
@@ -174,11 +174,15 @@ jobs:
                         total_passed += 1
                     else:
                         total_failed += 1
-        
-        print(f'Total notebooks tested: {total_passed + total_failed}')
+
+        total = total_passed + total_failed
+        print(f'Total notebooks tested: {total}')
         print(f'Passed: {total_passed}')
         print(f'Failed: {total_failed}')
-        print(f'Success rate: {total_passed/(total_passed+total_failed)*100:.1f}%')
+        if total > 0:
+            print(f'Success rate: {total_passed/total*100:.1f}%')
+        else:
+            print('No notebooks were tested')
         "
     
     - name: Upload consolidated results
