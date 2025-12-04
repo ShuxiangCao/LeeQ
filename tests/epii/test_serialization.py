@@ -5,12 +5,17 @@ Tests for EPII serialization utilities.
 import json
 import numpy as np
 import pytest
+import sys
+
+# Clean up any mocked plotly modules before importing
+for module in list(sys.modules.keys()):
+    if module.startswith('plotly'):
+        del sys.modules[module]
 
 from leeq.epii.serialization import (
     numpy_array_to_protobuf,
     protobuf_to_numpy_array,
-    plotly_figure_to_protobuf,
-    protobuf_to_plotly_figure,
+    browser_function_to_plot_component,
     handle_complex_dtype,
     restore_complex_dtype,
     serialize_numpy_array,
@@ -210,101 +215,29 @@ class TestLegacyFunctions:
 
 
 @pytest.mark.skipif(not PLOTLY_AVAILABLE, reason="Plotly not installed")
-class TestPlotlySerialization:
-    """Test plotly figure serialization."""
+def test_browser_function_to_plot_component():
+    """Test conversion of plotly figure to plot component"""
+    import plotly.graph_objects as go
 
-    def test_simple_scatter_plot(self):
-        """Test simple scatter plot serialization."""
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=[1, 2, 3, 4],
-            y=[10, 11, 12, 13],
-            name="Test trace"
-        ))
-        fig.update_layout(title="Test Plot")
+    # Test with titled figure
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=[1,2,3], y=[4,5,6]))
+    fig.update_layout(title="Test Rabi Oscillation")
 
-        # Convert to protobuf
-        pb_msg = plotly_figure_to_protobuf(fig)
+    component = browser_function_to_plot_component("plot", fig)
 
-        assert pb_msg.plot_type == "scatter"
-        assert pb_msg.title == "Test Plot"
-        assert len(pb_msg.traces) == 1
+    assert component.description == "Test Rabi Oscillation [plot]"
+    # plotly_json should contain JSON data (not empty)
+    assert component.plotly_json != ""
+    assert "data" in component.plotly_json
+    # image_png may or may not be generated depending on kaleido availability
 
-        trace = pb_msg.traces[0]
-        assert trace.name == "Test trace"
-        assert list(trace.x) == [1, 2, 3, 4]
-        assert list(trace.y) == [10, 11, 12, 13]
+    # Test with untitled figure
+    fig2 = go.Figure()
+    component2 = browser_function_to_plot_component("plot_raw", fig2)
 
-        # Convert back
-        fig_dict = protobuf_to_plotly_figure(pb_msg)
-        assert fig_dict['layout']['title']['text'] == "Test Plot"
-        assert len(fig_dict['data']) == 1
-        assert fig_dict['data'][0]['x'] == [1, 2, 3, 4]
-
-    def test_multiple_traces(self):
-        """Test plot with multiple traces."""
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=[1, 2], y=[3, 4], name="Trace 1"))
-        fig.add_trace(go.Scatter(x=[2, 3], y=[4, 5], name="Trace 2"))
-
-        pb_msg = plotly_figure_to_protobuf(fig)
-
-        assert len(pb_msg.traces) == 2
-        assert pb_msg.traces[0].name == "Trace 1"
-        assert pb_msg.traces[1].name == "Trace 2"
-
-    def test_heatmap_plot(self):
-        """Test heatmap plot serialization."""
-        z_data = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-        fig = go.Figure(data=go.Heatmap(z=z_data))
-
-        pb_msg = plotly_figure_to_protobuf(fig)
-
-        assert pb_msg.plot_type == "heatmap"
-        assert len(pb_msg.traces[0].z) == 9  # Flattened 3x3
-
-    def test_layout_serialization(self):
-        """Test layout properties serialization."""
-        fig = go.Figure()
-        fig.update_layout(
-            xaxis={"title": "X Axis"},
-            yaxis={"title": "Y Axis"},
-            width=800,
-            height=600,
-            showlegend=False
-        )
-
-        pb_msg = plotly_figure_to_protobuf(fig)
-
-        # Check layout is serialized as JSON strings
-        assert "xaxis" in pb_msg.layout
-        assert "yaxis" in pb_msg.layout
-
-        xaxis = json.loads(pb_msg.layout["xaxis"])
-        # Plotly wraps title in a dict with 'text' key
-        assert xaxis["title"]["text"] == "X Axis"
-
-    def test_none_figure(self):
-        """Test None figure handling."""
-        pb_msg = plotly_figure_to_protobuf(None)
-        assert len(pb_msg.traces) == 0
-
-    def test_dict_figure(self):
-        """Test dictionary figure format."""
-        fig_dict = {
-            'data': [{
-                'x': [1, 2, 3],
-                'y': [4, 5, 6],
-                'type': 'scatter',
-                'name': 'Dict trace'
-            }],
-            'layout': {'title': {'text': 'Dict Plot'}}
-        }
-
-        pb_msg = plotly_figure_to_protobuf(fig_dict)
-
-        assert pb_msg.title == "Dict Plot"
-        assert pb_msg.traces[0].name == "Dict trace"
+    assert component2.description == "Plot from plot_raw"
+    assert component2.plotly_json != ""
 
 
 def test_performance_large_array():

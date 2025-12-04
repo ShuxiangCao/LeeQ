@@ -330,7 +330,7 @@ class DiagnosticTool:
 
                 # Check parameter manager
                 try:
-                    param_count = len(self.service.parameter_manager.list_parameters())
+                    param_count = len(self.service.parameter_manager.get_all_parameters())
                     health["checks"]["parameters"] = {
                         "status": "ok",
                         "message": f"{param_count} parameters available"
@@ -369,7 +369,7 @@ class DiagnosticTool:
 
         return health
 
-    def test_experiment_execution(self, experiment_name: str = "rabi") -> Dict[str, Any]:
+    def test_experiment_execution(self, experiment_name: str = "calibrations.NormalisedRabi") -> Dict[str, Any]:
         """
         Test experiment execution with minimal parameters.
 
@@ -396,17 +396,17 @@ class DiagnosticTool:
             request.experiment_type = experiment_name
 
             # Add minimal parameters for the experiment
-            if experiment_name == "rabi":
+            if experiment_name == "calibrations.NormalisedRabi":
                 request.parameters["qubit"] = "0"
                 request.parameters["amplitude"] = "0.1"
                 request.parameters["start_width"] = "0.0"
                 request.parameters["stop_width"] = "1.0"
                 request.parameters["width_step"] = "0.1"
-            elif experiment_name == "t1":
+            elif experiment_name == "characterizations.SimpleT1":
                 request.parameters["qubit"] = "0"
                 request.parameters["time_max"] = "50e-6"
                 request.parameters["time_step"] = "5e-6"
-            elif experiment_name == "ramsey":
+            elif experiment_name == "calibrations.SimpleRamseyMultilevel":
                 request.parameters["qubit"] = "0"
                 request.parameters["evolution_time"] = "10e-6"
                 request.parameters["time_step"] = "1e-6"

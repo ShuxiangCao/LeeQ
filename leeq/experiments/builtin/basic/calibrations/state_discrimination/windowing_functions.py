@@ -26,6 +26,41 @@ colors = [
 
 
 class MeasurementCollectTraces(Experiment):
+    EPII_INFO = {
+        "name": "MeasurementCollectTraces",
+        "description": "Collect raw measurement traces for readout analysis",
+        "purpose": "Collects raw time-domain measurement traces for multiple qubits and states. Used for advanced readout analysis, optimal filter design, and understanding measurement dynamics.",
+        "attributes": {
+            "results": {
+                "type": "list[np.ndarray[complex]]",
+                "description": "Raw trace data for each qubit",
+                "shape": "List of arrays, each (n_states, n_traces, n_samples)"
+            },
+            "duts_hrid": {
+                "type": "list[str]",
+                "description": "Human-readable IDs of measured qubits"
+            },
+            "samples_per_seg": {
+                "type": "int",
+                "description": "Number of samples per trace segment"
+            },
+            "averaged_traces": {
+                "type": "list[np.ndarray]",
+                "description": "Time-averaged traces for each state"
+            },
+            "optimal_filter": {
+                "type": "np.ndarray",
+                "description": "Calculated optimal matched filter"
+            }
+        },
+        "notes": [
+            "Collects raw ADC traces before demodulation",
+            "Enables time-domain analysis of readout",
+            "Used for matched filter optimization",
+            "Can identify optimal integration windows"
+        ]
+    }
+
     @log_and_record
     def run(self,
             duts: 'TransmonElement',

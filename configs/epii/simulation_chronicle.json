@@ -1,0 +1,43 @@
+{
+  "setup_type": "simulation",
+  "setup_name": "chronicle_demo",
+  "port": 50051,
+  "log_level": "INFO",
+  "max_workers": 2,
+  "simulation_backend": "high_level",
+  "num_qubits": 2,
+  "experiment_timeout": 30,
+  "chronicle": {
+    "enabled": true,
+    "session_name": "epii_demo_session",
+    "viewer_port": 8051,
+    "auto_launch": false
+  },
+  "parameters": {
+    "qubits": {
+      "q0": {
+        "f01": 5000000000,
+        "anharmonicity": -330000000,
+        "t1": 20e-6,
+        "t2": 15e-6,
+        "readout_frequency": 9645000000
+      },
+      "q1": {
+        "f01": 5100000000,
+        "anharmonicity": -330000000,
+        "t1": 25e-6,
+        "t2": 18e-6,
+        "readout_frequency": 9650000000
+      }
+    },
+    "couplings": {
+      "q0-q1": {
+        "strength": 5000000
+      }
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  }
+}

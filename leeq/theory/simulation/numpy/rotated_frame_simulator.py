@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Union, Optional
 
 import numpy as np
 import scipy
@@ -22,6 +22,10 @@ class VirtualTransmon(object):
             truncate_level=4,
             quiescent_state_distribution: Union[List[float], None] = None,
             frequency_selectivity_window: float = 50,
+            coupling_strength: Optional[float] = None,
+            use_physics_chi: bool = False,
+            use_kerr_nonlinearity: bool = False,
+            kerr_coefficient: Optional[float] = None,
     ):
         """
         Initialize the VirtualTransmon class.
@@ -42,6 +46,11 @@ class VirtualTransmon(object):
             frequency_selectivity_window (float): The frequency selectivity window of the transmon. If the the drive
                 frequency is outside of the window (centered at the transition frequency), we simplify the simulation
                 by assuming the drive does not affect the system. Otherwise an X/Y + Z rotation is applied.
+            coupling_strength (Optional[float]): Qubit-resonator coupling strength (MHz). Required if use_physics_chi=True.
+            use_physics_chi (bool): Whether to use physics-based chi shift calculation instead of constant dispersive shift.
+            use_kerr_nonlinearity (bool): Whether to enable Kerr nonlinearity effects for power-dependent response.
+            kerr_coefficient (Optional[float]): Kerr coefficient K (Hz). If None and use_kerr_nonlinearity=True,
+                will be calculated from transmon parameters.
         """
 
         self.name = name
@@ -55,6 +64,31 @@ class VirtualTransmon(object):
         self.truncate_level = truncate_level
         self.quiescent_state_distribution = quiescent_state_distribution
         self.frequency_selectivity_window = frequency_selectivity_window
+        self.coupling_strength = coupling_strength
+        self.use_physics_chi = use_physics_chi
+        self.use_kerr_nonlinearity = use_kerr_nonlinearity
+
+        # Initialize Kerr nonlinearity
+        if use_kerr_nonlinearity:
+            from leeq.theory.simulation.numpy.dispersive_readout.kerr_physics import KerrBistabilityCalculator
+            self.kerr_calculator = KerrBistabilityCalculator()
+
+            # Calculate or use provided Kerr coefficient
+            if kerr_coefficient is None:
+                if coupling_strength is None:
+                    raise ValueError("coupling_strength must be specified when use_kerr_nonlinearity=True and kerr_coefficient=None")
+                self.kerr_coefficient = self.kerr_calculator.calculate_kerr_coefficient(
+                    f_r=readout_frequency,
+                    f_q=qubit_frequency,
+                    anharmonicity=anharmonicity,
+                    g=coupling_strength
+                )
+            else:
+                self.kerr_coefficient = kerr_coefficient
+        else:
+            self.kerr_calculator = None
+            self.kerr_coefficient = None
+
         self._density_matrix = None
 
         self._transition_ops = {}
@@ -67,46 +101,88 @@ class VirtualTransmon(object):
 
     def _build_resonator_response(self):
         """
-        Find the resonator frequency when the transmon is at different state. Here we use the simplest approximation.
-        Which consider the dispersive shift are the same.
+        Find the resonator frequency when the transmon is at different state.
+        Uses physics-based chi calculation if enabled, otherwise uses constant dispersive shift.
         """
-        self._resonator_frequencies = np.asarray(
-            [
-                self.readout_frequency - i * self.readout_dipsersive_shift
+        if self.use_physics_chi:
+            # Use physics-based chi shift calculation
+            if self.coupling_strength is None:
+                raise ValueError("coupling_strength must be specified when use_physics_chi=True")
+
+            from leeq.theory.simulation.numpy.dispersive_readout.physics import ChiShiftCalculator
+
+            calculator = ChiShiftCalculator()
+            chi_shifts = calculator.calculate_chi_shifts(
+                f_r=self.readout_frequency,
+                f_q=self.qubit_frequency,
+                anharmonicity=self.anharmonicity,
+                g=self.coupling_strength,
+                num_levels=self.truncate_level,
+                relative=True  # Get relative chi shifts (chi[0] = 0)
+            )
+
+            # Convert chi shifts to resonator frequencies
+            # Resonator frequency shifts by -chi when qubit is in state |n>
+            self._resonator_frequencies = np.asarray([
+                self.readout_frequency - chi_shifts[i]
                 for i in range(self.truncate_level)
-            ]
-        )
+            ])
+        else:
+            # Use constant dispersive shift (legacy behavior)
+            self._resonator_frequencies = np.asarray(
+                [
+                    self.readout_frequency - i * self.readout_dipsersive_shift
+                    for i in range(self.truncate_level)
+                ]
+            )
 
     def get_resonator_response(
             self,
             f: float,
             amp: float = 1,
-            baseline: float = 0):
+            baseline: float = 0,
+            power: Optional[float] = None):
         """
         Get the resonator response at a given frequency.
+        Enhanced to include power-dependent effects when Kerr nonlinearity is enabled.
 
         Parameters:
             f (float): The frequency to be evaluated.
             amp (float): The amplitude of the drive.
             baseline (float): The baseline of the response.
+            power (Optional[float]): Drive power for Kerr nonlinearity calculation.
+                If None, Kerr effects are ignored even if enabled.
 
         Returns:
             np.ndarray: The resonator response.
         """
 
-        from leeq.theory.simulation.numpy.dispersive_readout.utils import root_lorentzian
+        # Calculate effective resonator frequencies with power-dependent shifts
+        if power is not None and self.use_kerr_nonlinearity:
+            # Calculate photon number from power
+            # For a driven resonator: n = P / (ℏωκ) approximately
+            # Here we use a simpler approximation: n ∝ Power / (linewidth * frequency_detuning)
+            detuning = f - self.readout_frequency
+            effective_kappa = self.readout_linewidth
 
-        s_11 = root_lorentzian(
-            f=f,
-            f0=self.readout_frequency,
-            amp=amp,
-            kappa=self.readout_linewidth,
-            baseline=baseline)
+            # Estimate photon number (this is a simplified model)
+            # More accurate would be to solve the steady-state equation
+            photon_number = power / (effective_kappa + abs(detuning) + 1e-6)  # Add small term to avoid division by zero
 
+            # Calculate Kerr frequency shift
+            kerr_shift = self.kerr_coefficient * photon_number
+
+            # Apply Kerr shift to resonator frequencies
+            effective_resonator_frequencies = self._resonator_frequencies + kerr_shift
+        else:
+            # Use original resonator frequencies when Kerr is disabled or power is None
+            effective_resonator_frequencies = self._resonator_frequencies
+
+        # Calculate proper Lorentzian response for each state
+        # Response = amp / (1 + 2j * (f - f0) / kappa) + baseline
         s_11 = np.asarray([
-            root_lorentzian(
-                f=f, f0=f0, amp=amp, kappa=self.readout_linewidth, baseline=baseline
-            ) for f0 in self._resonator_frequencies
+            amp / (1 + 2j * (f - f0) / self.readout_linewidth) + baseline
+            for f0 in effective_resonator_frequencies
         ])
 
         return s_11
@@ -400,7 +476,7 @@ class VirtualTransmon(object):
         """
 
         population_distribution = np.diag(
-            self._density_matrix).astype(
+            self._density_matrix).real.astype(
             np.float64)
         readout_response = self.get_resonator_response(readout_frequency)
         return np.mean(population_distribution
@@ -424,7 +500,7 @@ class VirtualTransmon(object):
             np.ndarray: The IQ data in complex value.
         """
         population_distribution = np.diag(
-            self._density_matrix).astype(
+            self._density_matrix).real.astype(
             np.float64)
 
         # Set the mean and standard deviation for each axis
@@ -435,7 +511,7 @@ class VirtualTransmon(object):
         noise_y = np.random.normal(mu, sigma, sampling_number)
 
         population_distribution = np.diag(
-            self._density_matrix).astype(
+            self._density_matrix).real.astype(
             np.float64)
 
         readout_response = self.get_resonator_response(readout_frequency)

@@ -14,6 +14,25 @@ __all__ = [
 
 
 class CalibrateOptimizedFrequencyWith2QZZShift(Experiment):
+    EPII_INFO = {
+        "name": "CalibrateOptimizedFrequencyWith2QZZShift",
+        "description": "Calibrate optimized frequency using 2-qubit ZZ shift measurement",
+        "purpose": "Measures and compensates for ZZ crosstalk between two qubits by adjusting their frequencies. Used to minimize unwanted ZZ interactions in multi-qubit gates.",
+        "attributes": {
+            "zz_shifts": {
+                "type": "np.ndarray[float]",
+                "description": "Measured ZZ shift values from iterations",
+                "shape": "(n_iterations,)"
+            }
+        },
+        "notes": [
+            "Measures ZZ shift and applies frequency correction",
+            "Splits frequency change equally between both qubits",
+            "Essential for high-fidelity two-qubit gates",
+            "Reduces unwanted ZZ coupling"
+        ]
+    }
+
     """Class to calibrate optimized frequency with 2Q ZZ Shift."""
 
     @log_and_record
@@ -72,6 +91,40 @@ class CalibrateOptimizedFrequencyWith2QZZShift(Experiment):
 
 
 class ZZShiftTwoQubitMultilevel(Experiment):
+    EPII_INFO = {
+        "name": "ZZShiftTwoQubitMultilevel",
+        "description": "Measure ZZ shift between two qubits in multilevel system",
+        "purpose": "Measures the ZZ interaction strength between two qubits by performing Ramsey experiments with the neighbor qubit in different states. Quantifies unwanted static coupling between qubits.",
+        "attributes": {
+            "q1_ramsey_q2_ground": {
+                "type": "SimpleRamseyMultilevel",
+                "description": "Ramsey on Q1 with Q2 in ground state"
+            },
+            "q1_ramsey_q2_excited": {
+                "type": "SimpleRamseyMultilevel",
+                "description": "Ramsey on Q1 with Q2 in excited state"
+            },
+            "q2_ramsey_q1_ground": {
+                "type": "SimpleRamseyMultilevel",
+                "description": "Ramsey on Q2 with Q1 in ground state"
+            },
+            "q2_ramsey_q1_excited": {
+                "type": "SimpleRamseyMultilevel",
+                "description": "Ramsey on Q2 with Q1 in excited state"
+            },
+            "zz_shift": {
+                "type": "float",
+                "description": "Calculated ZZ shift value (MHz)"
+            }
+        },
+        "notes": [
+            "Performs 4 Ramsey experiments for complete characterization",
+            "ZZ shift is frequency difference between neighbor states",
+            "Critical for understanding crosstalk",
+            "Used to optimize operating frequencies"
+        ]
+    }
+
     """Class to compute ZZ Shift for Two Qubit Multilevel system."""
 
     @log_and_record
@@ -172,3 +225,8 @@ class ZZShiftTwoQubitMultilevel(Experiment):
         ]
 
         setup().status().set_param("Plot_Result_In_Jupyter", plot_result_in_jupyter)
+
+    @property
+    def zz_shift(self) -> float:
+        """Return the average ZZ shift value across both qubits."""
+        return np.mean(self.zz)

@@ -41,7 +41,7 @@ class TestRequestResponseLogger:
 
         # Create mock request
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "rabi"
+        request.experiment_type = "calibrations.NormalisedRabi"
         request.parameters["amplitude"] = "0.1"
 
         # Create mock context
@@ -77,13 +77,13 @@ class TestRequestResponseLogger:
 
         # Test with experiment request
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "rabi"
+        request.experiment_type = "calibrations.NormalisedRabi"
         request.parameters["test_param"] = "test_value"
 
         serialized = logger._serialize_message(request)
 
         assert isinstance(serialized, dict)
-        assert serialized["experiment_type"] == "rabi"
+        assert serialized["experiment_type"] == "calibrations.NormalisedRabi"
 
         # Test with None
         assert logger._serialize_message(None) is None
@@ -105,19 +105,19 @@ class TestPerformanceMonitor:
         monitor = PerformanceMonitor()
 
         # Record successful experiment
-        monitor.record_experiment("rabi", 100.5, True, 1024)
+        monitor.record_experiment("calibrations.NormalisedRabi", 100.5, True, 1024)
 
-        assert "rabi" in monitor.experiment_metrics
-        metrics = monitor.experiment_metrics["rabi"]
+        assert "calibrations.NormalisedRabi" in monitor.experiment_metrics
+        metrics = monitor.experiment_metrics["calibrations.NormalisedRabi"]
         assert metrics["count"] == 1
         assert metrics["success_count"] == 1
         assert metrics["total_duration_ms"] == 100.5
         assert metrics["total_data_size"] == 1024
 
         # Record failed experiment
-        monitor.record_experiment("rabi", 50.0, False)
+        monitor.record_experiment("calibrations.NormalisedRabi", 50.0, False)
 
-        metrics = monitor.experiment_metrics["rabi"]
+        metrics = monitor.experiment_metrics["calibrations.NormalisedRabi"]
         assert metrics["count"] == 2
         assert metrics["success_count"] == 1  # Still 1 success
 
@@ -126,17 +126,17 @@ class TestPerformanceMonitor:
         monitor = PerformanceMonitor()
 
         # Record multiple experiments
-        monitor.record_experiment("rabi", 100.0, True)
-        monitor.record_experiment("rabi", 200.0, True)
-        monitor.record_experiment("t1", 150.0, False)
+        monitor.record_experiment("calibrations.NormalisedRabi", 100.0, True)
+        monitor.record_experiment("calibrations.NormalisedRabi", 200.0, True)
+        monitor.record_experiment("characterizations.SimpleT1", 150.0, False)
 
         # Get all stats
         all_stats = monitor.get_experiment_stats()
-        assert "rabi" in all_stats
-        assert "t1" in all_stats
+        assert "calibrations.NormalisedRabi" in all_stats
+        assert "characterizations.SimpleT1" in all_stats
 
         # Check rabi stats
-        rabi_stats = all_stats["rabi"]
+        rabi_stats = all_stats["calibrations.NormalisedRabi"]
         assert rabi_stats["count"] == 2
         assert rabi_stats["success_rate"] == 1.0
         assert rabi_stats["avg_duration_ms"] == 150.0
@@ -144,13 +144,13 @@ class TestPerformanceMonitor:
         assert rabi_stats["min_duration_ms"] == 100.0
 
         # Check t1 stats
-        t1_stats = all_stats["t1"]
+        t1_stats = all_stats["characterizations.SimpleT1"]
         assert t1_stats["count"] == 1
         assert t1_stats["success_rate"] == 0.0
 
         # Get specific experiment stats
-        specific_stats = monitor.get_experiment_stats("rabi")
-        assert specific_stats["experiment"] == "rabi"
+        specific_stats = monitor.get_experiment_stats("calibrations.NormalisedRabi")
+        assert specific_stats["experiment"] == "calibrations.NormalisedRabi"
         assert specific_stats["count"] == 2
 
     def test_service_uptime(self):
@@ -192,7 +192,7 @@ class TestDiagnosticTool:
         """Test health check with mock service."""
         mock_service = MagicMock()
         mock_service.setup = MagicMock()
-        mock_service.experiment_router.experiment_map.keys.return_value = ["rabi", "t1"]
+        mock_service.experiment_router.experiment_map.keys.return_value = ["calibrations.NormalisedRabi", "characterizations.SimpleT1"]
         mock_service.parameter_manager.list_parameters.return_value = [{"name": "test"}]
         mock_service.get_running_experiments.return_value = []
 
@@ -236,7 +236,7 @@ class TestDiagnosticTool:
         """Test experiment testing without service."""
         tool = DiagnosticTool()
 
-        result = tool.test_experiment_execution("rabi")
+        result = tool.test_experiment_execution("calibrations.NormalisedRabi")
 
         assert result["status"] == "error"
         assert "No service instance" in result["message"]
@@ -250,7 +250,7 @@ class TestDiagnosticReport:
         # Create mock service with all required attributes
         mock_service = MagicMock()
         mock_service.setup = MagicMock()
-        mock_service.experiment_router.experiment_map.keys.return_value = ["rabi"]
+        mock_service.experiment_router.experiment_map.keys.return_value = ["calibrations.NormalisedRabi"]
         mock_service.parameter_manager.list_parameters.return_value = []
         mock_service.get_running_experiments.return_value = []
         mock_service.performance_monitor.get_service_uptime.return_value = 123.45
@@ -272,7 +272,7 @@ class TestDiagnosticReport:
         """Test diagnostic report when service lacks performance monitor."""
         mock_service = MagicMock()
         mock_service.setup = MagicMock()
-        mock_service.experiment_router.experiment_map.keys.return_value = ["rabi"]
+        mock_service.experiment_router.experiment_map.keys.return_value = ["calibrations.NormalisedRabi"]
         mock_service.parameter_manager.list_parameters.return_value = []
         mock_service.get_running_experiments.return_value = []
         # No performance_monitor attribute
@@ -286,5 +286,5 @@ class TestDiagnosticReport:
         assert "EPII Service Diagnostic Report" in report
 
 
-if __name__ == "__main__":
-    pytest.main([__file__])
+# Script-style execution converted to proper pytest discovery
+# Tests will be run by pytest discovery, no manual execution needed

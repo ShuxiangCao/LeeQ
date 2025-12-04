@@ -72,3 +72,8 @@ RUN uv pip install --system -e /home/jovyan/packages/LeeQ
 # Skip pytest in Docker build due to k_agents dependency not available for NumPy 2.x
 # Tests should be run locally with proper dependencies
 # RUN pytest /home/jovyan/packages/LeeQ
+
+# Add entrypoint script for mode switching (daemon vs jupyter)
+COPY --chown=${NB_UID}:${NB_GID} scripts/docker/entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

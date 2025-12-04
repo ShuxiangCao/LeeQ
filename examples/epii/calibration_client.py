@@ -71,7 +71,7 @@ def run_rabi_calibration(client, qubit):
     print(f"Running Rabi calibration for {qubit}...")
     
     amplitudes = np.linspace(0, 1, 51)
-    result = client.run_experiment("rabi", {
+    result = client.run_experiment("calibrations.NormalisedRabi", {
         "qubit": qubit,
         "amplitudes": amplitudes,
         "num_shots": 2000
@@ -92,13 +92,13 @@ def measure_t1(client, qubit):
     print(f"Measuring T1 for {qubit}...")
     
     delays = np.logspace(-6, -3, 30)  # 1μs to 1ms
-    result = client.run_experiment("t1", {
+    result = client.run_experiment("characterizations.SimpleT1", {
         "qubit": qubit,
         "delays": delays,
         "num_shots": 1000
     })
     
-    t1 = result['fit_params'].get('t1')
+    t1 = result['fit_params'].get('characterizations.SimpleT1')
     if t1:
         t1_us = float(t1) * 1e6
         print(f"  ✓ T1: {t1_us:.1f} μs")
@@ -112,7 +112,7 @@ def measure_ramsey(client, qubit):
     print(f"Measuring T2* for {qubit}...")
     
     delays = np.linspace(0, 50e-6, 51)  # 0 to 50μs
-    result = client.run_experiment("ramsey", {
+    result = client.run_experiment("calibrations.SimpleRamseyMultilevel", {
         "qubit": qubit,
         "delays": delays,
         "detuning": 0.5e6,  # 500 kHz detuning
@@ -138,7 +138,7 @@ def measure_echo(client, qubit):
     print(f"Measuring T2 echo for {qubit}...")
     
     delays = np.linspace(0, 100e-6, 51)  # 0 to 100μs
-    result = client.run_experiment("echo", {
+    result = client.run_experiment("characterizations.SpinEchoMultiLevel", {
         "qubit": qubit,
         "delays": delays,
         "num_shots": 1000
@@ -158,7 +158,7 @@ def run_randomized_benchmarking(client, qubit, max_length=100):
     print(f"Running randomized benchmarking for {qubit}...")
     
     lengths = np.logspace(0, np.log10(max_length), 10).astype(int)
-    result = client.run_experiment("randomized_benchmarking", {
+    result = client.run_experiment("characterizations.RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem", {
         "qubit": qubit,
         "lengths": lengths,
         "num_sequences": 30,
@@ -187,7 +187,7 @@ def full_qubit_calibration(client, qubit):
     time.sleep(1)  # Brief pause between experiments
     
     # Step 2: T1 measurement
-    results['t1'] = measure_t1(client, qubit)
+    results['characterizations.SimpleT1'] = measure_t1(client, qubit)
     time.sleep(1)
     
     # Step 3: Ramsey (T2*)
@@ -209,16 +209,16 @@ def full_qubit_calibration(client, qubit):
     if results['pi_amplitude']:
         print(f"Pi amplitude: {results['pi_amplitude']:.4f}")
     
-    if results['t1']:
-        print(f"T1: {results['t1']*1e6:.1f} μs")
+    if results['characterizations.SimpleT1']:
+        print(f"T1: {results['characterizations.SimpleT1']*1e6:.1f} μs")
     
     if results['t2_star']:
         print(f"T2*: {results['t2_star']*1e6:.1f} μs")
     
     if results['t2']:
         print(f"T2: {results['t2']*1e6:.1f} μs")
-        if results['t1']:
-            ratio = results['t2'] / results['t1']
+        if results['characterizations.SimpleT1']:
+            ratio = results['t2'] / results['characterizations.SimpleT1']
             print(f"T2/T1 ratio: {ratio:.2f}")
     
     if results['fidelity']:
@@ -253,7 +253,7 @@ def main():
             print(f"\n{qubit}:")
             for param, value in results.items():
                 if value is not None:
-                    if param in ['t1', 't2', 't2_star']:
+                    if param in ['characterizations.SimpleT1', 't2', 't2_star']:
                         print(f"  {param}: {value*1e6:.1f} μs")
                     elif param == 'fidelity':
                         print(f"  {param}: {value*100:.2f}%")

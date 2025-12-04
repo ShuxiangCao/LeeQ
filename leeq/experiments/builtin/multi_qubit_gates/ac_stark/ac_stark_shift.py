@@ -28,12 +28,71 @@ logger = setup_logging(__name__)
 
 # Conditional Stark Spectroscopy
 class StarkSingleQubitT1(experiment):
-    # Perform a T1 experiment applying a Stark shifting drive instead of the delay time. Based on SimpleT1()
+    """Perform a T1 experiment applying a Stark shifting drive instead of the delay time."""
+
+    EPII_INFO = {
+        "name": "StarkSingleQubitT1",
+        "description": "T1 decay measurement with AC Stark shift drive",
+        "purpose": "Measures T1 decay while applying an AC Stark shifting drive instead of a simple delay. This experiment investigates how off-resonant driving affects qubit relaxation and can reveal frequency-dependent decay mechanisms.",
+        "attributes": {
+            "mp": {
+                "type": "MeasurementPrimitive",
+                "description": "Measurement primitive for the qubit"
+            },
+            "trace": {
+                "type": "np.ndarray[float]",
+                "description": "T1 decay trace data",
+                "shape": "(n_time_points,)"
+            },
+            "width": {
+                "type": "float",
+                "description": "Width of the Stark pulse"
+            },
+            "start": {
+                "type": "float",
+                "description": "Start time for the sweep (us)"
+            },
+            "stop": {
+                "type": "float",
+                "description": "Stop time for the sweep (us)"
+            },
+            "step": {
+                "type": "float",
+                "description": "Time step size (us)"
+            },
+            "stark_offset": {
+                "type": "float",
+                "description": "Frequency offset for Stark drive (MHz)"
+            },
+            "original_freq": {
+                "type": "float",
+                "description": "Original qubit frequency (MHz)"
+            },
+            "frequency": {
+                "type": "float",
+                "description": "Stark drive frequency (MHz)"
+            },
+            "fit_params": {
+                "type": "dict",
+                "description": "Fitted T1 decay parameters",
+                "keys": {
+                    "Amplitude": "tuple[float, float] - Amplitude and error",
+                    "Decay": "tuple[float, float] - T1 value and error (us)",
+                    "Offset": "tuple[float, float] - Offset and error"
+                }
+            }
+        },
+        "notes": [
+            "Uses blackman_square pulse shape for Stark drive",
+            "Stark drive frequency is offset from qubit frequency",
+            "Fits exponential decay to extract T1 under Stark conditions"
+        ]
+    }
     @log_and_record
     def run(self,
-            qubit: Any,  # Add the expected type for 'qubit' instead of Any
+            qubit: Any,
             collection_name: str = 'f01',
-            initial_lpb: Optional[Any] = None,  # Add the expected type for 'initial_lpb' instead of Any
+            initial_lpb: Optional[Any] = None,
             mprim_index: int = 0,
             start=0, stop=3, step=0.03,
             stark_offset=50,
@@ -41,6 +100,41 @@ class StarkSingleQubitT1(experiment):
             width=400,
             rise=0.01,
             trunc=1.2):
+        """
+        Execute Stark T1 experiment on hardware.
+
+        Parameters
+        ----------
+        qubit : Any
+            The qubit to perform the experiment on.
+        collection_name : str, optional
+            Gate collection name. Default: 'f01'.
+        initial_lpb : Any, optional
+            Initial pulse sequence. Default: None.
+        mprim_index : int, optional
+            Measurement primitive index. Default: 0.
+        start : float, optional
+            Start time (us). Default: 0.
+        stop : float, optional
+            Stop time (us). Default: 3.
+        step : float, optional
+            Time step (us). Default: 0.03.
+        stark_offset : float, optional
+            Stark frequency offset (MHz). Default: 50.
+        amp : float, optional
+            Stark pulse amplitude. Default: 0.1.
+        width : float, optional
+            Initial pulse width. Default: 400.
+        rise : float, optional
+            Pulse rise time. Default: 0.01.
+        trunc : float, optional
+            Pulse truncation. Default: 1.2.
+
+        Returns
+        -------
+        None
+            Results stored in instance attributes.
+        """
 
         self.width = 0
         self.start = start
@@ -163,11 +257,103 @@ class StarkSingleQubitT1(experiment):
 
 
 class StarkTwoQubitsSWAP(experiment):
-    # Perform a Stark Shifted T1 experiment on one qubit while also measuring another
+    """Perform a Stark Shifted T1 experiment on one qubit while measuring another."""
+
+    EPII_INFO = {
+        "name": "StarkTwoQubitsSWAP",
+        "description": "Two-qubit T1 measurement with Stark shift on control qubit",
+        "purpose": "Measures T1 decay on a control qubit under AC Stark shifting while simultaneously monitoring a target qubit. This experiment reveals crosstalk effects and how Stark drives on one qubit affect neighboring qubits.",
+        "attributes": {
+            "duts": {
+                "type": "list[TransmonElement]",
+                "description": "List of two qubits [control, target]"
+            },
+            "stark_offset": {
+                "type": "float",
+                "description": "Frequency offset for Stark drive (MHz)"
+            },
+            "amp_control": {
+                "type": "float",
+                "description": "Stark drive amplitude on control qubit"
+            },
+            "phase": {
+                "type": "float",
+                "description": "Phase of Stark drive"
+            },
+            "width": {
+                "type": "float",
+                "description": "Width of Stark pulse"
+            },
+            "start": {
+                "type": "float",
+                "description": "Start time (us)"
+            },
+            "stop": {
+                "type": "float",
+                "description": "Stop time (us)"
+            },
+            "step": {
+                "type": "float",
+                "description": "Time step (us)"
+            },
+            "original_freq": {
+                "type": "float",
+                "description": "Original control qubit frequency (MHz)"
+            },
+            "frequency": {
+                "type": "float",
+                "description": "Stark drive frequency (MHz)"
+            },
+            "result_control": {
+                "type": "np.ndarray[float]",
+                "description": "T1 trace for control qubit",
+                "shape": "(n_time_points,)"
+            },
+            "result_target": {
+                "type": "np.ndarray[float]",
+                "description": "T1 trace for target qubit",
+                "shape": "(n_time_points,)"
+            }
+        },
+        "notes": [
+            "Control qubit receives pi pulse and Stark drive",
+            "Target qubit is only measured to observe crosstalk",
+            "Fits exponential decay for both qubits independently"
+        ]
+    }
     @log_and_record
     def run(self, qubits, amp, rise=0.01, start=0, stop=3, step=0.03,
             stark_offset=50, initial_lpb=None,
             trunc=1.2):
+        """
+        Execute Stark T1 experiment on two qubits on hardware.
+
+        Parameters
+        ----------
+        qubits : list
+            List of two qubits [control, target].
+        amp : float
+            Stark drive amplitude.
+        rise : float, optional
+            Pulse rise time. Default: 0.01.
+        start : float, optional
+            Start time (us). Default: 0.
+        stop : float, optional
+            Stop time (us). Default: 3.
+        step : float, optional
+            Time step (us). Default: 0.03.
+        stark_offset : float, optional
+            Stark frequency offset (MHz). Default: 50.
+        initial_lpb : Any, optional
+            Initial pulse sequence. Default: None.
+        trunc : float, optional
+            Pulse truncation. Default: 1.2.
+
+        Returns
+        -------
+        None
+            Results stored in instance attributes.
+        """
 
         self.duts = qubits
         self.stark_offset = stark_offset
@@ -277,10 +463,116 @@ class StarkTwoQubitsSWAP(experiment):
 
 
 class StarkTwoQubitsSWAPTwoDrives(experiment):
-    # Perform a Stark Shifted T1 experiment on one qubit while also measuring another
+    """Perform Stark Shifted T1 with independent drives on both qubits."""
+
+    EPII_INFO = {
+        "name": "StarkTwoQubitsSWAPTwoDrives",
+        "description": "Two-qubit T1 with independent Stark drives on both qubits",
+        "purpose": "Measures T1 decay on both qubits while applying independent AC Stark drives. This experiment studies the combined effect of simultaneous Stark shifts and can be used to calibrate two-qubit gate parameters.",
+        "attributes": {
+            "duts": {
+                "type": "list[TransmonElement]",
+                "description": "List of two qubits [control, target]"
+            },
+            "stark_offset": {
+                "type": "float",
+                "description": "Frequency offset for Stark drives (MHz)"
+            },
+            "amp_control": {
+                "type": "float",
+                "description": "Stark drive amplitude on control qubit"
+            },
+            "amp_target": {
+                "type": "float",
+                "description": "Stark drive amplitude on target qubit"
+            },
+            "phase": {
+                "type": "float",
+                "description": "Phase of Stark drives"
+            },
+            "phase_diff": {
+                "type": "float",
+                "description": "Phase difference between drives"
+            },
+            "width": {
+                "type": "float",
+                "description": "Width of Stark pulses"
+            },
+            "start": {
+                "type": "float",
+                "description": "Start time (us)"
+            },
+            "stop": {
+                "type": "float",
+                "description": "Stop time (us)"
+            },
+            "step": {
+                "type": "float",
+                "description": "Time step (us)"
+            },
+            "original_freq": {
+                "type": "float",
+                "description": "Original control qubit frequency (MHz)"
+            },
+            "frequency": {
+                "type": "float",
+                "description": "Stark drive frequency (MHz)"
+            },
+            "result_control": {
+                "type": "np.ndarray[float]",
+                "description": "T1 trace for control qubit",
+                "shape": "(n_time_points,)"
+            },
+            "result_target": {
+                "type": "np.ndarray[float]",
+                "description": "T1 trace for target qubit",
+                "shape": "(n_time_points,)"
+            },
+            "fitting_2D": {
+                "type": "Any",
+                "description": "2D fitting results"
+            }
+        },
+        "notes": [
+            "Uses build_CZ_stark_from_parameters to create drive pulses",
+            "Both qubits receive independent Stark drives",
+            "Can control relative phase between drives"
+        ]
+    }
     @log_and_record
     def run(self, qubits, amp_control, amp_target, rise=0.01, start=0, stop=3, step=0.03,
             phase_diff=0, stark_offset=50, initial_lpb=None):
+        """
+        Execute Stark T1 with two drives on hardware.
+
+        Parameters
+        ----------
+        qubits : list
+            List of two qubits [control, target].
+        amp_control : float
+            Stark drive amplitude on control qubit.
+        amp_target : float
+            Stark drive amplitude on target qubit.
+        rise : float, optional
+            Pulse rise time. Default: 0.01.
+        start : float, optional
+            Start time (us). Default: 0.
+        stop : float, optional
+            Stop time (us). Default: 3.
+        step : float, optional
+            Time step (us). Default: 0.03.
+        phase_diff : float, optional
+            Phase difference between drives. Default: 0.
+        stark_offset : float, optional
+            Stark frequency offset (MHz). Default: 50.
+        initial_lpb : Any, optional
+            Initial pulse sequence. Default: None.
+
+        Returns
+        -------
+        None
+            Results stored in instance attributes.
+        """
 
         self.duts = qubits
         self.stark_offset = stark_offset
@@ -399,6 +691,84 @@ class StarkRamseyMultilevel(Experiment):
     This version has changed the step size from 0.001 to 0.005.
     """
 
+    EPII_INFO = {
+        "name": "StarkRamseyMultilevel",
+        "description": "Ramsey experiment with AC Stark shift for multilevel systems",
+        "purpose": "Performs Ramsey fringe measurements while applying an AC Stark drive to probe frequency shifts in multilevel transmon systems. Can measure transitions beyond f01 and characterize Stark-induced frequency shifts.",
+        "attributes": {
+            "mp": {
+                "type": "MeasurementPrimitive",
+                "description": "Measurement primitive for the qubit"
+            },
+            "data": {
+                "type": "np.ndarray[float]",
+                "description": "Ramsey fringe data",
+                "shape": "(n_time_points,)"
+            },
+            "set_offset": {
+                "type": "float",
+                "description": "Frequency offset for Ramsey (MHz)"
+            },
+            "step": {
+                "type": "float",
+                "description": "Time step (us)"
+            },
+            "stop": {
+                "type": "float",
+                "description": "Stop time (us)"
+            },
+            "stark_offset": {
+                "type": "float",
+                "description": "Stark drive frequency offset (MHz)"
+            },
+            "level_diff": {
+                "type": "int",
+                "description": "Energy level difference (e.g., 1 for f01, 2 for f02)"
+            },
+            "original_freq": {
+                "type": "float",
+                "description": "Original qubit frequency (MHz)"
+            },
+            "frequency": {
+                "type": "float",
+                "description": "Stark drive frequency (MHz)"
+            },
+            "update": {
+                "type": "bool",
+                "description": "Whether to update qubit frequency after analysis"
+            },
+            "fit_params": {
+                "type": "dict",
+                "description": "Fitted Ramsey parameters",
+                "keys": {
+                    "Frequency": "unc.ufloat - Fitted frequency with uncertainty",
+                    "Amplitude": "unc.ufloat - Oscillation amplitude",
+                    "Phase": "unc.ufloat - Phase offset",
+                    "Offset": "unc.ufloat - DC offset",
+                    "Decay": "unc.ufloat - Decay time constant"
+                }
+            },
+            "frequency_guess": {
+                "type": "float",
+                "description": "Estimated qubit frequency from fit (MHz)"
+            },
+            "error_bar": {
+                "type": "float",
+                "description": "Frequency measurement uncertainty (MHz)"
+            },
+            "fitted_freq_offset": {
+                "type": "float",
+                "description": "Fitted frequency offset (MHz)"
+            }
+        },
+        "notes": [
+            "Supports multilevel transitions (f01, f12, f02, etc.)",
+            "Stark drive uses blackman_square pulse shape",
+            "Automatically adjusts frequency based on level difference",
+            "Can update qubit frequency calibration if update=True"
+        ]
+    }
+
     @log_and_record
     def run(self,
             qubit: Any,  # Replace 'Any' with the actual type of qubit
@@ -415,21 +785,43 @@ class StarkRamseyMultilevel(Experiment):
             amp=0.3, width=0.1, rise=0.01, trunc=1.2,
             update: bool = False) -> None:
         """
-        Run Stark Ramsey experiment.
+        Execute Stark Ramsey experiment on hardware.
 
-        Parameters:
-            qubit: The qubit on which the experiment is performed.
-            collection_name: The name of the frequency collection (e.g., 'f01').
-            mprim_index: The index of the measurement primitive.
-            initial_lpb: Initial set of commands, if any.
-            start: The start frequency for the sweep.
-            stop: The stop frequency for the sweep.
-            step: The step size for the frequency sweep.
-            set_offset: The frequency offset.
-            update: Whether to update parameters after the experiment.
+        Parameters
+        ----------
+        qubit : Any
+            The qubit on which the experiment is performed.
+        collection_name : str, optional
+            The name of the frequency collection. Default: 'f01'.
+        mprim_index : int, optional
+            The index of the measurement primitive. Default: 0.
+        initial_lpb : Any, optional
+            Initial set of commands. Default: None.
+        start : float, optional
+            Start time for the sweep (us). Default: 0.0.
+        stop : float, optional
+            Stop time for the sweep (us). Default: 1.0.
+        step : float, optional
+            Time step size (us). Default: 0.005.
+        set_offset : float, optional
+            Frequency offset (MHz). Default: 10.0.
+        stark_offset : float, optional
+            Stark frequency offset (MHz). Default: 50.
+        amp : float, optional
+            Stark pulse amplitude. Default: 0.3.
+        width : float, optional
+            Stark pulse width. Default: 0.1.
+        rise : float, optional
+            Pulse rise time. Default: 0.01.
+        trunc : float, optional
+            Pulse truncation. Default: 1.2.
+        update : bool, optional
+            Whether to update frequency after analysis. Default: False.
 
-        Returns:
-            None
+        Returns
+        -------
+        None
+            Results stored in instance attributes.
         """
         self.set_offset = set_offset
         self.step = step
@@ -503,21 +895,33 @@ class StarkRamseyMultilevel(Experiment):
                       set_offset: float = 10.0,
                       update: bool = True) -> None:
         """
-        Run the Ramsey experiment.
+        Execute Stark Ramsey experiment in simulation.
 
-        Parameters:
-            qubit: The qubit on which the experiment is performed.
-            collection_name: The name of the frequency collection (e.g., 'f01').
-            mprim_index: The index of the measurement primitive.
-            initial_lpb: Initial set of commands, if any.
-            start: The start frequency for the sweep.
-            stop: The stop frequency for the sweep.
-            step: The step size for the frequency sweep.
-            set_offset: The frequency offset.
-            update: Whether to update parameters after the experiment.
+        Parameters
+        ----------
+        qubit : Any
+            The qubit on which the experiment is performed.
+        collection_name : str, optional
+            The name of the frequency collection. Default: 'f01'.
+        mprim_index : int, optional
+            The index of the measurement primitive. Default: 0.
+        initial_lpb : Any, optional
+            Initial set of commands. Default: None.
+        start : float, optional
+            Start time for the sweep (us). Default: 0.0.
+        stop : float, optional
+            Stop time for the sweep (us). Default: 1.0.
+        step : float, optional
+            Time step size (us). Default: 0.005.
+        set_offset : float, optional
+            Frequency offset (MHz). Default: 10.0.
+        update : bool, optional
+            Whether to update frequency after analysis. Default: True.
 
-        Returns:
-            None
+        Returns
+        -------
+        None
+            Results stored in instance attributes.
         """
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
         virtual_transmon = simulator_setup.get_virtual_qubit(qubit)
@@ -784,7 +1188,82 @@ class StarkRamseyMultilevel(Experiment):
 
 
 class StarkDriveRamseyTwoQubits(experiment):
-    # performs a ramsey experiment on two qubits while applying a stark shift drive to one of them. Extension of StarkDriveRamsey()
+    """Performs Ramsey on two qubits with Stark shift on one."""
+
+    EPII_INFO = {
+        "name": "StarkDriveRamseyTwoQubits",
+        "description": "Two-qubit Ramsey with Stark shift on first qubit",
+        "purpose": "Performs Ramsey experiments on two qubits simultaneously while applying a Stark shift drive to the first qubit. This reveals how Stark drives affect neighboring qubits and measures crosstalk-induced frequency shifts.",
+        "attributes": {
+            "set_offset": {
+                "type": "float",
+                "description": "Frequency offset for Ramsey (MHz)"
+            },
+            "step": {
+                "type": "float",
+                "description": "Time step (us)"
+            },
+            "stop": {
+                "type": "float",
+                "description": "Stop time (us)"
+            },
+            "stark_offset": {
+                "type": "float",
+                "description": "Stark drive frequency offset (MHz)"
+            },
+            "level_diff": {
+                "type": "int",
+                "description": "Energy level difference"
+            },
+            "original_freqs": {
+                "type": "list[float]",
+                "description": "Original frequencies of both qubits (MHz)"
+            },
+            "original_freq": {
+                "type": "float",
+                "description": "Original frequency of first qubit (MHz)"
+            },
+            "frequency": {
+                "type": "float",
+                "description": "Stark drive frequency (MHz)"
+            },
+            "result": {
+                "type": "list[np.ndarray]",
+                "description": "Ramsey traces for both qubits"
+            },
+            "traces": {
+                "type": "list[np.ndarray]",
+                "description": "Ramsey fringe data for both qubits",
+                "shape": "[(n_time_points,), (n_time_points,)]"
+            },
+            "fit_params": {
+                "type": "list[dict]",
+                "description": "Fitted parameters for both qubits"
+            },
+            "frequency_guess": {
+                "type": "list[float]",
+                "description": "Estimated frequencies from fit (MHz)"
+            },
+            "error_bar": {
+                "type": "list[float]",
+                "description": "Frequency uncertainties (MHz)"
+            },
+            "fitted_freq_offset": {
+                "type": "list[float]",
+                "description": "Fitted frequency offsets (MHz)"
+            },
+            "frequency_shift": {
+                "type": "list[list]",
+                "description": "Frequency shift history"
+            }
+        },
+        "notes": [
+            "Stark drive applied only to first qubit",
+            "Both qubits undergo Ramsey sequence",
+            "Fits exponentially decaying sinusoid for each qubit",
+            "Can reveal crosstalk-induced frequency shifts"
+        ]
+    }
     @log_and_record
     def run(self, qubits,
             collection_name: str = 'f01',
@@ -797,6 +1276,45 @@ class StarkDriveRamseyTwoQubits(experiment):
             set_offset: float = 10.0,
             stark_offset=50, amp=0.1, width=0.1, rise=0.01, trunc=1.2,
             update: bool = False) -> None:
+        """
+        Execute the experiment on hardware.
+
+        Parameters
+        ----------
+        qubits : list
+            List of two qubit objects for the experiment.
+        collection_name : str, optional
+            Name of the gate collection. Default: 'f01'
+        mprim_index : int, optional
+            Measurement primitive index. Default: 0
+        initial_lpb : Any, optional
+            Initial logical primitive block. Default: None
+        start : float, optional
+            Start time for Ramsey sweep (us). Default: 0.0
+        stop : float, optional
+            Stop time for Ramsey sweep (us). Default: 1.0
+        step : float, optional
+            Time step (us). Default: 0.005
+        set_offset : float, optional
+            Frequency offset for Ramsey (MHz). Default: 10.0
+        stark_offset : float, optional
+            Stark drive frequency offset (MHz). Default: 50
+        amp : float, optional
+            Stark drive amplitude. Default: 0.1
+        width : float, optional
+            Stark pulse width (us). Default: 0.1
+        rise : float, optional
+            Stark pulse rise time (us). Default: 0.01
+        trunc : float, optional
+            Stark pulse truncation. Default: 1.2
+        update : bool, optional
+            Whether to update qubit frequencies. Default: False
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
+        """
 
         assert len(qubits) == 2
 
@@ -981,7 +1499,82 @@ class StarkDriveRamseyTwoQubits(experiment):
 
 
 class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
-    # performs a ramsey experiment on two qubits while applying a stark shift drive to one of them. Extension of StarkDriveRamsey()
+    """Performs Ramsey on two qubits with independent Stark drives."""
+
+    EPII_INFO = {
+        "name": "StarkDriveRamseyTwoQubitsTwoStarkDrives",
+        "description": "Two-qubit Ramsey with independent Stark drives on both qubits",
+        "purpose": "Performs Ramsey experiments on two qubits while applying independent Stark shift drives to both. This experiment characterizes the combined effect of simultaneous Stark shifts and their interactions.",
+        "attributes": {
+            "set_offset": {
+                "type": "float",
+                "description": "Frequency offset for Ramsey (MHz)"
+            },
+            "step": {
+                "type": "float",
+                "description": "Time step (us)"
+            },
+            "stop": {
+                "type": "float",
+                "description": "Stop time (us)"
+            },
+            "stark_offset": {
+                "type": "float",
+                "description": "Stark drive frequency offset (MHz)"
+            },
+            "level_diff": {
+                "type": "int",
+                "description": "Energy level difference"
+            },
+            "original_freqs": {
+                "type": "list[float]",
+                "description": "Original frequencies of both qubits (MHz)"
+            },
+            "original_freq": {
+                "type": "float",
+                "description": "Original frequency of first qubit (MHz)"
+            },
+            "frequency": {
+                "type": "float",
+                "description": "Stark drive frequency (MHz)"
+            },
+            "result": {
+                "type": "list[np.ndarray]",
+                "description": "Ramsey traces for both qubits"
+            },
+            "traces": {
+                "type": "list[np.ndarray]",
+                "description": "Ramsey fringe data for both qubits",
+                "shape": "[(n_time_points,), (n_time_points,)]"
+            },
+            "fit_params": {
+                "type": "list[dict]",
+                "description": "Fitted parameters for both qubits"
+            },
+            "frequency_guess": {
+                "type": "list[float]",
+                "description": "Estimated frequencies from fit (MHz)"
+            },
+            "error_bar": {
+                "type": "list[float]",
+                "description": "Frequency uncertainties (MHz)"
+            },
+            "fitted_freq_offset": {
+                "type": "list[float]",
+                "description": "Fitted frequency offsets (MHz)"
+            },
+            "frequency_shift": {
+                "type": "list[list]",
+                "description": "Frequency shift history"
+            }
+        },
+        "notes": [
+            "Independent Stark drives on both qubits",
+            "Can control amplitudes separately",
+            "Useful for characterizing two-qubit gate parameters",
+            "Fits exponentially decaying sinusoid for each qubit"
+        ]
+    }
     @log_and_record
     def run(self, qubits,
             collection_name: str = 'f01',
@@ -994,6 +1587,47 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
             set_offset: float = 10.0,
             stark_offset=50, amp_a=0.1, amp_b=0.1, width=0.1, rise=0.01, trunc=1.2,
             update: bool = False) -> None:
+        """
+        Execute the experiment on hardware.
+
+        Parameters
+        ----------
+        qubits : list
+            List of two qubit objects for the experiment.
+        collection_name : str, optional
+            Name of the gate collection. Default: 'f01'
+        mprim_index : int, optional
+            Measurement primitive index. Default: 0
+        initial_lpb : Any, optional
+            Initial logical primitive block. Default: None
+        start : float, optional
+            Start time for Ramsey sweep (us). Default: 0.0
+        stop : float, optional
+            Stop time for Ramsey sweep (us). Default: 1.0
+        step : float, optional
+            Time step (us). Default: 0.005
+        set_offset : float, optional
+            Frequency offset for Ramsey (MHz). Default: 10.0
+        stark_offset : float, optional
+            Stark drive frequency offset (MHz). Default: 50
+        amp_a : float, optional
+            Stark drive amplitude for first qubit. Default: 0.1
+        amp_b : float, optional
+            Stark drive amplitude for second qubit. Default: 0.1
+        width : float, optional
+            Stark pulse width (us). Default: 0.1
+        rise : float, optional
+            Stark pulse rise time (us). Default: 0.01
+        trunc : float, optional
+            Stark pulse truncation. Default: 1.2
+        update : bool, optional
+            Whether to update qubit frequencies. Default: False
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
+        """
 
         assert len(qubits) == 2
 
@@ -1183,7 +1817,82 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
 
 
 class StarkDriveRamseyMultiQubits(experiment):
-    # performs a ramsey experiment on multi qubits while applying a stark shift drive to one of them. Extension of StarkDriveRamseyTwoQubits()
+    """Performs Ramsey on multiple qubits with Stark shift on first."""
+
+    EPII_INFO = {
+        "name": "StarkDriveRamseyMultiQubits",
+        "description": "Multi-qubit Ramsey with Stark shift on first qubit",
+        "purpose": "Extends Ramsey experiments to multiple qubits while applying a Stark shift drive to the first qubit. This experiment characterizes crosstalk effects across multiple qubits in larger quantum processors.",
+        "attributes": {
+            "set_offset": {
+                "type": "float",
+                "description": "Frequency offset for Ramsey (MHz)"
+            },
+            "step": {
+                "type": "float",
+                "description": "Time step (us)"
+            },
+            "stop": {
+                "type": "float",
+                "description": "Stop time (us)"
+            },
+            "stark_offset": {
+                "type": "float",
+                "description": "Stark drive frequency offset (MHz)"
+            },
+            "level_diff": {
+                "type": "int",
+                "description": "Energy level difference"
+            },
+            "original_freqs": {
+                "type": "list[float]",
+                "description": "Original frequencies of all qubits (MHz)"
+            },
+            "original_freq": {
+                "type": "float",
+                "description": "Original frequency of first qubit (MHz)"
+            },
+            "frequency": {
+                "type": "float",
+                "description": "Stark drive frequency (MHz)"
+            },
+            "result": {
+                "type": "list[np.ndarray]",
+                "description": "Ramsey traces for all qubits"
+            },
+            "traces": {
+                "type": "list[np.ndarray]",
+                "description": "Ramsey fringe data for all qubits",
+                "shape": "[(n_time_points,), ...]"
+            },
+            "fit_params": {
+                "type": "list[dict]",
+                "description": "Fitted parameters for all qubits"
+            },
+            "frequency_guess": {
+                "type": "list[float]",
+                "description": "Estimated frequencies from fit (MHz)"
+            },
+            "error_bar": {
+                "type": "list[float]",
+                "description": "Frequency uncertainties (MHz)"
+            },
+            "fitted_freq_offset": {
+                "type": "list[float]",
+                "description": "Fitted frequency offsets (MHz)"
+            },
+            "frequency_shift": {
+                "type": "list[list]",
+                "description": "Frequency shift history for all qubits"
+            }
+        },
+        "notes": [
+            "Supports arbitrary number of qubits",
+            "Stark drive applied only to first qubit",
+            "All qubits undergo Ramsey sequence in parallel",
+            "Useful for characterizing crosstalk in larger systems"
+        ]
+    }
     @log_and_record
     def run(self, qubits,
             collection_name: str = 'f01',
@@ -1196,6 +1905,45 @@ class StarkDriveRamseyMultiQubits(experiment):
             set_offset: float = 10.0,
             stark_offset=50, amp=0.1, width=0.1, rise=0.01, trunc=1.2,
             update: bool = False) -> None:
+        """
+        Execute the experiment on hardware.
+
+        Parameters
+        ----------
+        qubits : list
+            List of qubit objects for the experiment (any number).
+        collection_name : str, optional
+            Name of the gate collection. Default: 'f01'
+        mprim_index : int, optional
+            Measurement primitive index. Default: 0
+        initial_lpb : Any, optional
+            Initial logical primitive block. Default: None
+        start : float, optional
+            Start time for Ramsey sweep (us). Default: 0.0
+        stop : float, optional
+            Stop time for Ramsey sweep (us). Default: 1.0
+        step : float, optional
+            Time step (us). Default: 0.005
+        set_offset : float, optional
+            Frequency offset for Ramsey (MHz). Default: 10.0
+        stark_offset : float, optional
+            Stark drive frequency offset (MHz). Default: 50
+        amp : float, optional
+            Stark drive amplitude. Default: 0.1
+        width : float, optional
+            Stark pulse width (us). Default: 0.1
+        rise : float, optional
+            Stark pulse rise time (us). Default: 0.01
+        trunc : float, optional
+            Stark pulse truncation. Default: 1.2
+        update : bool, optional
+            Whether to update qubit frequencies. Default: False
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
+        """
 
         # assert len(qubits) >= 2  # If you want to allow a minimum of 2 qubits
 
@@ -1384,6 +2132,61 @@ class StarkDriveRamseyMultiQubits(experiment):
 class StarkZZShiftTwoQubitMultilevel(Experiment):
     """Class to compute ZZ Shift for Two Qubit Multilevel system."""
 
+    EPII_INFO = {
+        "name": "StarkZZShiftTwoQubitMultilevel",
+        "description": "Measures ZZ interaction strength in multilevel two-qubit systems",
+        "purpose": "Characterizes the ZZ interaction (coupling) between two qubits in multilevel transmon systems by measuring frequency shifts. This is critical for calibrating two-qubit gates and understanding crosstalk.",
+        "attributes": {
+            "c1s": {
+                "type": "list",
+                "description": "Gate collections for both qubits"
+            },
+            "mps": {
+                "type": "list[MeasurementPrimitive]",
+                "description": "Measurement primitives for both qubits"
+            },
+            "original_freqs": {
+                "type": "list[float]",
+                "description": "Original frequencies of both qubits (MHz)"
+            },
+            "level_diff": {
+                "type": "int",
+                "description": "Energy level difference"
+            },
+            "traces": {
+                "type": "list[np.ndarray]",
+                "description": "Ramsey traces for all state combinations",
+                "shape": "[(n_time_points,), ...]"
+            },
+            "fit_params": {
+                "type": "list[dict]",
+                "description": "Fitted parameters for each trace"
+            },
+            "frequency_guess": {
+                "type": "list[float]",
+                "description": "Estimated frequencies from fit (MHz)"
+            },
+            "error_bar": {
+                "type": "list[float]",
+                "description": "Frequency uncertainties (MHz)"
+            },
+            "fitted_freq_offset": {
+                "type": "list[float]",
+                "description": "Fitted frequency offsets (MHz)"
+            },
+            "zz_shift": {
+                "type": "float",
+                "description": "Calculated ZZ interaction strength (MHz)"
+            }
+        },
+        "notes": [
+            "Measures frequency shifts for different qubit state combinations",
+            "Supports multilevel transitions beyond f01",
+            "ZZ shift calculated from frequency differences",
+            "Critical for two-qubit gate calibration"
+        ]
+    }
+
     @log_and_record
     def run(self,
             duts: List[TransmonElement],
@@ -1490,6 +2293,60 @@ class StarkZZShiftTwoQubitMultilevel(Experiment):
 
 
 class StarkRepeatedGateRabi(Experiment):
+    EPII_INFO = {
+        "name": "StarkRepeatedGateRabi",
+        "description": "Rabi oscillations using repeated Stark pulse gates",
+        "purpose": "Performs Rabi-like measurements by applying repeated Stark pulses instead of continuous driving. This experiment helps calibrate gate fidelity and coherence under repeated gate operations.",
+        "attributes": {
+            "dut": {
+                "type": "TransmonElement",
+                "description": "Device under test (qubit)"
+            },
+            "frequency": {
+                "type": "float",
+                "description": "Stark pulse frequency (MHz)"
+            },
+            "amp": {
+                "type": "float",
+                "description": "Stark pulse amplitude"
+            },
+            "phase": {
+                "type": "float",
+                "description": "Stark pulse phase"
+            },
+            "width": {
+                "type": "float",
+                "description": "Individual pulse width (us)"
+            },
+            "rise": {
+                "type": "float",
+                "description": "Pulse rise time"
+            },
+            "trunc": {
+                "type": "float",
+                "description": "Pulse truncation"
+            },
+            "start_gate_number": {
+                "type": "int",
+                "description": "Starting number of gates"
+            },
+            "gate_count": {
+                "type": "int",
+                "description": "Number of gate counts to sweep"
+            },
+            "result": {
+                "type": "np.ndarray[float]",
+                "description": "Population vs gate number",
+                "shape": "(gate_count,)"
+            }
+        },
+        "notes": [
+            "Uses blackman_square pulse shape",
+            "Sweeps number of repeated gates",
+            "Can reveal gate errors and decoherence",
+            "Useful for gate fidelity benchmarking"
+        ]
+    }
 
     @log_and_record
     def run(self, dut, amp, frequency, phase=0, rise=0.01, trunc=1.0, width=0, start_gate_number=0, gate_count=40,
@@ -1556,6 +2413,60 @@ class StarkRepeatedGateRabi(Experiment):
 
 
 class StarkContinuesRabi(Experiment):
+    EPII_INFO = {
+        "name": "StarkContinuesRabi",
+        "description": "Continuous Rabi oscillations with Stark drive",
+        "purpose": "Performs continuous Rabi oscillations by sweeping the width of a single Stark pulse. This experiment calibrates Rabi frequency and helps optimize pulse parameters.",
+        "attributes": {
+            "dut": {
+                "type": "TransmonElement",
+                "description": "Device under test (qubit)"
+            },
+            "frequency": {
+                "type": "float",
+                "description": "Stark drive frequency (MHz)"
+            },
+            "amp": {
+                "type": "float",
+                "description": "Stark drive amplitude"
+            },
+            "phase": {
+                "type": "float",
+                "description": "Stark drive phase"
+            },
+            "rise": {
+                "type": "float",
+                "description": "Pulse rise time"
+            },
+            "trunc": {
+                "type": "float",
+                "description": "Pulse truncation"
+            },
+            "width_start": {
+                "type": "float",
+                "description": "Start pulse width (us)"
+            },
+            "width_stop": {
+                "type": "float",
+                "description": "Stop pulse width (us)"
+            },
+            "width_step": {
+                "type": "float",
+                "description": "Width step size (us)"
+            },
+            "result": {
+                "type": "np.ndarray[float]",
+                "description": "Population vs pulse width",
+                "shape": "(n_width_points,)"
+            }
+        },
+        "notes": [
+            "Uses blackman_square pulse shape",
+            "Sweeps pulse width continuously",
+            "Shows Rabi oscillations vs time",
+            "Used to calibrate pi pulse duration"
+        ]
+    }
 
     @log_and_record
     def run(self, dut, amp, frequency, phase=0, rise=0.01, trunc=1.0, width_start=0, width_stop=4, width_step=0.01,
@@ -1620,6 +2531,61 @@ class StarkContinuesRabi(Experiment):
 
 
 class StarkRepeatedGateDRAGLeakageCalibration(Experiment):
+    EPII_INFO = {
+        "name": "StarkRepeatedGateDRAGLeakageCalibration",
+        "description": "Calibrates DRAG parameter to minimize leakage under Stark driving",
+        "purpose": "Optimizes the DRAG (Derivative Removal by Adiabatic Gate) parameter for Stark pulses by applying repeated gates and sweeping the DRAG coefficient. This minimizes leakage to higher transmon levels.",
+        "attributes": {
+            "dut": {
+                "type": "TransmonElement",
+                "description": "Device under test (qubit)"
+            },
+            "frequency": {
+                "type": "float",
+                "description": "Stark pulse frequency (MHz)"
+            },
+            "amp": {
+                "type": "float",
+                "description": "Stark pulse amplitude"
+            },
+            "phase": {
+                "type": "float",
+                "description": "Stark pulse phase"
+            },
+            "width": {
+                "type": "float",
+                "description": "Pulse width (us)"
+            },
+            "rise": {
+                "type": "float",
+                "description": "Pulse rise time"
+            },
+            "trunc": {
+                "type": "float",
+                "description": "Pulse truncation"
+            },
+            "gate_count": {
+                "type": "int",
+                "description": "Number of repeated gates"
+            },
+            "sweep_values": {
+                "type": "np.ndarray[float]",
+                "description": "Array of 1/alpha values swept",
+                "shape": "(sweep_count,)"
+            },
+            "result": {
+                "type": "np.ndarray[float]",
+                "description": "Population vs DRAG parameter",
+                "shape": "(sweep_count,)"
+            }
+        },
+        "notes": [
+            "Sweeps inverse DRAG coefficient (1/alpha)",
+            "Uses repeated gates to amplify leakage effects",
+            "Optimal value minimizes population after repeated gates",
+            "Critical for high-fidelity Stark-based gates"
+        ]
+    }
 
     @log_and_record
     def run(self, dut, amp, frequency, phase=0, rise=0.01, trunc=1.0, width=0.1, gate_count=40, initial_lpb=None,

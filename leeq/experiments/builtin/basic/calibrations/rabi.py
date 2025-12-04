@@ -18,6 +18,47 @@ __all__ = ["NormalisedRabi", "MultiQubitRabi", "PowerRabi"]
 
 
 class NormalisedRabi(Experiment):
+    EPII_INFO = {
+        "name": "NormalisedRabi",
+        "description": "Normalized Rabi oscillation experiment for calibrating driving amplitude",
+        "purpose": "Performs a Rabi oscillation experiment by sweeping pulse width at fixed amplitude to calibrate the driving amplitude for single-qubit gates. Used for rough calibration of pi and pi/2 pulses.",
+        "attributes": {
+            "data": {
+                "type": "np.ndarray[complex]",
+                "description": "Raw measurement data from Rabi oscillations",
+                "shape": "(n_width_points,)"
+            },
+            "fit_params": {
+                "type": "dict",
+                "description": "Fitted sinusoidal parameters",
+                "keys": {
+                    "Frequency": "float - Rabi oscillation frequency",
+                    "Phase": "float - Phase offset",
+                    "Amplitude": "float - Oscillation amplitude",
+                    "Offset": "float - DC offset"
+                }
+            },
+            "optimal_width_pi": {
+                "type": "float",
+                "description": "Optimal pulse width for pi rotation"
+            },
+            "optimal_width_half_pi": {
+                "type": "float",
+                "description": "Optimal pulse width for pi/2 rotation"
+            },
+            "mp": {
+                "type": "MeasurementPrimitive",
+                "description": "Measurement primitive used"
+            }
+        },
+        "notes": [
+            "Successful experiment shows 3-10 clear oscillations",
+            "Oscillation amplitude should be greater than 0.2",
+            "Used for rough calibration; fine tuning required",
+            "Supports pulse discretization for efficiency"
+        ]
+    }
+
     _experiment_result_analysis_instructions = """
     The Normalised Rabi experiment is a quantum mechanics experiment that involves the measurement of oscillations.
     A successful Rabi experiment will show a clear, regular oscillatory pattern with amplitude greater than 0.2.
@@ -36,7 +77,8 @@ class NormalisedRabi(Experiment):
             mprim_index: int = 0,
             pulse_discretization: bool = True,
             update=True,
-            initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+            initial_lpb: Optional[Any] = None,
+            drive_frequency: Optional[float] = None) -> Optional[Dict[str, Any]]:
         """
         Run a Rabi experiment on a given qubit for rough calibration of the driving amplitude.
         Note that this experiment is only for rough calibration, and the final calibration should be done using
@@ -54,6 +96,7 @@ class NormalisedRabi(Experiment):
         pulse_discretization (bool): Whether to discretize the pulse. Default is False.
         update (bool): Whether to update the qubit parameters If you are tuning up the qubit set it to True. Default is False.
         initial_lpb (Any): Initial lpb to add to the created lpb. Default is None.
+        drive_frequency (Optional[float]): Override frequency for the Rabi pulse. If specified, overrides the pulse frequency. Default is None.
 
         Returns:
         Dict[str, Any]: Fitted parameters if fit is True, None otherwise.
@@ -73,6 +116,10 @@ class NormalisedRabi(Experiment):
                 amp=amp, phase=0., shape='square', width=step)
         else:
             amp = rabi_pulse.amp
+
+        # New frequency override logic
+        if drive_frequency is not None:
+            rabi_pulse.update_pulse_args(freq=drive_frequency)
 
         if not pulse_discretization:
             # Set up sweep parameters
@@ -137,7 +184,8 @@ class NormalisedRabi(Experiment):
                       mprim_index: int = 0,
                       pulse_discretization: bool = True,
                       update=True,
-                      initial_lpb: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+                      initial_lpb: Optional[Any] = None,
+                      drive_frequency: Optional[float] = None) -> Optional[Dict[str, Any]]:
         """
         Run a simulated Rabi experiment on a given qubit and analyze the results.
 
@@ -153,6 +201,7 @@ class NormalisedRabi(Experiment):
         pulse_discretization (bool): Whether to discretize the pulse. Default is False.
         update (bool): Whether to update the qubit parameters. Default is True.
         initial_lpb (Any): Initial lpb to add to the created lpb. Default is None.
+        drive_frequency (Optional[float]): Override frequency for the Rabi pulse. If specified, overrides the pulse frequency. Default is None.
 
         Returns:
         Dict[str, Any]: Fitted parameters if fit is True, None otherwise.
@@ -171,8 +220,9 @@ class NormalisedRabi(Experiment):
             c1.channel)  # MHz
         omega = rabi_rate_per_amp * amp
 
-        # Detuning
-        delta = virtual_transmon.qubit_frequency - c1['X'].freq
+        # Detuning - use drive_frequency if provided, otherwise use pulse frequency
+        pulse_frequency = drive_frequency if drive_frequency is not None else c1['X'].freq
+        delta = virtual_transmon.qubit_frequency - pulse_frequency
 
         # Time array (let's consider 100 ns for demonstration)
         t = np.arange(start, stop, step)  # 1000 points from 0 to 100 ns
@@ -369,6 +419,43 @@ class NormalisedRabi(Experiment):
 
 
 class PowerRabi(Experiment):
+    EPII_INFO = {
+        "name": "PowerRabi",
+        "description": "Power Rabi experiment sweeping amplitude at fixed pulse width",
+        "purpose": "Performs a Rabi oscillation experiment by sweeping pulse amplitude at fixed width to calibrate the driving amplitude. Alternative to NormalisedRabi, useful when pulse width is constrained.",
+        "attributes": {
+            "data": {
+                "type": "np.ndarray[complex]",
+                "description": "Raw measurement data from power sweep",
+                "shape": "(n_amp_points,)"
+            },
+            "fit_params": {
+                "type": "dict",
+                "description": "Fitted sinusoidal parameters",
+                "keys": {
+                    "Frequency": "float - Rabi oscillation frequency vs amplitude",
+                    "Phase": "float - Phase offset",
+                    "Amplitude": "float - Oscillation amplitude",
+                    "Offset": "float - DC offset"
+                }
+            },
+            "optimal_amp": {
+                "type": "float",
+                "description": "Optimal amplitude for pi rotation at given width"
+            },
+            "mp": {
+                "type": "MeasurementPrimitive",
+                "description": "Measurement primitive used"
+            }
+        },
+        "notes": [
+            "Sweeps amplitude instead of pulse width",
+            "Useful when pulse width must remain fixed",
+            "Optimal amplitude gives pi rotation at set width",
+            "Updates qubit parameters if update=True"
+        ]
+    }
+
     @log_and_record
     def run(self,
             dut_qubit: Any,
@@ -649,6 +736,47 @@ class PowerRabi(Experiment):
 
 
 class MultiQubitRabi(Experiment):
+    EPII_INFO = {
+        "name": "MultiQubitRabi",
+        "description": "Simultaneous Rabi experiment on multiple qubits",
+        "purpose": "Performs parallel Rabi oscillation experiments on multiple qubits by sweeping pulse width at fixed amplitudes. Efficiently calibrates driving amplitudes for multiple qubits simultaneously.",
+        "attributes": {
+            "data": {
+                "type": "list[np.ndarray[complex]]",
+                "description": "Raw measurement data for each qubit",
+                "shape": "List of arrays, each (n_width_points,)"
+            },
+            "fit_params": {
+                "type": "list[dict]",
+                "description": "Fitted parameters for each qubit",
+                "keys": {
+                    "Frequency": "float - Rabi frequency for each qubit",
+                    "Phase": "float - Phase offset for each qubit",
+                    "Amplitude": "float - Oscillation amplitude for each qubit",
+                    "Offset": "float - DC offset for each qubit"
+                }
+            },
+            "optimal_widths_pi": {
+                "type": "list[float]",
+                "description": "Optimal pi pulse widths for each qubit"
+            },
+            "optimal_widths_half_pi": {
+                "type": "list[float]",
+                "description": "Optimal pi/2 pulse widths for each qubit"
+            },
+            "mps": {
+                "type": "list[MeasurementPrimitive]",
+                "description": "Measurement primitives for each qubit"
+            }
+        },
+        "notes": [
+            "Runs Rabi on multiple qubits in parallel",
+            "Each qubit can have different amplitude settings",
+            "Supports different collection names per qubit",
+            "Efficient for multi-qubit calibration"
+        ]
+    }
+
     @log_and_record
     def run(self,
             duts: list[Any],

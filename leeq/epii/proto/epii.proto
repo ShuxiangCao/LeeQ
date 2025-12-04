@@ -20,11 +20,20 @@ message CapabilitiesResponse {
     repeated string data_formats = 7;          // "numpy", "json", "hdf5"
 }
 
+// NEW: Attribute specification for EPII_INFO attributes
+message AttributeSpec {
+    string name = 1;                     // Attribute name (e.g., "dm", "fidelity")
+    string type = 2;                     // Data type (e.g., "np.ndarray", "float")
+    string description = 3;              // Description of what this attribute represents
+    string shape = 4;                    // Optional shape for array types (e.g., "(2, 2)")
+}
+
 message ExperimentSpec {
     string name = 1;                     // "rabi", "t1", "ramsey"
     repeated ParameterSpec parameters = 2;
     repeated string output_parameters = 3;
     string description = 4;
+    repeated AttributeSpec attributes = 5;  // NEW: EPII_INFO attributes
 }
 
 message ParameterSpec {
@@ -45,18 +54,22 @@ message ExperimentRequest {
 }
 
 message ExperimentResponse {
+    // Core response fields
     bool success = 1;
     string error_message = 2;
+    double execution_time_seconds = 3;
     
-    // Calibration results
-    map<string, double> calibration_results = 3;
-    
-    // Raw data (if requested)
-    repeated NumpyArray measurement_data = 4;
-    repeated PlotData plots = 5;
+    // Documentation
+    Documentation docs = 4;                      // All documentation in one place
     
     // Metadata
-    double execution_time_seconds = 6;
+    map<string, string> metadata = 5;            // EPII_INFO key-value pairs (purpose, category, etc.)
+    
+    // All experiment data in one place
+    repeated DataItem data = 6;                  // All experiment results
+    
+    // Visualization
+    repeated PlotComponent plots = 7;            // Plot components with JSON and images
 }
 
 message NumpyArray {
@@ -67,19 +80,29 @@ message NumpyArray {
     map<string, string> metadata = 5;   // Array-specific metadata
 }
 
-message PlotData {
-    string plot_type = 1;                // "line", "scatter", "heatmap"
-    string title = 2;
-    repeated PlotTrace traces = 3;
-    map<string, string> layout = 4;     // JSON-serialized layout
+message PlotComponent {
+    string description = 1;              // Plot title and browser function name
+    string plotly_json = 2;              // Empty initially
+    bytes image_png = 3;                 // Empty initially
 }
 
-message PlotTrace {
-    repeated double x = 1;
-    repeated double y = 2;
-    repeated double z = 3;               // For 3D plots
-    string name = 4;
-    string type = 5;                     // "scatter", "line", etc.
+// Documentation message for clean access pattern
+message Documentation {
+    string run = 1;                      // Run method docstring (how to use)
+    string data = 2;                     // EPII description (what data means)
+}
+
+// Data item with self-documentation
+message DataItem {
+    string name = 1;                     // Variable name
+    string description = 2;              // What this data represents
+    
+    oneof value {
+        double number = 3;
+        string text = 4;
+        bool boolean = 5;
+        NumpyArray array = 6;            // Reuse existing NumpyArray message
+    }
 }
 
 // List experiments messages

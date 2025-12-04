@@ -24,6 +24,7 @@ from leeq.epii.proto import epii_pb2, epii_pb2_grpc
 from leeq.epii.service import ExperimentPlatformService
 from leeq.epii.serialization import protobuf_to_numpy_array
 from leeq.epii.config import create_setup_from_config
+from leeq.epii.client_helpers import get_data, get_arrays, get_calibration_results
 
 # LeeQ imports for real simulation setup
 from leeq.core.elements.built_in.qudit_transmon import TransmonElement
@@ -202,7 +203,7 @@ class TestLeeQBackendIntegration:
 
         # Create experiment request
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "rabi"
+        request.experiment_type = "calibrations.NormalisedRabi"
         request.parameters["dut_qubit"] = "q0"  # LeeQ parameter name
         request.parameters["amp"] = "0.5"       # LeeQ parameter name
         request.parameters["start"] = "0.0"     # LeeQ parameter name
@@ -225,14 +226,19 @@ class TestLeeQBackendIntegration:
             # Validate response
             assert response.success, f"Experiment failed: {response.error_message}"
 
-            # Validate data serialization
-            if response.measurement_data:
-                data_array = protobuf_to_numpy_array(response.measurement_data[0])
-                assert isinstance(data_array, np.ndarray)
-                assert data_array.size > 0
+            # Validate data serialization using new protocol
+            arrays = get_arrays(response)
+            if arrays:
+                # Get the first array (typically measurement data)
+                first_array_name = list(arrays.keys())[0] if arrays else None
+                if first_array_name:
+                    data_array = arrays[first_array_name]
+                    assert isinstance(data_array, np.ndarray)
+                    assert data_array.size > 0
 
-            # Validate fit parameters
-            assert len(response.calibration_results) >= 0  # May or may not have fit params
+            # Validate calibration results
+            calibration_results = get_calibration_results(response)
+            assert isinstance(calibration_results, dict)  # May be empty
 
             # Validate no gRPC errors were set
             context.set_code.assert_not_called()
@@ -250,7 +256,7 @@ class TestLeeQBackendIntegration:
 
         # Create T1 experiment request
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "t1"
+        request.experiment_type = "characterizations.SimpleT1"
         request.parameters["qubit"] = "q0"
         request.parameters["time_length"] = "50.0"  # μs
         request.parameters["time_resolution"] = "2.0"  # μs
@@ -269,9 +275,13 @@ class TestLeeQBackendIntegration:
             # Validate response
             assert response.success, f"T1 experiment failed: {response.error_message}"
 
-            # Validate data
-            if response.measurement_data:
-                data_array = protobuf_to_numpy_array(response.measurement_data[0])
+            # Validate data using new protocol
+            arrays = get_arrays(response)
+            if arrays:
+                # Check that we have measurement data
+                assert len(arrays) > 0
+                # Get the first array
+                data_array = list(arrays.values())[0]
                 assert isinstance(data_array, np.ndarray)
 
             context.set_code.assert_not_called()
@@ -289,7 +299,7 @@ class TestLeeQBackendIntegration:
 
         # Create Ramsey experiment request
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "ramsey"
+        request.experiment_type = "calibrations.SimpleRamseyMultilevel"
         request.parameters["dut"] = "q0"
         request.parameters["start"] = "0.0"
         request.parameters["stop"] = "20.0"
@@ -312,9 +322,13 @@ class TestLeeQBackendIntegration:
             # Validate response
             assert response.success, f"Ramsey experiment failed: {response.error_message}"
 
-            # Validate data
-            if response.measurement_data:
-                data_array = protobuf_to_numpy_array(response.measurement_data[0])
+            # Validate data using new protocol
+            arrays = get_arrays(response)
+            if arrays:
+                # Check that we have measurement data
+                assert len(arrays) > 0
+                # Get the first array
+                data_array = list(arrays.values())[0]
                 assert isinstance(data_array, np.ndarray)
 
             context.set_code.assert_not_called()
@@ -330,7 +344,7 @@ class TestLeeQBackendIntegration:
 
         # Test missing required parameters
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "rabi"
+        request.experiment_type = "calibrations.NormalisedRabi"
         # Missing dut_qubit parameter
 
         response = service.RunExperiment(request, context)
@@ -363,7 +377,7 @@ class TestLeeQBackendIntegration:
 
         # Create a request that would take a long time
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "rabi"
+        request.experiment_type = "calibrations.NormalisedRabi"
         request.parameters["dut_qubit"] = "q0"
         request.parameters["amp"] = "0.5"
         request.parameters["start"] = "0.0"
@@ -438,7 +452,7 @@ class TestLeeQBackendIntegration:
 
         # Execute a simple Rabi experiment
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "rabi"
+        request.experiment_type = "calibrations.NormalisedRabi"
         request.parameters["dut_qubit"] = "q0"
         request.parameters["amp"] = "0.5"
         request.parameters["start"] = "0.0"
@@ -456,22 +470,23 @@ class TestLeeQBackendIntegration:
 
             response = service.RunExperiment(request, context)
 
-            if response.success and response.measurement_data:
-                # Test data deserialization
-                data_array = protobuf_to_numpy_array(response.measurement_data[0])
-
-                # Validate array properties
-                assert isinstance(data_array, np.ndarray)
-                assert data_array.size > 0
-                assert not np.isnan(data_array).all()
-
-                # Test serialization metadata
-                assert response.measurement_data[0].name != ""
-                assert response.measurement_data[0].dtype != ""
-                assert len(response.measurement_data[0].shape) > 0
-
-                # Test fit parameters serialization
-                for key, value in response.calibration_results.items():
+            if response.success and response.data:
+                # Test data extraction using new protocol
+                all_data = get_data(response)
+                arrays = get_arrays(response)
+                
+                if arrays:
+                    # Get the first array (typically measurement data)
+                    first_array = list(arrays.values())[0]
+                    
+                    # Validate array properties
+                    assert isinstance(first_array, np.ndarray)
+                    assert first_array.size > 0
+                    assert not np.isnan(first_array).all()
+                
+                # Test calibration results extraction
+                calibration_results = get_calibration_results(response)
+                for key, value in calibration_results.items():
                     assert isinstance(key, str)
                     assert isinstance(value, (float, int))  # Calibration results are numeric
 
@@ -517,7 +532,7 @@ class TestLeeQBackendIntegration:
 
         for i in range(3):
             thread = threading.Thread(
-                target=lambda i=i: results.append(execute_experiment("rabi", i))
+                target=lambda i=i: results.append(execute_experiment("calibrations.NormalisedRabi", i))
             )
             threads.append(thread)
             thread.start()
@@ -545,7 +560,7 @@ class TestLeeQBackendIntegration:
         # Test with None setup
         service_no_setup = ExperimentPlatformService(setup=None)
         request = epii_pb2.ExperimentRequest()
-        request.experiment_type = "rabi"
+        request.experiment_type = "calibrations.NormalisedRabi"
         request.parameters["dut_qubit"] = "q0"
 
         response = service_no_setup.RunExperiment(request, context)
@@ -575,7 +590,7 @@ class TestLeeQBackendIntegration:
 
         # Validate experiment types
         experiment_names = [exp.name for exp in response.experiment_types]
-        required_experiments = ["rabi", "t1", "ramsey", "echo", "drag", "randomized_benchmarking"]
+        required_experiments = ["calibrations.NormalisedRabi", "characterizations.SimpleT1", "calibrations.SimpleRamseyMultilevel", "characterizations.SpinEchoMultiLevel", "calibrations.DragCalibrationSingleQubitMultilevel", "characterizations.SingleQubitRandomizedBenchmarking"]
 
         for exp_name in required_experiments:
             assert exp_name in experiment_names, f"Missing required experiment: {exp_name}"

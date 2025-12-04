@@ -1,0 +1,16 @@
+# Chronicle Log Viewer Requirements
+# Web framework and UI components for the dashboard
+dash>=2.0.0
+dash-bootstrap-components>=1.0.0
+
+# Plotting library for interactive visualizations
+plotly>=5.0.0
+
+# LeeQ framework (must be installed separately with chronicle support)
+# The viewer requires leeq.chronicle module for loading experiment files
+
+# Testing dependencies (optional, for development)
+pytest>=7.0.0
+pytest-mock>=3.6.0
+
+# Note: Python 3.7+ is required

@@ -122,6 +122,14 @@ class Singleton(object):
 
         self._initialized = True
 
+    @classmethod
+    def _reset_singleton(cls):
+        """
+        Reset the singleton instance. Useful for testing.
+        This will force creation of a new instance on next access.
+        """
+        cls._instance = None
+
 
 class ObjectFactory(Singleton):
     """

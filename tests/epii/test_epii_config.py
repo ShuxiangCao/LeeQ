@@ -38,7 +38,7 @@ class TestEPIIConfig:
             "parameters": {
                 "simulation_backend": "high_level",
                 "qubits": {
-                    "q0": {"f01": 5.0e9, "t1": 30e-6}
+                    "q0": {"f01": 5.0e9, "characterizations.SimpleT1": 30e-6}
                 }
             }
         }
@@ -169,13 +169,13 @@ class TestEPIIConfig:
                 "q0": {
                     "f01": 5.0e9,
                     "anharmonicity": -0.33e9,
-                    "t1": 20e-6,
+                    "characterizations.SimpleT1": 20e-6,
                     "t2": 15e-6
                 },
                 "q1": {
                     "f01": 5.1e9,
                     "anharmonicity": -0.32e9,
-                    "t1": 25e-6,
+                    "characterizations.SimpleT1": 25e-6,
                     "t2": 18e-6
                 }
             },

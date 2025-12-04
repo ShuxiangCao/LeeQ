@@ -242,6 +242,35 @@ class Chronicle(Singleton):
         """
         return self._active_record_book is not None
 
+    def launch_viewer(self, **kwargs):
+        """
+        Launch chronicle viewer dashboard for current session.
+
+        This method launches a web-based dashboard for monitoring experiments
+        in the active Chronicle session. The dashboard polls every 5 seconds
+        to display newly completed experiments.
+
+        Args:
+            debug (bool): Whether to run in debug mode (default: True)
+            port (int): Port to run the server on (default: 8051)
+            **kwargs: Additional arguments passed to the Dash server
+
+        Example:
+            from leeq.chronicle import Chronicle
+            chronicle = Chronicle()
+            chronicle.start_log("my_session")
+            chronicle.launch_viewer()  # Opens dashboard at localhost:8051
+        """
+        from leeq.chronicle.viewer.session_dashboard import start_viewer
+
+        arguments = {
+            'chronicle_instance': self,
+            'debug': kwargs.get('debug', True),
+            'port': kwargs.get('port', 8051)
+        }
+        arguments.update(kwargs)
+        start_viewer(**arguments)
+
     def _get_record_by_path_or_id(self, record_book_path: Union[pathlib.Path, str], record_id: str = None,
                                   record_entry_path: Union[pathlib.Path, str] = None):
         """

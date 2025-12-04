@@ -93,7 +93,7 @@ def test_pytest_fixtures_import():
     assert callable(generate_experiment_result), "generate_experiment_result should be callable"
 
     # Test data generator
-    rabi_data = generate_experiment_result("rabi", 50)
+    rabi_data = generate_experiment_result("calibrations.NormalisedRabi", 50)
     assert "data" in rabi_data, "Generated data should have 'data' key"
     assert "fit_params" in rabi_data, "Generated data should have 'fit_params' key"
     assert len(rabi_data["data"]) == 50, "Should generate correct number of points"

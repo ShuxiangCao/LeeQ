@@ -37,7 +37,7 @@ def run_basic_calibration_sequence(dut, update_params=True):
         amp=0.2, 
         update=update_params
     )
-    results['rabi'] = rabi
+    results['calibrations.NormalisedRabi'] = rabi
     
     # 2. Ramsey frequency calibration (multiple scales)
     print("Running Ramsey frequency calibration...")
@@ -59,7 +59,7 @@ def run_basic_calibration_sequence(dut, update_params=True):
         stop=30, 
         step=0.5
     )
-    results['ramsey'] = {
+    results['calibrations.SimpleRamseyMultilevel'] = {
         'coarse': ramsey_coarse,
         'medium': ramsey_medium, 
         'fine': ramsey_fine
@@ -73,7 +73,7 @@ def run_basic_calibration_sequence(dut, update_params=True):
     # 4. DRAG calibration
     print("Running DRAG calibration...")
     drag = CrossAllXYDragMultiRunSingleQubitMultilevel(dut=dut)
-    results['drag'] = drag
+    results['calibrations.DragCalibrationSingleQubitMultilevel'] = drag
     
     return results
 
@@ -97,7 +97,7 @@ def run_coherence_characterization(dut):
         time_length=300, 
         time_resolution=5
     )
-    results['t1'] = t1
+    results['characterizations.SimpleT1'] = t1
     
     # T2 Echo measurement  
     print("Running T2 Echo measurement...")
@@ -180,8 +180,8 @@ def plot_coherence_measurements(coherence_results):
         )
         
         # T1 plot
-        if 't1' in coherence_results:
-            t1_data = coherence_results['t1'].get_results()
+        if 'characterizations.SimpleT1' in coherence_results:
+            t1_data = coherence_results['characterizations.SimpleT1'].get_results()
             fig.add_trace(
                 go.Scatter(
                     x=t1_data.get('times', []),
@@ -254,14 +254,14 @@ def analyze_calibration_results(calibration_results):
     
     try:
         # Extract Rabi results
-        if 'rabi' in calibration_results:
-            rabi = calibration_results['rabi']
+        if 'calibrations.NormalisedRabi' in calibration_results:
+            rabi = calibration_results['calibrations.NormalisedRabi']
             summary['pi_amplitude'] = getattr(rabi, 'calibrated_amplitude', 'N/A')
             summary['rabi_frequency'] = getattr(rabi, 'rabi_frequency', 'N/A')
         
         # Extract Ramsey results  
-        if 'ramsey' in calibration_results:
-            ramsey_fine = calibration_results['ramsey']['fine']
+        if 'calibrations.SimpleRamseyMultilevel' in calibration_results:
+            ramsey_fine = calibration_results['calibrations.SimpleRamseyMultilevel']['fine']
             summary['frequency_offset'] = getattr(ramsey_fine, 'frequency_offset', 'N/A')
             summary['t2_ramsey'] = getattr(ramsey_fine, 't2_ramsey', 'N/A')
         
@@ -271,8 +271,8 @@ def analyze_calibration_results(calibration_results):
             summary['phase_offset'] = getattr(pingpong, 'phase_offset', 'N/A')
         
         # Extract DRAG parameter
-        if 'drag' in calibration_results:
-            drag = calibration_results['drag']
+        if 'calibrations.DragCalibrationSingleQubitMultilevel' in calibration_results:
+            drag = calibration_results['calibrations.DragCalibrationSingleQubitMultilevel']
             summary['drag_coefficient'] = getattr(drag, 'drag_coefficient', 'N/A')
             
     except Exception as e:

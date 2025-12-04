@@ -5,24 +5,11 @@ This module maps EPII experiment names to LeeQ experiment classes
 and handles experiment discovery and execution routing.
 """
 
+import importlib
 import inspect
 import logging
+import pkgutil
 from typing import Any, Dict, List, Optional, Type
-
-from leeq.experiments.builtin.basic.calibrations.drag import (
-    DragCalibrationSingleQubitMultilevel,
-    DragPhaseCalibrationMultiQubitsMultilevel,
-)
-
-# Import LeeQ experiment classes
-from leeq.experiments.builtin.basic.calibrations.rabi import MultiQubitRabi, NormalisedRabi
-from leeq.experiments.builtin.basic.calibrations.ramsey import SimpleRamseyMultilevel
-from leeq.experiments.builtin.basic.characterizations.randomized_benchmarking import (
-    RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem,
-    SingleQubitRandomizedBenchmarking,
-)
-from leeq.experiments.builtin.basic.characterizations.t1 import MultiQubitT1, SimpleT1
-from leeq.experiments.builtin.basic.characterizations.t2 import SpinEchoMultiLevel
 
 logger = logging.getLogger(__name__)
 
@@ -35,89 +22,180 @@ class ExperimentRouter:
     LeeQ's internal experiment implementations.
     """
 
-    def __init__(self):
-        """Initialize the experiment router with default mappings."""
+    def __init__(self, setup=None):
+        """Initialize the experiment router with dynamic discovery.
+
+        Args:
+            setup: Optional LeeQ setup instance for backend-aware filtering
+        """
+        self.setup = setup
+        self.is_simulation = self._detect_simulation_setup()
         self.experiment_map: Dict[str, Type] = {}
-        self.parameter_map: Dict[str, Dict[str, str]] = {}
-        self._initialize_experiment_map()
-        self._initialize_parameter_map()
+        self._discover_experiments()  # Changed from _initialize_experiment_map
 
-    def _initialize_experiment_map(self):
+    def _detect_simulation_setup(self) -> bool:
         """
-        Initialize the mapping of EPII names to LeeQ experiments.
+        Check if the setup is a high-level simulation setup.
 
-        Maps EPII standard experiment names to corresponding LeeQ classes.
+        Returns:
+            True if setup is HighLevelSimulationSetup, False otherwise
         """
-        self.experiment_map = {
-            # Basic calibration experiments
-            "rabi": NormalisedRabi,
-            "multi_qubit_rabi": MultiQubitRabi,
+        if not self.setup:
+            return False
 
-            # T1 relaxation experiments
-            "t1": SimpleT1,
-            "multi_qubit_t1": MultiQubitT1,
+        try:
+            from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+            return isinstance(self.setup, HighLevelSimulationSetup)
+        except ImportError:
+            logger.warning("Could not import HighLevelSimulationSetup")
+            return False
 
-            # Ramsey experiments (T2*)
-            "ramsey": SimpleRamseyMultilevel,
+    def _has_own_run_simulated(self, exp_class: Type) -> bool:
+        """
+        Check if an experiment class has its own run_simulated implementation
+        (not just inherited from base class).
 
-            # Echo experiments (T2 echo)
-            "echo": SpinEchoMultiLevel,
-            "spin_echo": SpinEchoMultiLevel,
+        Args:
+            exp_class: The experiment class to check
 
-            # DRAG calibration
-            "drag": DragCalibrationSingleQubitMultilevel,
-            "drag_phase": DragPhaseCalibrationMultiQubitsMultilevel,
+        Returns:
+            True if the class implements its own run_simulated method
+        """
+        if not hasattr(exp_class, 'run_simulated'):
+            return False
 
-            # Randomized benchmarking
-            "randomized_benchmarking": RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem,
-            "single_qubit_rb": SingleQubitRandomizedBenchmarking,
+        # Check if run_simulated is defined in this class, not inherited
+        # We check the class itself, not parent classes
+        if 'run_simulated' in exp_class.__dict__:
+            return True
+
+        # Also check if any direct parent (not base Experiment) has it
+        # This handles cases where a specialized experiment base class implements it
+        for base in exp_class.__bases__:
+            # Skip the base Experiment classes
+            if base.__name__ in ['Experiment', 'LeeQAIExperiment', 'KExperiment']:
+                continue
+            if 'run_simulated' in base.__dict__:
+                return True
+
+        return False
+
+    def _has_text_inspection(self, exp_class: Type) -> bool:
+        """
+        Check if an experiment class has at least one text inspection method.
+
+        Args:
+            exp_class: The experiment class to check
+
+        Returns:
+            True if the class has at least one text inspection method
+        """
+        try:
+            from k_agents.inspection.agents import TextInspectionAgent
+
+            for name, method in inspect.getmembers(exp_class, predicate=inspect.isfunction):
+                agent = getattr(method, "_inspection_agent", None)
+                if agent is not None and isinstance(agent, TextInspectionAgent):
+                    return True
+            return False
+        except ImportError:
+            logger.warning("Could not import TextInspectionAgent - skipping text inspection filter")
+            return True  # Allow experiments if we can't check
+
+    def _discover_experiments(self):
+        """
+        Dynamically discover all experiments with EPII_INFO.
+        Filters based on backend type - only includes experiments with run_simulated
+        method when using high-level simulation setup.
+        """
+        from leeq.experiments import builtin
+
+        # Walk through all modules in builtin
+        for importer, modname, ispkg in pkgutil.walk_packages(
+            builtin.__path__,
+            prefix="leeq.experiments.builtin."
+        ):
+            try:
+                module = importlib.import_module(modname)
+
+                # Check each class in the module
+                for name, obj in inspect.getmembers(module, inspect.isclass):
+                    # Only process classes actually defined in this module (not imported)
+                    if obj.__module__ != modname:
+                        continue
+
+                    # Include if has EPII_INFO and run method (not a base class)
+                    if hasattr(obj, 'EPII_INFO') and hasattr(obj, 'run'):
+                        # Filter for simulation capability if using high-level simulator
+                        if self.is_simulation:
+                            # Check if the class actually implements run_simulated, not just inherits it
+                            if not self._has_own_run_simulated(obj):
+                                logger.debug(f"Skipping {name} - no run_simulated implementation for simulation setup")
+                                continue
+
+                        # Filter for text inspection capability
+                        if not self._has_text_inspection(obj):
+                            logger.debug(f"Skipping {name} - no text inspection methods found")
+                            continue
+
+                        # Build experiment name with submodule prefix
+                        # Extract submodule name from module path dynamically
+                        module_parts = modname.split('.')
+
+                        # Find the submodule name by looking for the meaningful directory after 'basic'
+                        # Skip 'leeq.experiments.builtin.basic' and find the actual submodule
+                        submodule_name = None
+                        for i, part in enumerate(module_parts):
+                            if part == 'builtin' and i + 2 < len(module_parts):
+                                # Skip 'basic' and take the next meaningful part (calibrations, characterizations, etc.)
+                                submodule_name = module_parts[i + 2]
+                                break
+
+                        # Use submodule name if available, otherwise use experiment name directly
+                        if submodule_name:
+                            exp_name = f"{submodule_name}.{name}"
+                        else:
+                            exp_name = name
+
+                        # Check for duplicates
+                        if exp_name in self.experiment_map:
+                            # Add more specific module path to disambiguate
+                            specific_path = '.'.join(module_parts[-2:]) if len(module_parts) > 1 else module_parts[-1]
+                            exp_name = f"{specific_path}.{name}"
+
+                        self.experiment_map[exp_name] = obj
+                        logger.debug(f"Discovered experiment: {exp_name} -> {name}")
+
+            except Exception as e:
+                logger.warning(f"Failed to import {modname}: {e}")
+
+        if self.is_simulation:
+            logger.info(f"Discovered {len(self.experiment_map)} experiments with run_simulated method and text inspection for simulation setup")
+        else:
+            logger.info(f"Discovered {len(self.experiment_map)} experiments with EPII_INFO and text inspection")
+
+
+    def get_experiment_info(self, name: str) -> Dict[str, Any]:
+        """
+        Get EPII_INFO and run docstring for an experiment.
+        New method to support enhanced responses.
+        """
+        experiment_class = self.get_experiment(name)
+        if not experiment_class:
+            return {}
+
+        info = {
+            'epii_info': getattr(experiment_class, 'EPII_INFO', {}),
+            'run_docstring': None
         }
 
-    def _initialize_parameter_map(self):
-        """
-        Initialize parameter mappings between EPII names and LeeQ parameter names.
+        # Get run method docstring
+        if hasattr(experiment_class, 'run'):
+            run_method = experiment_class.run
+            if run_method.__doc__:
+                info['run_docstring'] = inspect.cleandoc(run_method.__doc__)
 
-        This handles cases where EPII uses different parameter names than LeeQ.
-        """
-        self.parameter_map = {
-            "rabi": {
-                "amplitude": "amp",
-                "start_width": "start",
-                "stop_width": "stop",
-                "width_step": "step",
-                "qubit": "dut_qubit",
-            },
-            "t1": {
-                "qubit": "qubit",
-                "time_max": "time_length",
-                "time_step": "time_resolution",
-            },
-            "ramsey": {
-                "qubit": "dut",
-                "start_time": "start",
-                "stop_time": "stop",
-                "time_step": "step",
-                "frequency_offset": "set_offset",
-            },
-            "echo": {
-                "qubit": "dut",
-                "evolution_time": "free_evolution_time",
-                "time_step": "time_resolution",
-            },
-            "drag": {
-                "qubit": "dut",
-                "repetitions": "N",
-                "alpha_start": "inv_alpha_start",
-                "alpha_stop": "inv_alpha_stop",
-                "num_points": "num",
-            },
-            "randomized_benchmarking": {
-                "qubits": "dut_list",
-                "max_length": "seq_length",
-                "num_sequences": "kinds",
-                "clifford_set": "cliff_set",
-            },
-        }
+        return info
 
     def get_experiment(self, name: str) -> Optional[Type]:
         """
@@ -137,27 +215,16 @@ class ExperimentRouter:
     def list_experiments(self) -> Dict[str, str]:
         """
         List all available experiments with their descriptions.
-
-        Returns:
-            Dictionary mapping experiment names to descriptions
+        Updated to use EPII_INFO descriptions.
         """
-        descriptions = {
-            "rabi": "Rabi oscillation experiment for calibrating pulse amplitude",
-            "multi_qubit_rabi": "Multi-qubit Rabi oscillation experiment",
-            "t1": "T1 relaxation time measurement",
-            "multi_qubit_t1": "Multi-qubit T1 relaxation measurement",
-            "ramsey": "Ramsey experiment for T2* measurement and frequency calibration",
-            "echo": "Spin echo experiment for T2 echo measurement",
-            "spin_echo": "Spin echo experiment for T2 echo measurement (alias)",
-            "drag": "DRAG coefficient calibration using AllXY sequence",
-            "drag_phase": "DRAG phase calibration for multiple qubits",
-            "randomized_benchmarking": "Randomized benchmarking for gate fidelity",
-            "single_qubit_rb": "Single qubit randomized benchmarking",
-        }
-
-        # Only return descriptions for experiments that are actually mapped
-        return {name: desc for name, desc in descriptions.items()
-                if name in self.experiment_map}
+        descriptions = {}
+        for name, exp_class in self.experiment_map.items():
+            if hasattr(exp_class, 'EPII_INFO'):
+                epii_info = exp_class.EPII_INFO
+                descriptions[name] = epii_info.get('description', f'{name} experiment')
+            else:
+                descriptions[name] = f'{name} experiment'
+        return descriptions
 
     def get_experiment_parameters(self, name: str) -> Dict[str, Any]:
         """
@@ -200,30 +267,118 @@ class ExperimentRouter:
             logger.error(f"Experiment class {experiment_class.__name__} has no 'run' method")
             return {}
 
-    def map_parameters(self, experiment_name: str, epii_params: Dict[str, Any]) -> Dict[str, Any]:
+    def map_parameters(self, experiment_name: str, epii_params: Dict[str, Any], setup=None) -> Dict[str, Any]:
         """
-        Map EPII parameter names to LeeQ parameter names.
+        Resolve qubit references in experiment parameters.
 
         Args:
             experiment_name: Name of the experiment
-            epii_params: Parameters with EPII naming convention
+            epii_params: Parameters dictionary
+            setup: Optional setup instance to resolve qubit references
 
         Returns:
-            Parameters with LeeQ naming convention
+            Parameters with resolved qubit objects
         """
-        if experiment_name not in self.parameter_map:
-            # No mapping needed, return as is
-            return epii_params
+        # With aliases removed, parameters are passed through directly
+        # Only qubit resolution is performed
+        leeq_params = epii_params.copy()
 
-        mapping = self.parameter_map[experiment_name]
-        leeq_params = {}
-
-        for epii_name, value in epii_params.items():
-            # Map the parameter name if a mapping exists
-            leeq_name = mapping.get(epii_name, epii_name)
-            leeq_params[leeq_name] = value
+        # Resolve qubit references if setup is provided
+        if setup:
+            leeq_params = self._resolve_qubit_references(leeq_params, setup)
 
         return leeq_params
+
+    def _resolve_qubit_references(self, params: Dict[str, Any], setup) -> Dict[str, Any]:
+        """
+        Resolve qubit string references to actual qubit objects.
+
+        Args:
+            params: Parameters dictionary
+            setup: Setup instance with qubit registry
+
+        Returns:
+            Parameters with resolved qubit objects
+        """
+        resolved = params.copy()
+
+        # List of parameter names that typically contain qubit references
+        qubit_param_names = ['qubit', 'dut_qubit', 'dut', 'qubits', 'dut_list']
+
+        for param_name in qubit_param_names:
+            if param_name in resolved:
+                value = resolved[param_name]
+
+                # Handle single qubit reference (string or int)
+                if isinstance(value, (str, int)):
+                    try:
+                        # Convert int to string for resolution
+                        qubit_ref = str(value) if isinstance(value, int) else value
+                        resolved[param_name] = self._get_qubit_from_setup(qubit_ref, setup)
+                    except ValueError as e:
+                        logger.warning(f"Failed to resolve qubit for {param_name}: {e}")
+                        # Keep the original value if resolution fails
+                        # This allows experiments to handle references themselves
+                        pass
+                # Handle list of qubit references
+                elif isinstance(value, list):
+                    resolved_list = []
+                    for q in value:
+                        if isinstance(q, (str, int)):
+                            try:
+                                # Convert int to string for resolution
+                                qubit_ref = str(q) if isinstance(q, int) else q
+                                resolved_list.append(self._get_qubit_from_setup(qubit_ref, setup))
+                            except ValueError as e:
+                                logger.warning(f"Failed to resolve qubit '{q}': {e}")
+                                # Keep original value if resolution fails
+                                resolved_list.append(q)
+                        else:
+                            resolved_list.append(q)
+                    resolved[param_name] = resolved_list
+
+        return resolved
+
+    def _get_qubit_from_setup(self, qubit_name: str, setup):
+        """
+        Get a qubit object from the setup by name.
+
+        Args:
+            qubit_name: Name of the qubit (e.g., '0', '1', 'q0', 'Q0')
+            setup: Setup instance
+
+        Returns:
+            Qubit object from setup
+
+        Raises:
+            ValueError: If qubit cannot be resolved
+        """
+        # Handle pure number format ("0", "1", etc.)
+        if qubit_name.isdigit():
+            index = int(qubit_name)
+            # Try qubits list first
+            if hasattr(setup, 'qubits') and isinstance(setup.qubits, list):
+                if index < len(setup.qubits):
+                    return setup.qubits[index]
+            # Try q{index} attribute
+            if hasattr(setup, f'q{index}'):
+                return getattr(setup, f'q{index}')
+
+        # Handle "q0", "Q0" format
+        elif qubit_name.lower().startswith('q'):
+            try:
+                index = int(qubit_name[1:])
+                # Try qubits list
+                if hasattr(setup, 'qubits') and index < len(setup.qubits):
+                    return setup.qubits[index]
+                # Try direct attribute
+                if hasattr(setup, qubit_name.lower()):
+                    return getattr(setup, qubit_name.lower())
+            except ValueError:
+                pass
+
+        # Fail explicitly instead of returning string
+        raise ValueError(f"Cannot resolve qubit '{qubit_name}' from setup. Available: {getattr(setup, 'qubits', [])}")
 
     def validate_parameters(self, experiment_name: str, parameters: Dict[str, Any]) -> tuple[bool, List[str]]:
         """

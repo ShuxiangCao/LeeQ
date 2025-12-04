@@ -284,5 +284,5 @@ def test_multi_qubit_t1_plot_methods(simulation_setup, dut_qubits):
     assert fig2 is not None
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+# Script-style execution converted to proper pytest discovery
+# Tests will be run by pytest discovery, no manual execution needed

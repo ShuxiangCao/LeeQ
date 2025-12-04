@@ -279,9 +279,16 @@ class EPIIDaemon:
         setup_type = self.config.get("setup_type", "simulation")
 
         if setup_type == "simulation":
-            # For Phase 1, we'll use None and add real setup loading in Phase 2
-            logger.info("Using simulation mode (no real setup)")
-            return None
+            # Create actual simulation setup using config module
+            from .config import create_setup_from_config
+            logger.info("Creating simulation setup from configuration")
+            try:
+                setup = create_setup_from_config(self.config)
+                logger.info(f"Created simulation setup: {setup.name if hasattr(setup, 'name') else 'simulation'}")
+                return setup
+            except Exception as e:
+                logger.error(f"Failed to create simulation setup: {e}")
+                return None
         else:
             # Hardware setup loading will be implemented in Phase 2
             logger.warning(f"Setup type {setup_type} not yet implemented")
@@ -577,7 +584,7 @@ def main() -> None:
     parser.add_argument(
         "--test-experiment",
         type=str,
-        help="Test experiment execution and exit (default: rabi)"
+        help="Test experiment execution and exit (default: calibrations.NormalisedRabi)"
     )
 
     args = parser.parse_args()
@@ -657,7 +664,7 @@ def main() -> None:
 
         # Handle test experiment
         if args.test_experiment is not None:
-            experiment_name = args.test_experiment if args.test_experiment else "rabi"
+            experiment_name = args.test_experiment if args.test_experiment else "calibrations.NormalisedRabi"
             print(f"Testing experiment: {experiment_name}")  # noqa: T201
             try:
                 # Create temporary service instance for testing

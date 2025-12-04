@@ -43,6 +43,46 @@ class QubitTomographyBase(GeneralisedTomographyBase):
 
 
 class SingleQubitStateTomography(GeneralisedSingleDutStateTomography):
+    EPII_INFO = {
+        "name": "SingleQubitStateTomography",
+        "description": "Single-qubit quantum state tomography experiment",
+        "purpose": "Performs complete state tomography on a single qubit to reconstruct its density matrix. Uses Pauli measurement basis (I, X, Y) to fully characterize the quantum state.",
+        "attributes": {
+            "model": {
+                "type": "SingleQubitModel",
+                "description": "Single qubit tomography model"
+            },
+            "state_tomography_model": {
+                "type": "Any",
+                "description": "State tomography model for single qubit"
+            },
+            "result": {
+                "type": "np.ndarray",
+                "description": "Raw measurement results",
+                "shape": "(3,)"
+            },
+            "vec": {
+                "type": "np.ndarray[complex]",
+                "description": "Reconstructed state vector",
+                "shape": "(2,)"
+            },
+            "dm": {
+                "type": "np.ndarray[complex]",
+                "description": "Reconstructed density matrix",
+                "shape": "(2, 2)"
+            },
+            "_gate_lpbs": {
+                "type": "dict",
+                "description": "Dictionary of Pauli gates (I, Xp, Yp, X) for measurements"
+            }
+        },
+        "notes": [
+            "Uses three Pauli measurements (I, X, Y) to reconstruct the state",
+            "The density matrix is reconstructed using linear inversion",
+            "mprim_index default is 0 for single qubits",
+            "Can apply an initial_lpb to prepare a specific state before tomography"
+        ]
+    }
 
     def initialize_gate_lpbs(self, dut):
         self._gate_lpbs = {}
@@ -54,12 +94,91 @@ class SingleQubitStateTomography(GeneralisedSingleDutStateTomography):
 
     @log_and_record
     def run(self, dut, mprim_index=0, initial_lpb=None, extra_measurement_duts=None):
+        """
+        Execute single-qubit state tomography.
+
+        Parameters
+        ----------
+        dut : Any
+            The qubit device under test.
+        mprim_index : int, optional
+            Measurement primitive index. Default: 0
+        initial_lpb : LogicalPrimitiveBlock, optional
+            Initial logical primitive block to prepare the state. Default: None
+        extra_measurement_duts : List[Any], optional
+            Additional DUTs for extra measurements. Default: None
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes (result, vec, dm).
+        """
         from leeq.theory.tomography import SingleQubitModel
         model = SingleQubitModel()
         super().run(dut, model, mprim_index, initial_lpb, extra_measurement_duts)
 
 
 class MultiQubitsStateTomography(GeneralisedStateTomography, QubitTomographyBase):
+    EPII_INFO = {
+        "name": "MultiQubitsStateTomography",
+        "description": "Multi-qubit quantum state tomography experiment",
+        "purpose": "Performs complete state tomography on multiple qubits to reconstruct the joint density matrix. Uses tensor products of Pauli measurements to fully characterize entangled quantum states.",
+        "attributes": {
+            "model": {
+                "type": "MultiQubitModel",
+                "description": "Multi-qubit tomography model"
+            },
+            "state_tomography_model": {
+                "type": "Any",
+                "description": "State tomography model for multi-qubit system"
+            },
+            "state_vector_ideal": {
+                "type": "np.ndarray[complex] or None",
+                "description": "Ideal state vector for fidelity calculation",
+                "shape": "(2^n_qubits,)"
+            },
+            "measurement_mitigation": {
+                "type": "CalibrateFullAssignmentMatrices or None",
+                "description": "Measurement error mitigation calibration"
+            },
+            "result": {
+                "type": "np.ndarray",
+                "description": "Raw measurement results",
+                "shape": "(n_qubits, 3^n_qubits, n_outcomes)"
+            },
+            "prob": {
+                "type": "np.ndarray[float]",
+                "description": "Probability distributions after processing",
+                "shape": "(3^n_qubits, 2^n_qubits)"
+            },
+            "vec": {
+                "type": "np.ndarray[complex]",
+                "description": "Reconstructed state vector",
+                "shape": "(2^n_qubits,)"
+            },
+            "dm": {
+                "type": "np.ndarray[complex]",
+                "description": "Reconstructed density matrix",
+                "shape": "(2^n_qubits, 2^n_qubits)"
+            },
+            "_gate_lpbs": {
+                "type": "dict",
+                "description": "Dictionary of tensor product Pauli gates for measurements"
+            },
+            "base": {
+                "type": "int",
+                "description": "Base for qubit system (always 2)"
+            }
+        },
+        "notes": [
+            "Scales exponentially with number of qubits (3^n measurements)",
+            "Supports measurement error mitigation for improved accuracy",
+            "Can provide ideal state vector for fidelity calculation",
+            "Results must be analyzed before accessing vec and dm attributes",
+            "mprim_index default is 0 for qubits"
+        ]
+    }
+
     _experiment_result_analysis_instructions = """
     The result of the experiment is the density matrix of the quantum state. Check if the density matrix has been reported.
     by data analysis. Report the fidelity if applicable. The fidelity is not the criterion for the success of the
@@ -127,6 +246,62 @@ class MultiQubitsStateTomography(GeneralisedStateTomography, QubitTomographyBase
 
 
 class MultiQubitsProcessTomography(GeneralisedProcessTomography, QubitTomographyBase):
+    EPII_INFO = {
+        "name": "MultiQubitsProcessTomography",
+        "description": "Multi-qubit quantum process tomography experiment",
+        "purpose": "Performs complete process tomography on multi-qubit quantum operations to reconstruct the Pauli transfer matrix. Characterizes arbitrary quantum channels including gates, noise, and decoherence.",
+        "attributes": {
+            "model": {
+                "type": "MultiQubitModel",
+                "description": "Multi-qubit tomography model"
+            },
+            "process_tomography_model": {
+                "type": "Any",
+                "description": "Process tomography model for multi-qubit system"
+            },
+            "u_ideal": {
+                "type": "np.ndarray[complex] or None",
+                "description": "Ideal unitary matrix for fidelity calculation",
+                "shape": "(2^n_qubits, 2^n_qubits)"
+            },
+            "measurement_mitigation": {
+                "type": "CalibrateFullAssignmentMatrices or None",
+                "description": "Measurement error mitigation calibration"
+            },
+            "result": {
+                "type": "np.ndarray",
+                "description": "Raw measurement results",
+                "shape": "(n_qubits, 4^n_qubits, 3^n_qubits, n_outcomes)"
+            },
+            "prob": {
+                "type": "np.ndarray[float]",
+                "description": "Probability distributions after processing",
+                "shape": "(4^n_qubits, 3^n_qubits, 2^n_qubits)"
+            },
+            "ptm": {
+                "type": "np.ndarray[complex]",
+                "description": "Reconstructed Pauli transfer matrix",
+                "shape": "(4^n_qubits, 4^n_qubits)"
+            },
+            "_gate_lpbs": {
+                "type": "dict",
+                "description": "Dictionary of tensor product Pauli gates for state preparation and measurement"
+            },
+            "base": {
+                "type": "int",
+                "description": "Base for qubit system (always 2)"
+            }
+        },
+        "notes": [
+            "Scales exponentially with number of qubits (4^n preparations × 3^n measurements)",
+            "The lpb parameter contains the process to be characterized",
+            "Supports measurement error mitigation for improved accuracy",
+            "Can provide ideal unitary for process fidelity calculation",
+            "Results must be analyzed before accessing ptm attribute",
+            "mprim_index default is 0 for qubits"
+        ]
+    }
+
     _experiment_result_analysis_instructions = """
     The result of the experiment is the Pauli transfer matrix of the quantum process. Check if the Pauli transfer matrix
     has been reported by data analysis, and the result is physically meaningful. Report the fidelity if applicable.

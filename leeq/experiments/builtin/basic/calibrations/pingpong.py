@@ -26,6 +26,42 @@ __all__ = [
 
 
 class PingPongSingleQubitMultilevel(Experiment):
+    EPII_INFO = {
+        "name": "PingPongSingleQubitMultilevel",
+        "description": "Ping-pong experiment for single qubit amplitude calibration",
+        "purpose": "Performs ping-pong sequence to measure and correct amplitude errors in single-qubit gates. Used for fine-tuning gate amplitudes by detecting over/under-rotation through error accumulation.",
+        "attributes": {
+            "result": {
+                "type": "np.ndarray[float]",
+                "description": "Measured expectation values for each pulse count",
+                "shape": "(n_pulse_counts,)"
+            },
+            "pulse_count": {
+                "type": "np.ndarray[int]",
+                "description": "Array of pulse repetition counts",
+                "shape": "(n_pulse_counts,)"
+            },
+            "amplitude": {
+                "type": "float",
+                "description": "Current amplitude of the repeated gate"
+            },
+            "fit_result": {
+                "type": "tuple[float, float]",
+                "description": "Linear fit parameters (slope, intercept)"
+            },
+            "error": {
+                "type": "float",
+                "description": "Measured amplitude error from fit slope"
+            }
+        },
+        "notes": [
+            "Error accumulates linearly with pulse count",
+            "Slope of linear fit indicates amplitude error",
+            "Used for fine calibration after rough tuning",
+            "Works for both pi and pi/2 pulses"
+        ]
+    }
+
     """
     Class representing a Ping Pong experiment with a single qubit in a multilevel setup.
 
@@ -228,6 +264,48 @@ class PingPongSingleQubitMultilevel(Experiment):
 
 
 class AmpPingpongCalibrationSingleQubitMultilevel(Experiment):
+    EPII_INFO = {
+        "name": "AmpPingpongCalibrationSingleQubitMultilevel",
+        "description": "Iterative amplitude calibration using ping-pong sequences",
+        "purpose": "Performs iterative amplitude calibration through multiple ping-pong experiments, converging on optimal gate amplitude. Provides fine-tuning with uncertainty quantification.",
+        "attributes": {
+            "tune_up_results": {
+                "type": "list[np.ndarray]",
+                "description": "Results from each ping-pong iteration"
+            },
+            "fit_params": {
+                "type": "list[tuple]",
+                "description": "Fit parameters from each iteration"
+            },
+            "pulse_counts": {
+                "type": "list[np.ndarray]",
+                "description": "Pulse counts used in each iteration"
+            },
+            "amps": {
+                "type": "list[ufloat]",
+                "description": "Amplitude values with uncertainties for each iteration"
+            },
+            "best_amp": {
+                "type": "ufloat",
+                "description": "Final calibrated amplitude with uncertainty"
+            },
+            "error": {
+                "type": "float",
+                "description": "Final amplitude error estimate"
+            },
+            "iteration": {
+                "type": "int",
+                "description": "Total number of iterations performed"
+            }
+        },
+        "notes": [
+            "Converges through iterative correction",
+            "Doubles pulse count each iteration for better precision",
+            "Requires rough calibration beforehand",
+            "Tracks uncertainty through iterations"
+        ]
+    }
+
     """
     This class represents an amplitude tuning experiment for a single qubit multilevel system.
     """
@@ -336,6 +414,21 @@ class AmpPingpongCalibrationSingleQubitMultilevel(Experiment):
         c1.update_parameters(amp=self.best_amp.nominal_value)
 
     def run_simulated(self, *args, **kwargs):
+        """
+        Execute the experiment in simulation mode.
+
+        Parameters
+        ----------
+        *args : tuple
+            Positional arguments to pass to run method.
+        **kwargs : dict
+            Keyword arguments to pass to run method.
+
+        Returns
+        -------
+        Any
+            Returns the result from the run method.
+        """
         # This class does not directly deal with the hardware, so we forward the call to the run method.
         return self.run(*args, **kwargs)
 
@@ -362,6 +455,34 @@ class AmpPingpongCalibrationSingleQubitMultilevel(Experiment):
 
 
 class PingPongMultiQubitMultilevel(Experiment):
+    EPII_INFO = {
+        "name": "PingPongMultiQubitMultilevel",
+        "description": "Multi-qubit ping-pong experiment for parallel amplitude calibration",
+        "purpose": "Performs ping-pong sequences on multiple qubits simultaneously to measure and correct amplitude errors. Enables efficient parallel calibration of multi-qubit gates.",
+        "attributes": {
+            "results": {
+                "type": "list[np.ndarray[float]]",
+                "description": "Measured expectation values for each qubit",
+                "shape": "List of arrays, each (n_pulse_counts,)"
+            },
+            "pulse_count": {
+                "type": "np.ndarray[int]",
+                "description": "Array of pulse repetition counts",
+                "shape": "(n_pulse_counts,)"
+            },
+            "fit_results": {
+                "type": "list[tuple[float, float]]",
+                "description": "Linear fit parameters for each qubit"
+            }
+        },
+        "notes": [
+            "Calibrates multiple qubits in parallel",
+            "Each qubit gets independent error measurement",
+            "Efficient for multi-qubit systems",
+            "Supports different gates per qubit"
+        ]
+    }
+
     """
     Class representing a Ping Pong experiment with a multi qubit in a multilevel setup.
 
@@ -495,6 +616,44 @@ class PingPongMultiQubitMultilevel(Experiment):
 
 
 class AmpTuneUpMultiQubitMultilevel(Experiment):
+    EPII_INFO = {
+        "name": "AmpTuneUpMultiQubitMultilevel",
+        "description": "Iterative multi-qubit amplitude calibration using ping-pong",
+        "purpose": "Performs iterative amplitude calibration on multiple qubits through parallel ping-pong experiments. Converges on optimal gate amplitudes for all qubits simultaneously.",
+        "attributes": {
+            "tune_up_results": {
+                "type": "list[list[np.ndarray]]",
+                "description": "Results from each iteration for each qubit"
+            },
+            "fit_params": {
+                "type": "list[list[tuple]]",
+                "description": "Fit parameters from each iteration for each qubit"
+            },
+            "pulse_counts": {
+                "type": "list[np.ndarray]",
+                "description": "Pulse counts used in each iteration"
+            },
+            "amps": {
+                "type": "list[list[float]]",
+                "description": "Amplitude values for each qubit at each iteration"
+            },
+            "best_amps": {
+                "type": "list[float]",
+                "description": "Final calibrated amplitudes for each qubit"
+            },
+            "iteration": {
+                "type": "int",
+                "description": "Total number of iterations performed"
+            }
+        },
+        "notes": [
+            "Parallel calibration of multiple qubits",
+            "Each qubit converges independently",
+            "Efficient for multi-qubit gate calibration",
+            "Requires rough calibration beforehand"
+        ]
+    }
+
     """
     This class represents an amplitude tuning experiment for a multi qubit multilevel system.
     """

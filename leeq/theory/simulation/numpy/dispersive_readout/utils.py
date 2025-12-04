@@ -5,9 +5,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KernelDensity
 
 
-def root_lorentzian(
-        f: float, f0: float, kappa: float, amp: float, baseline: float
-) -> float:
+def root_lorentzian(f: float, f0: float, kappa: float, amp: float, baseline: float) -> float:
     """
     Calculate the root of the Lorentzian function.
 
@@ -63,15 +61,15 @@ def get_t_list(sampling_rate: int, width: float) -> np.ndarray:
 
 
 def soft_square(
-        sampling_rate: int,
-        amp: float,
-        phase: Optional[float] = None,
-        width: Optional[float] = None,
-        rise: Optional[float] = None,
-        trunc: Optional[float] = None,
-        delay: float = 0.0,
-        phase_shift: float = 0,
-        ex_delay: float = 0,
+    sampling_rate: int,
+    amp: float,
+    phase: Optional[float] = None,
+    width: Optional[float] = None,
+    rise: Optional[float] = None,
+    trunc: Optional[float] = None,
+    delay: float = 0.0,
+    phase_shift: float = 0,
+    ex_delay: float = 0,
 ) -> np.ndarray:
     """
     Generate a soft square wave.
@@ -96,10 +94,7 @@ def soft_square(
     t -= 0.5 * delay
 
     if rise == 0:
-        y = (
-            amp * np.ones_like(t)
-            * np.exp(1.0j * (phase + phase_shift))
-        )
+        y = amp * np.ones_like(t) * np.exp(1.0j * (phase + phase_shift))
     else:
         y = (
             amp
@@ -115,11 +110,7 @@ def soft_square(
     return y
 
 
-def estimate_relative_entropy(
-        dist_p,
-        dist_q,
-        kernel="gaussian",
-        search_params=None):
+def estimate_relative_entropy(dist_p, dist_q, kernel="gaussian", search_params=None):
     """
     Estimate the relative entropy between two distributions, using kernel density estimation and
     monte carlo integration.

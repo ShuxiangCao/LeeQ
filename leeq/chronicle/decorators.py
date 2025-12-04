@@ -4,6 +4,7 @@ import decorator
 from .chronicle import Chronicle
 from .core import LoggableObject
 from .logger import setup_logging
+from leeq.utils import is_running_in_jupyter
 
 logger = setup_logging(__name__)
 
@@ -143,7 +144,11 @@ def _log_and_record(func, args, kwargs, record_details=True, overwrite_func_name
             record.record_object(self)
 
     if error_info is not None:
-        raise error_info
+        if is_running_in_jupyter():
+            logger.error(f"Experiment error: {error_info}")
+            logger.error("Continuing in Jupyter mode. Data has been saved.")
+        else:
+            raise error_info
 
     return retval
 

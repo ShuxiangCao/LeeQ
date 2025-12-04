@@ -43,7 +43,7 @@ def main():
         print("\nRunning Rabi experiment...")
         amplitudes = np.linspace(0, 1, 11)
         request = epii_pb2.ExperimentRequest(
-            experiment_name="rabi",
+            experiment_name="calibrations.NormalisedRabi",
             parameters={
                 "qubit": "q0",
                 "amplitudes": serialize_array(amplitudes),

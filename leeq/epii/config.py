@@ -11,6 +11,8 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import numpy as np
+
 from leeq.setups.setup_base import ExperimentalSetup
 from leeq.theory.simulation.numpy.rotated_frame_simulator import VirtualTransmon
 
@@ -207,16 +209,17 @@ class EPIIConfig:
 
     def _create_high_level_simulation(self, name: str, num_qubits: int) -> ExperimentalSetup:
         """
-        Create a high-level simulation setup.
+        Create a high-level simulation setup with proper qubit elements.
 
         Args:
             name: Setup name
             num_qubits: Number of qubits
 
         Returns:
-            HighLevelSimulationSetup instance
+            HighLevelSimulationSetup instance with TransmonElement qubits
         """
         from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
+        from leeq.core.elements.built_in.qudit_transmon import TransmonElement
 
         # Create virtual qubits from configuration
         virtual_qubits = {}
@@ -231,7 +234,7 @@ class EPIIConfig:
                 name=qubit_name,
                 qubit_frequency=qubit_params.get("f01", 5000 + i * 100) / 1e6,  # Convert Hz to MHz
                 anharmonicity=qubit_params.get("anharmonicity", -330) / 1e6,  # Convert Hz to MHz
-                t1=qubit_params.get("t1", 20e-6) * 1e6,  # Convert seconds to microseconds
+                t1=qubit_params.get("characterizations.SimpleT1", 20e-6) * 1e6,  # Convert seconds to microseconds
                 t2=qubit_params.get("t2", 15e-6) * 1e6,  # Convert seconds to microseconds
                 readout_frequency=qubit_params.get("readout_frequency", 8800 + i * 200),
                 readout_linewith=1,
@@ -254,11 +257,75 @@ class EPIIConfig:
                 strength = coupling_params.get("strength", 5e6) / 1e6  # Convert Hz to MHz
                 coupling_map[frozenset([q1_idx * 2, q2_idx * 2])] = strength
 
-        return HighLevelSimulationSetup(
+        # Create the setup
+        setup = HighLevelSimulationSetup(
             name=name,
             virtual_qubits=virtual_qubits,
             coupling_strength_map=coupling_map if coupling_map else None
         )
+
+        # Create TransmonElement objects and add them to the setup
+        setup.qubits = []
+        for i in range(num_qubits):
+            qubit_name = f"q{i}"
+            qubit_params = qubits_config.get(qubit_name, {})
+
+            # Get frequencies from config or use defaults
+            f01_freq = qubit_params.get("f01", 5000e6 + i * 100e6) / 1e6  # Convert Hz to MHz
+            readout_freq = qubit_params.get("readout_frequency", 9645e6 + i * 10e6) / 1e6  # Convert Hz to MHz
+            anharmonicity = qubit_params.get("anharmonicity", -330e6) / 1e6  # Convert Hz to MHz
+
+            # Create TransmonElement with proper parameter structure
+            element_params = {
+                'hrid': qubit_name.upper(),  # Use uppercase for consistency
+                'lpb_collections': {
+                    'f01': {
+                        'type': 'SimpleDriveCollection',
+                        'freq': f01_freq,
+                        'channel': i * 2,  # Drive channel
+                        'shape': 'blackman_drag',
+                        'amp': 0.5,  # Default amplitude
+                        'phase': 0.,
+                        'width': 0.05,  # 50ns pulse width
+                        'alpha': 500,
+                        'trunc': 1.2
+                    },
+                    'f12': {
+                        'type': 'SimpleDriveCollection',
+                        'freq': f01_freq + anharmonicity,
+                        'channel': i * 2,  # Same drive channel
+                        'shape': 'blackman_drag',
+                        'amp': 0.1 / np.sqrt(2),
+                        'phase': 0.,
+                        'width': 0.025,
+                        'alpha': 425,
+                        'trunc': 1.2
+                    }
+                },
+                'measurement_primitives': {
+                    '0': {
+                        'type': 'SimpleDispersiveMeasurement',
+                        'freq': readout_freq,
+                        'channel': i * 2 + 1,  # Readout channel
+                        'shape': 'square',
+                        'amp': 0.15,
+                        'phase': 0.,
+                        'width': 1,  # 1us readout
+                        'trunc': 1.2,
+                        'distinguishable_states': [0, 1]
+                    }
+                }
+            }
+
+            # Create the TransmonElement
+            transmon = TransmonElement(name=qubit_name.upper(), parameters=element_params)
+
+            # Add to setup's qubit list
+            setup.qubits.append(transmon)
+            # Also set as attribute for direct access
+            setattr(setup, qubit_name, transmon)
+
+        return setup
 
     def _create_numpy_simulation(self, name: str, num_qubits: int) -> ExperimentalSetup:
         """

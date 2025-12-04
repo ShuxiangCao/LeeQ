@@ -185,27 +185,19 @@ Tests run automatically on:
 - Commits to main branch
 - Nightly builds
 
-### CI Configuration
+### Environment Setup for CI
 
-```yaml
-# .github/workflows/tests.yml
-name: Tests
-on: [push, pull_request]
+Critical environment variables for headless testing:
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-      - name: Run tests
-        run: pytest --cov=leeq
+```bash
+export MPLBACKEND=Agg
+export PYTHONDONTWRITEBYTECODE=1
+export QT_QPA_PLATFORM=offscreen
 ```
+
+### Current CI Configuration
+
+The project uses GitHub Actions with configurations in `.github/workflows/`.
 
 ## Performance Testing
 

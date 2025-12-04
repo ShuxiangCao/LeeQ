@@ -181,11 +181,12 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
                 self._execute_single_plot_function(func)
                 result = self._plot_function_result_objs[func.__qualname__]
             except Exception as e:
+                import traceback
                 self.log_warning(
                     f"Error when executing the browsable plot function {name}:{e}."
                 )
                 self.log_warning("Ignore the error and continue.")
-                self.log_warning(f"{e}")
+                self.log_warning(f"Full traceback: {traceback.format_exc()}")
                 continue
 
             try:
@@ -204,15 +205,24 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
 
     @property
     def to_show_figure_in_notebook(self):
-        return setup().status().get_parameters("Plot_Result_In_Jupyter")
+        try:
+            return setup().status().get_parameters("Plot_Result_In_Jupyter")
+        except (AttributeError, TypeError):
+            return False
 
     @property
     def to_run_ai_inspection(self):
-        return setup().status().get_parameters("AIAutoInspectPlots")
+        try:
+            return setup().status().get_parameters("AIAutoInspectPlots")
+        except (AttributeError, TypeError):
+            return False
 
     @property
     def is_simulation(self):
-        return setup().status().get_parameters("High_Level_Simulation_Mode")
+        try:
+            return setup().status().get_parameters("High_Level_Simulation_Mode")
+        except (AttributeError, TypeError):
+            return False
 
     def log_warning(self, message):
         self.logger.warning(message)
@@ -307,8 +317,9 @@ class ExperimentManager(Singleton):
         try:
             self._active_experiment_instance.retrieve_args(
                 self._active_experiment_instance.run)
-        except ValueError:
-            # The experiment has not been registered for plotting
+        except ValueError as e:
+            logger.warning(f"Experiment not registered: {e}")
+            logger.warning("This usually indicates an earlier initialization error")
             return fig
 
         # try:

@@ -199,5 +199,5 @@ def main():
     
     return 0 if all_passed else 1
 
-if __name__ == "__main__":
-    sys.exit(main())
+# Script-style execution converted to proper pytest discovery
+# Tests will be run by pytest discovery, no manual execution needed

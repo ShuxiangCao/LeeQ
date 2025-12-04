@@ -1,6 +1,6 @@
 # Compiler Base Classes
 
-::: leeq.compiler.compiler_base
+::: leeq.compiler.base
     options:
       show_root_heading: true
       show_source: true

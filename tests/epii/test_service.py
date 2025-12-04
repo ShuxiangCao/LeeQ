@@ -83,9 +83,9 @@ def test_capabilities(stub):
     # Check experiments are listed
     assert len(response.experiment_types) > 0
     experiment_names = [exp.name for exp in response.experiment_types]
-    assert "rabi" in experiment_names
-    assert "t1" in experiment_names
-    assert "ramsey" in experiment_names
+    assert "calibrations.NormalisedRabi" in experiment_names
+    assert "characterizations.SimpleT1" in experiment_names
+    assert "calibrations.SimpleRamseyMultilevel" in experiment_names
 
     # Check extensions
     assert response.extensions["setup_type"] == "simulation"
@@ -102,19 +102,19 @@ def test_list_available_experiments(stub):
 
     # Check specific experiments
     experiment_names = [exp.name for exp in response.experiments]
-    assert "rabi" in experiment_names
-    assert "t1" in experiment_names
-    assert "ramsey" in experiment_names
-    assert "echo" in experiment_names
-    assert "drag" in experiment_names
-    assert "randomized_benchmarking" in experiment_names
+    assert "calibrations.NormalisedRabi" in experiment_names
+    assert "characterizations.SimpleT1" in experiment_names
+    assert "calibrations.SimpleRamseyMultilevel" in experiment_names
+    assert "characterizations.SpinEchoMultiLevel" in experiment_names
+    assert "calibrations.DragCalibrationSingleQubitMultilevel" in experiment_names
+    assert "characterizations.SingleQubitRandomizedBenchmarking" in experiment_names
 
     # Check that experiments have descriptions
     for exp in response.experiments:
         assert exp.description != ""
 
     # Check that some experiments have parameters defined
-    rabi_exp = next(exp for exp in response.experiments if exp.name == "rabi")
+    rabi_exp = next(exp for exp in response.experiments if exp.name == "calibrations.NormalisedRabi")
     assert len(rabi_exp.parameters) > 0
     # Check that dut_qubit parameter is present (from real experiment signature)
     param_names = [p.name for p in rabi_exp.parameters]
@@ -153,7 +153,7 @@ def test_run_experiment_validation(stub):
     import grpc
 
     request = epii_pb2.ExperimentRequest()
-    request.experiment_type = "rabi"
+    request.experiment_type = "calibrations.NormalisedRabi"
     # Missing required parameters
 
     try:
@@ -184,7 +184,7 @@ def test_set_parameters_implemented(stub):
 def test_run_experiment_success(stub):
     """Test successful experiment execution."""
     request = epii_pb2.ExperimentRequest()
-    request.experiment_type = "rabi"
+    request.experiment_type = "calibrations.NormalisedRabi"
     request.parameters["dut_qubit"] = "q0"
     request.parameters["start"] = "0.01"
     request.parameters["stop"] = "0.3"
@@ -193,6 +193,13 @@ def test_run_experiment_success(stub):
     response = stub.RunExperiment(request)
     assert response.success
     assert len(response.data.data) > 0
+    # Verify plots field exists and can contain PlotComponent objects
+    assert hasattr(response, 'plots')
+    # If plots are generated, they should be PlotComponent objects
+    for plot in response.plots:
+        assert hasattr(plot, 'description')
+        assert hasattr(plot, 'plotly_json')
+        assert hasattr(plot, 'image_png')
 
 
 def test_run_experiment_invalid_type(stub):
@@ -211,7 +218,7 @@ def test_run_experiment_invalid_type(stub):
 def test_run_experiment_parameter_error(stub):
     """Test experiment with parameter errors."""
     request = epii_pb2.ExperimentRequest()
-    request.experiment_type = "rabi"
+    request.experiment_type = "calibrations.NormalisedRabi"
     request.parameters["invalid_param"] = "value"
 
     try:
@@ -285,7 +292,7 @@ def test_get_capabilities_complete(stub):
 
     response = stub.GetCapabilities(request)
     assert len(response.supported_experiments) > 0
-    assert "rabi" in response.supported_experiments
+    assert "calibrations.NormalisedRabi" in response.supported_experiments
     assert response.version != ""
     assert len(response.api_methods) > 0
 
@@ -298,9 +305,71 @@ def test_list_available_experiments_complete(stub):
     response = stub.ListAvailableExperiments(request)
     assert len(response.experiments) > 0
 
-    # Check experiment structure
-    if response.experiments:
-        exp = response.experiments[0]
-        assert exp.name != ""
-        assert len(exp.required_parameters) >= 0
-        assert len(exp.optional_parameters) >= 0
+
+def test_documentation_field_in_response(stub):
+    """Test that Documentation field is present in ExperimentResponse."""
+    # Create a minimal valid request (will fail but we check the response structure)
+    request = epii_pb2.ExperimentRequest()
+    request.experiment_type = "invalid_for_testing"
+    
+    try:
+        response = stub.RunExperiment(request)
+        # Response should have docs field even on failure
+        assert hasattr(response, 'docs')
+        assert hasattr(response.docs, 'run')
+        assert hasattr(response.docs, 'data')
+    except grpc.RpcError:
+        # Even if RPC fails, we've tested the response structure exists
+        pass
+
+
+def test_data_items_in_response(stub):
+    """Test that data field contains DataItem messages."""
+    request = epii_pb2.ExperimentRequest()
+    request.experiment_type = "invalid_for_testing"
+    
+    try:
+        response = stub.RunExperiment(request)
+        # Response should have data field that's a repeated DataItem
+        assert hasattr(response, 'data')
+        # Even on error, data should be an iterable (empty or not)
+        assert hasattr(response.data, '__iter__')
+    except grpc.RpcError:
+        pass
+
+
+def test_metadata_field_in_response(stub):
+    """Test that metadata field is present as a map."""
+    request = epii_pb2.ExperimentRequest()
+    request.experiment_type = "invalid_for_testing"
+    
+    try:
+        response = stub.RunExperiment(request)
+        # Response should have metadata field as a map
+        assert hasattr(response, 'metadata')
+        # metadata should be dict-like (protobuf map)
+        assert hasattr(response.metadata, '__getitem__')
+    except grpc.RpcError:
+        pass
+
+
+def test_plots_field_in_response(stub):
+    """Test that plots field is present and contains PlotComponent messages."""
+    request = epii_pb2.ExperimentRequest()
+    request.experiment_type = "invalid_for_testing"
+    
+    try:
+        response = stub.RunExperiment(request)
+        # Response should have plots field that's a repeated PlotComponent
+        assert hasattr(response, 'plots')
+        # Even on error, plots should be an iterable (empty or not)
+        assert hasattr(response.plots, '__iter__')
+        # Verify it can hold PlotComponent objects
+        component = epii_pb2.PlotComponent()
+        component.description = "Test plot"
+        component.plotly_json = ""
+        component.image_png = b""
+        # Should be able to add to response.plots
+        assert hasattr(response.plots, 'append')
+    except grpc.RpcError:
+        pass

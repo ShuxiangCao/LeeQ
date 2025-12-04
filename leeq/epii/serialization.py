@@ -103,94 +103,107 @@ def protobuf_to_numpy_array(numpy_msg: epii_pb2.NumpyArray) -> np.ndarray:
         return np.array([])
 
 
-def plotly_figure_to_protobuf(figure: Any) -> epii_pb2.PlotData:
+def browser_function_to_plot_component(func_name: str, figure: Any) -> epii_pb2.PlotComponent:
     """
-    Convert a plotly figure to EPII protobuf PlotData message.
+    Convert browser function result to PlotComponent with JSON and PNG data.
 
     Args:
-        figure: Plotly figure object (go.Figure or dict)
+        func_name: Name of browser function
+        figure: Plotly or matplotlib figure object
 
     Returns:
-        EPII PlotData protobuf message
+        PlotComponent with description, JSON, and PNG data
     """
-    plot_msg = epii_pb2.PlotData()
+    import plotly.io as pio
+    import json
 
-    if figure is None:
-        return plot_msg
+    component = epii_pb2.PlotComponent()
 
-    if not PLOTLY_AVAILABLE:
-        logger.warning("Plotly not available, cannot serialize figure")
-        return plot_msg
+    # Handle matplotlib figures by converting to static image instead of plotly
+    if hasattr(figure, 'savefig'):  # matplotlib figure
+        try:
+            # Convert matplotlib to static image instead of plotly to avoid JS code
+            import io
+            import base64
 
+            img_buffer = io.BytesIO()
+            figure.savefig(img_buffer, format='png', bbox_inches='tight', dpi=150)
+            img_buffer.seek(0)
+            component.image_png = img_buffer.getvalue()
+
+            # Create a simple plotly figure with the embedded image
+            import plotly.graph_objects as go
+            img_b64 = base64.b64encode(component.image_png).decode()
+
+            plotly_fig = go.Figure()
+            plotly_fig.add_layout_image(
+                {
+                    "source": f"data:image/png;base64,{img_b64}",
+                    "xref": "paper", "yref": "paper",
+                    "x": 0, "y": 1, "sizex": 1, "sizey": 1,
+                    "xanchor": "left", "yanchor": "top",
+                    "layer": "below"
+                }
+            )
+            plotly_fig.update_layout(
+                xaxis={"visible": False},
+                yaxis={"visible": False},
+                margin={"l": 0, "r": 0, "t": 0, "b": 0},
+                showlegend=False
+            )
+
+            # Close matplotlib figure to free memory
+            import matplotlib.pyplot as plt
+            plt.close(figure)
+
+        except Exception:
+            # Fallback: just create empty component
+            component.image_png = b""
+            plotly_fig = None
+    else:  # assume plotly figure
+        plotly_fig = figure
+
+    # Extract plot title from figure
+    plot_title = ""
     try:
-        # Handle both go.Figure objects and dictionary representations
-        if hasattr(figure, 'to_dict'):
-            fig_dict = figure.to_dict()
-        elif isinstance(figure, dict):
-            fig_dict = figure
+        if plotly_fig and hasattr(plotly_fig, 'layout') and hasattr(plotly_fig.layout, 'title'):
+            title_obj = plotly_fig.layout.title
+            if hasattr(title_obj, 'text') and title_obj.text:
+                plot_title = str(title_obj.text)
+            elif title_obj and str(title_obj) != 'layout.Title()':
+                plot_title = str(title_obj)
+        elif hasattr(figure, '_suptitle') and figure._suptitle:
+            plot_title = figure._suptitle.get_text()
+    except Exception:
+        pass
+
+    # Create description including function name
+    if plot_title:
+        component.description = f"{plot_title} [{func_name}]"
+    else:
+        component.description = f"Plot from {func_name}"
+
+    # Generate JSON and PNG with clean serialization
+    try:
+        if plotly_fig:
+            fig_dict = plotly_fig.to_json()
+            component.plotly_json = json.dumps(fig_dict)
+
+            # Generate PNG if not already done (for plotly figures)
+            if not component.image_png:
+                component.image_png = pio.to_image(plotly_fig, format='png')
         else:
-            logger.warning("Unknown figure type: %s", type(figure))
-            return plot_msg
+            component.plotly_json = ""
+    except Exception:
+        component.plotly_json = ""
+        if not component.image_png:
+            component.image_png = b""
 
-        # Extract plot type from the first trace if available
-        if 'data' in fig_dict and fig_dict['data']:
-            first_trace = fig_dict['data'][0]
-            plot_msg.plot_type = first_trace.get('type', 'scatter')
-        else:
-            plot_msg.plot_type = 'scatter'
-
-        # Set title from layout
-        if 'layout' in fig_dict and 'title' in fig_dict['layout']:
-            title = fig_dict['layout']['title']
-            if isinstance(title, dict):
-                plot_msg.title = title.get('text', '')
-            else:
-                plot_msg.title = str(title)
-
-        # Convert traces
-        if 'data' in fig_dict:
-            for trace_dict in fig_dict['data']:
-                trace_msg = epii_pb2.PlotTrace()
-
-                # Add x data if present
-                if 'x' in trace_dict and trace_dict['x'] is not None:
-                    x_data = np.asarray(trace_dict['x'], dtype=float)
-                    trace_msg.x.extend(x_data.tolist())
-
-                # Add y data if present
-                if 'y' in trace_dict and trace_dict['y'] is not None:
-                    y_data = np.asarray(trace_dict['y'], dtype=float)
-                    trace_msg.y.extend(y_data.tolist())
-
-                # Add z data for 3D plots
-                if 'z' in trace_dict and trace_dict['z'] is not None:
-                    z_data = np.asarray(trace_dict['z'], dtype=float).flatten()
-                    trace_msg.z.extend(z_data.tolist())
-
-                # Set trace name
-                trace_msg.name = trace_dict.get('name', '')
-
-                # Set trace type
-                trace_msg.type = trace_dict.get('type', 'scatter')
-
-                plot_msg.traces.append(trace_msg)
-
-        # Serialize layout as JSON strings in the map
-        if 'layout' in fig_dict:
-            layout = fig_dict['layout']
-            # Store key layout properties
-            for key in ['xaxis', 'yaxis', 'width', 'height', 'margin', 'showlegend']:
-                if key in layout:
-                    plot_msg.layout[key] = json.dumps(layout[key])
-
-        return plot_msg
-
-    except Exception as e:
-        logger.error("Failed to convert plotly figure to protobuf: %s", e)
-        return plot_msg
+    return component
 
 
-def protobuf_to_plotly_figure(plot_msg: epii_pb2.PlotData) -> Dict[str, Any]:
+
+def protobuf_to_plotly_figure(plot_msg) -> Dict[str, Any]:  # epii_pb2.PlotData removed in Phase 1
     """
     Convert EPII protobuf PlotData message back to plotly figure dictionary.
 
