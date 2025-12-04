@@ -1,0 +1,2857 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Quantum computing experiment orchestration framework">
+      
+      
+      
+        <link rel="canonical" href="https://leeq.readthedocs.io/chronicle_session_viewer/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Chronicle Session Viewer Documentation - LeeQ Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.618322db.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#chronicle-session-viewer-documentation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="LeeQ Documentation" class="md-header__button md-logo" aria-label="LeeQ Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            LeeQ Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Chronicle Session Viewer Documentation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../guide/concepts/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api/core/base/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../development/contributing/" class="md-tabs__link">
+          
+  
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../epii/overview/" class="md-tabs__link">
+          
+  
+  
+  EPII
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="LeeQ Documentation" class="md-nav__button md-logo" aria-label="LeeQ Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    LeeQ Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quick_start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/experiments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experiments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/calibrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Calibrations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Core
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/core/base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/core/elements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Elements
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/core/engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/core/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experiments
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Experiments
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/experiments/builtin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Builtin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/experiments/base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Theory
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Theory
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/theory/simulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/theory/tomography/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tomography
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/theory/fits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimal Control
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/theory/clifford/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clifford Gates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiler
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Compiler
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/compiler/lbnl_qubic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LBNL QubiC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/compiler/base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base Classes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPII
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EPII
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../epii/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../epii/deployment-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../epii/client-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Client Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../epii-operations-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../epii/quick-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../epii/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_7" id="__nav_6_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/epii/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/epii/experiments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experiments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/epii/service/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#purpose-and-benefits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose and Benefits
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Purpose and Benefits">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-is-the-session-viewer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is the Session Viewer?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-it-differs-from-the-historical-viewer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How it Differs from the Historical Viewer
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation-and-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installation and Requirements
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage-patterns-and-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage Patterns and Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage Patterns and Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-usage-launching-the-viewer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Usage - Launching the Viewer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-1-monitoring-during-calibration-script" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 1: Monitoring During Calibration Script
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-2-interactive-jupyter-notebook-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 2: Interactive Jupyter Notebook Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-3-custom-port-and-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 3: Custom Port and Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-4-multi-session-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 4: Multi-Session Workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration Options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#port-selection-guidelines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Port Selection Guidelines
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting Guide
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting Guide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#common-issues-and-solutions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Issues and Solutions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Issues and Solutions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-1-address-already-in-use-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue 1: "Address already in use" Error
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-2-viewer-shows-no-experiments-in-current-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue 2: Viewer Shows "No experiments in current session"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-3-viewer-not-updating-automatically" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue 3: Viewer Not Updating Automatically
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-4-cannot-connect-to-viewer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue 4: Cannot Connect to Viewer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-5-slow-performance-with-many-experiments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue 5: Slow Performance with Many Experiments
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#debug-mode-tips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debug Mode Tips
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chroniclelaunch_viewer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chronicle.launch_viewer()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#session-dashboard-callbacks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session Dashboard Callbacks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Session Dashboard Callbacks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#update_session_view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        update_session_view()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#toggle_tree_node" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        toggle_tree_node()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#display_experiment_info" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        display_experiment_info()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generate_plot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generate_plot()
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chronicle-session-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chronicle Session Methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best Practices
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Best Practices">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-launch-early-in-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Launch Early in Workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-use-appropriate-ports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Use Appropriate Ports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-handle-errors-gracefully" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Handle Errors Gracefully
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-production-vs-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Production vs Development
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-document-viewer-urls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Document Viewer URLs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integration-with-leeq-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integration with LeeQ Workflow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Support
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="chronicle-session-viewer-documentation">Chronicle Session Viewer Documentation<a class="headerlink" href="#chronicle-session-viewer-documentation" title="Permanent link">&para;</a></h1>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>The Chronicle Session Viewer is a real-time monitoring dashboard for active Chronicle sessions in LeeQ. Unlike the historical viewer that loads completed chronicle files, the session viewer connects directly to the Chronicle singleton instance to display experiments as they complete during calibration workflows.</p>
+<h2 id="purpose-and-benefits">Purpose and Benefits<a class="headerlink" href="#purpose-and-benefits" title="Permanent link">&para;</a></h2>
+<h3 id="what-is-the-session-viewer">What is the Session Viewer?<a class="headerlink" href="#what-is-the-session-viewer" title="Permanent link">&para;</a></h3>
+<p>The session viewer is a web-based dashboard that provides:
+- <strong>Real-time monitoring</strong> of experiments during active calibration sessions
+- <strong>Automatic updates</strong> every 5 seconds showing newly completed experiments
+- <strong>Direct integration</strong> with Chronicle singleton - no file loading required
+- <strong>Familiar interface</strong> using the same tree view and layout as the historical viewer</p>
+<h3 id="how-it-differs-from-the-historical-viewer">How it Differs from the Historical Viewer<a class="headerlink" href="#how-it-differs-from-the-historical-viewer" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Session Viewer</th>
+<th>Historical Viewer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Data Source</strong></td>
+<td>Live Chronicle singleton</td>
+<td>HDF5 chronicle files</td>
+</tr>
+<tr>
+<td><strong>Use Case</strong></td>
+<td>Active monitoring during calibration</td>
+<td>Post-session analysis</td>
+</tr>
+<tr>
+<td><strong>Launch Method</strong></td>
+<td><code>chronicle.launch_viewer()</code></td>
+<td>Standalone script or import</td>
+</tr>
+<tr>
+<td><strong>Updates</strong></td>
+<td>Auto-refresh every 5 seconds</td>
+<td>Static file content</td>
+</tr>
+<tr>
+<td><strong>Default Port</strong></td>
+<td>8051</td>
+<td>8050</td>
+</tr>
+</tbody>
+</table>
+<h2 id="installation-and-requirements">Installation and Requirements<a class="headerlink" href="#installation-and-requirements" title="Permanent link">&para;</a></h2>
+<p>The session viewer is included with the LeeQ package. No additional installation is required beyond the standard LeeQ dependencies:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Standard LeeQ installation includes viewer</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</code></pre></div>
+<p>Required packages (automatically installed with LeeQ):
+- dash &gt;= 2.0.0
+- dash-bootstrap-components &gt;= 1.0.0
+- plotly &gt;= 5.0.0
+- h5py (for chronicle data)</p>
+<h2 id="usage-patterns-and-examples">Usage Patterns and Examples<a class="headerlink" href="#usage-patterns-and-examples" title="Permanent link">&para;</a></h2>
+<h3 id="basic-usage-launching-the-viewer">Basic Usage - Launching the Viewer<a class="headerlink" href="#basic-usage-launching-the-viewer" title="Permanent link">&para;</a></h3>
+<p>The simplest way to launch the session viewer is through the Chronicle singleton:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">leeq.chronicle</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chronicle</span>
+
+<span class="c1"># Get Chronicle singleton instance</span>
+<span class="n">chronicle</span> <span class="o">=</span> <span class="n">Chronicle</span><span class="p">()</span>
+
+<span class="c1"># Launch the viewer dashboard</span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">()</span>
+</code></pre></div>
+<p>This opens a web browser to <code>http://localhost:8051</code> showing the current session.</p>
+<h3 id="example-1-monitoring-during-calibration-script">Example 1: Monitoring During Calibration Script<a class="headerlink" href="#example-1-monitoring-during-calibration-script" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;calibration_session.py - Example calibration workflow with monitoring&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">leeq.chronicle</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chronicle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">leeq.setups</span><span class="w"> </span><span class="kn">import</span> <span class="n">setup_from_config</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">run_calibration</span><span class="p">():</span>
+    <span class="c1"># Initialize setup</span>
+    <span class="n">setup</span> <span class="o">=</span> <span class="n">setup_from_config</span><span class="p">(</span><span class="s2">&quot;config.json&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Launch viewer for monitoring</span>
+    <span class="n">chronicle</span> <span class="o">=</span> <span class="n">Chronicle</span><span class="p">()</span>
+    <span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># Run in production mode</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Chronicle viewer launched at http://localhost:8051&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Starting calibration experiments...&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Run experiments - they&#39;ll appear in viewer as they complete</span>
+    <span class="k">for</span> <span class="n">qubit</span> <span class="ow">in</span> <span class="n">setup</span><span class="o">.</span><span class="n">get_qubits</span><span class="p">():</span>
+        <span class="c1"># Resonator spectroscopy</span>
+        <span class="n">exp</span> <span class="o">=</span> <span class="n">ResonatorSpectroscopy</span><span class="p">(</span><span class="n">qubit</span><span class="o">=</span><span class="n">qubit</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Completed resonator spectroscopy for </span><span class="si">{</span><span class="n">qubit</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># Viewer will update within 5 seconds</span>
+
+        <span class="c1"># Qubit spectroscopy  </span>
+        <span class="n">exp</span> <span class="o">=</span> <span class="n">QubitSpectroscopy</span><span class="p">(</span><span class="n">qubit</span><span class="o">=</span><span class="n">qubit</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Completed qubit spectroscopy for </span><span class="si">{</span><span class="n">qubit</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Check the viewer to see all completed experiments!&quot;</span><span class="p">)</span>
+    <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Press Enter to continue...&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">run_calibration</span><span class="p">()</span>
+</code></pre></div>
+<h3 id="example-2-interactive-jupyter-notebook-usage">Example 2: Interactive Jupyter Notebook Usage<a class="headerlink" href="#example-2-interactive-jupyter-notebook-usage" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Cell 1 - Setup and launch viewer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">leeq.chronicle</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chronicle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">leeq.setups</span><span class="w"> </span><span class="kn">import</span> <span class="n">setup_from_config</span>
+
+<span class="c1"># Initialize</span>
+<span class="n">setup</span> <span class="o">=</span> <span class="n">setup_from_config</span><span class="p">(</span><span class="s2">&quot;my_setup.json&quot;</span><span class="p">)</span>
+<span class="n">chronicle</span> <span class="o">=</span> <span class="n">Chronicle</span><span class="p">()</span>
+
+<span class="c1"># Launch viewer in background</span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">8051</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Viewer running at http://localhost:8051&quot;</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># Cell 2 - Run experiments (viewer updates automatically)</span>
+<span class="n">qubit</span> <span class="o">=</span> <span class="n">setup</span><span class="o">.</span><span class="n">get_qubit</span><span class="p">(</span><span class="s2">&quot;Q1&quot;</span><span class="p">)</span>
+
+<span class="c1"># These experiments will appear in the viewer as they complete</span>
+<span class="n">exp1</span> <span class="o">=</span> <span class="n">ResonatorSpectroscopy</span><span class="p">(</span><span class="n">qubit</span><span class="o">=</span><span class="n">qubit</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">6000</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">6200</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">exp2</span> <span class="o">=</span> <span class="n">QubitSpectroscopy</span><span class="p">(</span><span class="n">qubit</span><span class="o">=</span><span class="n">qubit</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">4900</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">5100</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># Cell 3 - Check specific experiments in viewer</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Open http://localhost:8051 to see your experiments&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The viewer refreshes every 5 seconds automatically&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="example-3-custom-port-and-configuration">Example 3: Custom Port and Configuration<a class="headerlink" href="#example-3-custom-port-and-configuration" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">leeq.chronicle</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chronicle</span>
+
+<span class="n">chronicle</span> <span class="o">=</span> <span class="n">Chronicle</span><span class="p">()</span>
+
+<span class="c1"># Launch with custom settings</span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">(</span>
+    <span class="n">port</span><span class="o">=</span><span class="mi">8055</span><span class="p">,</span>           <span class="c1"># Custom port to avoid conflicts</span>
+    <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>         <span class="c1"># Production mode (no auto-reload)</span>
+    <span class="n">host</span><span class="o">=</span><span class="s1">&#39;0.0.0.0&#39;</span>      <span class="c1"># Allow external connections</span>
+<span class="p">)</span>
+</code></pre></div>
+<h3 id="example-4-multi-session-workflow">Example 4: Multi-Session Workflow<a class="headerlink" href="#example-4-multi-session-workflow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;multi_session.py - Running multiple calibration sessions&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">leeq.chronicle</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chronicle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">monitor_sessions</span><span class="p">():</span>
+    <span class="n">chronicle</span> <span class="o">=</span> <span class="n">Chronicle</span><span class="p">()</span>
+
+    <span class="c1"># Launch viewer once</span>
+    <span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">8051</span><span class="p">)</span>
+
+    <span class="c1"># Run multiple calibration sessions</span>
+    <span class="n">sessions</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;morning_cal.py&quot;</span><span class="p">,</span> <span class="s2">&quot;afternoon_cal.py&quot;</span><span class="p">,</span> <span class="s2">&quot;evening_cal.py&quot;</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">session_script</span> <span class="ow">in</span> <span class="n">sessions</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting </span><span class="si">{</span><span class="n">session_script</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;python&quot;</span><span class="p">,</span> <span class="n">session_script</span><span class="p">])</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Completed </span><span class="si">{</span><span class="n">session_script</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Check viewer for results at http://localhost:8051&quot;</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>  <span class="c1"># Allow viewer to update</span>
+
+        <span class="n">response</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Continue to next session? (y/n): &quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span>
+            <span class="k">break</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">monitor_sessions</span><span class="p">()</span>
+</code></pre></div>
+<h2 id="configuration-options">Configuration Options<a class="headerlink" href="#configuration-options" title="Permanent link">&para;</a></h2>
+<p>The <code>launch_viewer()</code> method accepts several configuration parameters:</p>
+<div class="highlight"><pre><span></span><code><span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">(</span>
+    <span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>          <span class="c1"># Enable debug mode with auto-reload (default: True)</span>
+    <span class="n">port</span><span class="o">=</span><span class="mi">8051</span><span class="p">,</span>          <span class="c1"># Port number for the server (default: 8051)</span>
+    <span class="n">host</span><span class="o">=</span><span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span>   <span class="c1"># Host address (default: localhost only)</span>
+    <span class="o">**</span><span class="n">kwargs</span>            <span class="c1"># Additional Dash server arguments</span>
+<span class="p">)</span>
+</code></pre></div>
+<h3 id="configuration-parameters">Configuration Parameters<a class="headerlink" href="#configuration-parameters" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>debug</code></td>
+<td>bool</td>
+<td>True</td>
+<td>Enable debug mode with auto-reload and error messages</td>
+</tr>
+<tr>
+<td><code>port</code></td>
+<td>int</td>
+<td>8051</td>
+<td>Port number for the web server</td>
+</tr>
+<tr>
+<td><code>host</code></td>
+<td>str</td>
+<td>'127.0.0.1'</td>
+<td>Host address ('0.0.0.0' for external access)</td>
+</tr>
+<tr>
+<td><code>dev_tools_hot_reload</code></td>
+<td>bool</td>
+<td>False</td>
+<td>Enable hot reload in development</td>
+</tr>
+<tr>
+<td><code>use_reloader</code></td>
+<td>bool</td>
+<td>True (if debug)</td>
+<td>Auto-reload on code changes</td>
+</tr>
+</tbody>
+</table>
+<h3 id="port-selection-guidelines">Port Selection Guidelines<a class="headerlink" href="#port-selection-guidelines" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>8051</strong>: Default for session viewer (recommended)</li>
+<li><strong>8050</strong>: Reserved for historical chronicle viewer</li>
+<li><strong>8000-8010</strong>: Common range for development</li>
+<li><strong>Custom ports</strong>: Use if running multiple viewers simultaneously</li>
+</ul>
+<h2 id="troubleshooting-guide">Troubleshooting Guide<a class="headerlink" href="#troubleshooting-guide" title="Permanent link">&para;</a></h2>
+<h3 id="common-issues-and-solutions">Common Issues and Solutions<a class="headerlink" href="#common-issues-and-solutions" title="Permanent link">&para;</a></h3>
+<h4 id="issue-1-address-already-in-use-error">Issue 1: "Address already in use" Error<a class="headerlink" href="#issue-1-address-already-in-use-error" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> 
+<div class="highlight"><pre><span></span><code>OSError: [Errno 48] Address already in use
+</code></pre></div></p>
+<p><strong>Solution:</strong>
+<div class="highlight"><pre><span></span><code><span class="c1"># Use a different port</span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">8052</span><span class="p">)</span>
+
+<span class="c1"># Or kill the existing process</span>
+<span class="c1"># In terminal: lsof -i :8051</span>
+<span class="c1"># Then: kill -9 &lt;PID&gt;</span>
+</code></pre></div></p>
+<h4 id="issue-2-viewer-shows-no-experiments-in-current-session">Issue 2: Viewer Shows "No experiments in current session"<a class="headerlink" href="#issue-2-viewer-shows-no-experiments-in-current-session" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> Empty viewer despite running experiments</p>
+<p><strong>Possible Causes and Solutions:</strong></p>
+<ol>
+<li>
+<p><strong>Chronicle not initialized properly</strong>
+<div class="highlight"><pre><span></span><code><span class="c1"># Ensure Chronicle singleton is initialized</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">leeq.chronicle</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chronicle</span>
+<span class="n">chronicle</span> <span class="o">=</span> <span class="n">Chronicle</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">chronicle</span><span class="o">.</span><span class="n">is_active</span><span class="p">())</span>  <span class="c1"># Should be True</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Experiments not being logged</strong>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check chronicle logging is enabled</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;CHRONICLE_LOGGING&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;True&#39;</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Session not active</strong>
+<div class="highlight"><pre><span></span><code><span class="c1"># Start a new session if needed</span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">start_new_session</span><span class="p">()</span>
+</code></pre></div></p>
+</li>
+</ol>
+<h4 id="issue-3-viewer-not-updating-automatically">Issue 3: Viewer Not Updating Automatically<a class="headerlink" href="#issue-3-viewer-not-updating-automatically" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> New experiments don't appear without manual refresh</p>
+<p><strong>Solution:</strong>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check browser console for errors</span>
+<span class="c1"># Ensure interval component is working</span>
+<span class="c1"># Try manual refresh button as fallback</span>
+<span class="c1"># Check network tab in browser dev tools</span>
+</code></pre></div></p>
+<h4 id="issue-4-cannot-connect-to-viewer">Issue 4: Cannot Connect to Viewer<a class="headerlink" href="#issue-4-cannot-connect-to-viewer" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> Browser shows "Unable to connect"</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>
+<p><strong>Check if server is running</strong>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check if process is listening on port</span>
+lsof<span class="w"> </span>-i<span class="w"> </span>:8051
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Firewall or network issues</strong>
+<div class="highlight"><pre><span></span><code><span class="c1"># Try using localhost explicitly</span>
+<span class="c1"># Open http://127.0.0.1:8051 instead of localhost:8051</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Remote access needed</strong>
+<div class="highlight"><pre><span></span><code><span class="c1"># Allow external connections</span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s1">&#39;0.0.0.0&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">8051</span><span class="p">)</span>
+</code></pre></div></p>
+</li>
+</ol>
+<h4 id="issue-5-slow-performance-with-many-experiments">Issue 5: Slow Performance with Many Experiments<a class="headerlink" href="#issue-5-slow-performance-with-many-experiments" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> Dashboard becomes sluggish with 100+ experiments</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>
+<p><strong>Increase polling interval</strong>
+<div class="highlight"><pre><span></span><code><span class="c1"># Modify in session_dashboard.py if needed</span>
+<span class="c1"># Change interval from 5000ms to 10000ms</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Clear old sessions</strong>
+<div class="highlight"><pre><span></span><code><span class="c1"># Start fresh session</span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">end_current_session</span><span class="p">()</span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">start_new_session</span><span class="p">()</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Use filtering in viewer</strong></p>
+</li>
+<li>Focus on specific experiment types</li>
+<li>Collapse unused tree branches</li>
+</ol>
+<h3 id="debug-mode-tips">Debug Mode Tips<a class="headerlink" href="#debug-mode-tips" title="Permanent link">&para;</a></h3>
+<p>When running in debug mode (<code>debug=True</code>):
+- Server auto-reloads on code changes
+- Detailed error messages in browser
+- Console output shows all callbacks
+- Performance may be slower</p>
+<p>For production use:
+<div class="highlight"><pre><span></span><code><span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div></p>
+<h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
+<h3 id="chroniclelaunch_viewer">Chronicle.launch_viewer()<a class="headerlink" href="#chroniclelaunch_viewer" title="Permanent link">&para;</a></h3>
+<p>Launch the session viewer dashboard for monitoring active experiments.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">launch_viewer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Launch chronicle viewer dashboard for current session.</span>
+
+<span class="sd">    This method launches a web-based dashboard for monitoring experiments</span>
+<span class="sd">    in the active Chronicle session. The dashboard polls every 5 seconds</span>
+<span class="sd">    to display newly completed experiments.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        debug (bool): Whether to run in debug mode (default: True)</span>
+<span class="sd">        port (int): Port to run the server on (default: 8051)</span>
+<span class="sd">        host (str): Host address (default: &#39;127.0.0.1&#39;)</span>
+<span class="sd">        **kwargs: Additional arguments passed to the Dash server</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None (launches server in current thread)</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        RuntimeError: If Chronicle is not properly initialized</span>
+<span class="sd">        OSError: If port is already in use</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; from leeq.chronicle import Chronicle</span>
+<span class="sd">        &gt;&gt;&gt; chronicle = Chronicle()</span>
+<span class="sd">        &gt;&gt;&gt; chronicle.launch_viewer(port=8051, debug=False)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+<h3 id="session-dashboard-callbacks">Session Dashboard Callbacks<a class="headerlink" href="#session-dashboard-callbacks" title="Permanent link">&para;</a></h3>
+<p>The session viewer implements several Dash callbacks:</p>
+<h4 id="update_session_view">update_session_view()<a class="headerlink" href="#update_session_view" title="Permanent link">&para;</a></h4>
+<p>Updates the experiment tree and display panels every 5 seconds or on manual refresh.</p>
+<h4 id="toggle_tree_node">toggle_tree_node()<a class="headerlink" href="#toggle_tree_node" title="Permanent link">&para;</a></h4>
+<p>Handles expanding/collapsing tree nodes for navigation.</p>
+<h4 id="display_experiment_info">display_experiment_info()<a class="headerlink" href="#display_experiment_info" title="Permanent link">&para;</a></h4>
+<p>Shows experiment details when an experiment is selected.</p>
+<h4 id="generate_plot">generate_plot()<a class="headerlink" href="#generate_plot" title="Permanent link">&para;</a></h4>
+<p>Creates visualizations when plot buttons are clicked.</p>
+<h3 id="chronicle-session-methods">Chronicle Session Methods<a class="headerlink" href="#chronicle-session-methods" title="Permanent link">&para;</a></h3>
+<p>Related Chronicle methods for session management:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check if session is active</span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">is_active</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+
+<span class="c1"># Get current session entries</span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">get_current_session_entries</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">RecordEntry</span><span class="p">]</span>
+
+<span class="c1"># Start new session</span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">start_new_session</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+
+<span class="c1"># End current session  </span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">end_current_session</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+<h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
+<h3 id="1-launch-early-in-workflow">1. Launch Early in Workflow<a class="headerlink" href="#1-launch-early-in-workflow" title="Permanent link">&para;</a></h3>
+<p>Start the viewer at the beginning of calibration sessions:
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">chronicle</span> <span class="o">=</span> <span class="n">Chronicle</span><span class="p">()</span>
+    <span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">()</span>  <span class="c1"># Launch first</span>
+
+    <span class="c1"># Then run experiments</span>
+    <span class="n">run_calibrations</span><span class="p">()</span>
+</code></pre></div></p>
+<h3 id="2-use-appropriate-ports">2. Use Appropriate Ports<a class="headerlink" href="#2-use-appropriate-ports" title="Permanent link">&para;</a></h3>
+<p>Keep standard port assignments:
+- 8051 for session viewer
+- 8050 for historical viewer
+- Custom ports for multiple instances</p>
+<h3 id="3-handle-errors-gracefully">3. Handle Errors Gracefully<a class="headerlink" href="#3-handle-errors-gracefully" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">try</span><span class="p">:</span>
+    <span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">8051</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Port 8051 in use, trying 8052...&quot;</span><span class="p">)</span>
+    <span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">8052</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="4-production-vs-development">4. Production vs Development<a class="headerlink" href="#4-production-vs-development" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Development - with debug info</span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Production - optimized performance  </span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="5-document-viewer-urls">5. Document Viewer URLs<a class="headerlink" href="#5-document-viewer-urls" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Always inform users where to find the viewer</span>
+<span class="n">port</span> <span class="o">=</span> <span class="mi">8051</span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Chronicle viewer running at http://localhost:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Open this URL in your browser to monitor experiments&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="integration-with-leeq-workflow">Integration with LeeQ Workflow<a class="headerlink" href="#integration-with-leeq-workflow" title="Permanent link">&para;</a></h2>
+<p>The session viewer integrates seamlessly with the LeeQ calibration workflow:</p>
+<ol>
+<li><strong>Setup Phase</strong>: Initialize hardware and Chronicle</li>
+<li><strong>Launch Viewer</strong>: Start monitoring dashboard</li>
+<li><strong>Run Experiments</strong>: Execute calibration routines</li>
+<li><strong>Monitor Progress</strong>: View completed experiments in real-time</li>
+<li><strong>Analyze Results</strong>: Use historical viewer for detailed analysis later</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="c1"># Complete integrated workflow</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">leeq.chronicle</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chronicle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">leeq.setups</span><span class="w"> </span><span class="kn">import</span> <span class="n">setup_from_config</span>
+
+<span class="c1"># 1. Setup</span>
+<span class="n">setup</span> <span class="o">=</span> <span class="n">setup_from_config</span><span class="p">(</span><span class="s2">&quot;config.json&quot;</span><span class="p">)</span>
+<span class="n">chronicle</span> <span class="o">=</span> <span class="n">Chronicle</span><span class="p">()</span>
+
+<span class="c1"># 2. Launch monitoring</span>
+<span class="n">chronicle</span><span class="o">.</span><span class="n">launch_viewer</span><span class="p">()</span>
+
+<span class="c1"># 3. Run calibrations</span>
+<span class="n">calibrate_resonators</span><span class="p">(</span><span class="n">setup</span><span class="p">)</span>
+<span class="n">calibrate_qubits</span><span class="p">(</span><span class="n">setup</span><span class="p">)</span>
+
+<span class="c1"># 4. Monitor in browser at http://localhost:8051</span>
+
+<span class="c1"># 5. Later analysis with historical viewer</span>
+<span class="c1"># python scripts/chronicle_viewer.py</span>
+</code></pre></div>
+<h2 id="support">Support<a class="headerlink" href="#support" title="Permanent link">&para;</a></h2>
+<p>For issues or questions:
+1. Check this troubleshooting guide
+2. Review the <a href="https://github.com/leeq-framework/leeq/issues">LeeQ GitHub Issues</a>
+3. Contact the LeeQ development team</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>
