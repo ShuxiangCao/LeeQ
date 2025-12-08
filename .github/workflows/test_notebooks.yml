@@ -89,7 +89,7 @@ jobs:
     
     - name: Upload test reports
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: notebook-test-reports-py${{ matrix.python-version }}-${{ matrix.notebook-type }}
         path: |
@@ -186,7 +186,7 @@ jobs:
         "
     
     - name: Upload consolidated results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: consolidated-test-results
         path: consolidated_results.json
