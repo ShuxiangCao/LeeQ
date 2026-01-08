@@ -2,9 +2,27 @@
 gRPC service implementation for EPII (Experiment Platform Intelligence Interface).
 
 This module implements the ExperimentPlatformService defined in the EPII v1.0 standard.
+
+.. deprecated::
+    This module is deprecated. Use the declarative service approach instead:
+
+    Run with EPIIServer from CalibrationNTKAgent:
+        python -m quantum_calibration_agent.epii.server.epii_server \\
+            leeq/epii/leeq_epii_service.py --port 50051
+
+    See leeq/epii/leeq_epii_service.py for the new declarative implementation.
 """
 
 import logging
+import warnings
+
+warnings.warn(
+    "leeq.epii.service is deprecated. "
+    "Use leeq_epii_service.py with EPIIServer from CalibrationNTKAgent instead. "
+    "See leeq/epii/leeq_epii_service.py for the new declarative implementation.",
+    DeprecationWarning,
+    stacklevel=2
+)
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor

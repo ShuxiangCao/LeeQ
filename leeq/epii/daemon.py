@@ -2,9 +2,27 @@
 EPII daemon implementation for LeeQ.
 
 This module provides the gRPC server daemon that hosts the EPII service.
+
+.. deprecated::
+    This module is deprecated. Use the declarative service approach instead:
+
+    Run with EPIIServer from CalibrationNTKAgent:
+        python -m quantum_calibration_agent.epii.server.epii_server \\
+            leeq/epii/leeq_epii_service.py --port 50051
+
+    See leeq/epii/leeq_epii_service.py for the new declarative implementation.
 """
 
 import argparse
+import warnings
+
+warnings.warn(
+    "leeq.epii.daemon is deprecated. "
+    "Use leeq_epii_service.py with EPIIServer from CalibrationNTKAgent instead. "
+    "See leeq/epii/leeq_epii_service.py for the new declarative implementation.",
+    DeprecationWarning,
+    stacklevel=2
+)
 import atexit
 import json
 import logging

@@ -424,7 +424,62 @@ class EPIIConfig:
             EPIIConfig instance
         """
         instance = cls()
-        instance.config = config_dict.copy()
+        instance.config.update(config_dict)
+        return instance
+
+    @classmethod
+    def from_file(cls, path: str) -> "EPIIConfig":
+        """
+        Create an EPIIConfig instance from a JSON or YAML file.
+
+        Args:
+            path: Path to configuration file (JSON or YAML)
+
+        Returns:
+            EPIIConfig instance
+
+        Raises:
+            FileNotFoundError: If config file doesn't exist
+            ValueError: If file format is not supported
+        """
+        config_file = Path(path)
+
+        if not config_file.exists():
+            raise FileNotFoundError(f"Configuration file not found: {path}")
+
+        with open(config_file, 'r') as f:
+            if path.endswith('.yml') or path.endswith('.yaml'):
+                try:
+                    import yaml
+                    file_config = yaml.safe_load(f)
+                except ImportError:
+                    raise ImportError(
+                        "PyYAML is required for YAML config files. "
+                        "Install with: pip install pyyaml"
+                    )
+            elif path.endswith('.json'):
+                file_config = json.load(f)
+            else:
+                # Try JSON first, then YAML
+                content = f.read()
+                try:
+                    file_config = json.loads(content)
+                except json.JSONDecodeError:
+                    try:
+                        import yaml
+                        file_config = yaml.safe_load(content)
+                    except ImportError:
+                        raise ValueError(
+                            f"Could not parse {path}. "
+                            "Install PyYAML for YAML support: pip install pyyaml"
+                        )
+
+        logger.info("Loaded configuration from %s", path)
+        instance = cls.from_dict(file_config)
+        instance.config_path = path
+        # Reapply environment overrides after loading file
+        # (environment should take precedence over file config)
+        instance._load_environment()
         return instance
 
 
