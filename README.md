@@ -35,7 +35,6 @@ live plotting server. To mount the local folder, replace `/path/to/local/folder`
 - **[Theory API](docs/api/theory/simulation.md)** - Simulation and theory modules
 
 ### Advanced Topics
-- **[EPII Service](docs/epii/deployment-guide.md)** - Deploy LeeQ as a gRPC service
 - **[Development Guide](docs/development/contributing.md)** - Contribute to LeeQ development
 - **[Architecture Overview](docs/development/architecture.md)** - Deep dive into LeeQ's design
 

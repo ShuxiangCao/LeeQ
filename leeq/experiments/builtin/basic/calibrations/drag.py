@@ -21,46 +21,6 @@ logger = leeq.utils.setup_logging(__name__)
 
 
 class DragCalibrationSingleQubitMultilevel(Experiment):
-    EPII_INFO = {
-        "name": "DragCalibrationSingleQubitMultilevel",
-        "description": "Single AllXY DRAG experiment for calibrating DRAG coefficient",
-        "purpose": "Calibrates the DRAG coefficient (alpha) using an AllXY sequence to minimize phase errors in single-qubit gates. Essential for high-fidelity gates by compensating for leakage to higher energy levels.",
-        "attributes": {
-            "data": {
-                "type": "np.ndarray[complex]",
-                "description": "Raw measurement data from AllXY sequence",
-                "shape": "(n_alpha_points, 2)"
-            },
-            "sweep_values": {
-                "type": "np.ndarray[float]",
-                "description": "Array of 1/alpha values swept",
-                "shape": "(n_alpha_points,)"
-            },
-            "optimum": {
-                "type": "float",
-                "description": "Optimal alpha value from linear fit"
-            },
-            "mp": {
-                "type": "MeasurementPrimitive",
-                "description": "Measurement primitive used"
-            },
-            "inv_alpha_start": {
-                "type": "float",
-                "description": "Start value for 1/alpha sweep"
-            },
-            "inv_alpha_stop": {
-                "type": "float",
-                "description": "Stop value for 1/alpha sweep"
-            }
-        },
-        "notes": [
-            "Uses AllXY sequence to isolate DRAG errors",
-            "Linear fit finds crossing point for optimal alpha",
-            "Successful when two lines show distinct trends",
-            "Optimal value should be in central half of sweep range"
-        ]
-    }
-
     """
     Class for running a single AllXY drag experiment on a single qubit with a multilevel system.
     """
@@ -355,27 +315,6 @@ If success cannot be determined, consider the experiment failed.
 
 
 class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
-    EPII_INFO = {
-        "name": "CrossAllXYDragMultiRunSingleQubitMultilevel",
-        "description": "Iterative AllXY DRAG calibration with binary search refinement",
-        "purpose": "Performs multiple iterations of AllXY DRAG calibration using binary search to converge on the optimal DRAG coefficient. Provides robust calibration through iterative refinement.",
-        "attributes": {
-            "alpha_calibration_results": {
-                "type": "dict",
-                "description": "Dictionary storing calibration results for each iteration",
-                "keys": {
-                    "(collection_name, mprim_index)": "list[DragCalibrationSingleQubitMultilevel] - Results from each iteration"
-                }
-            }
-        },
-        "notes": [
-            "Uses binary search to converge on optimal alpha",
-            "Performs up to 10 iterations for convergence",
-            "Trustable when result is in central third of range",
-            "Updates qubit parameters if update=True"
-        ]
-    }
-
     """
     Class for running experiments to calibrate the alpha parameter (DRAG coefficient)
     by performing an all XY drag on a single qubit with a multilevel system.
@@ -496,34 +435,6 @@ class CrossAllXYDragMultiRunSingleQubitMultilevel(Experiment):
 
 
 class DragPhaseCalibrationMultiQubitsMultilevel(Experiment):
-    EPII_INFO = {
-        "name": "DragPhaseCalibrationMultiQubitsMultilevel",
-        "description": "Multi-qubit DRAG phase calibration experiment",
-        "purpose": "Calibrates DRAG phase coefficients for multiple qubits simultaneously using AllXY sequences. Ensures proper phase compensation across multiple qubits for high-fidelity parallel operations.",
-        "attributes": {
-            "data": {
-                "type": "list[np.ndarray[complex]]",
-                "description": "Raw measurement data for each qubit",
-                "shape": "List of arrays, each (n_alpha_points, 2)"
-            },
-            "sweep_values": {
-                "type": "np.ndarray[float]",
-                "description": "Array of 1/alpha values swept",
-                "shape": "(n_alpha_points,)"
-            },
-            "optimal_alphas": {
-                "type": "list[float]",
-                "description": "Optimal alpha values for each qubit"
-            }
-        },
-        "notes": [
-            "Calibrates multiple qubits in parallel",
-            "Each qubit gets independent DRAG coefficient",
-            "Efficient for multi-qubit systems",
-            "Currently not fully implemented (placeholder)"
-        ]
-    }
-
     @log_and_record
     def run(self,
             duts,

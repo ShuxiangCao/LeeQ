@@ -42,65 +42,6 @@ def _rb2q_find_sequence(seq_length, gateset, interleaved, cliff_set='XY'):
 
 
 class RandomizedBenchmarking2Qubits(Experiment):
-    EPII_INFO = {
-        "name": "RandomizedBenchmarking2Qubits",
-        "description": "Two-qubit randomized benchmarking for gate fidelity assessment",
-        "purpose": "Performs randomized benchmarking on two qubits to measure the average gate fidelity by applying random sequences of Clifford gates and measuring the decay of success probability with sequence length. This experiment helps characterize the overall error rate of two-qubit gates.",
-        "attributes": {
-            "control_qubit": {
-                "type": "TransmonElement",
-                "description": "The control qubit for the two-qubit gates"
-            },
-            "target_qubit": {
-                "type": "TransmonElement",
-                "description": "The target qubit for the two-qubit gates"
-            },
-            "c2": {
-                "type": "Any",
-                "description": "Two-qubit Clifford gate object"
-            },
-            "results": {
-                "type": "list[np.ndarray]",
-                "description": "Raw measurement results for both qubits",
-                "shape": "(2, kinds, seq_length)"
-            },
-            "success_probability": {
-                "type": "np.ndarray[float]",
-                "description": "Average success probability for each sequence length",
-                "shape": "(len(seq_length),)"
-            },
-            "popt": {
-                "type": "np.ndarray[float]",
-                "description": "Optimized parameters from exponential decay fit [a, p0, p1]",
-                "shape": "(3,)"
-            },
-            "pcov": {
-                "type": "np.ndarray[float]",
-                "description": "Covariance matrix from curve fitting",
-                "shape": "(3, 3)"
-            },
-            "perr": {
-                "type": "np.ndarray[float]",
-                "description": "Standard errors of fit parameters",
-                "shape": "(3,)"
-            },
-            "infidelity": {
-                "type": "unc.ufloat",
-                "description": "Calculated gate infidelity with uncertainty"
-            },
-            "error_bar": {
-                "type": "float",
-                "description": "Standard deviation of the infidelity estimate"
-            }
-        },
-        "notes": [
-            "Uses parallel processing to generate random Clifford sequences",
-            "Fits decay to a*exp(p0*x) + p1 to extract gate fidelity",
-            "The infidelity is calculated as (d-1)/d * (1-exp(p0)) where d=4 for two qubits",
-            "Requires a two-qubit Clifford gate set (c2) to be provided"
-        ]
-    }
-
     def build_sequence(self, indexes: List[int]) -> LogicalPrimitiveBlock:
         """Build a sequence from given indexes, considering whether to ignore identity."""
         return LogicalPrimitiveBlockSerial([self.c2.get_clifford(k, ignore_identity=False) for k in indexes])
@@ -232,48 +173,6 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         success_probability (Dict[str, List[float]]): Success probabilities for standard and interleaved RB.
         infidelity (float): Calculated relative infidelity between standard and interleaved RB.
     """
-
-    EPII_INFO = {
-        "name": "RandomizedBenchmarking2QubitsInterleavedComparison",
-        "description": "Compares standard and interleaved randomized benchmarking for specific gate fidelity",
-        "purpose": "Performs both standard and interleaved randomized benchmarking to extract the fidelity of a specific two-qubit gate. By comparing the decay rates of standard RB (all random Cliffords) and interleaved RB (specific gate interleaved between random Cliffords), this experiment isolates the error rate of the target gate.",
-        "attributes": {
-            "seq_length_std": {
-                "type": "list[int]",
-                "description": "Sequence lengths for standard RB"
-            },
-            "seq_length_interleaved": {
-                "type": "list[int]",
-                "description": "Adjusted sequence lengths for interleaved RB"
-            },
-            "fit_params": {
-                "type": "dict",
-                "description": "Fitting parameters for standard and interleaved RB",
-                "keys": {
-                    "standard": "dict with popt, pcov, perr, infidelity, error_bar",
-                    "interleaved": "dict with popt, pcov, perr, infidelity, error_bar"
-                }
-            },
-            "success_probability": {
-                "type": "dict",
-                "description": "Success probabilities for both RB methods",
-                "keys": {
-                    "standard": "np.ndarray[float] - Success probability vs sequence length",
-                    "interleaved": "np.ndarray[float] - Success probability vs sequence length"
-                }
-            },
-            "infidelity": {
-                "type": "unc.ufloat",
-                "description": "Relative infidelity of the interleaved gate with uncertainty"
-            }
-        },
-        "notes": [
-            "Default interleaved gate index is 10299 for CZ gate",
-            "Sequence lengths for interleaved RB are automatically adjusted",
-            "The relative infidelity is calculated from the ratio of decay rates",
-            "Provides visual comparison of both decay curves in plot"
-        ]
-    }
 
     _experiment_result_analysis_instructions = """
     This is the analysis of the randomized benchmarking experiment. The experiment is considered successful if no

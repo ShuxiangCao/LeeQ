@@ -42,38 +42,6 @@ class SimpleT1(Experiment):
         Plots the T1 decay.
     """
 
-    EPII_INFO = {
-        "name": "SimpleT1",
-        "description": "Single qubit T1 relaxation time measurement experiment",
-        "purpose": "Measures the characteristic time T1 for a qubit to relax from the excited state |1> to the ground state |0>. This is a fundamental qubit characterization that determines the energy relaxation time and helps assess qubit quality. The experiment prepares the qubit in |1> state and measures population decay over time.",
-        "attributes": {
-            "trace": {
-                "type": "np.ndarray[float]",
-                "description": "Population measurements as function of delay time",
-                "shape": "(n_time_points,)"
-            },
-            "mp": {
-                "type": "MeasurementPrimitive",
-                "description": "Measurement primitive used for qubit readout"
-            },
-            "fit_params": {
-                "type": "dict",
-                "description": "Fitted exponential decay parameters",
-                "keys": {
-                    "Decay": "ufloat - T1 time constant in microseconds",
-                    "Amplitude": "ufloat - Initial amplitude of decay",
-                    "Offset": "ufloat - Steady-state offset value"
-                }
-            }
-        },
-        "notes": [
-            "Time length should be approximately 5 times the expected T1 value",
-            "Typical T1 values range from 10-200 microseconds for superconducting qubits",
-            "The experiment fits data to: A * exp(-t/T1) + Offset",
-            "In simulation mode, virtual qubit T1 value is used with optional sampling noise"
-        ]
-    }
-
     _experiment_result_analysis_instructions = """The T1 experiment measures the relaxation time of a qubit.
     Please analyze the fitted plots and the fitting model to verify the data's validity. Subsequently, determine
     if the experiment needs to be rerun and adjust the experimental parameters as necessary. The suggested time
@@ -334,33 +302,6 @@ class MultiQubitT1(Experiment):
         Plots the T1 decay.
     """
 
-    EPII_INFO = {
-        "name": "MultiQubitT1",
-        "description": "Parallel T1 relaxation time measurement for multiple qubits",
-        "purpose": "Simultaneously measures T1 relaxation times for multiple qubits to improve experimental efficiency. Each qubit is prepared in |1> state and population decay is measured independently but in parallel. This allows rapid characterization of multi-qubit systems.",
-        "attributes": {
-            "traces": {
-                "type": "List[np.ndarray[float]]",
-                "description": "Population measurements for each qubit",
-                "shape": "List of (n_time_points,) arrays"
-            },
-            "mps": {
-                "type": "List[MeasurementPrimitive]",
-                "description": "Measurement primitives for each qubit"
-            },
-            "collection_names": {
-                "type": "List[str]",
-                "description": "Collection names for each qubit transition"
-            }
-        },
-        "notes": [
-            "All qubits are measured in parallel for efficiency",
-            "Each qubit can have different collection names and measurement primitives",
-            "Fitting is performed independently for each qubit",
-            "Time parameters apply to all qubits equally"
-        ]
-    }
-
     @log_and_record
     def run(self,
             # Add the expected type for 'qubit' instead of Any
@@ -564,59 +505,6 @@ class MultiQubitT1(Experiment):
 
 
 class MultiQuditT1Decay(Experiment):
-    EPII_INFO = {
-        "name": "MultiQuditT1Decay",
-        "description": "Multi-level T1 decay measurement for qudit systems",
-        "purpose": "Measures T1 relaxation times between multiple energy levels in qudit systems (up to 4 levels). This experiment characterizes the decay rates between all adjacent energy levels, providing comprehensive information about multi-level relaxation dynamics. Supports measurement error mitigation through assignment matrix calibration.",
-        "attributes": {
-            "results": {
-                "type": "List[np.ndarray]",
-                "description": "Raw measurement results for each qudit",
-                "shape": "List of arrays with shape depending on measurement"
-            },
-            "probs": {
-                "type": "List[np.ndarray]",
-                "description": "Probability distributions for each qudit over time",
-                "shape": "List of (n_levels, n_time_points, n_initial_states) arrays"
-            },
-            "fit_params": {
-                "type": "List[Tuple[np.ndarray, np.ndarray]]",
-                "description": "Fitted initial state and gamma matrix for each qudit",
-                "keys": {
-                    "initial_state": "np.ndarray - Initial population distribution",
-                    "gamma": "np.ndarray - Transition rate matrix"
-                }
-            },
-            "t1_list": {
-                "type": "List[List[float]]",
-                "description": "Extracted T1 times for each transition of each qudit",
-                "shape": "List of lists with T1 values in microseconds"
-            },
-            "time_length": {
-                "type": "float",
-                "description": "Total time length of the experiment in microseconds"
-            },
-            "time_resolution": {
-                "type": "float",
-                "description": "Time step between measurements in microseconds"
-            },
-            "max_level": {
-                "type": "int",
-                "description": "Maximum energy level measured (0-indexed)"
-            },
-            "assignment_calibration": {
-                "type": "Optional[CalibrateSingleDutAssignmentMatrices]",
-                "description": "Assignment matrix calibration for measurement mitigation"
-            }
-        },
-        "notes": [
-            "Supports up to 4 energy levels (0, 1, 2, 3)",
-            "Measurement mitigation can be enabled to correct for readout errors",
-            "Fits multi-level decay using master equation approach",
-            "Each level is prepared sequentially to measure all decay pathways"
-        ]
-    }
-
     @log_and_record(overwrite_func_name='MultiQuditT1Decay.run')
     def run_simulated(self,
                       duts: List[Any],

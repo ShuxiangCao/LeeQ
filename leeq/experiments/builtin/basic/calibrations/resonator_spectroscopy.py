@@ -30,45 +30,6 @@ __all__ = [
 
 
 class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
-    EPII_INFO = {
-        "name": "ResonatorSweepTransmissionWithExtraInitialLPB",
-        "description": "Resonator frequency sweep with optional initial state preparation",
-        "purpose": "Performs a frequency sweep to find and characterize the resonator response. Supports optional initial logical primitive block (LPB) for state preparation, allowing measurement of the resonator in different qubit states. Used for finding resonator frequency and characterizing dispersive shifts.",
-        "attributes": {
-            "mp": {
-                "type": "MeasurementPrimitive",
-                "description": "The measurement primitive used for readout"
-            },
-            "data": {
-                "type": "np.ndarray[complex]",
-                "description": "Raw complex IQ response data",
-                "shape": "(n_frequency_points,)"
-            },
-            "result": {
-                "type": "dict",
-                "description": "Processed results containing magnitude and phase",
-                "keys": {
-                    "Magnitude": "np.ndarray[float] - Magnitude of resonator response",
-                    "Phase": "np.ndarray[float] - Phase of resonator response"
-                }
-            },
-            "use_kerr_nonlinearity": {
-                "type": "bool",
-                "description": "Whether Kerr nonlinearity is enabled (simulation only)"
-            },
-            "drive_power": {
-                "type": "float",
-                "description": "Drive power for Kerr simulation (simulation only)"
-            }
-        },
-        "notes": [
-            "Initial LPB allows measuring dispersive shift by preparing different qubit states",
-            "Supports Kerr nonlinearity simulation for high-power regime",
-            "Provides phase gradient fitting for resonator characterization",
-            "Multi-qubit simulation uses channel-based readout"
-        ]
-    }
-
     """
     Class representing a resonator sweep transmission experiment with extra initial LPB.
     Inherits from a generic "experiment" class.
@@ -807,29 +768,6 @@ class ResonatorSweepTransmissionWithExtraInitialLPB(Experiment):
 
 
 class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
-    EPII_INFO = {
-        "name": "ResonatorSweepAmpFreqWithExtraInitialLPB",
-        "description": "2D resonator sweep of frequency and amplitude with optional state preparation",
-        "purpose": "Performs a 2D sweep of both frequency and amplitude to characterize resonator response across different drive powers. Supports optional initial LPB for measuring dispersive shifts in different qubit states. Used for power-dependent characterization and nonlinearity studies.",
-        "attributes": {
-            "mp": {
-                "type": "MeasurementPrimitive",
-                "description": "The measurement primitive used for readout"
-            },
-            "trace": {
-                "type": "np.ndarray[complex]",
-                "description": "2D array of complex IQ response data",
-                "shape": "(n_amplitude_points, n_frequency_points)"
-            }
-        },
-        "notes": [
-            "2D sweep creates amplitude x frequency grid",
-            "Initial LPB allows measuring in different qubit states",
-            "Useful for identifying power-dependent effects",
-            "No run_simulated method currently implemented"
-        ]
-    }
-
     @log_and_record
     def run(self,
             dut_qubit: TransmonElement,
@@ -1066,25 +1004,6 @@ class ResonatorSweepAmpFreqWithExtraInitialLPB(Experiment):
 
 
 class ResonatorSweepTransmissionXiComparison(Experiment):
-    EPII_INFO = {
-        "name": "ResonatorSweepTransmissionXiComparison",
-        "description": "Compare resonator response across different qubit states",
-        "purpose": "Performs resonator frequency sweeps with different initial qubit states to measure and compare dispersive shifts. This allows extraction of chi (dispersive shift) by comparing resonator response when qubit is in |0> vs |1> or higher states.",
-        "attributes": {
-            "result_dict": {
-                "type": "dict",
-                "description": "Dictionary of ResonatorSweepTransmissionWithExtraInitialLPB experiments",
-                "keys": "State labels mapping to experiment instances"
-            }
-        },
-        "notes": [
-            "Each LPB in lpb_scan prepares a different qubit state",
-            "Useful for measuring dispersive shift chi",
-            "Can compare ground, excited, and higher level states",
-            "No run_simulated method currently implemented"
-        ]
-    }
-
     """
     Class for comparing resonator sweep transmission with extra initial logical primitive block (LPB).
     It includes methods to run the experiment, and to plot magnitude and phase using both
@@ -1241,46 +1160,6 @@ class ResonatorSweepTransmissionXiComparison(Experiment):
 # New Kerr-enabled experiments for high-power regime characterization
 
 class ResonatorPowerSweepSpectroscopy(Experiment):
-    EPII_INFO = {
-        "name": "ResonatorPowerSweepSpectroscopy",
-        "description": "Power sweep spectroscopy to observe bistability and S-curves",
-        "purpose": "Sweeps power at a fixed frequency to observe the characteristic S-curve response and bistability phenomena in the high-power regime. Used to characterize nonlinear resonator behavior and find critical powers for bistability.",
-        "attributes": {
-            "data": {
-                "type": "np.ndarray[complex]",
-                "description": "Complex IQ response data at each power point",
-                "shape": "(n_power_points,)"
-            },
-            "result": {
-                "type": "dict",
-                "description": "Processed results containing magnitude and phase",
-                "keys": {
-                    "Magnitude": "np.ndarray[float] - Response magnitude at each power",
-                    "Phase": "np.ndarray[float] - Response phase at each power"
-                }
-            },
-            "freq": {
-                "type": "float",
-                "description": "Fixed frequency for the power sweep (MHz)"
-            },
-            "powers": {
-                "type": "np.ndarray[float]",
-                "description": "Array of drive powers used in sweep",
-                "shape": "(n_power_points,)"
-            },
-            "sweep_direction": {
-                "type": "str",
-                "description": "Direction of power sweep ('up' or 'down')"
-            }
-        },
-        "notes": [
-            "Demonstrates S-curve response in bistable regime",
-            "Sweep direction affects hysteresis behavior",
-            "Critical power marks onset of bistability",
-            "Uses Kerr nonlinearity simulation for realistic modeling"
-        ]
-    }
-
     """
     Power sweep spectroscopy experiment to observe bistability and S-curves.
 
@@ -1437,62 +1316,6 @@ class ResonatorPowerSweepSpectroscopy(Experiment):
 
 
 class ResonatorBistabilityCharacterization(Experiment):
-    EPII_INFO = {
-        "name": "ResonatorBistabilityCharacterization",
-        "description": "Characterize bistability by measuring hysteresis loops",
-        "purpose": "Performs both forward and backward power sweeps to map out the hysteresis loop and identify critical powers. Used to fully characterize bistable behavior including jump points and hysteresis width.",
-        "attributes": {
-            "forward_result": {
-                "type": "dict",
-                "description": "Results from forward (increasing power) sweep",
-                "keys": {
-                    "Magnitude": "np.ndarray[float] - Forward sweep magnitude",
-                    "Phase": "np.ndarray[float] - Forward sweep phase"
-                }
-            },
-            "backward_result": {
-                "type": "dict",
-                "description": "Results from backward (decreasing power) sweep",
-                "keys": {
-                    "Magnitude": "np.ndarray[float] - Backward sweep magnitude",
-                    "Phase": "np.ndarray[float] - Backward sweep phase"
-                }
-            },
-            "powers_forward": {
-                "type": "np.ndarray[float]",
-                "description": "Power array for forward sweep",
-                "shape": "(n_power_points,)"
-            },
-            "powers_backward": {
-                "type": "np.ndarray[float]",
-                "description": "Power array for backward sweep",
-                "shape": "(n_power_points,)"
-            },
-            "freq": {
-                "type": "float",
-                "description": "Fixed frequency for power sweeps (MHz)"
-            },
-            "forward_jump_power": {
-                "type": "float or None",
-                "description": "Critical power for forward jump (low to high branch)"
-            },
-            "backward_jump_power": {
-                "type": "float or None",
-                "description": "Critical power for backward jump (high to low branch)"
-            },
-            "hysteresis_width": {
-                "type": "float or None",
-                "description": "Width of hysteresis loop (difference in critical powers)"
-            }
-        },
-        "notes": [
-            "Hysteresis loop reveals bistable dynamics",
-            "Jump points indicate critical powers for branch switching",
-            "Hysteresis width quantifies bistability strength",
-            "Requires Kerr nonlinearity simulation for accurate results"
-        ]
-    }
-
     """
     Characterize bistability by measuring hysteresis loops.
 
@@ -1682,53 +1505,6 @@ class ResonatorBistabilityCharacterization(Experiment):
 
 
 class ResonatorThreeRegimeCharacterization(Experiment):
-    EPII_INFO = {
-        "name": "ResonatorThreeRegimeCharacterization",
-        "description": "Comprehensive characterization of all three power regimes",
-        "purpose": "Demonstrates linear, bistable, and high-power regimes by performing frequency sweeps at different power levels. Used to understand the full nonlinear behavior of the resonator across different driving strengths.",
-        "attributes": {
-            "regime_results": {
-                "type": "dict",
-                "description": "Results for each power regime",
-                "keys": {
-                    "linear": "dict - Results from linear regime sweep",
-                    "bistable": "dict - Results from bistable regime sweep",
-                    "high_power": "dict - Results from high-power regime sweep"
-                }
-            },
-            "powers": {
-                "type": "dict",
-                "description": "Power values used for each regime",
-                "keys": {
-                    "linear": "float - Power for linear regime",
-                    "bistable": "float - Power for bistable regime",
-                    "high_power": "float - Power for high-power regime"
-                }
-            },
-            "frequencies": {
-                "type": "np.ndarray[float]",
-                "description": "Frequency array for sweeps (MHz)",
-                "shape": "(n_frequency_points,)"
-            },
-            "regime_analysis": {
-                "type": "dict",
-                "description": "Analyzed characteristics for each regime",
-                "keys": {
-                    "linear": "dict - Linear regime characteristics",
-                    "bistable": "dict - Bistable regime characteristics",
-                    "high_power": "dict - High-power regime characteristics"
-                }
-            }
-        },
-        "notes": [
-            "Auto-selects powers based on critical power if enabled",
-            "Linear regime shows simple Lorentzian response",
-            "Bistable regime exhibits S-curve and hysteresis",
-            "High-power regime shows shifted and distorted lineshapes",
-            "Comprehensive view of nonlinear resonator physics"
-        ]
-    }
-
     """
     Comprehensive characterization of all three power regimes.
 
@@ -2012,37 +1788,6 @@ class ResonatorThreeRegimeCharacterization(Experiment):
 # Assuming other necessary modules are imported elsewhere in the project.
 
 class MeasurementScanParams(Experiment):
-    EPII_INFO = {
-        "name": "MeasurementScanParams",
-        "description": "Scan measurement parameters to optimize SNR",
-        "purpose": "Scans measurement frequency and amplitude parameters to find optimal signal-to-noise ratio (SNR) for state discrimination. Used to optimize readout parameters for improved qubit state measurement fidelity.",
-        "attributes": {
-            "snrs": {
-                "type": "np.ndarray[float]",
-                "description": "Signal-to-noise ratios for each scan point",
-                "shape": "(n_freqs, n_amps)"
-            },
-            "scanned_freqs": {
-                "type": "list[float]",
-                "description": "List of scanned frequencies (MHz)"
-            },
-            "scanned_amps": {
-                "type": "list[float]",
-                "description": "List of scanned amplitudes"
-            },
-            "measurement_scan_result": {
-                "type": "list",
-                "description": "List of MeasurementCalibrationMultilevelGMM results for each scan point"
-            }
-        },
-        "notes": [
-            "Optimizes readout SNR for better state discrimination",
-            "Can scan frequency and/or amplitude parameters",
-            "Accumulates SNR across all distinguishable states if enabled",
-            "Results help identify optimal measurement settings"
-        ]
-    }
-
     """
     Class for managing and executing measurement scan parameters
     in an experimental setup.

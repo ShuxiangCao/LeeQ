@@ -15,39 +15,6 @@ logger = leeq.utils.setup_logging(__name__)
 
 
 class GRAPESingleQubitGate(Experiment):
-    EPII_INFO = {
-        "name": "GRAPESingleQubitGate",
-        "description": "GRAPE: Gradient Ascent Pulse Engineering for single qubit gates",
-        "purpose": "Generates optimized pulse shapes for single qubit gates using the GRAPE algorithm. Creates a new collection with the optimized pulse shape and calibrates the amplitude using Rabi experiments.",
-        "attributes": {
-            "grape_result": {
-                "type": "object",
-                "description": "Result object from the GRAPE optimization containing the optimized control fields",
-                "fields": {
-                    "u": "np.ndarray[complex] - Control field evolution array with shape (iterations, 2, time_points)"
-                }
-            },
-            "rabi": {
-                "type": "NormalisedRabi",
-                "description": "Rabi experiment instance used for amplitude calibration"
-            },
-            "rabi_rate_per_amp": {
-                "type": "float",
-                "description": "Calibrated Rabi rate per unit amplitude (MHz/amp)"
-            },
-            "collection": {
-                "type": "LogicalPrimitiveCollection",
-                "description": "The generated collection containing the GRAPE pulse"
-            }
-        },
-        "notes": [
-            "The GRAPE algorithm optimizes pulse shapes for quantum gates using gradient ascent",
-            "Creates a new collection with the optimized pulse shape",
-            "Uses Rabi experiments to calibrate the pulse amplitude",
-            "The anharmonicity is hardcoded to -200 MHz in the current implementation",
-            "Pulse shape is normalized and stored as an arbitrary waveform"
-        ]
-    }
     @log_and_record
     def run(self,
             dut,

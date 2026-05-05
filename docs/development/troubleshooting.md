@@ -19,12 +19,6 @@ from leeq.chronicle import LoggableObject
 
 ### Runtime Issues
 
-#### Problem: EPII daemon connection refused
-**Solution**: 
-1. Check if the EPII daemon is running: `systemctl status epii-daemon`
-2. Verify the port is not blocked by firewall
-3. Check the daemon logs: `journalctl -u epii-daemon -f`
-
 #### Problem: Experiment execution timeout
 **Solution**:
 1. Increase timeout in experiment configuration
@@ -109,4 +103,3 @@ If you encounter issues not covered here:
 
 - [Installation Guide](../getting-started/installation.md)
 - [Experiments Guide](../guide/experiments.md)
-- [EPII Troubleshooting](../epii/troubleshooting.md)

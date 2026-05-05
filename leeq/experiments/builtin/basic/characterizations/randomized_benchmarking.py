@@ -23,55 +23,6 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
     Class for running a randomized benchmarking experiment on a multilevel system.
     """
 
-    EPII_INFO = {
-        "name": "RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem",
-        "description": "Randomized benchmarking for two-level subspaces in multi-level systems",
-        "purpose": "Measures average gate fidelity using randomized benchmarking protocol on specified two-level subspaces of multi-level quantum systems. Applies random sequences of Clifford gates and measures decay to extract gate error rates. Essential for benchmarking gate quality in transmon qubits with higher energy levels.",
-        "attributes": {
-            "results": {
-                "type": "np.ndarray",
-                "description": "Raw measurement results for all qubits",
-                "shape": "(n_qubits, n_measurements, n_shots)"
-            },
-            "seq_length": {
-                "type": "np.ndarray[int]",
-                "description": "Array of sequence lengths used in the experiment",
-                "shape": "(n_lengths,)"
-            },
-            "gates": {
-                "type": "List[List[Gate]]",
-                "description": "Clifford gate sets for each qubit"
-            },
-            "cliff_set": {
-                "type": "str",
-                "description": "Clifford set used ('XY' or 'VZX')"
-            },
-            "mean": {
-                "type": "List[List[float]]",
-                "description": "Mean population values for each qubit and state"
-            },
-            "std": {
-                "type": "List[List[float]]",
-                "description": "Standard deviation of populations"
-            },
-            "rb_parameters": {
-                "type": "List[List[unc.Variable]]",
-                "description": "Fitted RB decay parameters with uncertainties"
-            },
-            "probs": {
-                "type": "List[np.ndarray]",
-                "description": "Probability distributions for each qubit"
-            }
-        },
-        "notes": [
-            "Supports XY and VZX Clifford gate sets",
-            "Can operate on arbitrary two-level subspaces (f01, f12, f23, etc.)",
-            "Automatically generates exponentially spaced sequence lengths if integer provided",
-            "Extracts both per-Clifford and per-gate infidelities",
-            "Uses 24 single-qubit Clifford gates"
-        ]
-    }
-
     @log_and_record(overwrite_func_name='RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem.run')
     def run_simulated(self,
                       dut_list: List,
@@ -477,55 +428,6 @@ class SingleQubitRandomizedBenchmarking(RandomizedBenchmarkingTwoLevelSubspaceMu
     """
     Class for running a randomized benchmarking experiment on a single qubit.
     """
-
-    EPII_INFO = {
-        "name": "SingleQubitRandomizedBenchmarking",
-        "description": "Single-qubit randomized benchmarking experiment",
-        "purpose": "Measures average single-qubit gate fidelity using the randomized benchmarking protocol. Applies sequences of random Clifford gates with varying lengths and measures exponential decay of fidelity. Provides robust characterization of gate quality that is insensitive to state preparation and measurement errors.",
-        "attributes": {
-            "results": {
-                "type": "np.ndarray",
-                "description": "Raw measurement results",
-                "shape": "(1, n_measurements, n_shots)"
-            },
-            "seq_length": {
-                "type": "np.ndarray[int]",
-                "description": "Array of sequence lengths used",
-                "shape": "(n_lengths,)"
-            },
-            "gates": {
-                "type": "List[List[Gate]]",
-                "description": "Clifford gate set for the qubit"
-            },
-            "cliff_set": {
-                "type": "str",
-                "description": "Clifford set used ('XY' or 'VZX')"
-            },
-            "mean": {
-                "type": "List[List[float]]",
-                "description": "Mean population values for each state"
-            },
-            "std": {
-                "type": "List[List[float]]",
-                "description": "Standard deviation of populations"
-            },
-            "rb_parameters": {
-                "type": "List[List[unc.Variable]]",
-                "description": "Fitted RB parameters: [amplitude, decay_rate, offset]"
-            },
-            "probs": {
-                "type": "List[np.ndarray]",
-                "description": "Probability distributions"
-            }
-        },
-        "notes": [
-            "Inherits from multi-level RB but operates on single qubit",
-            "Automatically computes per-Clifford and per-gate infidelities",
-            "Average number of gates per Clifford is ~1.825",
-            "Decay rate relates to average gate fidelity",
-            "Currently run_simulated is not fully implemented"
-        ]
-    }
 
     _experiment_result_analysis_instructions = """
     This is the analysis of the randomized benchmarking experiment. The experiment is considered successful if no

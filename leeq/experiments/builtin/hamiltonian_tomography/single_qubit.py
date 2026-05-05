@@ -26,43 +26,6 @@ class HamiltonianTomographySingleQubitBase(Experiment):
 
     """
 
-    EPII_INFO = {
-        "name": "HamiltonianTomographySingleQubitBase",
-        "description": "Base class for single-qubit Hamiltonian tomography experiments",
-        "purpose": "Provides core functionality for characterizing single-qubit Hamiltonians by measuring qubit evolution along different tomography axes (X, Y, Z). This class handles the experiment execution, data collection, and analysis framework for determining Hamiltonian parameters through time-domain measurements.",
-        "attributes": {
-            "results": {
-                "type": "list[np.ndarray]",
-                "description": "Raw measurement results for each qubit",
-                "shape": "Each array has shape (n_time_points, n_tomography_axes) or (n_time_points,) for single axis"
-            },
-            "tomography_axis": {
-                "type": "list[str]",
-                "description": "List of tomography axes used ('X', 'Y', and/or 'Z')"
-            },
-            "duts": {
-                "type": "list[TransmonElement]",
-                "description": "List of transmon qubits being characterized"
-            },
-            "analyzed_results": {
-                "type": "list[dict]",
-                "description": "Fitted parameters for each qubit after analysis",
-                "keys": {
-                    "Frequency": "float - Extracted frequency in MHz",
-                    "Amplitude": "float - Oscillation amplitude",
-                    "Phase": "float - Initial phase in radians",
-                    "Offset": "float - DC offset of the signal"
-                }
-            }
-        },
-        "notes": [
-            "This is a base class - typically use derived classes like HamiltonianTomographySingleQubitXYBase",
-            "The _run() method is the core implementation, not run()",
-            "Tomography axes determine which Pauli operators are measured",
-            "Analysis uses frequency fitting to extract Hamiltonian parameters"
-        ]
-    }
-
     def _run(self,
              duts: List[TransmonElement],
              lpb: LogicalPrimitiveBlock,
@@ -195,43 +158,6 @@ class HamiltonianTomographySingleQubitXYBase(HamiltonianTomographySingleQubitBas
     """
     Hamiltonian tomography equivalent to the ramsey experiment.
     """
-
-    EPII_INFO = {
-        "name": "HamiltonianTomographySingleQubitXYBase",
-        "description": "XY-plane Hamiltonian tomography for single qubits (Ramsey-like)",
-        "purpose": "Specialized Hamiltonian tomography that measures evolution in the XY plane of the Bloch sphere, equivalent to a Ramsey experiment. This class automatically sets tomography axes to ['X', 'Y'] to extract frequency and phase information from qubit precession.",
-        "attributes": {
-            "results": {
-                "type": "list[np.ndarray]",
-                "description": "Raw measurement results for each qubit in X and Y bases",
-                "shape": "Each array has shape (n_time_points, 2) for X and Y measurements"
-            },
-            "tomography_axis": {
-                "type": "list[str]",
-                "description": "Fixed to ['X', 'Y'] for XY-plane tomography"
-            },
-            "duts": {
-                "type": "list[TransmonElement]",
-                "description": "List of transmon qubits being characterized"
-            },
-            "analyzed_results": {
-                "type": "list[dict]",
-                "description": "2D frequency fit results for each qubit",
-                "keys": {
-                    "Frequency": "float - Precession frequency in MHz",
-                    "Amplitude": "float - Oscillation amplitude",
-                    "Phase": "float - Initial phase in radians",
-                    "Offset": "complex - DC offset in IQ plane"
-                }
-            }
-        },
-        "notes": [
-            "Measures both X and Y projections to fully characterize XY-plane dynamics",
-            "Equivalent to Ramsey experiment for frequency characterization",
-            "Uses 2D frequency fitting for improved accuracy",
-            "Initial state preparation typically uses Y-π/2 pulse"
-        ]
-    }
 
     def _run(self,
              duts: List[TransmonElement],
@@ -373,43 +299,6 @@ class HamiltonianTomographySingleQubitStarkShift(HamiltonianTomographySingleQubi
     Hamiltonian tomography reveals the Z term under the stark shift drive.
     """
 
-    EPII_INFO = {
-        "name": "HamiltonianTomographySingleQubitStarkShift",
-        "description": "Characterizes AC Stark shift effects on single qubits",
-        "purpose": "Measures the frequency shift (Z-axis Hamiltonian term) induced by an off-resonant drive pulse (Stark shift). This experiment applies a variable-duration off-resonant drive and measures the resulting phase accumulation to quantify the AC Stark effect.",
-        "attributes": {
-            "results": {
-                "type": "list[np.ndarray]",
-                "description": "Measurement results showing phase evolution under Stark drive",
-                "shape": "Array shape (n_time_points, 2) for X and Y measurements"
-            },
-            "tomography_axis": {
-                "type": "list[str]",
-                "description": "Fixed to ['X', 'Y'] for measuring phase accumulation"
-            },
-            "duts": {
-                "type": "list[TransmonElement]",
-                "description": "Single transmon qubit being characterized (list with one element)"
-            },
-            "analyzed_results": {
-                "type": "list[dict]",
-                "description": "Stark shift frequency extracted from phase evolution",
-                "keys": {
-                    "Frequency": "float - Stark shift frequency in MHz",
-                    "Amplitude": "float - Oscillation amplitude",
-                    "Phase": "float - Initial phase offset",
-                    "Offset": "complex - DC offset"
-                }
-            }
-        },
-        "notes": [
-            "The Stark shift frequency is proportional to drive amplitude squared",
-            "Initial state is prepared along X-axis using Y-π/2 pulse",
-            "Drive frequency and amplitude determine the Stark shift magnitude",
-            "Used for calibrating controlled-Z gates and cross-talk characterization"
-        ]
-    }
-
     @log_and_record
     def run(self,
             dut: TransmonElement,
@@ -513,43 +402,6 @@ class HamiltonianTomographySingleQubitOffresonanceDrive(HamiltonianTomographySin
     """
     Hamiltonian tomography equivalent to the ramsey experiment.
     """
-
-    EPII_INFO = {
-        "name": "HamiltonianTomographySingleQubitOffresonanceDrive",
-        "description": "Characterizes qubit evolution under off-resonant drive conditions",
-        "purpose": "Measures qubit frequency and coherence when the control frequency is detuned from the qubit frequency. This experiment is essentially a Ramsey experiment with intentional frequency offset, used to characterize frequency stability and validate qubit frequency calibrations.",
-        "attributes": {
-            "results": {
-                "type": "list[np.ndarray]",
-                "description": "Ramsey oscillation data at detuned frequency",
-                "shape": "Array shape (n_time_points, 2) for X and Y measurements"
-            },
-            "tomography_axis": {
-                "type": "list[str]",
-                "description": "Fixed to ['X', 'Y'] for Ramsey-like measurement"
-            },
-            "duts": {
-                "type": "list[TransmonElement]",
-                "description": "Single transmon qubit being characterized (list with one element)"
-            },
-            "analyzed_results": {
-                "type": "list[dict]",
-                "description": "Detuning frequency extracted from oscillations",
-                "keys": {
-                    "Frequency": "float - Measured detuning frequency in MHz",
-                    "Amplitude": "float - Ramsey fringe amplitude",
-                    "Phase": "float - Initial phase",
-                    "Offset": "complex - DC offset in IQ plane"
-                }
-            }
-        },
-        "notes": [
-            "The measured frequency equals the intentional detuning",
-            "Uses delay elements instead of drive pulses for clean measurement",
-            "Temporarily modifies qubit frequency calibration during experiment",
-            "Useful for verifying frequency calibration accuracy"
-        ]
-    }
 
     @log_and_record
     def run(self,

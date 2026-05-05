@@ -73,7 +73,7 @@ RUN uv pip install --system -e /home/jovyan/packages/LeeQ
 # Tests should be run locally with proper dependencies
 # RUN pytest /home/jovyan/packages/LeeQ
 
-# Add entrypoint script for mode switching (daemon vs jupyter)
+# Add entrypoint script for Jupyter startup
 COPY --chown=${NB_UID}:${NB_GID} scripts/docker/entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

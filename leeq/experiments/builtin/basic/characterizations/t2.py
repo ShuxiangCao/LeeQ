@@ -31,39 +31,6 @@ class SpinEchoMultiLevel(
         Plots the results of the echo experiment.
     """
 
-    EPII_INFO = {
-        "name": "SpinEchoMultiLevel",
-        "description": "Spin echo T2 coherence time measurement experiment",
-        "purpose": "Measures the T2 echo coherence time using a spin echo pulse sequence (π/2 - τ/2 - π - τ/2 - π/2 - measure). This refocuses low-frequency noise and provides the intrinsic T2 coherence time, which is typically longer than T2* from Ramsey experiments. Essential for characterizing qubit coherence properties.",
-        "attributes": {
-            "trace": {
-                "type": "np.ndarray[float]",
-                "description": "Population measurements as function of free evolution time",
-                "shape": "(n_time_points,)"
-            },
-            "mp": {
-                "type": "MeasurementPrimitive",
-                "description": "Measurement primitive used for qubit readout"
-            },
-            "fit_params": {
-                "type": "dict",
-                "description": "Fitted exponential decay parameters",
-                "keys": {
-                    "Decay": "ufloat - T2 echo time constant in microseconds",
-                    "Amplitude": "ufloat - Initial amplitude of decay",
-                    "Offset": "ufloat - Steady-state offset value"
-                }
-            }
-        },
-        "notes": [
-            "Free evolution time should be ~5x expected T2 echo value",
-            "The π pulse refocuses static field inhomogeneities",
-            "T2 echo is typically longer than T2* (Ramsey)",
-            "Fits to: A * exp(-t/T2_echo) + Offset",
-            "Time resolution should capture ~50 data points"
-        ]
-    }
-
     _experiment_result_analysis_instructions = """The Spin echo experiment measures the T2 echo relaxation time of a qubit.
     Please analyze the fitted plots and the fitting model to verify the data's validity. Subsequently, determine
     if the experiment needs to be rerun and adjust the experimental parameters as necessary. The suggested time
@@ -320,43 +287,6 @@ class MultiQubitSpinEchoMultiLevel(
     plot_echo()
         Plots the results of the echo experiment.
     """
-
-    EPII_INFO = {
-        "name": "MultiQubitSpinEchoMultiLevel",
-        "description": "Parallel spin echo T2 measurement for multiple qubits",
-        "purpose": "Simultaneously measures T2 echo coherence times for multiple qubits using spin echo sequences. Enables efficient characterization of multi-qubit systems by running parallel experiments. Supports multi-level systems and provides normalized population analysis.",
-        "attributes": {
-            "result": {
-                "type": "List[np.ndarray]",
-                "description": "Raw measurement results for each qubit",
-                "shape": "List of arrays with measurement data"
-            },
-            "mp": {
-                "type": "List[MeasurementPrimitive]",
-                "description": "Measurement primitives for each qubit"
-            },
-            "collection_names": {
-                "type": "List[str]",
-                "description": "Collection names for each qubit transition"
-            },
-            "probs": {
-                "type": "np.ndarray",
-                "description": "Probability distributions for all qubits",
-                "shape": "(n_qubits, n_levels, n_time_points)"
-            },
-            "normalized_population": {
-                "type": "np.ndarray",
-                "description": "Normalized population between interested levels",
-                "shape": "(n_qubits, n_time_points)"
-            }
-        },
-        "notes": [
-            "All qubits measured in parallel for efficiency",
-            "Supports different collection names per qubit",
-            "Can handle multi-level systems beyond two-level qubits",
-            "Normalized population computed between specified transition levels"
-        ]
-    }
 
     @log_and_record(overwrite_func_name='MultiQubitSpinEchoMultiLevel.run')
     def run_simulated(

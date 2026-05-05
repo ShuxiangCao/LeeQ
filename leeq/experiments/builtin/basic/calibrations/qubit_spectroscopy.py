@@ -71,46 +71,6 @@ def _simulate_iq_point(freq: float,
 
 
 class QubitSpectroscopyFrequency(Experiment):
-    EPII_INFO = {
-        "name": "QubitSpectroscopyFrequency",
-        "description": "Frequency sweep spectroscopy to find qubit resonances",
-        "purpose": "Performs a frequency sweep on a qubit while keeping the drive amplitude fixed to identify the qubit's resonant frequency. The experiment drives the qubit at various frequencies and measures the resonator response to detect when the qubit is excited.",
-        "attributes": {
-            "mp": {
-                "type": "MeasurementPrimitive",
-                "description": "The measurement primitive used for the experiment"
-            },
-            "trace": {
-                "type": "np.ndarray[complex]",
-                "description": "Raw IQ trace data from the measurement",
-                "shape": "(n_frequency_points,)"
-            },
-            "result": {
-                "type": "dict",
-                "description": "Processed results containing magnitude and phase",
-                "keys": {
-                    "Magnitude": "np.ndarray[float] - Magnitude of IQ response",
-                    "Phase": "np.ndarray[float] - Unwrapped phase of IQ response"
-                }
-            },
-            "freq_arr": {
-                "type": "np.ndarray[float]",
-                "description": "Frequency array for the sweep (MHz)",
-                "shape": "(n_frequency_points,)"
-            },
-            "frequency_guess": {
-                "type": "float",
-                "description": "Estimated resonant frequency based on maximum deviation from baseline (MHz)"
-            }
-        },
-        "notes": [
-            "The frequency_guess uses first 10 points as baseline reference",
-            "Phase is automatically unwrapped for continuity",
-            "In simulation, disable_noise=True provides deterministic results",
-            "Hardware mode ignores the disable_noise parameter"
-        ]
-    }
-
     """
     A class used to represent the QubitSweepPlottly experiment,
     specialized for conducting frequency sweeps on qubits and visualizing the results.
@@ -525,59 +485,6 @@ class QubitSpectroscopyFrequency(Experiment):
 
 
 class QubitSpectroscopyAmplitudeFrequency(Experiment):
-    EPII_INFO = {
-        "name": "QubitSpectroscopyAmplitudeFrequency",
-        "description": "2D spectroscopy sweeping both frequency and amplitude",
-        "purpose": "Performs a 2D sweep of both frequency and amplitude to map out the qubit response across different drive conditions. This helps identify power-dependent effects, multiphoton transitions, and optimal drive parameters for qubit control.",
-        "attributes": {
-            "mp": {
-                "type": "MeasurementPrimitive or _MockMP",
-                "description": "The measurement primitive used for the experiment"
-            },
-            "trace": {
-                "type": "np.ndarray[complex]",
-                "description": "2D array of raw IQ trace data",
-                "shape": "(n_amplitude_points, n_frequency_points)"
-            },
-            "result": {
-                "type": "dict",
-                "description": "Processed results containing magnitude and phase",
-                "keys": {
-                    "Magnitude": "np.ndarray[float] - 2D magnitude of IQ response",
-                    "Phase": "np.ndarray[float] - 2D phase of IQ response"
-                }
-            },
-            "freq_arr": {
-                "type": "np.ndarray[float]",
-                "description": "Frequency array for the sweep (MHz)",
-                "shape": "(n_frequency_points,)"
-            },
-            "amp_arr": {
-                "type": "np.ndarray[float]",
-                "description": "Amplitude array for the sweep",
-                "shape": "(n_amplitude_points,)"
-            },
-            "performance_metrics": {
-                "type": "dict",
-                "description": "Performance metrics for simulation (simulation mode only)",
-                "keys": {
-                    "execution_time": "float - Time taken in seconds",
-                    "memory_used_mb": "float - Memory usage in MB",
-                    "parallel_enabled": "bool - Whether parallel processing was used",
-                    "num_workers": "int - Number of worker processes",
-                    "grid_size": "tuple - (n_amps, n_freqs)",
-                    "total_points": "int - Total number of points simulated"
-                }
-            }
-        },
-        "notes": [
-            "2D sweep creates amplitude x frequency grid",
-            "Parallel processing available in simulation for 4-8x speedup",
-            "disable_noise=True provides clean 2D maps for validation",
-            "Phase is not unwrapped in 2D to preserve structure"
-        ]
-    }
-
     """
     A class used to represent the Qubit Spectroscopy Amplitude Frequency experiment.
 

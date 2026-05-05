@@ -1,34 +1,6 @@
 # Experiments Guide
 
-This guide covers how to use and create experiments in LeeQ with EPII v0.2.0 integration.
-
-## EPII v0.2.0 Integration
-
-LeeQ experiments now integrate seamlessly with EPII v0.2.0 for backend-aware discovery and execution.
-
-### Using ExperimentRouter
-
-```python
-from leeq.epii.experiments import ExperimentRouter
-
-# Initialize router with your setup for backend-aware filtering
-router = ExperimentRouter(setup=my_setup)
-
-# Discover available experiments
-experiments = router.list_experiments()
-print(f"Found {len(experiments)} experiments")
-
-# Get experiment by canonical name
-experiment_class = router.get_experiment("calibrations.NormalisedRabi")
-```
-
-### Canonical Naming Convention
-
-All experiments use module-qualified canonical names:
-
-- **Calibrations**: `calibrations.NormalisedRabi`, `calibrations.SimpleRamseyMultilevel`
-- **Characterizations**: `characterizations.SimpleT1`, `characterizations.SpinEchoMultiLevel`
-- **Multi-Qubit**: `multi_qubit_gates.CrossResonanceCalibration`
+This guide covers how to use and create experiments in LeeQ.
 
 ### Constructor-Only Execution Pattern
 
