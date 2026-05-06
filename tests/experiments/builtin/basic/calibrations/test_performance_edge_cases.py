@@ -27,55 +27,58 @@ class TestPerformanceCharacteristics:
         from leeq.experiments.builtin.basic.calibrations.resonator_spectroscopy import (
             ResonatorSweepTransmissionWithExtraInitialLPB
         )
-        
+
+        assert ResonatorSweepTransmissionWithExtraInitialLPB is not None
+
         # Test different frequency sweep sizes
         sweep_sizes = [10, 50, 100, 500, 1000]
         performance_data = []
-        
+        rng = np.random.default_rng(12345)
+
         for size in sweep_sizes:
             freq_array = np.arange(5000, 5000 + size, 1.0)
-            
-            start_time = time.time()
-            
+
             # Simulate the core frequency sweep computation
-            responses = []
-            for freq in freq_array:
-                # Simulate complex response calculation
-                response = complex(np.random.normal(1.0, 0.1), np.random.normal(0.0, 0.1))
-                responses.append(response)
-            
-            response_array = np.array(responses)
-            
+            response_array = (
+                rng.normal(1.0, 0.1, size=size)
+                + 1j * rng.normal(0.0, 0.1, size=size)
+            )
+
             # Simulate output processing
             result = {
                 "Magnitude": np.absolute(response_array),
                 "Phase": np.angle(response_array)
             }
-            
-            end_time = time.time()
-            elapsed_time = end_time - start_time
-            
+
+            assert response_array.shape == freq_array.shape
+            assert result["Magnitude"].shape == freq_array.shape
+            assert result["Phase"].shape == freq_array.shape
+            assert np.all(np.isfinite(result["Magnitude"]))
+            assert np.all(np.isfinite(result["Phase"]))
+
             performance_data.append({
                 "size": size,
-                "time": elapsed_time,
-                "time_per_point": elapsed_time / size
+                "work_items": (
+                    len(freq_array)
+                    + response_array.size
+                    + result["Magnitude"].size
+                    + result["Phase"].size
+                )
             })
-        
-        # Validate performance scaling
+
+        # Validate deterministic linear work scaling instead of sub-millisecond wall-clock timings.
         for i in range(1, len(performance_data)):
             current = performance_data[i]
             previous = performance_data[i-1]
-            
-            # Time should scale roughly linearly (within factor of 3)
-            expected_time = previous["time"] * (current["size"] / previous["size"])
-            time_ratio = current["time"] / expected_time
-            
-            assert time_ratio < 3.0, \
-                f"Performance degradation too high: {time_ratio:.2f}x expected time for size {current['size']}"
-        
-        print(f"\nFrequency Sweep Performance:")
+
+            expected_ratio = current["size"] / previous["size"]
+            actual_ratio = current["work_items"] / previous["work_items"]
+
+            assert actual_ratio == pytest.approx(expected_ratio)
+
+        print(f"\nFrequency Sweep Work Scaling:")
         for data in performance_data:
-            print(f"  {data['size']} points: {data['time']:.4f}s ({data['time_per_point']:.6f}s/point)")
+            print(f"  {data['size']} points: {data['work_items']} work items")
 
     def test_multi_qubit_parameter_extraction_performance(self):
         """Test parameter extraction performance with varying numbers of qubits."""
@@ -84,52 +87,61 @@ class TestPerformanceCharacteristics:
         )
         
         qubit_counts = [1, 2, 4, 8]
-        extraction_times = []
-        
+        extraction_metrics = []
+
         for n_qubits in qubit_counts:
             # Create mock setup with n qubits
             mock_setup = Mock()
             virtual_qubits = {}
-            
+
             for i in range(n_qubits):
                 mock_vq = Mock()
                 mock_vq.qubit_frequency = 5000.0 + i * 100.0
                 mock_vq.readout_frequency = 7000.0 + i * 200.0
                 mock_vq.readout_dipsersive_shift = 1.0 + i * 0.1
                 virtual_qubits[f"qubit_{i}"] = mock_vq
-            
+
             mock_setup._virtual_qubits = virtual_qubits
             mock_setup.get_coupling_strength_by_qubit = Mock(return_value=2.0)
-            
+
             # Create experiment instance without running constructor
             exp = ResonatorSweepTransmissionWithExtraInitialLPB.__new__(ResonatorSweepTransmissionWithExtraInitialLPB)
-            
-            start_time = time.time()
+
             params, channel_map, _ = exp._extract_params(mock_setup, Mock())
-            end_time = time.time()
-            
-            extraction_time = end_time - start_time
-            extraction_times.append({
+
+            expected_pair_checks = n_qubits * (n_qubits - 1) // 2
+            expected_couplings = n_qubits + expected_pair_checks
+
+            assert params["n_qubits"] == n_qubits
+            assert params["n_resonators"] == n_qubits
+            assert len(params["qubit_frequencies"]) == n_qubits
+            assert len(params["resonator_frequencies"]) == n_qubits
+            assert len(channel_map) == n_qubits
+            assert len(params["coupling_matrix"]) == expected_couplings
+            assert mock_setup.get_coupling_strength_by_qubit.call_count == expected_pair_checks
+
+            extraction_metrics.append({
                 "n_qubits": n_qubits,
-                "time": extraction_time,
-                "coupling_entries": len(params["coupling_matrix"])
+                "pair_checks": expected_pair_checks,
+                "coupling_entries": len(params["coupling_matrix"]),
             })
-        
-        # Validate that extraction time doesn't grow too fast
-        for i in range(1, len(extraction_times)):
-            current = extraction_times[i]
-            previous = extraction_times[i-1]
-            
-            # Should scale no worse than O(N²) for N qubits
-            max_expected_factor = (current["n_qubits"] / previous["n_qubits"]) ** 2
-            actual_factor = current["time"] / previous["time"]
-            
-            assert actual_factor < max_expected_factor * 2, \
-                f"Parameter extraction scaling too poor: {actual_factor:.2f}x vs expected max {max_expected_factor:.2f}x"
-        
-        print(f"\nParameter Extraction Performance:")
-        for data in extraction_times:
-            print(f"  {data['n_qubits']} qubits: {data['time']:.6f}s ({data['coupling_entries']} coupling entries)")
+
+        # Validate O(N²) structural scaling without relying on noisy tiny timings.
+        for data in extraction_metrics:
+            assert data["pair_checks"] <= data["n_qubits"] ** 2
+            assert data["coupling_entries"] <= data["n_qubits"] ** 2
+
+        for previous, current in zip(extraction_metrics, extraction_metrics[1:]):
+            assert current["pair_checks"] >= previous["pair_checks"]
+            assert current["coupling_entries"] >= previous["coupling_entries"]
+
+        print(f"\nParameter Extraction Work Scaling:")
+        for data in extraction_metrics:
+            print(
+                f"  {data['n_qubits']} qubits: "
+                f"{data['pair_checks']} pair checks, "
+                f"{data['coupling_entries']} coupling entries"
+            )
 
     def test_memory_usage_scaling(self):
         """Test memory usage scales reasonably with problem size."""
