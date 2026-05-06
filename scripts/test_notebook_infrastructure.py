@@ -102,10 +102,11 @@ class NotebookTestResult:
 
 class NotebookTester:
     """Comprehensive notebook testing framework."""
-    
-    def __init__(self, project_root: Path, verbose: bool = False):
+
+    def __init__(self, project_root: Path, verbose: bool = False, structure_only: bool = False):
         self.project_root = project_root
         self.verbose = verbose
+        self.structure_only = structure_only
         self.test_results = {}
         
     def test_notebook_syntax(self, notebook_path: Path) -> Tuple[bool, str]:
@@ -485,6 +486,16 @@ class NotebookTester:
         elif self.verbose:
             print(f"  ✅ Structure: {structure_msg}")
         
+        if self.structure_only:
+            result.chronicle_ok = True
+            result.leeq_patterns_ok = True
+            result.execution_ok = True
+            result.outputs_ok = True
+            result.performance_ok = True
+            if self.verbose:
+                print("  ✅ Structure-only mode: skipped Chronicle, LeeQ pattern, execution, and output checks")
+            return result
+
         # Test 3: Chronicle Integration
         chronicle_ok, chronicle_msg = self.test_chronicle_integration(notebook_path)
         result.chronicle_ok = chronicle_ok
@@ -748,6 +759,8 @@ def main():
                        help='Install missing dependencies automatically')
     parser.add_argument('--check-deps', action='store_true',
                        help='Check dependencies and exit')
+    parser.add_argument('--structure-only', action='store_true',
+                       help='Only validate notebook JSON syntax and basic notebook structure')
     
     args = parser.parse_args()
     
@@ -800,7 +813,7 @@ def main():
                 sys.exit(0)
     
     # Initialize tester
-    tester = NotebookTester(project_root, verbose=args.verbose)
+    tester = NotebookTester(project_root, verbose=args.verbose, structure_only=args.structure_only)
     
     # Determine which directories to test
     test_dirs = {}

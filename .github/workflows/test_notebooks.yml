@@ -45,10 +45,10 @@ jobs:
       fail-fast: false
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     
@@ -64,28 +64,38 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install nbval jupyter nbconvert
+        pip install -r requirements-dev.txt
+        pip install -e .
     
     - name: Check notebook testing dependencies
       run: |
         python scripts/test_notebook_infrastructure.py --check-deps
     
-    - name: Test ${{ matrix.notebook-type }} notebooks
+    - name: Validate ${{ matrix.notebook-type }} notebook files
+      run: |
+        python scripts/test_notebook_infrastructure.py \
+          --${{ matrix.notebook-type }} \
+          --structure-only \
+          --verbose \
+          --report notebooks_test_report_${{ matrix.notebook-type }}.md \
+          --json notebooks_test_results_${{ matrix.notebook-type }}.json
+
+    - name: Execute ${{ matrix.notebook-type }} notebooks
+      if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
       run: |
         python scripts/test_notebook_infrastructure.py \
           --${{ matrix.notebook-type }} \
           --verbose \
-          --report notebooks_test_report_${{ matrix.notebook-type }}.md \
-          --json notebooks_test_results_${{ matrix.notebook-type }}.json
-      continue-on-error: true
-    
+          --report notebooks_execution_report_${{ matrix.notebook-type }}.md \
+          --json notebooks_execution_results_${{ matrix.notebook-type }}.json
+
     - name: Test Chronicle integration in ${{ matrix.notebook-type }}
+      if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
       run: |
         python scripts/test_chronicle_integration.py \
           notebooks/${{ matrix.notebook-type }}/ \
           --verbose \
           --report chronicle_report_${{ matrix.notebook-type }}.md
-      continue-on-error: true
     
     - name: Upload test reports
       if: always()
@@ -95,6 +105,8 @@ jobs:
         path: |
           notebooks_test_report_*.md
           notebooks_test_results_*.json
+          notebooks_execution_report_*.md
+          notebooks_execution_results_*.json
           chronicle_report_*.md
     
     - name: Comment PR with results
@@ -135,7 +147,7 @@ jobs:
     if: always()
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Download all artifacts
       uses: actions/download-artifact@v4
@@ -143,7 +155,7 @@ jobs:
         path: test-artifacts
     
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.11'
     

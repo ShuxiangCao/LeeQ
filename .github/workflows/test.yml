@@ -26,7 +26,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt', 'pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-pip-
             
@@ -38,19 +38,7 @@ jobs:
           pip install -e .
           
       - name: Run linting
-        run: |
-          bash ci_scripts/lint.sh
+        run: PYTHON=python bash ci_scripts/lint.sh
           
-      - name: Run tests with coverage
-        run: |
-          pytest tests/ -v --cov=leeq --cov-report=xml --cov-report=term \
-            --ignore=tests/theory/simulation/ \
-            --ignore=tests/utils/ai/ \
-            --ignore=tests/agents/
-          
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-${{ matrix.python-version }}
+      - name: Run tests
+        run: python -m pytest
