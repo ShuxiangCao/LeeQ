@@ -14,8 +14,9 @@ class TestGaussianMixtureBasics:
     
     def test_module_imports(self):
         """Test that the module imports successfully."""
-        # If we get here, imports were successful
-        assert True
+        assert callable(fit_gmm_model)
+        assert callable(measurement_transform_gmm)
+        assert CustomRescaler.__name__ == "CustomRescaler"
     
     def test_gaussian_2d_parameters(self):
         """Test 2D Gaussian parameters."""

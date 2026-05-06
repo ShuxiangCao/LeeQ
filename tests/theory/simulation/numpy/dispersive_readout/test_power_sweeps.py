@@ -246,8 +246,8 @@ class TestForwardSweepBehavior:
                 assert extended_range[0] <= jump_power <= extended_range[1], \
                     f"Jump power {jump_power/P_c:.2f}*P_c not in range [{extended_range[0]/P_c:.1f}, {extended_range[1]/P_c:.1f}]*P_c"
                     
-        # Test passes if we detect any response patterns or reach this point
-        assert True, "Forward sweep critical power tracking test completed"
+        assert len(responses) == len(powers)
+        assert np.all(np.isfinite(response_magnitudes))
 
 
 class TestBackwardSweepBehavior:
@@ -609,7 +609,7 @@ class TestHysteresisLoopFormation:
         except Exception as e:
             # If simulation fails, test basic functionality
             warnings.warn(f"Hysteresis simulation encountered issue: {e}")
-            assert True, "Hysteresis loop area test completed with limitations"
+            pytest.xfail("Hysteresis loop area test completed with documented simulation limitations")
     
     def test_jump_up_and_jump_down_powers_differ(self, kerr_simulator):
         """Test that jump-up power ≠ jump-down power."""
@@ -658,7 +658,7 @@ class TestHysteresisLoopFormation:
                     
         except Exception as e:
             warnings.warn(f"Jump point detection encountered issue: {e}")
-            assert True, "Jump point test completed with limitations"
+            pytest.xfail("Jump point test completed with documented simulation limitations")
 
 
 class TestJumpPointValidation:
@@ -946,9 +946,4 @@ class TestPowerSweepIntegration:
                             
         except Exception as e:
             warnings.warn(f"Consistency test encountered issue: {e}")
-            assert True, "Consistency test completed with limitations"
-
-
-# Script-style execution converted to proper pytest discovery
-# Tests will be run by pytest discovery, no manual execution needed
-    pass  # Tests are run by pytest discovery, no manual execution needed
+            pytest.xfail("Consistency test completed with documented simulation limitations")

@@ -25,20 +25,35 @@ import uuid
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
-# Mock the dash and plotly modules
-sys.modules['dash'] = MagicMock()
-sys.modules['dash.dependencies'] = MagicMock()
-sys.modules['dash_bootstrap_components'] = MagicMock()
-sys.modules['plotly'] = MagicMock()
-sys.modules['plotly.graph_objects'] = MagicMock()
-sys.modules['plotly.tools'] = MagicMock()
-sys.modules['plotly.subplots'] = MagicMock()
+MOCKED_MODULES = (
+    'dash',
+    'dash.dependencies',
+    'dash_bootstrap_components',
+    'plotly',
+    'plotly.graph_objects',
+    'plotly.tools',
+    'plotly.subplots',
+)
+ORIGINAL_MODULES = {
+    module_name: sys.modules.get(module_name)
+    for module_name in MOCKED_MODULES
+}
+
+# Mock the dash and plotly modules while importing the dashboard under test.
+for module_name in MOCKED_MODULES:
+    sys.modules[module_name] = MagicMock()
 
 # Import Chronicle first
 from leeq.chronicle import Chronicle
 
 # Import session_dashboard with mocked dependencies
 from leeq.chronicle.viewer import session_dashboard
+
+for module_name, original_module in ORIGINAL_MODULES.items():
+    if original_module is None:
+        sys.modules.pop(module_name, None)
+    else:
+        sys.modules[module_name] = original_module
 
 
 class TestEndToEndWorkflow:

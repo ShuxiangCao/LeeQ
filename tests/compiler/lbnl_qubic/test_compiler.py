@@ -1,43 +1,39 @@
-"""
-Tests for leeq.compiler.lbnl_qubic.compiler
-"""
-
-import pytest
 import numpy as np
-from unittest.mock import Mock, patch
+import pytest
 
-from leeq.compiler.lbnl_qubic.circuit_list_compiler import *
+from leeq.compiler.lbnl_qubic.circuit_list_compiler import compare_dicts, segment_array
 
 
-class TestCircuitListCompiler:
-    """Test suite for compiler module."""
+def test_compare_dicts_accepts_nested_numeric_values_with_tolerance():
+    left = {"pulse": {"amp": 0.1 + 1e-8, "phase": 0.25}, "shape": "square"}
+    right = {"pulse": {"amp": 0.1, "phase": 0.25}, "shape": "square"}
 
-    @pytest.fixture
-    def setup_data(self):
-        """Setup test data and mocks."""
-        return {
-            'test_data': np.array([1, 2, 3]),
-            'mock_config': Mock(),
-        }
+    assert compare_dicts(left, right)
 
-    def test_basic_functionality(self, setup_data):
-        """Test core functionality."""
-        # TODO: Implement actual test
-        assert True
 
-    @pytest.mark.skip(reason="Edge case tests need implementation")
-    def test_edge_cases(self, setup_data):
-        """Test edge cases and error handling."""
-        # TODO: Implement edge case tests
-        pass
+def test_compare_dicts_rejects_key_and_value_mismatches():
+    assert not compare_dicts({"amp": 0.1}, {"amp": 0.2})
+    assert not compare_dicts({"amp": 0.1}, {"phase": 0.1})
 
-    @pytest.mark.parametrize("input_val,expected", [
-        (1, 1),
-        (2, 4),
-        (3, 9),
-    ])
-    def test_parametrized(self, input_val, expected):
-        """Test with multiple input values."""
-        # TODO: Implement parametrized test
-        result = input_val ** 2
-        assert result == expected
+
+def test_compare_dicts_requires_dictionary_inputs():
+    with pytest.raises(ValueError, match="Both inputs should be dictionaries"):
+        compare_dicts({"amp": 0.1}, [("amp", 0.1)])
+
+
+def test_segment_array_splits_flat_and_changing_regions():
+    data = np.array([0, 0, 0, 1, 2, 3, 3, 3, 3], dtype=float)
+
+    flat_regions, changing_regions = segment_array(data, threshold=0.01, min_flat_length=2)
+
+    assert flat_regions == [(0, 3), (5, 9)]
+    assert changing_regions == [(3, 5)]
+
+
+def test_segment_array_merges_short_flat_regions_into_changes():
+    data = np.array([0, 1, 1, 2, 3, 3, 3], dtype=float)
+
+    flat_regions, changing_regions = segment_array(data, threshold=0.01, min_flat_length=3)
+
+    assert flat_regions == [(4, 7)]
+    assert changing_regions == [(0, 3), (3, 4)]

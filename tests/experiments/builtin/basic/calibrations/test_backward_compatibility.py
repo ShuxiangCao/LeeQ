@@ -436,9 +436,6 @@ class TestBaseline:
         assert metrics['result_length'] > 0, "Result length should be positive"
         
         print("✅ Baseline measurements recorded correctly with all required metrics")
-        
-        # All measurements recorded correctly
-        assert True
 
 
 class TestBaselineReference:

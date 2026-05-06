@@ -238,8 +238,7 @@ class TestSimulatorBistability:
             # At least the fallback should work
             assert not np.all(basic_response == 0), "Basic simulation should produce non-zero response"
             
-            # Mark test as expected limitation for now
-            assert True, "Kerr simulation returns zeros - may need parameter adjustment"
+            assert np.all(simple_response == 0), "This branch documents the current Kerr zero-response limitation."
         else:
             # Proceed with hysteresis test if we get non-zero responses
             P_c = kerr_simulator.kerr_calculator.find_bifurcation_power(
@@ -518,8 +517,3 @@ class TestBistabilityEdgeCases:
             )
             assert np.all(np.isfinite(response)), \
                 f"Off-resonance response at {f_probe} MHz should be finite"
-
-
-# Script-style execution converted to proper pytest discovery
-# Tests will be run by pytest discovery, no manual execution needed
-    pass  # Tests are run by pytest discovery, no manual execution needed

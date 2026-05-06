@@ -20,17 +20,32 @@ import uuid
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
-# Mock the dash app and prevent actual server startup
-sys.modules['dash'] = MagicMock()
-sys.modules['dash.dependencies'] = MagicMock()
-sys.modules['dash_bootstrap_components'] = MagicMock()
-sys.modules['plotly'] = MagicMock()
-sys.modules['plotly.graph_objects'] = MagicMock()
-sys.modules['plotly.tools'] = MagicMock()
-sys.modules['plotly.subplots'] = MagicMock()
+MOCKED_MODULES = (
+    'dash',
+    'dash.dependencies',
+    'dash_bootstrap_components',
+    'plotly',
+    'plotly.graph_objects',
+    'plotly.tools',
+    'plotly.subplots',
+)
+ORIGINAL_MODULES = {
+    module_name: sys.modules.get(module_name)
+    for module_name in MOCKED_MODULES
+}
+
+# Mock the dash app and prevent actual server startup.
+for module_name in MOCKED_MODULES:
+    sys.modules[module_name] = MagicMock()
 
 from leeq.chronicle import Chronicle
 from leeq.chronicle.viewer import session_dashboard
+
+for module_name, original_module in ORIGINAL_MODULES.items():
+    if original_module is None:
+        sys.modules.pop(module_name, None)
+    else:
+        sys.modules[module_name] = original_module
 
 
 class TestChronicleIntegration:
@@ -396,14 +411,7 @@ class TestIntegrationWorkflow:
             from leeq.chronicle import Chronicle
             c = Chronicle()
             
-            # Check that launch_viewer method exists
-            assert hasattr(c, 'launch_viewer')
-            
-            # Should not crash even without mock
-            print('Launch method accessible')
-            
-            # Test passes if no exception
-            assert True
+            assert callable(c.launch_viewer)
             
         except ImportError:
             pytest.skip("Chronicle module not properly installed")

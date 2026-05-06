@@ -1,43 +1,55 @@
-"""
-Tests for leeq.theory.tomography.state_tomography
-"""
-
-import pytest
 import numpy as np
-from unittest.mock import Mock, patch
+import pytest
 
-from leeq.theory.tomography.state_tomography import *
+from leeq.theory.tomography.state_tomography import (
+    StandardStateTomography,
+    simulate_ideal_state_tomography_distribution,
+)
+from leeq.theory.tomography.utils import GateSet, HilbertBasis
 
 
-class TestStateTomography:
-    """Test suite for state_tomography module."""
+def test_simulate_ideal_state_tomography_distribution_rotates_before_measurement():
+    rho_zero = np.array([[1, 0], [0, 0]], dtype=complex)
+    identity = np.eye(2, dtype=complex)
+    bit_flip = np.array([[0, 1], [1, 0]], dtype=complex)
+    measurement_operations = np.dstack([identity, bit_flip])
 
-    @pytest.fixture
-    def setup_data(self):
-        """Setup test data and mocks."""
-        return {
-            'test_data': np.array([1, 2, 3]),
-            'mock_config': Mock(),
-        }
+    probabilities = simulate_ideal_state_tomography_distribution(rho_zero, measurement_operations)
 
-    def test_basic_functionality(self, setup_data):
-        """Test core functionality."""
-        # TODO: Implement actual test
-        assert True
+    np.testing.assert_allclose(
+        probabilities,
+        np.array(
+            [
+                [1, 0],
+                [0, 1],
+            ]
+        ),
+    )
 
-    @pytest.mark.skip(reason="Edge case tests need implementation")
-    def test_edge_cases(self, setup_data):
-        """Test edge cases and error handling."""
-        # TODO: Implement edge case tests
-        pass
 
-    @pytest.mark.parametrize("input_val,expected", [
-        (1, 1),
-        (2, 4),
-        (3, 9),
-    ])
-    def test_parametrized(self, input_val, expected):
-        """Test with multiple input values."""
-        # TODO: Implement parametrized test
-        result = input_val ** 2
-        assert result == expected
+def test_simulate_ideal_state_tomography_distribution_rejects_complex_probabilities():
+    rho = np.array([[1j, 0], [0, 0]], dtype=complex)
+    measurement_operations = np.dstack([np.eye(2, dtype=complex)])
+
+    with pytest.raises(ValueError, match="non-negligible imaginary"):
+        simulate_ideal_state_tomography_distribution(rho, measurement_operations)
+
+
+def test_standard_state_tomography_rejects_incomplete_measurement_basis():
+    identity = np.eye(2, dtype=complex)
+    pauli_x = np.array([[0, 1], [1, 0]], dtype=complex)
+    pauli_y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+    pauli_z = np.array([[1, 0], [0, -1]], dtype=complex)
+    basis = HilbertBasis(
+        dimension=2,
+        basis_name=["I", "X", "Y", "Z"],
+        basis_matrices=np.dstack([identity, pauli_x, pauli_y, pauli_z]),
+    )
+    gate_set = GateSet(
+        gate_names=["I"],
+        gate_ideal_matrices=np.dstack([identity]),
+        basis=basis,
+    )
+
+    with pytest.raises(ValueError, match="Measurement basis is not complete"):
+        StandardStateTomography(gate_set=gate_set, measurement_operations=["I"])

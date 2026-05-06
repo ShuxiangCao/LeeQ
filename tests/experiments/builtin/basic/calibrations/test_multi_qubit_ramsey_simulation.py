@@ -329,11 +329,29 @@ def test_multi_qubit_ramsey_update_frequencies(simulation_setup, dut_qubits):
     assert len(ramsey_exp.frequency_guess) == len(dut_qubits)
 
 
-def test_multi_qubit_ramsey_different_offsets():
-    """Test that different frequency offsets produce different oscillation frequencies."""
-    # This test doesn't need the fixture as it's testing the concept
-    # In a real scenario, higher offsets should produce faster oscillations
-    pass  # Placeholder for conceptual test
+@pytest.mark.parametrize("offset", [5.0, 25.0])
+def test_multi_qubit_ramsey_offset_is_applied_and_restored_when_update_disabled(
+        simulation_setup, dut_qubits, offset):
+    """Test that Ramsey offsets are applied during the run and restored when update is disabled."""
+    manager = ExperimentManager().get_default_setup()
+    manager.status.set_parameter("Plot_Result_In_Jupyter", False)
+    manager.status.set_parameter('Sampling_Noise', False)
+
+    original_freqs = [qubit.get_c1('f01')['Xp'].freq for qubit in dut_qubits]
+
+    ramsey_exp = MultiQubitRamseyMultilevel(
+        duts=dut_qubits,
+        start=0.0,
+        stop=0.1,
+        step=0.02,
+        set_offset=offset,
+        update=False
+    )
+
+    restored_freqs = [qubit.get_c1('f01')['Xp'].freq for qubit in dut_qubits]
+    assert ramsey_exp.set_offset == offset
+    assert ramsey_exp.level_diffs == [1, 1]
+    np.testing.assert_allclose(restored_freqs, original_freqs)
 
 
 @pytest.mark.skip(reason="Flaky test - oscillation amplitude sometimes below threshold")

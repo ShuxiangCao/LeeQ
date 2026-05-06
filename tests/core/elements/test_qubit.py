@@ -1,43 +1,55 @@
-"""
-Tests for leeq.core.elements.qubit
-"""
-
 import pytest
-import numpy as np
-from unittest.mock import Mock, patch
 
-from leeq.core.elements.elements import *
+from leeq.core.elements.elements import CalibrationEncoder, Element
 
 
-class TestElements:
-    """Test suite for qubit module."""
+def test_element_default_calibration_is_empty_and_valid():
+    element = Element(name="q0")
 
-    @pytest.fixture
-    def setup_data(self):
-        """Setup test data and mocks."""
-        return {
-            'test_data': np.array([1, 2, 3]),
-            'mock_config': Mock(),
+    assert element.get_calibrations() == {
+        "lpb_collections": {},
+        "measurement_primitives": {},
+    }
+
+
+@pytest.mark.parametrize(
+    "parameters, message",
+    [
+        ({"measurement_primitives": {}}, "LPB collections not found"),
+        ({"lpb_collections": {}}, "Measurement primitives not found"),
+    ],
+)
+def test_element_requires_calibration_sections(parameters, message):
+    with pytest.raises(ValueError, match=message):
+        Element(name="invalid", parameters=parameters)
+
+
+def test_dump_dict_filters_private_nested_keys():
+    element = Element(name="q0")
+
+    dumped = element._dump_dict(
+        {
+            "visible": 1,
+            "_private": "hidden",
+            "nested": {
+                "kept": 2,
+                "_dropped": 3,
+            },
         }
+    )
 
-    def test_basic_functionality(self, setup_data):
-        """Test core functionality."""
-        # TODO: Implement actual test
-        assert True
+    assert dumped == {"visible": 1, "nested": {"kept": 2}}
 
-    @pytest.mark.skip(reason="Edge case tests need implementation")
-    def test_edge_cases(self, setup_data):
-        """Test edge cases and error handling."""
-        # TODO: Implement edge case tests
-        pass
 
-    @pytest.mark.parametrize("input_val,expected", [
-        (1, 1),
-        (2, 4),
-        (3, 9),
-    ])
-    def test_parametrized(self, input_val, expected):
-        """Test with multiple input values."""
-        # TODO: Implement parametrized test
-        result = input_val ** 2
-        assert result == expected
+def test_missing_measurement_primitive_reports_requested_name():
+    element = Element(name="q0")
+
+    with pytest.raises(KeyError, match="Measurement primitive 0 not found"):
+        element.get_measurement_primitive(0)
+
+
+def test_calibration_encoder_serializes_callables_by_repr():
+    encoded = CalibrationEncoder().encode({"callback": len})
+
+    assert "callback" in encoded
+    assert "len" in encoded

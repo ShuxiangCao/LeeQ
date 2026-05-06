@@ -56,9 +56,8 @@ class TestBasicImports:
         """Test that the module can be imported without errors."""
         # Test that basic imports work with mocked dependencies
         try:
-            # We won't actually import the sizzel module, just test that our mocks work
-            assert mock_qutip_for_tests is not None
-            assert True  # Import test passes if we get here
+            # We won't actually import the sizzel module, just test that our mocks work.
+            assert mock_qutip_for_tests.tensor is not None
         except ImportError as e:
             pytest.skip(f"Could not set up test environment: {e}")
     

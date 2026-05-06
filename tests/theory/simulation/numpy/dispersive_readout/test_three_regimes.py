@@ -875,8 +875,3 @@ class TestRegimeTransitions:
             # First and last should show significant increase
             assert valid_max_amps[-1] > valid_max_amps[0], \
                 "Response should increase from low to high power overall"
-
-
-# Script-style execution converted to proper pytest discovery
-# Tests will be run by pytest discovery, no manual execution needed
-    pass  # Tests are run by pytest discovery, no manual execution needed

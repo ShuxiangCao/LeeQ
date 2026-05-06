@@ -57,8 +57,8 @@ class TestResonatorSpectroscopyBasics:
     
     def test_module_imports(self):
         """Test that the module imports successfully."""
-        # If we get here, imports were successful
-        assert True
+        assert ResonatorSweepTransmissionWithExtraInitialLPB.__name__ == "ResonatorSweepTransmissionWithExtraInitialLPB"
+        assert ResonatorPowerSweepSpectroscopy.__name__ == "ResonatorPowerSweepSpectroscopy"
     
     def test_frequency_sweep_parameters(self):
         """Test frequency sweep parameter creation."""
@@ -705,8 +705,7 @@ class TestResonatorSpectroscopyIntegrationWorkflows:
             assert hasattr(exp, 'result')
             assert len(exp.result['Magnitude']) == 1  # Single point
         
-        # If we reach here, all averaging levels completed successfully
-        assert True, "All averaging levels completed successfully"
+        assert averaging_levels == [100, 1000, 10000]
     
     def test_existing_test_suite_compatibility(self):
         """Test that all existing resonator spectroscopy tests still pass."""

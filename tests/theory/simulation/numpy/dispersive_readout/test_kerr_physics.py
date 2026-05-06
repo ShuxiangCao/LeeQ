@@ -371,8 +371,3 @@ class TestKerrPhysicsEdgeCases:
         # Solutions should be sorted by magnitude
         magnitudes = [abs(sol) for sol in filtered]
         assert magnitudes == sorted(magnitudes), "Filtered solutions should be sorted by magnitude"
-
-
-# Script-style execution converted to proper pytest discovery
-# Tests will be run by pytest discovery, no manual execution needed
-    pass  # Tests are run by pytest discovery, no manual execution needed
