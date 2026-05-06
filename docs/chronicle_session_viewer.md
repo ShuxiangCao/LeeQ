@@ -213,7 +213,7 @@ chronicle.launch_viewer(
 #### Issue 1: "Address already in use" Error
 
 **Symptom:** 
-```
+```text
 OSError: [Errno 48] Address already in use
 ```
 

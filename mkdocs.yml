@@ -18,6 +18,10 @@ theme:
 plugins:
   - search
 
+validation:
+  nav:
+    omitted_files: ignore
+
 nav:
   - Home: index.md
   - Getting Started:
@@ -51,7 +55,8 @@ nav:
     - Architecture: development/architecture.md
 
 markdown_extensions:
-  - pymdownx.highlight
+  - pymdownx.highlight:
+      auto_title: true
   - pymdownx.superfences
   - pymdownx.arithmatex:
       generic: true
