@@ -25,8 +25,9 @@ jobs:
           
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install mkdocs mkdocstrings[python] mkdocs-material
+          pip install -r docs/requirements.txt
           
       - name: Build documentation
         run: mkdocs build --strict

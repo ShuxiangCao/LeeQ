@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Python 3.8 or higher
+- Python 3.10, 3.11, or 3.12
 - Git (for installing dependencies from GitHub)
 
 ## Installation Methods
@@ -41,14 +41,14 @@ poetry install
 LeeQ requires the following key dependencies:
 
 ### Core Dependencies
-- **numpy < 2.0.0**: Numerical computing library
+- **numpy >= 2.0, < 3.0**: Numerical computing library
 - **scipy**: Scientific computing library 
 - **matplotlib**: Plotting library
 - **qutip**: Quantum simulation library
 - **plotly**: Interactive plotting
 - **dash**: Web-based dashboards for live monitoring
 
-### External Dependencies (GitHub)
+### Optional AI Dependencies
 - **k_agents**: AI/ML experiment generation framework
 - **MinimalLLM**: LLM integration utilities
 
@@ -70,9 +70,11 @@ docker run -p 8888:8888 -p 8050:8050 -v /path/to/local/folder:/home/jovyan/work 
 ```
 
 This will:
-- Start a Jupyter notebook server on port 8888
+- Start a Jupyter notebook server on port 8888 with Jupyter's default token authentication
 - Enable live plotting dashboard on port 8050
 - Mount your local directory for persistent storage
+
+Use the token URL printed in the container logs to sign in. For a local-only disposable container, pass `-e LEEQ_DISABLE_JUPYTER_AUTH=true` to opt into tokenless Jupyter.
 
 ## Environment Configuration
 
@@ -121,10 +123,12 @@ from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulation
 
 **GitHub Dependencies**: If installation of GitHub dependencies fails, ensure you have Git installed and can access GitHub.
 
-**NumPy Version**: LeeQ requires numpy < 2.0.0 for compatibility. If you have numpy 2.x installed, downgrade with:
+**NumPy Version**: LeeQ requires numpy >= 2.0 and < 3.0. If you have an incompatible version installed, reinstall within the supported range:
 ```bash
-pip install "numpy<2.0.0"
+pip install "numpy>=2.0,<3.0"
 ```
+
+**Trusted log files**: Chronicle and some simulation utilities deserialize pickle-backed records. Only open Chronicle HDF5 or pickle files from trusted sources.
 
 ### Getting Help
 

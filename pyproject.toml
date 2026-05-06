@@ -13,38 +13,54 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.10"  # Adjust based on your Python version
-scipy = "*"
-matplotlib = "*"
-matplotlib-inline = "*"
-numpy = ">=2.0.0"
-plotly = "*"
-dash = "*"
-dash-bootstrap-components = "*"
-qutip = "*"
-scikit-learn = "*"
-tqdm = "*"
-h5py = "*"
-decorator = "*"
-pytest = "*"
-fsspec = "*"
-pyyaml = "*"
-uncertainties = "*"
-markdownify = "*"
-MinimalLLM = "*"
-ipywidgets = "*"
-kaleido = "*"
-pandas = "*"
-dill = "*"
-mkdocs = "*"
-mkdocs-material = "*"
-mkdocs-jupyter = "*"
+python = ">=3.10,<3.13"
+numpy = ">=2.0,<3.0"
+scipy = ">=1.13,<2.0"
+matplotlib = ">=3.8,<4.0"
+matplotlib-inline = ">=0.1,<0.3"
+plotly = ">=5.17,<7.0"
+dash = ">=2.14,<5.0"
+dash-bootstrap-components = ">=1.5,<3.0"
+qutip = ">=5.0,<6.0"
+scikit-learn = ">=1.3,<2.0"
+tqdm = ">=4.66,<5.0"
+h5py = ">=3.10,<4.0"
+decorator = ">=5.1,<6.0"
+fsspec = ">=2023.10,<2027.0"
+pyyaml = ">=6.0,<7.0"
+uncertainties = ">=3.1,<4.0"
+markdownify = ">=0.11,<2.0"
+pandas = ">=2.0,<3.0"
+ipywidgets = { version = ">=8.0,<9.0", optional = true }
+kaleido = { version = ">=1.0,<2.0", optional = true }
+k_agents = { git = "https://github.com/EvoEvolver/k_agents", rev = "03701d16e75a28095c0613e37f4ec8a8139a06ac", optional = true }
+MinimalLLM = { git = "https://github.com/EvoEvolver/MinimalLLM", rev = "107daa1f9def6faf26fd7e5385f4f45bba556a35", optional = true }
 
-# Git-based dependencies
-k_agents = {git = "https://github.com/EvoEvolver/k_agents"}
+[tool.poetry.extras]
+ai = ["k_agents", "MinimalLLM"]
+notebooks = ["ipywidgets", "kaleido"]
 
-[tool.poetry.dev-dependencies]
-pytest = "^6.2"
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.4,<10.0"
+pytest-cov = ">=4.1,<7.0"
+pytest-mock = ">=3.12,<4.0"
+pytest-xdist = ">=3.3,<4.0"
+ruff = ">=0.1,<1.0"
+mypy = ">=1.7,<2.0"
+pre-commit = ">=3.5,<5.0"
+black = ">=23.12,<27.0"
+pydocstyle = ">=6.3,<7.0"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = ">=1.5,<2.0"
+mkdocstrings = { extras = ["python"], version = ">=0.24,<1.0" }
+mkdocs-material = ">=9.5,<10.0"
+
+[tool.poetry.group.notebooks.dependencies]
+nbval = ">=0.11,<1.0"
+jupyter = ">=1.0,<2.0"
+nbconvert = ">=7.0,<8.0"
+nbformat = ">=5.0,<6.0"
 
 [tool.ruff]
 line-length = 127

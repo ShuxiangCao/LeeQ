@@ -1,24 +1,31 @@
+-r requirements.txt
+
 # Testing
-pytest>=7.4.3
-pytest-cov>=4.1.0
-pytest-mock>=3.12.0
-pytest-xdist>=3.3.1
+pytest>=7.4,<10.0
+pytest-cov>=4.1,<7.0
+pytest-mock>=3.12,<4.0
+pytest-xdist>=3.3,<4.0
 
 # Code Quality
-flake8>=6.1.0
-ruff>=0.1.8
-mypy>=1.7.1
-pre-commit>=3.5.0
-black>=23.12.0
+ruff>=0.1,<1.0
+mypy>=1.7,<2.0
+pre-commit>=3.5,<5.0
+black>=23.12,<27.0
+pydocstyle>=6.3,<7.0
 
 # Documentation
-mkdocs>=1.5.3
-mkdocstrings[python]>=0.24.0
-mkdocs-material>=9.5.2
-pydocstyle>=6.3.0
+mkdocs>=1.5,<2.0
+mkdocstrings[python]>=0.24,<1.0
+mkdocs-material>=9.5,<10.0
 
 # Notebook Testing
-nbval>=0.11.0
-jupyter>=1.0.0
-nbconvert>=7.0.0
-nbformat>=5.0.0
+nbval>=0.11,<1.0
+jupyter>=1.0,<2.0
+nbconvert>=7.0,<8.0
+nbformat>=5.0,<6.0
+ipywidgets>=8.0,<9.0
+kaleido>=1.0,<2.0
+
+# Optional AI integrations used by selected experiments.
+k_agents @ git+https://github.com/EvoEvolver/k_agents@03701d16e75a28095c0613e37f4ec8a8139a06ac
+MinimalLLM @ git+https://github.com/EvoEvolver/MinimalLLM@107daa1f9def6faf26fd7e5385f4f45bba556a35

@@ -1,6 +1,6 @@
 # LeeQ
 
-[![main](https://github.com/ShuxiangCao/LeeQ/actions/workflows/test.yaml/badge.svg)](https://github.com/ShuxiangCao/LeeQ/actions/workflows/test.yaml) [![Docker Image](https://github.com/ShuxiangCao/LeeQ/actions/workflows/docker_image.yaml/badge.svg)](https://github.com/ShuxiangCao/LeeQ/actions/workflows/docker_image.yaml)
+[![main](https://github.com/ShuxiangCao/LeeQ/actions/workflows/test.yml/badge.svg)](https://github.com/ShuxiangCao/LeeQ/actions/workflows/test.yml) [![Docker Image](https://github.com/ShuxiangCao/LeeQ/actions/workflows/docker_image.yaml/badge.svg)](https://github.com/ShuxiangCao/LeeQ/actions/workflows/docker_image.yaml)
 
 LeeQ is a Python package for orchestrating quantum computing experiments with easy-to-use syntax, with a specific focus
 on superconducting circuits-based quantum computing systems.
@@ -14,8 +14,8 @@ To use the Docker image, run the following command:
 docker run -p 8888:8888 -p 8050:8050 -v /path/to/local/folder:/home/jovyan/work ghcr.io/shuxiangcao/leeq:latest
 ```
 
-Then, open the browser and go to `http://localhost:8888` to access the Jupyter notebook. The port `8050` is used for the
-live plotting server. To mount the local folder, replace `/path/to/local/folder` with the path to the local folder.
+Then, use the token URL printed in the container logs to access Jupyter at `http://localhost:8888`. The port `8050` is used for the
+live plotting server. To mount the local folder, replace `/path/to/local/folder` with the path to the local folder. For a local-only throwaway container, pass `-e LEEQ_DISABLE_JUPYTER_AUTH=true` to opt into tokenless Jupyter.
 
 ## Documentation
 
