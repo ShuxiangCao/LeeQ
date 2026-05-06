@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Union
 
 import matplotlib
 import numpy as np
-from k_agents.inspection.decorator import text_inspection, visual_inspection
+from leeq.utils.optional_dependencies import text_inspection, visual_inspection
 from matplotlib import pyplot as plt
 from plotly import graph_objects as go
 from plotly import subplots

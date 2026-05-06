@@ -5,7 +5,7 @@ import scipy.linalg
 import scipy.optimize as so
 import uncertainties as unc
 import uncertainties.umath as umath
-from k_agents.inspection.decorator import text_inspection, visual_inspection
+from leeq.utils.optional_dependencies import text_inspection, visual_inspection
 from matplotlib import pyplot as plt
 
 from leeq import Experiment, Sweeper, basic_run, setup

@@ -22,6 +22,21 @@ except ImportError:
         def __init__(self):
             pass
 
+        def _run(self, *args, **kwargs):
+            try:
+                self._before_run(args, kwargs)
+                result = self.run(*args, **kwargs)
+            except Exception:
+                llm_logger = getattr(self, "_llm_logger", None)
+                if llm_logger is not None:
+                    import sys
+                    llm_logger.__exit__(*sys.exc_info())
+                    self._llm_logger = None
+                raise
+
+            self._post_run(args, kwargs)
+            return result
+
         def _before_run(self, args, kwargs):
             pass
 
@@ -29,7 +44,6 @@ except ImportError:
             pass
 
 import plotly
-from IPython.display import display
 
 try:
     import leeq.experiments.plots.live_dash_app as live_monitor
@@ -43,6 +57,7 @@ from leeq.core.primitives.logical_primitives import LogicalPrimitiveCombinable
 from leeq.experiments.sweeper import Sweeper
 from leeq.setups.setup_base import SetupStatusParameters
 from leeq.utils import Singleton, display_json_dict, setup_logging
+from leeq.utils.optional_dependencies import display
 
 logger = setup_logging(__name__)
 
@@ -127,12 +142,15 @@ class LeeQAIExperiment(LeeQObject, KExperiment):
         setup().register_active_experiment_instance(self)
 
     def _post_run(self, args, kwargs):
-        KExperiment._post_run(self, args, kwargs)
-        if self.to_show_figure_in_notebook:
-            self.show_plots()
-        self.chronicle_log()
-        if self._llm_logger is not None:
-            self._llm_logger.__exit__(None, None, None)
+        try:
+            KExperiment._post_run(self, args, kwargs)
+            if self.to_show_figure_in_notebook:
+                self.show_plots()
+            self.chronicle_log()
+        finally:
+            if self._llm_logger is not None:
+                self._llm_logger.__exit__(None, None, None)
+                self._llm_logger = None
 
     def chronicle_log(self):
         # Make sure we print the record details before throwing the

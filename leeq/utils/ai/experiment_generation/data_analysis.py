@@ -1,13 +1,17 @@
 from typing import Any
 
-from fibers.tree.node_attr.code import get_obj, get_type
+from leeq.utils.optional_dependencies import Chat, missing_optional_dependency
 
 
 def _load_fitting_function_docstrings():
     """
     Load the docstrings of the fitting functions from the leeq package.
     """
-    from fibers.data_loader.module_to_tree import get_tree_for_module
+    try:
+        from fibers.data_loader.module_to_tree import get_tree_for_module
+        from fibers.tree.node_attr.code import get_obj, get_type
+    except ImportError as exc:
+        raise missing_optional_dependency("fibers", "generate_data_analysis") from exc
 
     from leeq.theory.fits import fit_exp
     module_root = get_tree_for_module(fit_exp)
@@ -73,8 +77,7 @@ def generate_data_analysis(description: str, context: dict[str, Any]):
     ```
     """
 
-    import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.")
+    chat = Chat(prompt, "You are a very smart and helpful coding assistant.")
     res = chat.complete(parse="quotes", cache=False)
 
     return revise_data_analysis(description, res)
@@ -124,7 +127,6 @@ def revise_data_analysis(description: str, code: dict[str, Any]):
     ```
     """
 
-    import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.")
+    chat = Chat(prompt, "You are a very smart and helpful coding assistant.")
     res = chat.complete(parse="quotes", cache=False)
     return res

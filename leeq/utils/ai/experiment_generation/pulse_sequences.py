@@ -1,4 +1,5 @@
 from leeq.utils.ai.experiment_generation.load_documents import load_document_file
+from leeq.utils.optional_dependencies import Chat
 
 
 def generate_pulse_sequences(overview: str, description: str):
@@ -44,8 +45,7 @@ def generate_pulse_sequences(overview: str, description: str):
     ```
     """
 
-    import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.", dedent=True)
+    chat = Chat(prompt, "You are a very smart and helpful coding assistant.", dedent=True)
     res = chat.complete(parse="quotes", cache=True)
 
     return {'code': res}

@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, List, Union
 
 import numpy as np
-from k_agents.inspection.decorator import text_inspection
+from leeq.utils.optional_dependencies import text_inspection
 
 from leeq.chronicle import log_and_record
 from leeq.theory.tomography.utils import evaluate_fidelity_density_matrix_with_state_vector, evaluate_fidelity_ptm_with_unitary

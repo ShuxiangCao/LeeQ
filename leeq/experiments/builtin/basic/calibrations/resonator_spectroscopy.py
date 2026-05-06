@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
-from k_agents.inspection.decorator import text_inspection, visual_inspection
+from leeq.utils.optional_dependencies import text_inspection, visual_inspection
 from scipy import optimize as so
 
 from leeq import Experiment, ExperimentManager, Sweeper, setup
@@ -1958,4 +1958,3 @@ class MeasurementScanParams(Experiment):
 
         with open(path, 'wb') as f:
             pickle.dump(data, f)
-

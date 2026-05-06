@@ -6,7 +6,7 @@ from typing import Any, List
 
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
-from k_agents.inspection.decorator import text_inspection
+from leeq.utils.optional_dependencies import text_inspection
 from plotly.subplots import make_subplots
 from scipy.optimize import OptimizeWarning, curve_fit
 

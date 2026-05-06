@@ -1,12 +1,12 @@
 from typing import List
 
-from k_agents.io_interface import code_to_html, display_chat
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 from leeq.utils.ai.experiment_generation.data_analysis import generate_data_analysis
 from leeq.utils.ai.experiment_generation.data_visualization import generate_data_visualization
 from leeq.utils.ai.experiment_generation.load_documents import load_document_file
 from leeq.utils.ai.experiment_generation.pulse_sequences import generate_pulse_sequences
+from leeq.utils.optional_dependencies import Chat, code_to_html, display_chat
 
 
 def summarize_experiment(experiment_summary: str, code_fragments: List[str]):
@@ -41,8 +41,7 @@ def summarize_experiment(experiment_summary: str, code_fragments: List[str]):
     ```
     """
 
-    import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.")
+    chat = Chat(prompt, "You are a very smart and helpful coding assistant.")
     res = chat.complete(parse="quotes", cache=False)
     return res
 
@@ -91,8 +90,7 @@ def add_comments_annotations_and_gagets(summary: str, code: str):
     ```
     """
 
-    import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful coding assistant.")
+    chat = Chat(prompt, "You are a very smart and helpful coding assistant.")
     res = chat.complete(parse="quotes", cache=False)
 
     return res
@@ -136,8 +134,7 @@ def break_down_description(description: str):
     }}
     """
 
-    import mllm
-    chat = mllm.Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
+    chat = Chat(prompt, "You are a very smart and helpful assistant who only reply in JSON dict")
     res = chat.complete(parse="dict", cache=False)
 
     return res

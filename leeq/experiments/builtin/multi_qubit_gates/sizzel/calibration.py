@@ -1,7 +1,6 @@
 # Conditional AC stark shift induced CZ gate
 import matplotlib.pyplot as plt
 import pandas as pd
-from IPython.display import display
 from qutip import Bloch
 
 from leeq import Experiment
@@ -14,6 +13,7 @@ from leeq.theory import fits
 from leeq.theory.estimator.kalman import KalmanFilter1D
 from leeq.theory.fits import *
 from leeq.utils import setup_logging
+from leeq.utils.optional_dependencies import display
 from leeq.utils.compatibility import *
 from leeq.utils.compatibility import prims
 

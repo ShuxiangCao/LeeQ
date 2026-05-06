@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
 import uncertainties.unumpy as unp
-from k_agents.inspection.decorator import visual_inspection
+from leeq.utils.optional_dependencies import visual_inspection
 
 from leeq import Experiment, Sweeper, basic_run
 from leeq.chronicle import log_and_record, register_browser_function

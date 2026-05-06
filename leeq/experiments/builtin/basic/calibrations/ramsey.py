@@ -3,7 +3,7 @@ import datetime
 from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
-from k_agents.inspection.decorator import text_inspection, visual_inspection
+from leeq.utils.optional_dependencies import text_inspection, visual_inspection
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 

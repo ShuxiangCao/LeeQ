@@ -5,12 +5,6 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
-from k_agents.execution.agent import execute_experiment_from_instruction
-from k_agents.execution.stage_execution import get_exp_from_var_table
-from k_agents.inspection.decorator import text_inspection, visual_inspection
-from k_agents.io_interface import dict_to_html, display_chat
-from k_agents.utils import Singleton
-from mllm import Chat
 from uncertainties import ufloat
 
 from leeq import Experiment
@@ -21,6 +15,16 @@ from leeq.theory import fits
 from leeq.theory.estimator.kalman import KalmanFilter1D
 from leeq.theory.fits.fit_exp import fit_2d_freq_with_cov
 from leeq.utils import setup_logging
+from leeq.utils.optional_dependencies import (
+    Chat,
+    Singleton,
+    dict_to_html,
+    display_chat,
+    execute_experiment_from_instruction,
+    get_exp_from_var_table,
+    text_inspection,
+    visual_inspection,
+)
 from leeq.utils.compatibility import *
 from leeq.utils.compatibility import prims
 from leeq.utils.high_level_simulations.noise import apply_noise_to_data
@@ -1961,10 +1965,9 @@ if this is a successful experiment. Make the analysis concise and clear in one s
         </Return format>
         """
 
-        import mllm
-        chat = mllm.Chat(prompt,
-                         "You are a very smart and helpful assistant who only reply in JSON dict. "
-                         + "Keep everything in a same line in the response.")
+        chat = Chat(prompt,
+                    "You are a very smart and helpful assistant who only reply in JSON dict. "
+                    + "Keep everything in a same line in the response.")
         res = chat.complete(parse="dict", expensive=True, cache=True)
 
         html = dict_to_html(res)
@@ -2386,15 +2389,12 @@ class ConditionalStarkTwoQubitGateAIParameterSearchFull(Experiment):
 
         self._display_experiment_history()
 
-        from mllm import Chat
         chat = Chat(prompt,
                     "You are a very smart and helpful assistant who only reply in JSON dict. Keep everything in a same line in the response.")
         res = chat.complete(parse="dict", expensive=True, cache=True)
         # , model = 'claude-3-opus-20240229'
 
         self._analyze_histroy.append(res)
-
-        from k_agents.io_interface import dict_to_html, display_chat
 
         html = dict_to_html(res)
         display_chat(agent_name="Parameter search AI", content='<br>' + html,

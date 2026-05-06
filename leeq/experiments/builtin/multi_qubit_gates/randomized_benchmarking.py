@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import uncertainties as unc
 from joblib import Parallel, delayed
-from k_agents.inspection.decorator import text_inspection, visual_inspection
+from leeq.utils.optional_dependencies import text_inspection, visual_inspection
 from scipy import optimize as so
 from tqdm.notebook import tqdm
 from uncertainties.umath import exp as uexp

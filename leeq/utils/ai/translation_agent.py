@@ -1,10 +1,15 @@
 import os
 
-from k_agents.translation.agent import prepare_translation_agents
-from k_agents.translation.env import TranslationAgentEnv
+from leeq.utils.optional_dependencies import missing_optional_dependency
 
 
 def init_leeq_translation_agents(document_root: str = "/procedures", n_agents_to_call: int = 3):
+    try:
+        from k_agents.translation.agent import prepare_translation_agents
+        from k_agents.translation.env import TranslationAgentEnv
+    except ImportError as exc:
+        raise missing_optional_dependency("k_agents", "init_leeq_translation_agents") from exc
+
     from leeq.experiments import builtin
     from leeq.experiments import experiments as exp
     root = os.path.dirname(exp.__file__)

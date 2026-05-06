@@ -2,7 +2,7 @@ from typing import Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
-from k_agents.inspection.decorator import text_inspection, visual_inspection
+from leeq.utils.optional_dependencies import text_inspection, visual_inspection
 
 import leeq
 from leeq import Experiment, Sweeper, SweepParametersSideEffectFactory, basic_run, setup
