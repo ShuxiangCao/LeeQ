@@ -46,6 +46,7 @@ def test_element_creation(transmon_element):
     assert qubit._name == 'test_element'
     c1 = qubit.get_c1('f01')
     assert c1['X'].freq == 4144.12
+    assert c1['drive'].freq == 4144.12
 
     lpb = (c1['X'] + c1['Y']) * c1['Xp']
 

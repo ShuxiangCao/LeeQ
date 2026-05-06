@@ -151,7 +151,7 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
                 name_postfix="_Ym",
             )
 
-        return super(SimpleDriveCollection).__getitem__(item)
+        return super().__getitem__(item)
 
     def _get_amp_modified_primitive(self, gate_pi, angle):
         """

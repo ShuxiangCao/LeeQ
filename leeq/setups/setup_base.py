@@ -203,11 +203,11 @@ class SetupStatusParameters(LeeQObject):
         """
         return self.get_channel_parameters(channel=channel)
 
-    def get_channel_param(self, key):
+    def get_channel_param(self, channel, key=None):
         """
         Same as get_channel_parameters, for compatibility.
         """
-        return self.get_channel_parameters(key)
+        return self.get_channel_parameters(channel, key)
 
     @contextlib.contextmanager
     def with_parameters(self, **kwargs: Dict):
@@ -216,8 +216,10 @@ class SetupStatusParameters(LeeQObject):
         """
         original_parameters = self.get_parameters()
         self.set_parameters(**kwargs)
-        yield
-        self.set_parameters(**original_parameters)
+        try:
+            yield
+        finally:
+            self._internal_dict = original_parameters
 
     def register_compile_lpb_callback(
             self,
@@ -246,6 +248,10 @@ class SetupStatusParameters(LeeQObject):
             msg = f"{self._name} does not have channel {channel}."
             logger.error(msg)
             raise ValueError(msg)
+
+        if callback is None:
+            self._channel_callbacks[channel] = None
+            return
 
         if not callable(callback):
             msg = "Callback is not callable."

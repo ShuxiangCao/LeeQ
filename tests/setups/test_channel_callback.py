@@ -36,6 +36,18 @@ def test_register_compile_lpb_callback(setup_status):
     assert setup_status._channel_callbacks["ch1"] == callback
 
 
+def test_register_compile_lpb_callback_none_removes_callback(setup_status):
+    setup_status.add_channel("ch1")
+
+    def callback(parameters):
+        return parameters
+
+    setup_status.register_compile_lpb_callback("ch1", callback)
+    setup_status.register_compile_lpb_callback("ch1", None)
+
+    assert setup_status._channel_callbacks["ch1"] is None
+
+
 # Test if callback cannot be registered for non-existent channel
 def test_register_compile_lpb_callback_non_existent_channel(setup_status):
     with pytest.raises(ValueError, match=r".*does not have channel ch1.*"):
@@ -76,3 +88,20 @@ def test_get_modified_lpb_parameters_no_callback(setup_status):
         "ch1", parameters)
 
     assert returned_parameters == parameters
+
+
+def test_get_channel_param_returns_named_channel_value(setup_status):
+    setup_status.add_channel("ch1", frequency=5.0)
+
+    assert setup_status.get_channel_param("ch1", "frequency") == 5.0
+
+
+def test_with_parameters_restores_values_after_exception(setup_status):
+    setup_status.add_param("shot_number", 100)
+
+    with pytest.raises(RuntimeError, match="simulated failure"):
+        with setup_status.with_parameters(shot_number=10):
+            assert setup_status.get_param("shot_number") == 10
+            raise RuntimeError("simulated failure")
+
+    assert setup_status.get_param("shot_number") == 100
