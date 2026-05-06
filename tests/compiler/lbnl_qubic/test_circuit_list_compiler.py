@@ -259,7 +259,7 @@ def test_block_lpbs(qubit_1, qubit_2):
     for lpb in parallel_lpbs:
         compile_lpb(lpb)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         lpb = qubit_1.get_gate('qutrit_hadamard') * \
               qubit_1.get_gate('qutrit_hadamard')
         compile_lpb(lpb)

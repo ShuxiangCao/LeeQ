@@ -454,7 +454,8 @@ class RecordEntry(object):
         ):
             # If the record entry is not initiated, it means that it is loading
             # a record entry.
-            assert full_path is not None
+            if full_path is None:
+                raise ValueError("full_path must be provided when loading a record entry.")
             self._base_path = full_path
 
             self._load_from_path(full_path)
@@ -665,9 +666,8 @@ class RecordEntry(object):
         Returns:
             Any: The value of the attribute.
         """
-        assert (
-            key in self._touched_attributes
-        ), f"Attribute {key} is not recorded. Please try access through the object."
+        if key not in self._touched_attributes:
+            raise KeyError(f"Attribute {key} is not recorded. Please try access through the object.")
         return self.load_attribute(key)
 
     def get_recorded_attribute_names(self):

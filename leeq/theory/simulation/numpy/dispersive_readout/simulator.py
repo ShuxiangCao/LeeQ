@@ -530,7 +530,8 @@ class DispersiveReadoutSimulatorSyntheticData(DispersiveReadoutSimulator):
         # Generate time points corresponding to envelope samples
         t_list = get_t_list(self.sampling_rate, len(envelope) / self.sampling_rate)
 
-        assert len(t_list) == len(envelope), "Time and envelope arrays must have same length"
+        if len(t_list) != len(envelope):
+            raise ValueError("Time and envelope arrays must have same length")
 
         if isinstance(state, int):
             state = [(0, state)]

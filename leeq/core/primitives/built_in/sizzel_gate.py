@@ -26,15 +26,20 @@ class SiZZelTwoQubitGateCollection(LogicalPrimitiveCollection):
         Validate the parameters of the logical primitive collection.
         """
 
-        assert 'freq' in self._parameters, "The frequency is not found in the parameters."
-        assert 'amp_control' in self._parameters, "The control amplitude is not found in the parameters."
-        assert 'amp_target' in self._parameters, "The target amplitude is not found in the parameters."
-        assert 'iz_control' in self._parameters, "The control IZ strength is not found in the parameters."
-        assert 'iz_target' in self._parameters, "The target IZ strength is not found in the parameters."
-        assert 'phase_diff' in self._parameters, "The phase difference is not found in the parameters."
-        assert 'echo' in self._parameters, "The echo configuration is not found in the parameters."
-        assert 'width' in self._parameters, "The width is not found in the parameters."
-        assert 'zz_interaction_positive' in self._parameters, "The zz_interaction_positive is not found in the parameters."
+        required_parameters = {
+            'freq': "The frequency is not found in the parameters.",
+            'amp_control': "The control amplitude is not found in the parameters.",
+            'amp_target': "The target amplitude is not found in the parameters.",
+            'iz_control': "The control IZ strength is not found in the parameters.",
+            'iz_target': "The target IZ strength is not found in the parameters.",
+            'phase_diff': "The phase difference is not found in the parameters.",
+            'echo': "The echo configuration is not found in the parameters.",
+            'width': "The width is not found in the parameters.",
+            'zz_interaction_positive': "The zz_interaction_positive is not found in the parameters.",
+        }
+        for parameter_name, message in required_parameters.items():
+            if parameter_name not in self._parameters:
+                raise ValueError(message)
 
     def update_parameters(self, **kwargs):
         """

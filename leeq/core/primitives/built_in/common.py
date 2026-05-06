@@ -34,10 +34,10 @@ class DelayPrimitive(LogicalPrimitive):
 
     @staticmethod
     def _validate_parameters(parameters: dict):
-        assert "delay_time" in parameters, "The delay time is not specified."
-        assert (
-            "hardware_stall" in parameters
-        ), "Whether to use hardware stall is not specified."
+        if "delay_time" not in parameters:
+            raise ValueError("The delay time is not specified.")
+        if "hardware_stall" not in parameters:
+            raise ValueError("Whether to use hardware stall is not specified.")
 
     def get_delay_time(self):
         """
@@ -122,14 +122,14 @@ class PhaseShift(LogicalPrimitive):
 
     @staticmethod
     def _validate_parameters(parameters: dict):
-        assert "channel" in parameters, "The channel is not specified."
-        assert "phase_shift" in parameters, "The phase is not specified."
-        assert (
-            "transition_multiplier" in parameters
-        ), "The transition multiplier is not specified."
-        assert isinstance(
-            parameters["transition_multiplier"], dict
-        ), "The transition multiplier is not a dict."
+        if "channel" not in parameters:
+            raise ValueError("The channel is not specified.")
+        if "phase_shift" not in parameters:
+            raise ValueError("The phase is not specified.")
+        if "transition_multiplier" not in parameters:
+            raise ValueError("The transition multiplier is not specified.")
+        if not isinstance(parameters["transition_multiplier"], dict):
+            raise TypeError("The transition multiplier is not a dict.")
 
     def set_virtual_width(self, width: float):
         """

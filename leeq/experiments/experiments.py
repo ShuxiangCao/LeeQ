@@ -334,8 +334,8 @@ class ExperimentManager(Singleton):
         Register the active experiment instance.
         """
 
-        assert isinstance(
-            instance, Experiment), f"instance must be an instance of Experiment, got {type(instance)}"
+        if not isinstance(instance, Experiment):
+            raise TypeError(f"instance must be an instance of Experiment, got {type(instance)}")
         self._active_experiment_instance = instance
 
     def register_setup(self, setup, set_as_default=True):
@@ -392,7 +392,7 @@ class ExperimentManager(Singleton):
         """
         Run an experiment.
 
-        Here we assert the active instance has been registered.
+        Here we require the active instance has been registered.
 
         Parameters:
             lpb (LogicalPrimitiveCombinable): The logical primitive block to run.
@@ -403,7 +403,8 @@ class ExperimentManager(Singleton):
             Any: The return value of the experiment.
         """
 
-        assert self._active_experiment_instance is not None, "No active experiment instance is registered."
+        if self._active_experiment_instance is None:
+            raise RuntimeError("No active experiment instance is registered.")
         with self.status().with_parameters(measurement_basis=basis):
             return self.get_default_setup().run(lpb, swp)
 

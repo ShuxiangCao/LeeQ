@@ -236,8 +236,8 @@ def find_output_map(data: np.ndarray, clf: Pipeline) -> Dict[int, int]:
                 outcome_map[j] = len(outcome_map)
 
     # Sanity check: the outcome map should have entries equal to n_components.
-    assert len(
-        outcome_map) == n_components, "Outcome map size does not match the number of components."
+    if len(outcome_map) != n_components:
+        raise ValueError("Outcome map size does not match the number of components.")
 
     return outcome_map
 
@@ -254,7 +254,8 @@ def find_rotation_phase(clf: Pipeline, output_map: Dict[int, int]) -> Dict[int, 
         float : The phase for updating.
     """
 
-    assert len(output_map) == 2, "The output map should have 2 entries."
+    if len(output_map) != 2:
+        raise ValueError("The output map should have 2 entries.")
     means = clf.named_steps['gmm'].means_
 
     means_0 = means[output_map[0], :]
@@ -528,8 +529,11 @@ class MeasurementCalibrationMultilevelGMM(Experiment):
         if sweep_lpb_list is None:
             sweep_lpb_list = [dut.get_c1('f01')['I'], dut.get_c1('f01')['X']]
 
-        assert len(sweep_lpb_list) <= 4, ("Only less than 4 LPBs are allowed for simulated data, which represent"
-                                          "to prepare to the |0>, |1>, |2>, |3> state.")
+        if len(sweep_lpb_list) > 4:
+            raise ValueError(
+                "Only less than 4 LPBs are allowed for simulated data, which represent"
+                "to prepare to the |0>, |1>, |2>, |3> state."
+            )
 
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
         virtual_transmon = simulator_setup.get_virtual_qubit(dut)

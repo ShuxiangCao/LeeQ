@@ -62,9 +62,8 @@ class SimpleDrive(LogicalPrimitive, PulseArgsUpdatable):
         """
 
         for parameter_name in SimpleDrive._parameter_names:
-            assert (
-                parameter_name in parameters
-            ), f"The parameter {parameter_name} is not found."
+            if parameter_name not in parameters:
+                raise ValueError(f"The parameter {parameter_name} is not found.")
 
     def clone_with_parameters(self, parameters: dict, name_postfix=None):
         """
@@ -280,7 +279,8 @@ class QuditVirtualZCollection(LogicalPrimitiveCollection):
         """
         Validate the parameters of the logical primitive.
         """
-        assert "channel" in parameters, "The channel is not specified."
+        if "channel" not in parameters:
+            raise ValueError("The channel is not specified.")
 
     def z1(self, angle):
         """
@@ -345,9 +345,8 @@ class SimpleDispersiveMeasurement(MeasurementPrimitive, PulseArgsUpdatable):
 
     @classmethod
     def _validate_parameters(cls, parameters: dict):
-        assert (
-            "distinguishable_states" in parameters
-        ), "The distinguishable states are not specified."
+        if "distinguishable_states" not in parameters:
+            raise ValueError("The distinguishable states are not specified.")
 
     def clone_with_parameters(self, parameters: dict, name_postfix=None):
         """

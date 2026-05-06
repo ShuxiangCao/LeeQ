@@ -1849,7 +1849,8 @@ if this is a successful experiment. Make the analysis concise and clear in one s
 
         self.ai_inspection = True
 
-        assert not update_iz, "update_iz must be False."
+        if update_iz:
+            raise ValueError("update_iz must be False.")
 
         if params is None:
             amp_rabi_control = duts[0].get_c1('f01')['X'].amp

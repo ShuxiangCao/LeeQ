@@ -176,8 +176,8 @@ If success cannot be determined, consider the experiment failed.
 
         inv_alpha = 1 / anharmonicity
 
-        assert collection_name == 'f01', \
-            "Only f01 collection (driving single qubit) is supported in the simulated mode."
+        if collection_name != 'f01':
+            raise ValueError("Only f01 collection (driving single qubit) is supported in the simulated mode.")
 
         c1 = dut.get_c1(collection_name)
 

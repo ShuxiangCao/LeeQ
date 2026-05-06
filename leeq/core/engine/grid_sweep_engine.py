@@ -114,10 +114,11 @@ class GridSerialSweepEngine(EngineBase):
                 # Allocate new buffer
                 list(sweep_shape) + \
                     list(measurement_result.shape)
-                assert len(measurement_result.shape) > 1, (
-                    f"The shape of the measurement result {measurement_result.shape} should be at least 2D,"
-                    f" one dimension for the result id another one for the data."
-                )
+                if len(measurement_result.shape) <= 1:
+                    raise ValueError(
+                        f"The shape of the measurement result {measurement_result.shape} should be at least 2D,"
+                        f" one dimension for the result id another one for the data."
+                    )
                 measurement_primitive.allocate_measurement_buffer(
                     sweep_shape=sweep_shape,
                     number_of_measurements=measurement_result.shape[0],
@@ -270,10 +271,11 @@ class GridBatchSweepEngine(EngineBase):
                 # Allocate new buffer
                 list(sweep_shape) + \
                     list(measurement_result.shape)
-                assert len(measurement_result.shape) > 1, (
-                    f"The shape of the measurement result {measurement_result.shape} should be at least 2D,"
-                    f" one dimension for the result id another one for the data."
-                )
+                if len(measurement_result.shape) <= 1:
+                    raise ValueError(
+                        f"The shape of the measurement result {measurement_result.shape} should be at least 2D,"
+                        f" one dimension for the result id another one for the data."
+                    )
                 measurement_primitive.allocate_measurement_buffer(
                     sweep_shape=sweep_shape,
                     number_of_measurements=measurement_result.shape[0],

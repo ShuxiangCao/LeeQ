@@ -102,10 +102,11 @@ class IndividualLPBCompiler(LPBCompiler):
             PulseSequence: The compiled pulse sequence.
         """
 
-        assert lpb.children is None, (
-            "The children of the logical primitive block should be None. Got class "
-            + str(lpb.__class__)
-        )
+        if lpb.children is not None:
+            raise ValueError(
+                "The children of the logical primitive block should be None. Got class "
+                + str(lpb.__class__)
+            )
 
         # Get the parameters
         pulse_shape_name = lpb.shape

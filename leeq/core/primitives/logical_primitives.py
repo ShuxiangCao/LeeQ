@@ -20,9 +20,8 @@ class LogicalPrimitiveCombinable(object):
         """
         Syntax sugar for combining two logical primitives in series.
         """
-        assert issubclass(
-            type(other), LogicalPrimitiveCombinable
-        ), f"The other object is not a logical primitive, got {type(other)}."
+        if not isinstance(other, LogicalPrimitiveCombinable):
+            raise TypeError(f"The other object is not a logical primitive, got {type(other)}.")
 
         if isinstance(other, LogicalPrimitiveBlockSerial):
             other._children.insert(0, self)
@@ -35,9 +34,8 @@ class LogicalPrimitiveCombinable(object):
         """
         Syntax sugar for combining two logical primitives in parallel.
         """
-        assert issubclass(
-            type(other), LogicalPrimitiveCombinable
-        ), f"The other object is not a logical primitive, got {type(other)}."
+        if not isinstance(other, LogicalPrimitiveCombinable):
+            raise TypeError(f"The other object is not a logical primitive, got {type(other)}.")
 
         if isinstance(other, LogicalPrimitiveBlockParallel):
             other._children.insert(0, self)
@@ -462,9 +460,8 @@ class LogicalPrimitiveBlockParallel(LogicalPrimitiveBlock):
         """
         Syntax sugar for combining two logical primitive blocks in parallel.
         """
-        assert isinstance(
-            other, LogicalPrimitiveCombinable
-        ), f"The other object is not a logical primitive or a block, got {type(other)}."
+        if not isinstance(other, LogicalPrimitiveCombinable):
+            raise TypeError(f"The other object is not a logical primitive or a block, got {type(other)}.")
 
         if isinstance(other, LogicalPrimitiveBlockParallel):
             return LogicalPrimitiveBlockParallel(
@@ -493,9 +490,8 @@ class LogicalPrimitiveBlockSerial(LogicalPrimitiveBlock):
         """
         Syntax sugar for combining two logical primitive blocks in serial.
         """
-        assert isinstance(
-            other, LogicalPrimitiveCombinable
-        ), f"The other object is not a logical primitive block, got {type(other)}."
+        if not isinstance(other, LogicalPrimitiveCombinable):
+            raise TypeError(f"The other object is not a logical primitive block, got {type(other)}.")
 
         if isinstance(other, LogicalPrimitiveBlockSerial):
             return LogicalPrimitiveBlockSerial(
@@ -580,8 +576,11 @@ class MeasurementPrimitive(LogicalPrimitive):
 
         # TODO: Allow other data shapes in the future. To achieve this, we need to update the commit_measurement method
         # and find the right way to locate the correct index instead of hard code it to -3.
-        assert len(data_shape) == 2, ("The data shape should be 2D. The first dimension should be the shot "
-                                      "number and the second is the data vector width.")
+        if len(data_shape) != 2:
+            raise ValueError(
+                "The data shape should be 2D. The first dimension should be the shot "
+                "number and the second is the data vector width."
+            )
 
         if self.is_buffer_allocated():
             msg = (

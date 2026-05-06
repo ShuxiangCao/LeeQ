@@ -393,7 +393,8 @@ def soft_square(
     - np.ndarray: Generated soft square wave.
     """
 
-    assert ex_delay == 0, "Extra delay is not supported for soft square wave."
+    if ex_delay != 0:
+        raise ValueError("Extra delay is not supported for soft square wave.")
 
     if rise == 0:
         return square(sampling_rate=sampling_rate, amp=amp, width=width, phase=phase, delay=delay)
@@ -488,12 +489,18 @@ def clear_square(
     Returns:
     - np.ndarray: Generated clear square wave.
     """
-    assert 1 <= ini_top
-    assert 0 <= ini_bot <= 1
-    assert final_bot <= 0
-    assert final_top >= 0
-    assert 0 <= ini_width <= 0.5
-    assert 0 <= final_width <= 0.5
+    if ini_top < 1:
+        raise ValueError("ini_top must be greater than or equal to 1.")
+    if not 0 <= ini_bot <= 1:
+        raise ValueError("ini_bot must be between 0 and 1.")
+    if final_bot > 0:
+        raise ValueError("final_bot must be less than or equal to 0.")
+    if final_top < 0:
+        raise ValueError("final_top must be greater than or equal to 0.")
+    if not 0 <= ini_width <= 0.5:
+        raise ValueError("ini_width must be between 0 and 0.5.")
+    if not 0 <= final_width <= 0.5:
+        raise ValueError("final_width must be between 0 and 0.5.")
 
     total_width = width + delay + ex_delay + 2 * final_width * width
     x = get_t_list(sampling_rate, total_width)

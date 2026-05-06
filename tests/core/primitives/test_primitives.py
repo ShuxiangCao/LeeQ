@@ -75,11 +75,11 @@ def test_logical_primitive_block_serial_clone():
 
 def test_logical_primitive_add_assertion():
     lp1 = MockLogicalPrimitive(name='primitive1', parameters={})
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         lp1 + 5  # Non LogicalPrimitiveCombinable object
 
 
 def test_logical_primitive_mul_assertion():
     lp1 = MockLogicalPrimitive(name='primitive1', parameters={})
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         lp1 * 5  # Non LogicalPrimitiveCombinable object

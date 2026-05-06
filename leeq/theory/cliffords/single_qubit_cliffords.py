@@ -48,7 +48,8 @@ def get_clifford_from_id(index: int):
         list: The composition of clifford.
     """
 
-    assert index in _single_qubit_clifford_map, f'Clifford {index} is not supported.'
+    if index not in _single_qubit_clifford_map:
+        raise ValueError(f'Clifford {index} is not supported.')
     return _single_qubit_clifford_map[index]
 
 

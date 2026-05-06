@@ -60,7 +60,8 @@ class ConditionalStarkFineFrequencyTuneUp(Experiment):
         """
         self.duts = duts
 
-        assert not update_iz
+        if update_iz:
+            raise ValueError("update_iz must be False.")
 
         if params is None:
             amp_rabi_control = duts[0].get_c1('f01')['X'].amp
@@ -371,7 +372,8 @@ class ConditionalStarkFineAmpTuneUp(Experiment):
         """
 
 
-        assert not update_iz
+        if update_iz:
+            raise ValueError("update_iz must be False.")
 
         if params is None:
             amp_rabi_control = duts[0].get_c1('f01')['X'].amp
@@ -684,7 +686,8 @@ class ConditionalStarkFinePhaseTuneUp(Experiment):
         """
 
 
-        assert not update_iz
+        if update_iz:
+            raise ValueError("update_iz must be False.")
 
         if params is None:
             amp_rabi_control = duts[0].get_c1('f01')['X'].amp
@@ -995,7 +998,8 @@ class ConditionalStarkFineRiseTuneUp(Experiment):
         """
 
 
-        assert not update_iz
+        if update_iz:
+            raise ValueError("update_iz must be False.")
 
         if params is None:
             amp_rabi_control = duts[0].get_c1('f01')['X'].amp
@@ -1302,7 +1306,8 @@ class ConditionalStarkFineTruncTuneUp(Experiment):
         """
 
 
-        assert not update_iz
+        if update_iz:
+            raise ValueError("update_iz must be False.")
 
         if params is None:
             amp_rabi_control = duts[0].get_c1('f01')['X'].amp

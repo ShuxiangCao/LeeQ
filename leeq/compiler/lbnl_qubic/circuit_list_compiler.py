@@ -267,8 +267,16 @@ def _segment_pulse_and_isolate_flat_regions(env_func, paradict, threshold=1e-5):
 
     # Assert all the start time are properly aligned
     for i, (start, end, segment_type) in enumerate(segments):
-        assert start % atomic_index_count == 0, f"Start time is not properly aligned for segment {i}. {start}, {end},{segment_type}, {atomic_index_count}"
-        assert end % atomic_index_count == 0, f"End time is not properly aligned for segment {i}. {start}, {end},{segment_type}, {atomic_index_count}"
+        if start % atomic_index_count != 0:
+            raise ValueError(
+                f"Start time is not properly aligned for segment {i}. "
+                f"{start}, {end},{segment_type}, {atomic_index_count}"
+            )
+        if end % atomic_index_count != 0:
+            raise ValueError(
+                f"End time is not properly aligned for segment {i}. "
+                f"{start}, {end},{segment_type}, {atomic_index_count}"
+            )
 
     # If the last segment is flat, and it is only a single atomic index, and it has 0 amplitude, we remove it
     if segments[-1][2] == 'flat' and segments[-1][1] - segments[-1][0] == atomic_index_count and np.all(
@@ -695,7 +703,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
         Note that frequency can accept numbers as well as strings, and the string is the name of the frequency variable.
         """
 
-        assert isinstance(lpb, MeasurementPrimitive)
+        if not isinstance(lpb, MeasurementPrimitive):
+            raise TypeError(f"Expected a MeasurementPrimitive, got {type(lpb)}.")
 
         self._check_parameter_if_dirty(lpb)
 
@@ -884,10 +893,8 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
             block_scope.extend(child_scopes[i])
 
-        assert len(block_scope) == len(set(block_scope)), (
-            "Parallel blocks do not support "
-            "running pulses on the same channel (yet)."
-        )
+        if len(block_scope) != len(set(block_scope)):
+            raise ValueError("Parallel blocks do not support running pulses on the same channel (yet).")
 
         # Assemble the circuit
         compiled_circuit = sum(child_circuits, [])

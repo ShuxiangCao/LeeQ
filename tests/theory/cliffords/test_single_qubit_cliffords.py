@@ -119,13 +119,13 @@ class TestCliffordMapping:
 
     def test_get_clifford_from_id_invalid_index(self):
         """Test error handling for invalid Clifford IDs."""
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             get_clifford_from_id(24)  # Too large
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             get_clifford_from_id(-1)  # Negative
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             get_clifford_from_id(100)  # Way too large
 
 

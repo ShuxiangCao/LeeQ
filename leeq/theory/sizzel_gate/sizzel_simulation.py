@@ -162,7 +162,8 @@ def main(dump_name):
 
 
 def solve_all_t_values(file, plot=False):
-    assert isinstance(file, str)
+    if not isinstance(file, str):
+        raise TypeError("file must be a string path.")
 
     with open(file, 'rb') as f:
         data = pickle.load(f)

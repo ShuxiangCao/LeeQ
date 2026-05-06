@@ -80,7 +80,8 @@ class StandardProcessTomography(StandardStateTomography):
                                                            self._basis.get_basis_matrices().conj())
 
         # Ensure the matrix has full rank.
-        assert np.linalg.matrix_rank(self.preparation_hilbert_schmidt_basis) == self.dimension ** 2
+        if np.linalg.matrix_rank(self.preparation_hilbert_schmidt_basis) != self.dimension ** 2:
+            raise ValueError("Preparation Hilbert-Schmidt basis is not full rank.")
 
     def get_preparation_sequence(self) -> List[Any]:
         """ Returns the sequence of preparation operations. """
@@ -112,7 +113,8 @@ class StandardProcessTomography(StandardStateTomography):
 
         ptms = np.einsum("zc,xc->xz", pauli_vector_on_preparation, inv_preparation_tensor)
 
-        assert np.sum(np.abs(ptms.imag)) < 1e-5
+        if np.sum(np.abs(ptms.imag)) >= 1e-5:
+            raise ValueError("Process tomography produced a non-negligible imaginary component.")
         return ptms.real
 
     def simulate_ideal_process_tomography_distribution(self, unitary: np.ndarray) -> np.ndarray:

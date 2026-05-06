@@ -167,12 +167,12 @@ class TestHilbertBasis:
         assert basis.basis_name == basis_name
         assert np.array_equal(basis.basis_matrices, basis_matrices)
 
-    def test_hilbert_basis_assertion_errors(self):
-        """Test assertion errors in HilbertBasis initialization."""
+    def test_hilbert_basis_validation_errors(self):
+        """Test validation errors in HilbertBasis initialization."""
         dim = 2
         wrong_shape_matrices = np.zeros((dim, dim, 3))  # Wrong last dimension
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             HilbertBasis(dimension=dim, basis_matrices=wrong_shape_matrices)
 
     def test_operator_to_schmidt_hilbert_vector(self):
@@ -187,14 +187,14 @@ class TestHilbertBasis:
         assert len(vector) == dim**2
         assert vector.dtype == complex
 
-    def test_operator_to_schmidt_hilbert_vector_assertion(self):
-        """Test assertion error for wrong operator dimensions."""
+    def test_operator_to_schmidt_hilbert_vector_validation(self):
+        """Test validation error for wrong operator dimensions."""
         dim = 2
         basis_matrices, basis_name = create_test_pauli_basis(dim)
         basis = HilbertBasis(dimension=dim, basis_name=basis_name, basis_matrices=basis_matrices)
         wrong_operator = np.eye(3)  # Wrong dimension
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             basis.operator_to_schmidt_hilbert_vector(wrong_operator)
 
     def test_schmidt_hilbert_vector_to_operator(self):
@@ -209,14 +209,14 @@ class TestHilbertBasis:
         assert operator.shape == (dim, dim)
         assert operator.dtype == complex
 
-    def test_schmidt_hilbert_vector_to_operator_assertion(self):
-        """Test assertion error for wrong vector length."""
+    def test_schmidt_hilbert_vector_to_operator_validation(self):
+        """Test validation error for wrong vector length."""
         dim = 2
         basis_matrices, basis_name = create_test_pauli_basis(dim)
         basis = HilbertBasis(dimension=dim, basis_name=basis_name, basis_matrices=basis_matrices)
         wrong_vector = np.array([1.0, 0.0, 0.0])  # Wrong length
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             basis.schmidt_hilbert_vector_to_operator(wrong_vector)
 
     def test_unitary_to_ptm(self):
@@ -232,14 +232,14 @@ class TestHilbertBasis:
         assert ptm.dtype == float  # PTM should be real
         assert np.allclose(ptm.imag, 0, atol=1e-10)
 
-    def test_unitary_to_ptm_assertion(self):
-        """Test assertion error for wrong unitary dimensions."""
+    def test_unitary_to_ptm_validation(self):
+        """Test validation error for wrong unitary dimensions."""
         dim = 2
         basis_matrices, basis_name = create_test_pauli_basis(dim)
         basis = HilbertBasis(dimension=dim, basis_name=basis_name, basis_matrices=basis_matrices)
         wrong_unitary = np.eye(3)  # Wrong dimension
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             basis.unitary_to_ptm(wrong_unitary)
 
     def test_ptm_to_chi(self):
@@ -309,17 +309,17 @@ class TestGateSet:
         assert gateset.available_gates == gate_names
         assert gateset.number_of_gates == 2
 
-    def test_gateset_assertion_errors(self):
-        """Test assertion errors in GateSet initialization."""
+    def test_gateset_validation_errors(self):
+        """Test validation errors in GateSet initialization."""
         gate_names = ['I', 'X']
         wrong_shape_matrices = np.zeros((2, 3, 2))  # Not square
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             GateSet(gate_names, wrong_shape_matrices)
 
         wrong_count_matrices = np.zeros((2, 2, 3))  # Wrong number of gates
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             GateSet(gate_names, wrong_count_matrices)
 
     def test_gateset_update_estimation(self):

@@ -106,7 +106,8 @@ def get_single_qubit_pulse_grape(qubit_frequency,
     result, fidelity, times = run_grape(hamiltonian_params=ham_params, grape_params=grape_params,
                                         U_target=U_target, initial_guess=initial_guess)
 
-    assert fidelity > 0.999, f'fidelity {fidelity} is too low'
+    if fidelity <= 0.999:
+        raise RuntimeError(f'fidelity {fidelity} is too low')
 
     return result
 

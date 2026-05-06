@@ -309,7 +309,8 @@ class Sweeper(LeeQObject):
 
         for param in self._params:
             annotation = param(parameter)
-            assert isinstance(annotation, dict)
+            if not isinstance(annotation, dict):
+                raise TypeError(f"Sweep side effects must return a dict, got {type(annotation)}.")
             step_annotation.update(annotation)
 
         return step_annotation
@@ -328,9 +329,10 @@ class Sweeper(LeeQObject):
         if isinstance(step_no, int):
             return self._execute_side_effects(self._sweep_parameters[step_no])
 
-        assert len(step_no) == len(
-            self.shape
-        ), f"The length of step_no {len(step_no)} must be equal to the length of shape {len(self.shape)}."
+        if len(step_no) != len(self.shape):
+            raise ValueError(
+                f"The length of step_no {len(step_no)} must be equal to the length of shape {len(self.shape)}."
+            )
 
         annotation_dict = {}
 

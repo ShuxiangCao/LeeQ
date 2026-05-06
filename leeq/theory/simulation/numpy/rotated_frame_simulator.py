@@ -423,15 +423,11 @@ class VirtualTransmon(object):
                 return value.
         """
 
-        assert return_type in [
-            "population_distribution",
-            "IQ",
-            "IQ_average",
-            "traces",
-        ], (
-            f'Invalid return type "{return_type}",'
-            f' acceptable types are "population_distribution", "IQ_average", "traces".'
-        )
+        if return_type not in ["population_distribution", "IQ", "IQ_average", "traces"]:
+            raise ValueError(
+                f'Invalid return type "{return_type}",'
+                f' acceptable types are "population_distribution", "IQ_average", "traces".'
+            )
 
         if return_type == "population_distribution":
             population_distribution = np.diag(

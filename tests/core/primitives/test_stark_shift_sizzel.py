@@ -93,20 +93,16 @@ def test_initialization(sizzel_gate_collection):
 
 
 def test_validate_parameters(sizzel_gate_collection):
-    # Testing that validate_parameters does not raise an assertion error for
+    # Testing that validate_parameters does not raise an error for
     # valid parameters
-    try:
-        sizzel_gate_collection.validate_parameters()
-    except AssertionError:
-        pytest.fail(
-            "validate_parameters() raised an AssertionError unexpectedly!")
+    sizzel_gate_collection.validate_parameters()
 
 
 def test_validate_parameters_missing_key(sizzel_gate_collection):
-    # Testing that validate_parameters raises an assertion error for missing
+    # Testing that validate_parameters raises an explicit error for missing
     # required parameters
     del sizzel_gate_collection._parameters['freq']
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         sizzel_gate_collection.validate_parameters()
 
 

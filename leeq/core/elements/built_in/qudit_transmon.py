@@ -96,21 +96,17 @@ class TransmonElement(Element):
         from leeq.core.primitives.built_in.simple_drive import SimpleDispersiveMeasurement, SimpleDriveCollection
 
         for _name, lpb_parameter in parameters["lpb_collections"].items():
-            assert (
-                "type" in lpb_parameter
-            ), "The type of the lpb collection is not specified."
-            assert lpb_parameter["type"] in [
-                SimpleDriveCollection.__qualname__
-            ], f"The lpb collection {lpb_parameter['name']} is not supported."
+            if "type" not in lpb_parameter:
+                raise ValueError("The type of the lpb collection is not specified.")
+            if lpb_parameter["type"] not in [SimpleDriveCollection.__qualname__]:
+                raise ValueError(f"The lpb collection {lpb_parameter.get('name', _name)} is not supported.")
 
         for _name, measurement_parameter in parameters["measurement_primitives"].items(
         ):
-            assert (
-                "type" in measurement_parameter
-            ), "The type of the measurement parameter is not specified."
-            assert measurement_parameter["type"] in [
-                SimpleDispersiveMeasurement.__qualname__
-            ]
+            if "type" not in measurement_parameter:
+                raise ValueError("The type of the measurement parameter is not specified.")
+            if measurement_parameter["type"] not in [SimpleDispersiveMeasurement.__qualname__]:
+                raise ValueError(f"The measurement primitive {_name} is not supported.")
 
     def get_gate(self, gate_name, transition_name="f01", angle=None):
         """

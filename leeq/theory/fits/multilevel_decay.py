@@ -225,7 +225,8 @@ def fit_decay(probs: np.ndarray, time_length: float, time_resolution: float, ver
         Tuple[np.ndarray, np.ndarray]: Tuple containing the initial state probabilities and the gamma transition matrix.
     """
     # Validate input shape assumptions
-    assert probs.shape[1] == probs.shape[2] - 1, "The number of traces must be one less than the number of states."
+    if probs.shape[1] != probs.shape[2] - 1:
+        raise ValueError("The number of traces must be one less than the number of states.")
 
     # Initialize gamma transition matrix
     gamma_size = probs.shape[2]

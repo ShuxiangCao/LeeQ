@@ -699,8 +699,8 @@ class MultiQubitRabi(Experiment):
         if not isinstance(mprim_indexes, list):
             mprim_indexes = [mprim_indexes] * len(duts)
 
-        assert len(duts) == len(amps) == len(collection_names) == len(
-            mprim_indexes), "Length of duts, amps, collection_names, and mprim_indexes must be the same."
+        if len(duts) != len(amps) or len(duts) != len(collection_names) or len(duts) != len(mprim_indexes):
+            raise ValueError("Length of duts, amps, collection_names, and mprim_indexes must be the same.")
 
         rabi_pulses = []
 
@@ -880,8 +880,8 @@ class MultiQubitRabi(Experiment):
         if not isinstance(mprim_indexes, list):
             mprim_indexes = [mprim_indexes] * len(duts)
 
-        assert len(duts) == len(amps) == len(collection_names) == len(mprim_indexes), \
-            "Length of duts, amps, collection_names, and mprim_indexes must be the same."
+        if len(duts) != len(amps) or len(duts) != len(collection_names) or len(duts) != len(mprim_indexes):
+            raise ValueError("Length of duts, amps, collection_names, and mprim_indexes must be the same.")
 
         # Get simulation setup
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()

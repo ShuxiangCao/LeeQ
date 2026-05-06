@@ -106,8 +106,10 @@ class HilbertBasis(object):
             basis_name = [f"$G_{i}$" for i in range(dimension ** 2)]
         else:
             # Ensure that the provided matrices are valid for the given dimension
-            assert basis_matrices.shape[-1] == dimension ** 2
-            assert basis_matrices.shape[0] == basis_matrices.shape[1] == dimension
+            if basis_matrices.shape[-1] != dimension ** 2:
+                raise ValueError("Basis matrices must contain dimension ** 2 basis elements.")
+            if basis_matrices.shape[0] != dimension or basis_matrices.shape[1] != dimension:
+                raise ValueError(f"Basis matrices must have leading shape ({dimension}, {dimension}).")
 
         self.basis_name = basis_name
         self.basis_matrices = basis_matrices
@@ -122,7 +124,8 @@ class HilbertBasis(object):
         Returns:
             np.ndarray: The Schmidt vector representation of the operator.
         """
-        assert operator.shape[0] == operator.shape[1] == self.dimension
+        if operator.shape[0] != operator.shape[1] or operator.shape[0] != self.dimension:
+            raise ValueError(f"Operator must be square with dimension {self.dimension}. Got shape {operator.shape}.")
         vector = np.einsum("ab,abw->w", operator, self.basis_matrices.conj())
         return vector
 
@@ -136,7 +139,8 @@ class HilbertBasis(object):
         Returns:
             np.ndarray: The corresponding operator.
         """
-        assert len(vector) == self.dimension ** 2
+        if len(vector) != self.dimension ** 2:
+            raise ValueError(f"Vector length must be {self.dimension ** 2}. Got {len(vector)}.")
         density_matrix = np.einsum("c,abc->ab", vector, self.basis_matrices) / self.dimension
         return density_matrix
 
@@ -150,13 +154,15 @@ class HilbertBasis(object):
         Returns:
             np.ndarray: The corresponding PTM.
         """
-        assert unitary.shape[0] == unitary.shape[1] == self.dimension, ("Unitary matrix must be square and equal to "
-                                                                        f"the dimension {self.dimension}. Got shape: ",
-                                                                        unitary.shape)
+        if unitary.shape[0] != unitary.shape[1] or unitary.shape[0] != self.dimension:
+            raise ValueError(
+                f"Unitary matrix must be square and equal to the dimension {self.dimension}. Got shape: {unitary.shape}"
+            )
         transformed_result = np.einsum("abc,ad,be->dec", self.basis_matrices, unitary.conjugate(), unitary)
         ptm = np.einsum("abc,baf->fc", transformed_result, self.basis_matrices) / self.dimension
 
-        assert np.abs(ptm.imag).max() < 1e-10
+        if np.abs(ptm.imag).max() >= 1e-10:
+            raise ValueError("PTM contains a non-negligible imaginary component.")
         return ptm.real
 
     def ptm_to_chi(self, ptm: np.ndarray) -> np.ndarray:
@@ -454,9 +460,10 @@ class GateSet:
                             or if the gate matrices are not square.
         """
         # Ensure the gate matrix is square and matches the number of gate names
-        assert gate_ideal_matrices.shape[0] == gate_ideal_matrices.shape[
-            1], f"Gate matrices must be square, got shape {gate_ideal_matrices.shape}."
-        assert len(gate_names) == gate_ideal_matrices.shape[-1], "Number of gate names must match number of gates."
+        if gate_ideal_matrices.shape[0] != gate_ideal_matrices.shape[1]:
+            raise ValueError(f"Gate matrices must be square, got shape {gate_ideal_matrices.shape}.")
+        if len(gate_names) != gate_ideal_matrices.shape[-1]:
+            raise ValueError("Number of gate names must match number of gates.")
 
         # Store the dimension from the matrix size
         self.dimension = gate_ideal_matrices.shape[0]

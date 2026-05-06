@@ -503,8 +503,8 @@ class MultiQubitRamseyMultilevel(Experiment):
         self.collection_names = collection_names
         # Make sure the collection names and mprim indexes have the same length
         # as the DUTs
-        assert len(duts) == len(collection_names) == len(mprim_indexes), \
-            "The number of DUTs, collection names, and mprim indexes must be the same."
+        if len(duts) != len(collection_names) or len(duts) != len(mprim_indexes):
+            raise ValueError("The number of DUTs, collection names, and mprim indexes must be the same.")
 
         c1s = [qubit.get_c1(collection_name) for qubit, collection_name in
                zip(duts, collection_names, strict=False)]  # Retrieve the control object
@@ -757,8 +757,8 @@ class MultiQubitRamseyMultilevel(Experiment):
             mprim_indexes = [mprim_indexes] * len(duts)
 
         self.collection_names = collection_names
-        assert len(duts) == len(collection_names) == len(mprim_indexes), \
-            "The number of DUTs, collection names, and mprim indexes must be the same."
+        if len(duts) != len(collection_names) or len(duts) != len(mprim_indexes):
+            raise ValueError("The number of DUTs, collection names, and mprim indexes must be the same.")
 
         # Get simulation setup
         simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()

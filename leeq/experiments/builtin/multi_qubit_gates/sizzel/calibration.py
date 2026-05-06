@@ -959,7 +959,8 @@ class ConditionalStarkEchoTuneUp(Experiment):
         self.duts = duts
         self.n_max_iteration = n_max_iteration
 
-        assert not update_iz
+        if update_iz:
+            raise ValueError("update_iz must be False.")
 
         if params is None:
             amp_rabi_control = duts[0].get_c1('f01')['X'].amp

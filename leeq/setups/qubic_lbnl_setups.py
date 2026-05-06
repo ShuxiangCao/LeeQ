@@ -53,8 +53,10 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
         self._build_qubic_config()
 
-        assert self._leeq_channel_to_qubic_channel is not None, "Please specify leeq channel to qubic channel config " \
-                                                                "if you specified custom qubic channel config."
+        if self._leeq_channel_to_qubic_channel is None:
+            raise ValueError(
+                "Please specify leeq channel to qubic channel config if you specified custom qubic channel config."
+            )
 
         self._runner = runner
 
@@ -276,9 +278,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
             for instruction in instructions:
                 if instruction['op'] == 'pulse' and 'rdlo' in instruction["dest"]:
 
-                    if measure_start_time != -1:
-                        assert measure_start_time == instruction["start_time"], ("All the measurement should start "
-                                                                                 "at the same time for trace acquisition.")
+                    if measure_start_time != -1 and measure_start_time != instruction["start_time"]:
+                        raise ValueError("All the measurement should start at the same time for trace acquisition.")
                     measurement_length = max(instruction["env"]["paradict"]['twidth'], measurement_length)
                     measure_start_time = instruction["start_time"]
 
@@ -370,13 +371,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
         acquisition_type = self._status.get_parameters("Acquisition_Type")
         n_total_shots = self._status.get_parameters("Shot_Number")
 
-        assert acquisition_type in [
-            "IQ",
-            "IQ_average",
-            "traces",
-        ], "Acquisition type should be either IQ or traces. Got " + str(
-            acquisition_type
-        )
+        if acquisition_type not in ["IQ", "IQ_average", "traces"]:
+            raise ValueError("Acquisition type should be either IQ or traces. Got " + str(acquisition_type))
 
         if acquisition_type == "IQ" or acquisition_type == "IQ_average":
             while True:
@@ -429,7 +425,8 @@ class QubiCCircuitSetup(ExperimentalSetup):
 
             # load_and_run_acq is to load the program given by raw_asm_prog and acquire raw
             # adc traces.
-            assert batch_size == 1, "Batch size should be 1 for traces acquisition."
+            if batch_size != 1:
+                raise ValueError("Batch size should be 1 for traces acquisition.")
             data = self._runner.load_and_run_acq(
                 raw_asm_prog=asm_prog,  # The compiled program
                 n_total_shots=n_total_shots,  # number of shots to run. Program is restarted from
@@ -565,8 +562,9 @@ class QubiCCircuitSetup(ExperimentalSetup):
         # until the previous acquisition is returned to python, which is much longer than the shot interval.
         acquisition_type = self._status.get_parameters("Acquisition_Type")
         if acquisition_type == 'traces':
-            assert len(contexts) == 1, """Traces acquisition only supports batch size 1. Use
-                setup().status().set_param('Engine_Batch_Size',1) to set the batch size to 1."""
+            if len(contexts) != 1:
+                raise ValueError("""Traces acquisition only supports batch size 1. Use
+                setup().status().set_param('Engine_Batch_Size',1) to set the batch size to 1.""")
             combined_circuits = contexts[0].instructions["circuits"]
         else:
             for context in contexts:
@@ -604,9 +602,11 @@ class QubiCCircuitSetup(ExperimentalSetup):
         qubic_channel_to_lpb_uuid = contexts[0].instructions['qubic_channel_to_lpb_uuid']
 
         for context in contexts[1:]:
-            assert context.instructions['qubic_channel_to_lpb_uuid'] == qubic_channel_to_lpb_uuid, \
-                "All the contexts should have the same channel mapping. You might be using different mprims in a batch" \
-                "run setup, which is not supported yet."
+            if context.instructions['qubic_channel_to_lpb_uuid'] != qubic_channel_to_lpb_uuid:
+                raise ValueError(
+                    "All the contexts should have the same channel mapping. You might be using different mprims in a batch"
+                    "run setup, which is not supported yet."
+                )
 
         qubic_channel_to_lpb_uuid = contexts[0].instructions['qubic_channel_to_lpb_uuid']
 

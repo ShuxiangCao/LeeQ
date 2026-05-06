@@ -62,12 +62,12 @@ class TestFit1DFreq:
         assert 'Frequency' in result
         assert result['Residual'] >= 0
 
-    def test_fit_1d_freq_assertion_error(self):
-        """Test assertion error when fix_frequency=True but no freq_guess."""
+    def test_fit_1d_freq_validation_error(self):
+        """Test validation error when fix_frequency=True but no freq_guess."""
         dt = 0.01
         z = np.sin(np.linspace(0, 10, 100))
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             fit_1d_freq(z, dt, fix_frequency=True, freq_guess=None)
 
     def test_fit_1d_freq_with_tstart(self):
@@ -120,11 +120,11 @@ class TestFitExpDecay:
         assert abs(result['Amplitude'] - amp_true) < 0.1
         assert abs(result['Decay'] - decay_true) < 0.3
 
-    def test_fit_exp_decay_assertion_error(self):
-        """Test assertion when neither dt nor t is provided."""
+    def test_fit_exp_decay_validation_error(self):
+        """Test validation error when neither dt nor t is provided."""
         z = np.array([1, 2, 3, 4])
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             _fit_exp_decay(z)
 
     def test_fit_exp_decay_with_cov(self):

@@ -32,8 +32,8 @@ def fit_sinusoidal(
     """
 
     # Ensure frequency is provided if it's fixed
-    if fix_frequency:
-        assert freq_guess is not None, "Initial frequency guess must be provided if frequency is fixed."
+    if fix_frequency and freq_guess is None:
+        raise ValueError("Initial frequency guess must be provided if frequency is fixed.")
 
     # Estimate initial frequency if not provided
     if freq_guess is None:

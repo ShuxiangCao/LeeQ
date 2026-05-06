@@ -38,7 +38,8 @@ def fit_1d_freq(
     >>> logger.info(result)
     {'Frequency': 0.5, 'Amplitude': 1.0, 'Phase': 0.0, 'Offset': 0.0, 'Residual': 0.0}
     """
-    assert not fix_frequency or freq_guess is not None, "Frequency guess is required when fixing frequency."
+    if fix_frequency and freq_guess is None:
+        raise ValueError("Frequency guess is required when fixing frequency.")
 
     # Perform initial frequency estimation using FFT if no initial guess is provided
     if freq_guess is None:
@@ -139,7 +140,8 @@ def _fit_exp_decay(z: np.ndarray,
     A dictionary containing the amplitude, offset, and decay constant.
     """
     if t is None:
-        assert dt is not None, "Either t or dt must be provided."
+        if dt is None:
+            raise ValueError("Either t or dt must be provided.")
         t = np.linspace(0., dt * (len(z) - 1), len(z))
     offset = np.min(z)
     amp = np.max(z) - offset
@@ -180,7 +182,8 @@ def fit_exp_decay_with_cov(z: np.ndarray,
     result = _fit_exp_decay(z, dt=dt, t=t)
 
     if t is None:
-        assert dt is not None, "Either t or dt must be provided."
+        if dt is None:
+            raise ValueError("Either t or dt must be provided.")
         t = np.linspace(0., dt * (len(z) - 1), len(z))
 
     amp = result['Amplitude']
@@ -349,7 +352,8 @@ def _fit_2d_freq(z, dt, use_freq_bound=True, fix_frequency=False, freq_guess=Non
     # logger.debug(f'Initial Amplitude Estimate: {estimated_amplitude}')
 
     if fix_frequency:
-        assert freq_guess is not None
+        if freq_guess is None:
+            raise ValueError("Frequency guess is required when fixing frequency.")
 
     args = kwargs.copy()
 

@@ -32,7 +32,8 @@ def simulate_ideal_state_tomography_distribution(rho0: np.ndarray,
     probabilities = probabilities.transpose([1, 0])  # Transpose to align dimensions
 
     # Check for numerical stability by ensuring the imaginary part is negligible
-    assert np.sum(np.abs(probabilities.imag)) < 1e-5
+    if np.sum(np.abs(probabilities.imag)) >= 1e-5:
+        raise ValueError("Measurement probabilities contain a non-negligible imaginary component.")
 
     return probabilities.real
 
@@ -90,9 +91,10 @@ class StandardStateTomography:
         if rank != expected_rank:
             logger.warning(f"Measurement basis is not complete. Expected rank: {expected_rank}, got rank: {rank}.")
 
-        assert rank == expected_rank, \
-            (f"Measurement basis is not complete. Expected rank: {expected_rank},"
-             f" got rank: {rank}.")
+        if rank != expected_rank:
+            raise ValueError(
+                f"Measurement basis is not complete. Expected rank: {expected_rank}, got rank: {rank}."
+            )
 
     def get_measurement_sequence(self) -> list:
         """Return the sequence of measurement operations."""

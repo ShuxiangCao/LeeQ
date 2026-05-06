@@ -86,12 +86,12 @@ def test_validate_calibration_dict(valid_calibration):
 
 def test_validate_calibration_dict_missing_lpb_collections(valid_calibration):
     del valid_calibration['lpb_collections']
-    with pytest.raises(AssertionError, match="LPB collections not found in the calibration dictionary."):
+    with pytest.raises(ValueError, match="LPB collections not found in the calibration dictionary."):
         Element._validate_calibration_dict(valid_calibration)
 
 
 def test_validate_calibration_dict_missing_measurement_primitives(
-        valid_calibration):
+    valid_calibration):
     del valid_calibration['measurement_primitives']
-    with pytest.raises(AssertionError, match="Measurement primitives not found in the calibration dictionary."):
+    with pytest.raises(ValueError, match="Measurement primitives not found in the calibration dictionary."):
         Element._validate_calibration_dict(valid_calibration)

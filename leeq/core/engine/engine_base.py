@@ -23,12 +23,10 @@ class EngineBase(LeeQObject):
             setup (Any): The instrument setup to use.
         """
 
-        assert isinstance(
-            compiler, LPBCompiler
-        ), "The compiler should be a subclass of LPBCompiler."
-        assert isinstance(
-            setup, ExperimentalSetup
-        ), "The setup should be a subclass of LeeQObject."
+        if not isinstance(compiler, LPBCompiler):
+            raise TypeError("The compiler should be a subclass of LPBCompiler.")
+        if not isinstance(setup, ExperimentalSetup):
+            raise TypeError("The setup should be a subclass of ExperimentalSetup.")
 
         self._compiler = compiler
         self._setup = setup

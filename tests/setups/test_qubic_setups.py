@@ -115,7 +115,7 @@ class TestQubiCCircuitSetup:
         assert setup._qubic_core_number == 8  # Default value
 
     def test_missing_channel_mapping_assertion(self, mock_runner, mock_qubic_package):
-        """Test that missing leeq_channel_to_qubic_channel raises assertion."""
+        """Test that missing leeq_channel_to_qubic_channel raises an explicit error."""
         with patch.object(QubiCCircuitSetup, '_load_qubic_package') as mock_load_qubic:
             mock_load_qubic.return_value = mock_qubic_package
 
@@ -124,8 +124,7 @@ class TestQubiCCircuitSetup:
             load_channel_configs.return_value = {}
             fpga_config_cls.return_value = {}
 
-            # The assertion only triggers when channel_configs is provided but mapping is None
-            with pytest.raises(AssertionError, match="Please specify leeq channel to qubic channel config"):
+            with pytest.raises(ValueError, match="Please specify leeq channel to qubic channel config"):
                 QubiCCircuitSetup(
                     name="test_setup",
                     runner=mock_runner,

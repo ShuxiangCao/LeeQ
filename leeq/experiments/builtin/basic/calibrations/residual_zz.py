@@ -43,7 +43,8 @@ class CalibrateOptimizedFrequencyWith2QZZShift(Experiment):
         mprim_index = 0
 
         # Ensure there are exactly 2 DUTs (Device Under Test)
-        assert len(duts) == 2
+        if len(duts) != 2:
+            raise ValueError("Residual ZZ experiments require exactly 2 DUTs.")
 
         self.zz_shifts = []
 
@@ -101,7 +102,8 @@ class ZZShiftTwoQubitMultilevel(Experiment):
             None
         """
         # Ensure there are exactly 2 DUTs (Device Under Test)
-        assert len(duts) == 2
+        if len(duts) != 2:
+            raise ValueError("Residual ZZ experiments require exactly 2 DUTs.")
 
         plot_result_in_jupyter = setup().status().get_param("Plot_Result_In_Jupyter")
 

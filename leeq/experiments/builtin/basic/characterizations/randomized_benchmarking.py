@@ -233,8 +233,8 @@ class RandomizedBenchmarkingTwoLevelSubspaceMultilevelSystem(Experiment):
 
         """
 
-        assert i < self.results.shape[
-            0], f"Unexpected qubit index {i}, maximum index {self.results.shape[0] - 1}"
+        if i >= self.results.shape[0]:
+            raise IndexError(f"Unexpected qubit index {i}, maximum index {self.results.shape[0] - 1}")
 
         # Retrieving arguments and initializing variables
         args = self._get_run_args_dict()

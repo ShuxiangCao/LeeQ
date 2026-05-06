@@ -77,7 +77,8 @@ class HamiltonianTomographySingleQubitBase(Experiment):
 
         def get_tomography_lpb(dut, axis):
             """Get the LPB that rotates the qubit measurement axis to Z axis."""
-            assert axis in ['X', 'Y', 'Z']
+            if axis not in ['X', 'Y', 'Z']:
+                raise ValueError(f"Unsupported tomography axis {axis}.")
             c1 = dut.get_c1(collection_name)
             if axis == 'X':
                 return c1['Yp']

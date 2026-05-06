@@ -131,10 +131,11 @@ class Numpy2QVirtualDeviceSetup(ExperimentalSetup):
         applying it to the simulator.
         """
 
-        assert lpb.children is None, (
-            "The children of the logical primitive block should be None. Got class "
-            + str(lpb.__class__)
-        )
+        if lpb.children is not None:
+            raise ValueError(
+                "The children of the logical primitive block should be None. Got class "
+                + str(lpb.__class__)
+            )
 
         # Found the pulse shape etc
 

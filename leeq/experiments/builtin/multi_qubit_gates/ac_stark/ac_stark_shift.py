@@ -970,7 +970,8 @@ class StarkDriveRamseyTwoQubits(experiment):
             Results are stored in instance attributes.
         """
 
-        assert len(qubits) == 2
+        if len(qubits) != 2:
+            raise ValueError("AC Stark calibration requires exactly 2 qubits.")
 
         self.set_offset = set_offset
         self.step = step
@@ -1209,7 +1210,8 @@ class StarkDriveRamseyTwoQubitsTwoStarkDrives(experiment):
             Results are stored in instance attributes.
         """
 
-        assert len(qubits) == 2
+        if len(qubits) != 2:
+            raise ValueError("AC Stark calibration requires exactly 2 qubits.")
 
         self.set_offset = set_offset
         self.step = step
@@ -1666,7 +1668,8 @@ class StarkZZShiftTwoQubitMultilevel(Experiment):
             None
         """
         # Ensure there are exactly 2 DUTs (Device Under Test)
-        assert len(duts) == 2
+        if len(duts) != 2:
+            raise ValueError("AC Stark calibration requires exactly 2 DUTs.")
 
         plot_result_in_jupyter = setup().status().get_param("Plot_Result_In_Jupyter")
 
