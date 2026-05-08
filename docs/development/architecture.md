@@ -157,7 +157,7 @@ User Code
 ### Core Modules
 
 ```
-leeq/
+src/leeq/
 ├── core/
 │   ├── base.py          # Base classes
 │   ├── context.py       # Execution context

@@ -30,7 +30,7 @@ LeeQ provides a comprehensive library of built-in experiments for quantum system
 
 #### Resonator Spectroscopy
 ```python
-from leeq.experiments.builtin.basic.calibrations.resonator_spectroscopy import *
+from leeq.experiments.calibrations.resonator_spectroscopy import *
 
 # Find resonator frequency
 exp = ResonatorSweepTransmissionWithExtraInitialLPB(
@@ -46,7 +46,7 @@ result = exp.run()
 
 #### Qubit Spectroscopy
 ```python
-from leeq.experiments.builtin.basic.calibrations.qubit_spectroscopy import *
+from leeq.experiments.calibrations.qubit_spectroscopy import *
 
 # Find qubit frequency
 exp = QubitSpectroscopy(
@@ -61,7 +61,7 @@ result = exp.run()
 
 #### Rabi Oscillations
 ```python
-from leeq.experiments.builtin.basic.calibrations.rabi import *
+from leeq.experiments.calibrations.rabi import *
 
 # Power Rabi - find π pulse amplitude
 exp = PowerRabi(
@@ -84,7 +84,7 @@ exp = TimeRabi(
 
 #### Ramsey Fringes
 ```python
-from leeq.experiments.builtin.basic.calibrations.ramsey import *
+from leeq.experiments.calibrations.ramsey import *
 
 # Ramsey experiment for frequency calibration
 exp = Ramsey(
@@ -99,7 +99,7 @@ exp = Ramsey(
 
 #### DRAG Calibration
 ```python
-from leeq.experiments.builtin.basic.calibrations.drag import *
+from leeq.experiments.calibrations.drag import *
 
 # Calibrate DRAG coefficient
 exp = DragCalibration(
@@ -115,7 +115,7 @@ exp = DragCalibration(
 
 #### T1 (Energy Relaxation Time)
 ```python
-from leeq.experiments.builtin.basic.characterizations.t1 import *
+from leeq.experiments.characterizations.t1 import *
 
 exp = T1Measurement(
     dut,
@@ -130,7 +130,7 @@ print(f"T1 = {result.fit_params['T1']:.2f} μs")
 
 #### T2 (Dephasing Time)  
 ```python
-from leeq.experiments.builtin.basic.characterizations.t2 import *
+from leeq.experiments.characterizations.t2 import *
 
 # T2* measurement (free induction decay)
 exp = T2StarMeasurement(
@@ -153,7 +153,7 @@ exp = T2EchoMeasurement(
 
 #### Randomized Benchmarking
 ```python
-from leeq.experiments.builtin.basic.characterizations.randomized_benchmarking import *
+from leeq.experiments.characterizations.randomized_benchmarking import *
 
 # Single qubit randomized benchmarking
 exp = SingleQubitRandomizedBenchmarking(
@@ -170,7 +170,7 @@ print(f"Gate fidelity = {result.fit_params['fidelity']:.4f}")
 
 #### Two-Qubit Calibrations
 ```python
-from leeq.experiments.builtin.multi_qubit_gates import *
+from leeq.experiments.gates import *
 
 # Conditional Stark shift calibration
 exp = ConditionalStarkShiftContinuous(
@@ -197,7 +197,7 @@ exp = CrossResonanceCalibration(
 
 #### Gaussian Mixture Model (GMM)
 ```python
-from leeq.experiments.builtin.basic.calibrations.state_discrimination import *
+from leeq.experiments.calibrations.state_discrimination import *
 
 # Calibrate measurement discrimination
 exp = MeasurementCalibrationMultilevelGMM(
@@ -306,7 +306,7 @@ log_entry = Chronicle().get_last_log_entry()
 
 #### AI-Assisted Experiments
 ```python
-from leeq.utils.ai.experiment_generation import ExperimentGenerator
+from leeq.integrations.ai.experiment_generation import ExperimentGenerator
 
 # Generate experiment from description
 generator = ExperimentGenerator()

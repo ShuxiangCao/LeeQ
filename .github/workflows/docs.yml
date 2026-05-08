@@ -2,9 +2,9 @@ name: Documentation
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev_experiments]
   pull_request:
-    branches: [main]
+    branches: [main, dev_experiments]
 
 permissions:
   contents: write

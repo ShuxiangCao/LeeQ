@@ -118,7 +118,7 @@ git commit -m "feat: add new calibration experiment for XY gate"
 ## Project Structure
 
 ```
-leeq/
+src/leeq/
 ├── core/           # Core functionality
 ├── experiments/    # Experiment implementations
 ├── theory/         # Theoretical simulations

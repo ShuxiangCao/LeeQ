@@ -12,12 +12,8 @@ This module provides comprehensive tests for the session dashboard, including:
 import pytest
 from unittest.mock import Mock, patch, MagicMock, call
 import sys
-import os
 from datetime import datetime
 import json
-
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 MOCKED_MODULES = (
     'dash',
@@ -41,7 +37,7 @@ for module_name in MOCKED_MODULES:
 from leeq.chronicle import Chronicle
 
 # Now import session_dashboard with mocked dependencies
-from leeq.chronicle.viewer import session_dashboard
+from leeq.apps.chronicle_viewer import session_dashboard
 
 for module_name, original_module in ORIGINAL_MODULES.items():
     if original_module is None:

@@ -4,11 +4,11 @@ echo ""
 echo "Phase 1: Repository Cleanup"
 [[ -f requirements-dev.txt ]] && echo "  ✓ Dev requirements" || echo "  ✗ Dev requirements"
 [[ -f .env.example ]] && echo "  ✓ Environment template" || echo "  ✗ Environment template"
-[[ -f leeq/config.py ]] && echo "  ✓ Config module" || echo "  ✗ Config module"
+[[ -f src/leeq/config.py ]] && echo "  ✓ Config module" || echo "  ✗ Config module"
 
 echo ""
 echo "Phase 2: Code Quality"
-source venv/bin/activate 2>/dev/null && ruff check --select T20 leeq/theory/tomography/state_tomography.py leeq/theory/fits/multilevel_decay.py leeq/theory/fits/fit_exp.py 2>/dev/null && echo "  ✗ Target files have print statements" || echo "  ✓ Target files clean of print statements"
+source venv/bin/activate 2>/dev/null && ruff check --select T20 src/leeq/theory/tomography/state_tomography.py src/leeq/theory/fits/multilevel_decay.py src/leeq/theory/fits/fit_exp.py 2>/dev/null && echo "  ✗ Target files have print statements" || echo "  ✓ Target files clean of print statements"
 [[ -f .pre-commit-config.yaml ]] && echo "  ✓ Pre-commit configured" || echo "  ✗ Pre-commit missing"
 
 echo ""

@@ -7,11 +7,11 @@ from typing import List, Tuple
 
 # Priority files to update first (from the PRP)
 PRIORITY_FILES = [
-    "leeq/theory/tomography/state_tomography.py",
-    "leeq/theory/fits/multilevel_decay.py", 
-    "leeq/theory/fits/fit_exp.py",
-    "leeq/core/elements/elements.py",
-    "leeq/utils/utils.py",
+    "src/leeq/theory/tomography/state_tomography.py",
+    "src/leeq/theory/fits/multilevel_decay.py",
+    "src/leeq/theory/fits/fit_exp.py",
+    "src/leeq/core/elements/elements.py",
+    "src/leeq/utils/utils.py",
 ]
 
 def setup_logging_import(content: str) -> str:
@@ -91,7 +91,7 @@ def main():
             updated_count += 1
     
     print(f"\nUpdated {updated_count} priority files.")
-    print("Run 'ruff check --select T20 leeq/' to check remaining print statements.")
+    print("Run 'ruff check --select T20 src/leeq/' to check remaining print statements.")
 
 if __name__ == "__main__":
     main()

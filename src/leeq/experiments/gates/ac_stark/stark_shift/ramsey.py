@@ -1,0 +1,424 @@
+from .common import *
+
+class StarkRamseyMultilevel(Experiment):
+    """
+    Represents a simple Ramsey experiment with multilevel frequency sweeps.
+    This version has changed the step size from 0.001 to 0.005.
+    """
+
+    @log_and_record
+    def run(self,
+            qubit: Any,  # Replace 'Any' with the actual type of qubit
+            collection_name: str = 'f01',
+            mprim_index: int = 0,
+            # Replace 'Any' with the actual type
+            initial_lpb: Optional[Any] = None,
+            start: float = 0.0,
+            stop: float = 1.0,
+            step: float = 0.005,
+            set_offset: float = 10.0,
+            stark_offset=50,
+            # frequency=4835,
+            amp=0.3, width=0.1, rise=0.01, trunc=1.2,
+            update: bool = False) -> None:
+        """
+        Execute Stark Ramsey experiment on hardware.
+
+        Parameters
+        ----------
+        qubit : Any
+            The qubit on which the experiment is performed.
+        collection_name : str, optional
+            The name of the frequency collection. Default: 'f01'.
+        mprim_index : int, optional
+            The index of the measurement primitive. Default: 0.
+        initial_lpb : Any, optional
+            Initial set of commands. Default: None.
+        start : float, optional
+            Start time for the sweep (us). Default: 0.0.
+        stop : float, optional
+            Stop time for the sweep (us). Default: 1.0.
+        step : float, optional
+            Time step size (us). Default: 0.005.
+        set_offset : float, optional
+            Frequency offset (MHz). Default: 10.0.
+        stark_offset : float, optional
+            Stark frequency offset (MHz). Default: 50.
+        amp : float, optional
+            Stark pulse amplitude. Default: 0.3.
+        width : float, optional
+            Stark pulse width. Default: 0.1.
+        rise : float, optional
+            Pulse rise time. Default: 0.01.
+        trunc : float, optional
+            Pulse truncation. Default: 1.2.
+        update : bool, optional
+            Whether to update frequency after analysis. Default: False.
+
+        Returns
+        -------
+        None
+            Results stored in instance attributes.
+        """
+        self.set_offset = set_offset
+        self.step = step
+        self.stop = stop
+        self.stark_offset = stark_offset
+
+        # Define the levels for the sweep based on the collection name
+        start_level = int(collection_name[1])
+        end_level = int(collection_name[2])
+        self.level_diff = end_level - start_level
+
+        c1q = qubit.get_c1(collection_name)  # Retrieve the gate collection object
+        # Save original frequency
+        original_freq = c1q['Xp'].freq
+        self.original_freq = original_freq
+
+        self.frequency = self.original_freq + self.stark_offset
+
+        # self.frequency = frequency
+
+        cs_pulse = c1q['X'].clone()
+        cs_pulse.update_pulse_args(amp=amp, freq=self.frequency, phase=0., shape='blackman_square', width=self.stop,
+                                   rise=rise, trunc=trunc)
+
+        # Update the frequency with the calculated offset
+        c1q.update_parameters(
+            freq=original_freq
+            + set_offset
+            / self.level_diff)
+
+        # Get the measurement primitive
+        mprim = qubit.get_measurement_prim_intlist(mprim_index)
+        self.mp = mprim
+
+        # Construct the logic primitive block
+        lpb = c1q['Xp'] + cs_pulse + c1q['Xm'] + mprim
+
+        if initial_lpb:
+            lpb = initial_lpb + lpb
+
+        swpparams = [
+            sparam.func(cs_pulse.update_pulse_args, {}, 'width'),
+        ]
+
+        swp = sweeper(np.arange, n_kwargs={'start': 0.0, 'stop': self.stop, 'step': self.step},
+                      params=swpparams)
+
+        # Execute the basic experiment routine
+        basic(lpb, swp, '<z>')
+        self.data = np.squeeze(mprim.result())
+
+        self.update = update
+
+        # Analyze data if update is true
+        if update:
+            self.analyze_data()
+            c1q.update_parameters(freq=self.frequency_guess)
+        else:
+            c1q.update_parameters(freq=original_freq)
+
+    @log_and_record(overwrite_func_name='SimpleRamseyMultilevel.run')
+    def run_simulated(self,
+                      qubit: Any,  # Replace 'Any' with the actual type of qubit
+                      collection_name: str = 'f01',
+                      mprim_index: int = 0,
+                      # Replace 'Any' with the actual type
+                      initial_lpb: Optional[Any] = None,
+                      start: float = 0.0,
+                      stop: float = 1.0,
+                      step: float = 0.005,
+                      set_offset: float = 10.0,
+                      update: bool = True) -> None:
+        """
+        Execute Stark Ramsey experiment in simulation.
+
+        Parameters
+        ----------
+        qubit : Any
+            The qubit on which the experiment is performed.
+        collection_name : str, optional
+            The name of the frequency collection. Default: 'f01'.
+        mprim_index : int, optional
+            The index of the measurement primitive. Default: 0.
+        initial_lpb : Any, optional
+            Initial set of commands. Default: None.
+        start : float, optional
+            Start time for the sweep (us). Default: 0.0.
+        stop : float, optional
+            Stop time for the sweep (us). Default: 1.0.
+        step : float, optional
+            Time step size (us). Default: 0.005.
+        set_offset : float, optional
+            Frequency offset (MHz). Default: 10.0.
+        update : bool, optional
+            Whether to update frequency after analysis. Default: True.
+
+        Returns
+        -------
+        None
+            Results stored in instance attributes.
+        """
+        simulator_setup: HighLevelSimulationSetup = setup().get_default_setup()
+        virtual_transmon = simulator_setup.get_virtual_qubit(qubit)
+
+        c1 = qubit.get_c1(collection_name)
+
+        f_q = virtual_transmon.qubit_frequency
+        f_d = c1['X'].freq
+        f_o = set_offset
+        self.set_offset = set_offset
+
+        # Save original frequency
+        original_freq = c1['Xp'].freq
+        self.original_freq = original_freq
+
+        # Define the levels for the sweep based on the collection name
+        start_level = int(collection_name[1])
+        end_level = int(collection_name[2])
+        self.level_diff = end_level - start_level
+
+        t = np.arange(start, stop, step)
+
+        if isinstance(virtual_transmon.t1, list):
+            t1 = virtual_transmon.t1[0]
+        else:
+            t1 = virtual_transmon.t1
+
+        decay_rate = 1 / t1
+
+        # Ramsey fringes formula
+
+        f_o_actual = f_q - (f_d + f_o)
+
+        ramsey_fringes = (1 + np.cos(2 * np.pi * f_o_actual * t)
+                          * np.exp(-decay_rate * t)) / 2
+
+        self.data = ramsey_fringes
+
+        quiescent_state_distribution = virtual_transmon.quiescent_state_distribution
+        standard_deviation = np.sum(quiescent_state_distribution[1:])
+
+        random_noise_factor = 1 + np.random.normal(
+            0, standard_deviation, self.data.shape)
+
+        self.data = np.clip(self.data * quiescent_state_distribution[0] * random_noise_factor, 0, 1)
+
+        # If sampling noise is enabled, simulate the noise
+        if setup().status().get_param('Sampling_Noise'):
+            # Get the number of shot used in the simulation
+            shot_number = setup().status().get_param('Shot_Number')
+
+            # generate binomial distribution of the result to simulate the
+            # sampling noise
+            self.data = np.random.binomial(
+                shot_number, self.data) / shot_number
+
+        self.data = self.data * 2 - 1
+
+    def live_plots(self, step_no: Optional[Tuple[int]] = None) -> go.Figure:
+        """
+        Generate live plots for the experiment.
+
+        Parameters:
+            step_no: The current step number, if applicable.
+
+        Returns:
+            A plotly graph object containing the live data.
+        """
+        args = self._get_run_args_dict()
+        data = np.squeeze(self.mp.result())
+        t = np.arange(args['start'], args['stop'], args['step'])
+
+        # If a specific step number is provided, slice the data
+        if step_no is not None:
+            t = t[:step_no[0]]
+            data = data[:step_no[0]]
+
+        # Create and return the figure
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=t,
+                y=data,
+                mode='lines+markers',
+                name='data'))
+        fig.update_layout(
+            title=f"Ramsey {args['qubit'].hrid} transition {args['collection_name']}",
+            xaxis_title="Time (us)",
+            yaxis_title="<z>",
+            legend_title="Legend",
+            font={
+                'family': "Courier New, monospace",
+                'size': 12,
+                'color': "Black"},
+            plot_bgcolor="white")
+        return fig
+
+    def analyze_data(self) -> None:
+        """
+        Analyze the experiment data to extract frequency and error information.
+
+        Returns:
+            None
+        """
+        args = self._get_run_args_dict()
+
+        try:
+            # Fit the data to an exponential decay model to extract frequency
+            # Fit the data using a predefined fitting function
+            from leeq.theory.fits import fit_1d_freq_exp_with_cov
+            self.fit_params = fit_1d_freq_exp_with_cov(
+                self.data, dt=args['step'])
+            fitted_freq_offset = (self.fit_params['Frequency'].n - self.set_offset) / self.level_diff
+            self.fitted_freq_offset = fitted_freq_offset
+            self.frequency_guess = self.original_freq - fitted_freq_offset
+            self.error_bar = self.fit_params['Frequency'].s
+
+        except Exception:
+            # In case of fit failure, default the frequency guess and error
+            self.frequency_guess = 0
+            self.error_bar = np.inf
+
+    def dump_results_and_configuration(self) -> Tuple[
+            float, float, Any, Dict[str, Union[float, str]], datetime.datetime]:
+        """
+        Dump the results and configuration of the experiment.
+
+        Returns:
+            A tuple containing the guessed frequency, error bar, trace, arguments, and current timestamp.
+        """
+        args = copy.copy(self._get_run_args_dict())
+        del args['initial_lpb']
+        args['drive_freq'] = args['qubit'].get_c1(
+            args['collection_name'])['X'].freq
+        args['qubit'] = args['qubit'].hrid
+        return self.frequency_guess, self.error_bar, self.trace, args, datetime.datetime.now()
+
+    @register_browser_function(available_after=('run',))
+    def plot(self) -> go.Figure:
+        """
+        Plots the Ramsey decay with fitted curve using data from the experiment.
+
+        This method uses Plotly for generating the plot. It analyzes the data, performs
+        curve fitting, and then plots the actual data along with the fitted curve.
+        """
+        self.analyze_data()
+        args = self._get_run_args_dict()
+
+        # Generate time points based on the experiment arguments
+        time_points = np.arange(args['start'], args['stop'], args['step'])
+        time_points_interpolate = np.arange(
+            args['start'], args['stop'], args['step'] / 10)
+
+        # Create a plot using Plotly
+        fig = make_subplots(rows=1, cols=1)
+        fig.add_trace(
+            go.Scatter(
+                x=time_points,
+                y=self.data,
+                mode='markers',
+                name='Data'),
+            row=1,
+            col=1)
+
+        if hasattr(self, 'fit_params'):
+
+            # Extract fitting parameters
+            frequency = self.fit_params['Frequency'].n
+            amplitude = self.fit_params['Amplitude'].n
+            phase = self.fit_params['Phase'].n - \
+                2.0 * np.pi * frequency * args['start']
+            offset = self.fit_params['Offset'].n
+            decay = self.fit_params['Decay'].n
+
+            # Generate the fitted curve
+            fitted_curve = amplitude * np.exp(-time_points_interpolate / decay) * \
+                np.sin(2.0 * np.pi * frequency * time_points_interpolate + phase) + offset
+
+            fig.add_trace(
+                go.Scatter(
+                    x=time_points_interpolate,
+                    y=fitted_curve,
+                    mode='lines',
+                    name='Fit'),
+                row=1,
+                col=1)
+
+            # Set plot layout details
+            title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
+                f"{decay} ± {self.fit_params['Decay'].n} us"
+            fig.update_layout(
+                title_text=title_text,
+                xaxis_title=f"Time (us) <br> Frequency: {frequency} ± {self.fit_params['Frequency'].n}",
+                yaxis_title="<z>",
+                plot_bgcolor="white")
+
+        else:
+            # Set plot layout details
+            title_text = f"Ramsey decay {args['qubit'].hrid} transition {args['collection_name']}: <br>" \
+                f"Fit failed"
+            fig.update_layout(title_text=title_text,
+                              xaxis_title="Time (us)",
+                              yaxis_title="<z>",
+                              plot_bgcolor="white")
+
+        return fig
+
+    def plot_fft(self, plot_range: Tuple[float, float] = (
+            0.05, 1)) -> go.Figure:
+        """
+        Plots the Fast Fourier Transform (FFT) of the data from the Ramsey experiment.
+
+        Parameters:
+        plot_range: Tuple[float, float], optional
+            The frequency range for the plot. Defaults to (0.05, 1).
+
+        This method uses Plotly for plotting. It computes the FFT of the data and plots the
+        spectrum within the specified range.
+        """
+        self.analyze_data()
+        data = self.data
+        args = self._get_run_args_dict()
+        time_step = args['step']
+
+        # Compute the (real) FFT of the data
+        fft_magnitudes = np.abs(np.fft.rfft(data))
+        frequencies = np.fft.rfftfreq(len(data), time_step)
+
+        # Apply frequency range mask
+        mask = (frequencies > plot_range[0]) & (frequencies < plot_range[1])
+
+        # Create a plot using Plotly
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=frequencies[mask],
+                y=fft_magnitudes[mask],
+                mode='lines'))
+
+        # Set plot layout details
+        fig.update_layout(title='Ramsey Spectrum',
+                          xaxis_title='Frequency [MHz]',
+                          yaxis_title='Strength',
+                          plot_bgcolor="white")
+        return fig
+
+    @text_inspection
+    def fitting(self) -> str:
+        """
+        Get a prompt for the analyzed result of the Ramsey experiment.
+
+        Returns:
+            A string containing the prompt for the analyzed result.
+        """
+
+        self.analyze_data()
+
+        if self.error_bar == np.inf:
+            return "The Ramsey experiment failed to fit the data."
+
+        return (f"The Ramsey experiment for qubit {self._get_run_args_dict()['qubit'].hrid} has been analyzed. "
+                f"The expected offset was set to {self.set_offset:.3f} MHz, and the measured offset is "
+                f"{self.fitted_freq_offset:.3f}+- {self.error_bar:.3f} MHz.")

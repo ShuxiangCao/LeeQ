@@ -18,11 +18,11 @@ def test_notebook_imports():
         from leeq.theory.simulation.numpy.rotated_frame_simulator import VirtualTransmon
         
         # Test experiment imports
-        from leeq.experiments.builtin.basic.calibrations import (
+        from leeq.experiments.calibrations import (
             RabiAmplitudeCalibration, 
             MeasurementStatistics
         )
-        from leeq.experiments.builtin.basic.characterizations import (
+        from leeq.experiments.characterizations import (
             T1Measurement,
             T2EchoMeasurement,
             T2RamseyMeasurement
@@ -77,7 +77,7 @@ def test_basic_experiment():
         from leeq.theory.simulation.numpy.rotated_frame_simulator import VirtualTransmon
         from leeq.setups.built_in.setup_simulation_high_level import HighLevelSimulationSetup
         from leeq.experiments.experiments import ExperimentManager
-        from leeq.experiments.builtin.basic.calibrations import MeasurementStatistics
+        from leeq.experiments.calibrations import MeasurementStatistics
         
         # Setup
         Chronicle().start_log()

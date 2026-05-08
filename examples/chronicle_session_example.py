@@ -16,8 +16,10 @@ import time
 import sys
 from pathlib import Path
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Allow direct execution from a source checkout before editable install.
+source_root = Path(__file__).parent.parent / "src"
+if source_root.exists():
+    sys.path.insert(0, str(source_root))
 
 from leeq.chronicle import Chronicle
 from leeq.setups.built_in.setup_simulation_from_yaml import (

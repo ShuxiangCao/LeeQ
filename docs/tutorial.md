@@ -229,7 +229,7 @@ def custom_gaussian_func(sampling_rate: int, amp: float, phase: float, width: fl
     return amp * np.exp(1.0j * phase) * np.exp(-((t - gauss_width) / gauss_width) ** 2).astype("complex64")
 ```
 
-To integrate custom pulse shapes into LeeQ, use the `PulseShapeFactory` object. This singleton facilitates the registration of new pulse shapes. Custom pulse shapes can be added to `leeq/compiler/utils/pulse_shapes/basic_shapes.py` and made visible by including their names in the file’s `__all__` list for automatic loading. Alternatively, pulse shapes can be registered manually as needed:
+To integrate custom pulse shapes into LeeQ, use the `PulseShapeFactory` object. This singleton facilitates the registration of new pulse shapes. Custom pulse shapes can be added to `src/leeq/compiler/utils/pulse_shapes/basic_shapes.py` and made visible by including their names in the file's `__all__` list for automatic loading. Alternatively, pulse shapes can be registered manually as needed:
 
 ```python
 from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
@@ -415,7 +415,7 @@ Rabi experiments measure the relationship between pulse amplitude/duration and q
 **Theory**: When you apply a resonant drive to a qubit, it oscillates between |0⟩ and |1⟩ states. The frequency of oscillation (Rabi frequency) is proportional to the drive amplitude.
 
 ```python
-from leeq.experiments.builtin.basic.calibrations.rabi import RabiAmpExperiment
+from leeq.experiments.calibrations.rabi import RabiAmpExperiment
 from leeq.experiments.experiments import basic
 import numpy as np
 
@@ -437,7 +437,7 @@ T1 measures how long an excited qubit stays in |1⟩ before decaying to |0⟩.
 **Theory**: After exciting a qubit with a π-pulse, the population decays exponentially: P(1) = e^(-t/T1)
 
 ```python
-from leeq.experiments.builtin.basic.characterizations.t1 import SimpleT1
+from leeq.experiments.characterizations.t1 import SimpleT1
 from leeq.experiments.experiments import basic
 
 # Measure T1 relaxation time
@@ -458,7 +458,7 @@ T2* measures how quickly superposition states lose coherence due to dephasing.
 **Theory**: After creating superposition with π/2-pulse, the coherence decays as cos(ωt)e^(-t/T2*)
 
 ```python
-from leeq.experiments.builtin.basic.characterizations.t2 import SimpleT2
+from leeq.experiments.characterizations.t2 import SimpleT2
 from leeq.experiments.experiments import basic
 
 # Measure T2* dephasing time  
@@ -477,7 +477,7 @@ t2_exp = SimpleT2(
 Finds the precise qubit transition frequency by sweeping drive frequency.
 
 ```python
-from leeq.experiments.builtin.basic.calibrations.qubit_spectroscopy import QubitSpectroscopy
+from leeq.experiments.calibrations.qubit_spectroscopy import QubitSpectroscopy
 from leeq.experiments.experiments import basic
 import numpy as np
 
@@ -597,7 +597,7 @@ qubit_b = TransmonElement(name="Q2", parameters=qubit_b_config)
 The most common two-qubit gate in superconducting systems uses cross-resonance coupling:
 
 ```python
-from leeq.experiments.builtin.multi_qubit_gates.conditional_stark_ai import ConditionalStarkShiftAI
+from leeq.experiments.gates.conditional_stark_ai import ConditionalStarkShiftAI
 from leeq.experiments.experiments import basic
 import numpy as np
 
@@ -672,7 +672,7 @@ def measure_bell_state():
 Characterize two-qubit gate fidelity using process tomography:
 
 ```python
-from leeq.experiments.builtin.tomography.qubits import ProcessTomographyTwoQubit
+from leeq.experiments.tomography.qubits import ProcessTomographyTwoQubit
 
 # Measure the actual gate implemented vs. ideal CNOT
 process_tomo = ProcessTomographyTwoQubit(
@@ -741,7 +741,7 @@ Real quantum devices require careful calibration of all parameters. Here's a sys
 #### 1. Frequency Calibration
 
 ```python
-from leeq.experiments.builtin.basic.calibrations.qubit_spectroscopy import QubitSpectroscopy
+from leeq.experiments.calibrations.qubit_spectroscopy import QubitSpectroscopy
 from leeq.experiments.experiments import basic
 import numpy as np
 
@@ -791,7 +791,7 @@ def calibrate_frequencies(qubit, freq_range_mhz=10):
 #### 2. Rabi Calibration for Gates
 
 ```python
-from leeq.experiments.builtin.basic.calibrations.rabi import RabiAmpExperiment
+from leeq.experiments.calibrations.rabi import RabiAmpExperiment
 import numpy as np
 
 def calibrate_pi_pulse(qubit):
@@ -832,7 +832,7 @@ def calibrate_pi_pulse(qubit):
 DRAG (Derivative Removal by Adiabatic Gating) pulses reduce leakage to higher levels:
 
 ```python
-from leeq.experiments.builtin.basic.calibrations.drag import DragCalibration
+from leeq.experiments.calibrations.drag import DragCalibration
 import numpy as np
 
 def optimize_drag_parameter(qubit):
@@ -864,8 +864,8 @@ def optimize_drag_parameter(qubit):
 #### 4. Complete Calibration Sequence
 
 ```python
-from leeq.experiments.builtin.basic.characterizations.t1 import SimpleT1
-from leeq.experiments.builtin.basic.characterizations.t2 import SimpleT2
+from leeq.experiments.characterizations.t1 import SimpleT1
+from leeq.experiments.characterizations.t2 import SimpleT2
 
 def full_single_qubit_calibration(qubit):
     """
@@ -919,8 +919,8 @@ def full_single_qubit_calibration(qubit):
 ### Two-Qubit Gate Calibration
 
 ```python
-from leeq.experiments.builtin.multi_qubit_gates.conditional_stark_ai import ConditionalStarkShiftAI
-from leeq.experiments.builtin.tomography.qubits import ProcessTomographyTwoQubit
+from leeq.experiments.gates.conditional_stark_ai import ConditionalStarkShiftAI
+from leeq.experiments.tomography.qubits import ProcessTomographyTwoQubit
 import numpy as np
 
 def calibrate_two_qubit_gate(control_qubit, target_qubit):

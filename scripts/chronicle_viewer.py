@@ -10,23 +10,23 @@ Usage:
     python scripts/chronicle_viewer.py
     python scripts/chronicle_viewer.py --port 8080 --no-debug
     
-The script imports and runs the dashboard from leeq.chronicle.viewer.dashboard.
+The script imports and runs the dashboard from leeq.apps.chronicle_viewer.dashboard.
 """
 
 import sys
-import os
 from pathlib import Path
 
-# Add the project root to the Python path so we can import leeq
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+# Allow direct execution from a source checkout before editable install.
+source_root = Path(__file__).parent.parent / "src"
+if source_root.exists():
+    sys.path.insert(0, str(source_root))
 
 try:
-    from leeq.chronicle.viewer.dashboard import main
+    from leeq.apps.chronicle_viewer.dashboard import main
     
     if __name__ == "__main__":
         print("Chronicle Log Viewer - Starting from package location")
-        print("Module: leeq.chronicle.viewer.dashboard")
+        print("Module: leeq.apps.chronicle_viewer.dashboard")
         print("=" * 50)
         main()
         

@@ -15,15 +15,11 @@ Tests include:
 import pytest
 from unittest.mock import Mock, patch, MagicMock, call, ANY
 import sys
-import os
 import threading
 import time
 from datetime import datetime
 import tempfile
 import uuid
-
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 MOCKED_MODULES = (
     'dash',
@@ -47,7 +43,7 @@ for module_name in MOCKED_MODULES:
 from leeq.chronicle import Chronicle
 
 # Import session_dashboard with mocked dependencies
-from leeq.chronicle.viewer import session_dashboard
+from leeq.apps.chronicle_viewer import session_dashboard
 
 for module_name, original_module in ORIGINAL_MODULES.items():
     if original_module is None:
@@ -65,7 +61,7 @@ class TestEndToEndWorkflow:
         chronicle = Chronicle()
         
         # Mock the dashboard start to prevent actual server
-        with patch('leeq.chronicle.viewer.session_dashboard.start_viewer') as mock_start:
+        with patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer') as mock_start:
             # Start a log session (simulating calibration start)
             with patch.object(chronicle, 'start_log'):
                 chronicle.start_log("test_calibration_session")
@@ -250,7 +246,7 @@ class TestEndToEndWorkflow:
 class TestCalibrationScriptIntegration:
     """Test integration with calibration scripts like generate_chronicle_logs.py."""
     
-    @patch('leeq.chronicle.viewer.session_dashboard.app')
+    @patch('leeq.apps.chronicle_viewer.session_dashboard.app')
     def test_generate_chronicle_logs_workflow(self, mock_app):
         """Test workflow similar to generate_chronicle_logs.py."""
         # Simulate the workflow from generate_chronicle_logs.py
@@ -259,7 +255,7 @@ class TestCalibrationScriptIntegration:
         chronicle = Chronicle()
         
         # 2. Launch viewer
-        with patch('leeq.chronicle.viewer.session_dashboard.start_viewer') as mock_start:
+        with patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer') as mock_start:
             chronicle.launch_viewer(port=8051)
             assert mock_start.called
         
@@ -420,7 +416,7 @@ class TestDataFlowIntegration:
             assert len(experiments) == 3  # parent + 2 children
             
             # Check parent-child relationships in tree
-            with patch('leeq.chronicle.viewer.session_dashboard.create_tree_view_items') as mock_create:
+            with patch('leeq.apps.chronicle_viewer.session_dashboard.create_tree_view_items') as mock_create:
                 mock_create.return_value = {
                     'parent_exp': ['child1', 'child2']
                 }

@@ -218,7 +218,7 @@ LeeQ includes built-in AI capabilities:
 
 ### Experiment Generation
 ```python
-from leeq.utils.ai.experiment_generation import ExperimentGenerator
+from leeq.integrations.ai.experiment_generation import ExperimentGenerator
 
 # AI-assisted experiment design
 generator = ExperimentGenerator()
@@ -230,7 +230,7 @@ experiment_code = generator.generate_experiment(
 
 ### Translation Agent
 ```python
-from leeq.utils.ai.translation_agent import TranslationAgent
+from leeq.integrations.ai.translation_agent import TranslationAgent
 
 # Convert between different quantum languages
 agent = TranslationAgent()

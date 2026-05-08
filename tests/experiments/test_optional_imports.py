@@ -42,11 +42,39 @@ for _module_name in list(sys.modules):
 def test_import_leeq_without_optional_ai_or_ipython():
     result = _run_with_blocked_optional_imports(
         """
+        import sys
         import leeq
         from leeq.experiments.experiments import K_AGENTS_AVAILABLE
 
         assert K_AGENTS_AVAILABLE is False
         assert leeq is not None
+        assert "leeq.experiments.integrations" not in sys.modules
+        assert "leeq.chronicle.viewer.dashboard" not in sys.modules
+        assert "leeq.apps.chronicle_viewer.dashboard" not in sys.modules
+        """
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_top_level_api_exports_are_lazy_and_explicit():
+    result = _run_with_blocked_optional_imports(
+        """
+        import sys
+        import leeq
+
+        assert "leeq.experiments.experiments" not in sys.modules
+
+        from leeq import Experiment
+        from leeq import ExperimentManager
+        from leeq import Sweeper
+        from leeq import setup
+
+        assert Experiment is not None
+        assert ExperimentManager is not None
+        assert Sweeper is not None
+        assert setup is not None
+        assert "leeq.experiments.integrations" not in sys.modules
         """
     )
 
@@ -76,11 +104,19 @@ def test_minimal_experiment_runs_without_k_agents():
 def test_representative_decorator_modules_import_without_k_agents():
     result = _run_with_blocked_optional_imports(
         """
+        from leeq.experiments.calibrations import rabi as canonical_rabi
+        from leeq.experiments.calibrations import resonator_spectroscopy as canonical_resonator_spectroscopy
+        from leeq.experiments.gates import conditional_stark_ai as canonical_conditional_stark_ai
+        from leeq.experiments.gates.sizzel import calibration as canonical_calibration
         from leeq.experiments.builtin.basic.calibrations import rabi
         from leeq.experiments.builtin.basic.calibrations import resonator_spectroscopy
         from leeq.experiments.builtin.multi_qubit_gates import conditional_stark_ai
         from leeq.experiments.builtin.multi_qubit_gates.sizzel import calibration
 
+        assert canonical_rabi is not None
+        assert canonical_resonator_spectroscopy is not None
+        assert canonical_conditional_stark_ai is not None
+        assert canonical_calibration is not None
         assert rabi is not None
         assert resonator_spectroscopy is not None
         assert conditional_stark_ai is not None
@@ -94,12 +130,16 @@ def test_representative_decorator_modules_import_without_k_agents():
 def test_ai_modules_import_without_optional_ai_packages():
     result = _run_with_blocked_optional_imports(
         """
+        from leeq.integrations.ai import translation_agent as canonical_translation_agent
+        from leeq.integrations.ai.experiment_generation import data_analysis as canonical_data_analysis
         from leeq.utils.ai import translation_agent
         from leeq.utils.ai.experiment_generation import data_analysis
         from leeq.utils.ai.experiment_generation import data_visualization
         from leeq.utils.ai.experiment_generation import experiment_generation
         from leeq.utils.ai.experiment_generation import pulse_sequences
 
+        assert canonical_translation_agent is not None
+        assert canonical_data_analysis is not None
         assert translation_agent is not None
         assert data_analysis is not None
         assert data_visualization is not None

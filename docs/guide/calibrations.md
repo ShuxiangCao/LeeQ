@@ -10,17 +10,17 @@ Calibration is a crucial step in quantum computing experiments. LeeQ provides a 
 
 ### Rabi Experiments
 - **Purpose**: Determine optimal drive parameters
-- **Module**: `leeq.experiments.builtin.basic.calibrations.rabi`
+- **Module**: `leeq.experiments.calibrations.rabi`
 - **Key Parameters**: Drive amplitude, frequency
 
 ### Ramsey Experiments  
 - **Purpose**: Measure dephasing time and fine-tune frequencies
-- **Module**: `leeq.experiments.builtin.basic.calibrations.ramsey`
+- **Module**: `leeq.experiments.calibrations.ramsey`
 - **Key Parameters**: Evolution time, detuning
 
 ### T1 Measurements
 - **Purpose**: Measure relaxation time
-- **Module**: `leeq.experiments.builtin.basic.characterizations.t1`
+- **Module**: `leeq.experiments.characterizations.t1`
 - **Key Parameters**: Delay time range
 
 ## Running Calibrations

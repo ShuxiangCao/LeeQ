@@ -60,18 +60,18 @@ class Test{module_name.title().replace("_", "")}:
 
 # Priority modules needing tests (excluding simulators and AI)
 MODULES_NEEDING_TESTS = [
-    "leeq/theory/tomography/state_tomography.py",
-    "leeq/theory/fits/multilevel_decay.py", 
-    "leeq/theory/fits/fit_exp.py",
-    "leeq/compiler/lbnl_qubic/circuit_list_compiler.py",  # Fixed: was compiler.py
-    "leeq/core/elements/elements.py",  # Fixed: was qubit.py
-    "leeq/core/primitives/logical_primitives.py",
+    "src/leeq/theory/tomography/state_tomography.py",
+    "src/leeq/theory/fits/multilevel_decay.py",
+    "src/leeq/theory/fits/fit_exp.py",
+    "src/leeq/compiler/lbnl_qubic/circuit_list_compiler.py",  # Fixed: was compiler.py
+    "src/leeq/core/elements/elements.py",  # Fixed: was qubit.py
+    "src/leeq/core/primitives/logical_primitives.py",
 ]
 
 if __name__ == "__main__":
     for module_path in MODULES_NEEDING_TESTS:
         path = Path(module_path)
-        test_path = Path("tests") / path.relative_to("leeq").with_name(f"test_{path.name}")
+        test_path = Path("tests") / path.relative_to("src/leeq").with_name(f"test_{path.name}")
         
         if not test_path.exists():
             test_path.parent.mkdir(parents=True, exist_ok=True)

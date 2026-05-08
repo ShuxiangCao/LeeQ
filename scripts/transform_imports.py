@@ -40,7 +40,7 @@ def main():
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
     
-    dirs = ['leeq/', 'tests/', 'notebooks/', 'benchmark/']
+    dirs = ['src/leeq/', 'tests/', 'notebooks/', 'benchmark/']
     updated = 0
     
     for dir_path in dirs:

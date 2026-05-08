@@ -34,7 +34,7 @@ The two tones can interact through various mechanisms:
 ### Basic Two-Tone Spectroscopy
 
 ```python
-from leeq.experiments.builtin.basic.calibrations.two_tone_spectroscopy import TwoToneQubitSpectroscopy
+from leeq.experiments.calibrations.two_tone_spectroscopy import TwoToneQubitSpectroscopy
 
 # Run two-tone spectroscopy with different channels
 exp = TwoToneQubitSpectroscopy(

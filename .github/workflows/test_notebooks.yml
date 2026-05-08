@@ -2,19 +2,19 @@ name: Test Notebooks
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, dev_experiments ]
     paths:
       - 'notebooks/**/*.ipynb'
       - 'scripts/test_notebook_infrastructure.py'
       - 'scripts/test_chronicle_integration.py'
-      - 'leeq/**/*.py'
+      - 'src/leeq/**/*.py'
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop, dev_experiments ]
     paths:
       - 'notebooks/**/*.ipynb'
       - 'scripts/test_notebook_infrastructure.py'
       - 'scripts/test_chronicle_integration.py'
-      - 'leeq/**/*.py'
+      - 'src/leeq/**/*.py'
   schedule:
     # Run weekly on Sundays at 00:00 UTC
     - cron: '0 0 * * 0'

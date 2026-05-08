@@ -7,7 +7,7 @@ exclude =
     docs,
     build,
     dist,
-    leeq/epii/proto/
+    src/leeq/epii/proto/
 ignore = 
     E501,
     W503,

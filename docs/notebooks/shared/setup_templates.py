@@ -227,7 +227,7 @@ def setup_duts(single_qubit=False):
             if not dd['Tuneup']:
                 # Setup basic measurement calibration
                 lpb_scan = (dut.get_c1('f01')['I'], dut.get_c1('f01')['X'])
-                from leeq.experiments.builtin.basic.calibrations import MeasurementCalibrationMultilevelGMM
+                from leeq.experiments.calibrations import MeasurementCalibrationMultilevelGMM
                 calib = MeasurementCalibrationMultilevelGMM(
                     dut, mprim_index=0, sweep_lpb_list=lpb_scan
                 )

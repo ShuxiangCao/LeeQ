@@ -23,9 +23,9 @@ def run_check(name: str, cmd: list) -> bool:
 def main():
     """Run all validation checks."""
     checks = [
-        ("Target files clean of print statements", ["ruff", "check", "--select", "T20", "leeq/theory/tomography/state_tomography.py", "leeq/theory/fits/multilevel_decay.py", "leeq/theory/fits/fit_exp.py"]),
-        ("Linting passes", ["ruff", "check", "leeq/", "--statistics"]),
-        ("Type checking", ["mypy", "leeq/", "--ignore-missing-imports"]),
+        ("Target files clean of print statements", ["ruff", "check", "--select", "T20", "src/leeq/theory/tomography/state_tomography.py", "src/leeq/theory/fits/multilevel_decay.py", "src/leeq/theory/fits/fit_exp.py"]),
+        ("Linting passes", ["ruff", "check", "src/leeq/", "--statistics"]),
+        ("Type checking", ["mypy", "src/leeq/", "--ignore-missing-imports"]),
         ("Basic test execution", ["pytest", "tests/experiments/", "-v", "--ignore=tests/utils/ai/", "--maxfail=3"]),
         ("Coverage measurement", ["pytest", "tests/experiments/", "--cov=leeq", "--cov-fail-under=20", "--ignore=tests/utils/ai/"]),
     ]
@@ -44,7 +44,7 @@ def main():
     required_files = [
         "requirements-dev.txt",
         ".env.example", 
-        "leeq/config.py",
+        "src/leeq/config.py",
         ".pre-commit-config.yaml",
         ".coveragerc",
         ".github/workflows/test.yml",

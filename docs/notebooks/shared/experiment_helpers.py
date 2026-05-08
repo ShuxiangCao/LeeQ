@@ -8,11 +8,11 @@ and analysis functions used across tutorial, example, and workflow notebooks.
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from leeq.experiments.builtin.basic.calibrations import (
+from leeq.experiments.calibrations import (
     NormalisedRabi, SimpleRamseyMultilevel, AmpPingpongCalibrationSingleQubitMultilevel,
     CrossAllXYDragMultiRunSingleQubitMultilevel
 )
-from leeq.experiments.builtin.basic.characterizations import SimpleT1, SpinEchoMultiLevel
+from leeq.experiments.characterizations import SimpleT1, SpinEchoMultiLevel
 
 
 def run_basic_calibration_sequence(dut, update_params=True):

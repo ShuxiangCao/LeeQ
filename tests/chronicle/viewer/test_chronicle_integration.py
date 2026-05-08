@@ -13,12 +13,8 @@ the session dashboard, ensuring:
 import pytest
 from unittest.mock import Mock, patch, MagicMock, call
 import sys
-import os
 from datetime import datetime
 import uuid
-
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 MOCKED_MODULES = (
     'dash',
@@ -39,7 +35,7 @@ for module_name in MOCKED_MODULES:
     sys.modules[module_name] = MagicMock()
 
 from leeq.chronicle import Chronicle
-from leeq.chronicle.viewer import session_dashboard
+from leeq.apps.chronicle_viewer import session_dashboard
 
 for module_name, original_module in ORIGINAL_MODULES.items():
     if original_module is None:
@@ -57,7 +53,7 @@ class TestChronicleIntegration:
         assert hasattr(chronicle, 'launch_viewer')
         assert callable(chronicle.launch_viewer)
     
-    @patch('leeq.chronicle.viewer.session_dashboard.start_viewer')
+    @patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer')
     def test_chronicle_instance_passed_to_dashboard(self, mock_start_viewer):
         """Test that chronicle instance is correctly passed to start_viewer."""
         # Create chronicle instance
@@ -78,7 +74,7 @@ class TestChronicleIntegration:
         assert call_args['port'] == 9999
         assert call_args['debug'] is False
     
-    @patch('leeq.chronicle.viewer.session_dashboard.app')
+    @patch('leeq.apps.chronicle_viewer.session_dashboard.app')
     def test_global_chronicle_instance_is_set(self, mock_app):
         """Test that global chronicle_instance is set in session_dashboard."""
         # Create chronicle instance
@@ -102,26 +98,26 @@ class TestChronicleIntegration:
         with pytest.raises(ValueError, match="Chronicle instance must be provided"):
             session_dashboard.start_viewer(port=8051)
     
-    @patch('leeq.chronicle.viewer.session_dashboard.app')
+    @patch('leeq.apps.chronicle_viewer.session_dashboard.app')
     def test_default_port_configuration(self, mock_app):
         """Test that default port 8051 is used when not specified."""
         chronicle = Chronicle()
         
         # Mock start_viewer to capture arguments
-        with patch('leeq.chronicle.viewer.session_dashboard.start_viewer') as mock_start:
+        with patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer') as mock_start:
             chronicle.launch_viewer()
             
             # Check default port was passed
             call_args = mock_start.call_args[1]
             assert call_args['port'] == 8051
     
-    @patch('leeq.chronicle.viewer.session_dashboard.app')
+    @patch('leeq.apps.chronicle_viewer.session_dashboard.app')
     def test_custom_port_configuration(self, mock_app):
         """Test that custom port is respected."""
         chronicle = Chronicle()
         
         # Mock start_viewer to capture arguments
-        with patch('leeq.chronicle.viewer.session_dashboard.start_viewer') as mock_start:
+        with patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer') as mock_start:
             chronicle.launch_viewer(port=7777)
             
             # Check custom port was passed
@@ -228,7 +224,7 @@ class TestChronicleIntegration:
             # If exception propagates, that's also acceptable error handling
             pass
     
-    @patch('leeq.chronicle.viewer.session_dashboard.app')
+    @patch('leeq.apps.chronicle_viewer.session_dashboard.app')
     def test_additional_kwargs_passed_through(self, mock_app):
         """Test that additional kwargs are passed through to dash server."""
         chronicle = Chronicle()
@@ -379,7 +375,7 @@ class TestDashboardCallbacks:
 class TestIntegrationWorkflow:
     """Test complete integration workflow."""
     
-    @patch('leeq.chronicle.viewer.session_dashboard.app')
+    @patch('leeq.apps.chronicle_viewer.session_dashboard.app')
     def test_complete_launch_workflow(self, mock_app):
         """Test complete workflow from launch_viewer to dashboard."""
         # Step 1: Create Chronicle instance
@@ -389,7 +385,7 @@ class TestIntegrationWorkflow:
         session_dashboard.chronicle_instance = None
         
         # Step 3: Launch viewer
-        with patch('leeq.chronicle.viewer.session_dashboard.start_viewer') as mock_start:
+        with patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer') as mock_start:
             # Configure mock to actually call the function
             def side_effect(**kwargs):
                 session_dashboard.chronicle_instance = kwargs.get('chronicle_instance')
@@ -438,7 +434,7 @@ class TestChronicleAdvancedIntegration:
             chronicle._active_record_book = mock_record_book
             
             # Launch viewer with active session
-            with patch('leeq.chronicle.viewer.session_dashboard.start_viewer') as mock_start:
+            with patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer') as mock_start:
                 chronicle.launch_viewer(port=8051)
                 
                 # Verify viewer launched with active session
@@ -454,7 +450,7 @@ class TestChronicleAdvancedIntegration:
         chronicle._active_record_book = None
         
         # Launch viewer without session
-        with patch('leeq.chronicle.viewer.session_dashboard.start_viewer') as mock_start:
+        with patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer') as mock_start:
             chronicle.launch_viewer(port=8051)
             
             # Viewer should still launch
@@ -470,7 +466,7 @@ class TestChronicleAdvancedIntegration:
         """Test handling multiple launch_viewer calls."""
         chronicle = Chronicle()
         
-        with patch('leeq.chronicle.viewer.session_dashboard.start_viewer') as mock_start:
+        with patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer') as mock_start:
             # First launch
             chronicle.launch_viewer(port=8051)
             assert mock_start.call_count == 1
@@ -496,7 +492,7 @@ class TestChronicleAdvancedIntegration:
         assert chronicle1 is chronicle2
         
         # Launch viewer from first instance
-        with patch('leeq.chronicle.viewer.session_dashboard.start_viewer') as mock_start:
+        with patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer') as mock_start:
             chronicle1.launch_viewer(port=8051)
             
             # Verify viewer gets the singleton instance
@@ -508,7 +504,7 @@ class TestChronicleAdvancedIntegration:
         """Test configuring viewer debug mode."""
         chronicle = Chronicle()
         
-        with patch('leeq.chronicle.viewer.session_dashboard.start_viewer') as mock_start:
+        with patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer') as mock_start:
             # Test debug=True (default)
             chronicle.launch_viewer(port=8051)
             call_args = mock_start.call_args[1]
@@ -523,7 +519,7 @@ class TestChronicleAdvancedIntegration:
         """Test configuring viewer host for network access."""
         chronicle = Chronicle()
         
-        with patch('leeq.chronicle.viewer.session_dashboard.start_viewer') as mock_start:
+        with patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer') as mock_start:
             # Test custom host for network access
             chronicle.launch_viewer(port=8051, host='0.0.0.0')
             
@@ -555,7 +551,7 @@ class TestChronicleAdvancedIntegration:
         chronicle._active_record_book = mock_record_book
         
         # Launch viewer
-        with patch('leeq.chronicle.viewer.session_dashboard.start_viewer'):
+        with patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer'):
             chronicle.launch_viewer(port=8051)
             
             # Set up session dashboard
@@ -584,14 +580,14 @@ if __name__ == "__main__":
         print("✓ Chronicle.launch_viewer() method exists")
         
         # Test that it can be called (with mocked dashboard)
-        with patch('leeq.chronicle.viewer.session_dashboard.app'):
-            with patch('leeq.chronicle.viewer.session_dashboard.start_viewer') as mock_start:
+        with patch('leeq.apps.chronicle_viewer.session_dashboard.app'):
+            with patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer') as mock_start:
                 c.launch_viewer(port=8051)
                 assert mock_start.called, "start_viewer not called"
                 print("✓ Chronicle.launch_viewer() calls start_viewer()")
         
         # Test with custom parameters
-        with patch('leeq.chronicle.viewer.session_dashboard.start_viewer') as mock_start:
+        with patch('leeq.apps.chronicle_viewer.session_dashboard.start_viewer') as mock_start:
             c.launch_viewer(port=9999, debug=False, host='0.0.0.0')
             call_args = mock_start.call_args[1]
             assert call_args['port'] == 9999

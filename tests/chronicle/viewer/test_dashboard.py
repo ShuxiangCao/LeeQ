@@ -15,37 +15,34 @@ from dash import html
 from dash.exceptions import PreventUpdate
 import json
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
 # Ensure we have clean imports
 import importlib
-if 'leeq.chronicle.viewer.dashboard' in sys.modules:
-    importlib.reload(sys.modules['leeq.chronicle.viewer.dashboard'])
+if 'leeq.apps.chronicle_viewer.dashboard' in sys.modules:
+    importlib.reload(sys.modules['leeq.apps.chronicle_viewer.dashboard'])
 
 
 def test_import_chronicle_viewer():
     """Test that chronicle_viewer module can be imported."""
-    from leeq.chronicle.viewer import dashboard as chronicle_viewer
+    from leeq.apps.chronicle_viewer import dashboard as chronicle_viewer
     assert chronicle_viewer is not None
 
 
 def test_app_exists():
     """Test that the Dash app object is created."""
-    from leeq.chronicle.viewer import dashboard as chronicle_viewer
+    from leeq.apps.chronicle_viewer import dashboard as chronicle_viewer
     assert hasattr(chronicle_viewer, 'app')
     assert chronicle_viewer.app is not None
 
 
 def test_app_layout_exists():
     """Test that the app has a layout defined."""
-    from leeq.chronicle.viewer import dashboard as chronicle_viewer
+    from leeq.apps.chronicle_viewer import dashboard as chronicle_viewer
     assert chronicle_viewer.app.layout is not None
 
 
 def test_app_has_bootstrap_theme():
     """Test that the app uses Bootstrap theme."""
-    from leeq.chronicle.viewer import dashboard as chronicle_viewer
+    from leeq.apps.chronicle_viewer import dashboard as chronicle_viewer
     # Since we're mocking, just check that the app exists
     assert hasattr(chronicle_viewer, 'app')
     assert chronicle_viewer.app is not None
@@ -53,14 +50,14 @@ def test_app_has_bootstrap_theme():
 
 def test_main_function_exists():
     """Test that the main function exists."""
-    from leeq.chronicle.viewer import dashboard as chronicle_viewer
+    from leeq.apps.chronicle_viewer import dashboard as chronicle_viewer
     assert hasattr(chronicle_viewer, 'main')
     assert callable(chronicle_viewer.main)
 
 
 def test_required_callbacks_registered():
     """Test that required callbacks are registered with the app."""
-    from leeq.chronicle.viewer import dashboard as chronicle_viewer
+    from leeq.apps.chronicle_viewer import dashboard as chronicle_viewer
     app = chronicle_viewer.app
     
     # Since we're mocking Dash, we can't check callback_map directly
@@ -75,10 +72,10 @@ class TestLoadExperimentCallback:
     
     def test_load_experiment_logic(self):
         """Test the underlying logic of experiment loading."""
-        from leeq.chronicle.viewer import dashboard as chronicle_viewer
+        from leeq.apps.chronicle_viewer import dashboard as chronicle_viewer
         
         # Test that the load_object function can be mocked
-        with patch('leeq.chronicle.viewer.dashboard.load_object') as mock_load:
+        with patch('leeq.apps.chronicle_viewer.dashboard.load_object') as mock_load:
             # Test FileNotFoundError handling
             mock_load.side_effect = FileNotFoundError("File not found")
             # We can't directly test the callback, but we can verify the module structure
@@ -86,13 +83,13 @@ class TestLoadExperimentCallback:
     
     def test_experiment_loading_scenarios(self):
         """Test various experiment loading scenarios."""
-        from leeq.chronicle.viewer import dashboard as chronicle_viewer
+        from leeq.apps.chronicle_viewer import dashboard as chronicle_viewer
         
         # Verify the function exists and is a callback
         assert hasattr(chronicle_viewer, 'load_selected_experiment')
         
         # Test that load_object is importable and can be mocked
-        with patch('leeq.chronicle.viewer.dashboard.load_object') as mock_load:
+        with patch('leeq.apps.chronicle_viewer.dashboard.load_object') as mock_load:
             # Test successful load scenario
             mock_exp = Mock()
             mock_exp.get_browser_functions = Mock(return_value=[
@@ -110,10 +107,10 @@ class TestLoadExperimentCallback:
     
     def test_error_handling_structure(self):
         """Test that error handling patterns are in place."""
-        from leeq.chronicle.viewer import dashboard as chronicle_viewer
+        from leeq.apps.chronicle_viewer import dashboard as chronicle_viewer
         
         # Test various error scenarios with mocking
-        with patch('leeq.chronicle.viewer.dashboard.load_object') as mock_load:
+        with patch('leeq.apps.chronicle_viewer.dashboard.load_object') as mock_load:
             # Test permission error
             mock_load.side_effect = PermissionError("Access denied")
             try:
@@ -130,7 +127,7 @@ class TestLoadExperimentCallback:
     
     def test_experiment_without_browser_functions(self):
         """Test handling of experiments without browser functions."""
-        with patch('leeq.chronicle.viewer.dashboard.load_object') as mock_load:
+        with patch('leeq.apps.chronicle_viewer.dashboard.load_object') as mock_load:
             mock_exp = Mock()
             # Remove get_browser_functions to simulate experiment without it
             del mock_exp.get_browser_functions
@@ -142,7 +139,7 @@ class TestLoadExperimentCallback:
     
     def test_experiment_with_empty_browser_functions(self):
         """Test handling of experiments with no plots."""
-        with patch('leeq.chronicle.viewer.dashboard.load_object') as mock_load:
+        with patch('leeq.apps.chronicle_viewer.dashboard.load_object') as mock_load:
             mock_exp = Mock()
             mock_exp.get_browser_functions = Mock(return_value=[])
             mock_load.return_value = mock_exp
@@ -156,15 +153,15 @@ class TestDisplayPlotCallback:
     
     def test_display_plot_exists(self):
         """Test that display_plot callback exists."""
-        from leeq.chronicle.viewer import dashboard as chronicle_viewer
+        from leeq.apps.chronicle_viewer import dashboard as chronicle_viewer
         assert hasattr(chronicle_viewer, 'display_plot')
     
     def test_plot_generation_logic(self):
         """Test plot generation logic with mocking."""
-        from leeq.chronicle.viewer import dashboard as chronicle_viewer
+        from leeq.apps.chronicle_viewer import dashboard as chronicle_viewer
         
         # Test that the function can handle various scenarios
-        with patch('leeq.chronicle.viewer.dashboard.load_object') as mock_load:
+        with patch('leeq.apps.chronicle_viewer.dashboard.load_object') as mock_load:
             # Create a mock experiment with plot methods
             mock_exp = Mock()
             mock_fig = go.Figure(data=[go.Scatter(x=[1, 2, 3], y=[4, 5, 6])])
@@ -185,7 +182,7 @@ class TestDisplayPlotCallback:
     
     def test_plot_error_scenarios(self):
         """Test error handling in plot generation."""
-        with patch('leeq.chronicle.viewer.dashboard.load_object') as mock_load:
+        with patch('leeq.apps.chronicle_viewer.dashboard.load_object') as mock_load:
             mock_exp = Mock()
             
             # Test plot method that raises error
@@ -204,7 +201,7 @@ class TestDisplayPlotCallback:
     
     def test_plot_returns_non_figure(self):
         """Test handling when plot method returns non-Figure."""
-        with patch('leeq.chronicle.viewer.dashboard.load_object') as mock_load:
+        with patch('leeq.apps.chronicle_viewer.dashboard.load_object') as mock_load:
             mock_exp = Mock()
             
             # Test plot method that returns wrong type
@@ -226,7 +223,7 @@ class TestUIComponents:
     
     def test_layout_has_required_components(self):
         """Test that layout contains required UI components."""
-        from leeq.chronicle.viewer import dashboard as chronicle_viewer
+        from leeq.apps.chronicle_viewer import dashboard as chronicle_viewer
         layout_str = str(chronicle_viewer.app.layout)
         
         # Check for key components in the layout
@@ -236,7 +233,7 @@ class TestUIComponents:
     
     def test_layout_uses_bootstrap_components(self):
         """Test that layout uses Bootstrap components."""
-        from leeq.chronicle.viewer import dashboard as chronicle_viewer
+        from leeq.apps.chronicle_viewer import dashboard as chronicle_viewer
         layout_str = str(chronicle_viewer.app.layout)
         
         # Check for Bootstrap components
@@ -263,7 +260,7 @@ class TestFigureConversion:
     def test_matplotlib_figure_conversion(self):
         """Test conversion of matplotlib figures to Plotly."""
         try:
-            from leeq.chronicle.viewer.common import convert_figure_to_plotly
+            from leeq.apps.chronicle_viewer.common import convert_figure_to_plotly
             
             # Test that the conversion function exists
             assert callable(convert_figure_to_plotly)
@@ -283,7 +280,7 @@ class TestBasicFixtures:
     @pytest.fixture
     def app(self):
         """Fixture for the Dash app."""
-        from leeq.chronicle.viewer import dashboard as chronicle_viewer
+        from leeq.apps.chronicle_viewer import dashboard as chronicle_viewer
         return chronicle_viewer.app
     
     @pytest.fixture
