@@ -326,3 +326,6 @@ class RandomizedBenchmarking2QubitsInterleavedComparison(Experiment):
         plt.ylabel(u"P(00)")
         plt.legend()
         return fig
+
+
+RandomizedBenchmarkingTwoQubit = RandomizedBenchmarking2Qubits

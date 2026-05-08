@@ -9,7 +9,8 @@ from leeq.experiments.calibrations.ramsey import SimpleRamseyMultilevel
 
 __all__ = [
     'CalibrateOptimizedFrequencyWith2QZZShift',
-    'ZZShiftTwoQubitMultilevel'
+    'ZZShiftTwoQubitMultilevel',
+    'ResidualZZCoupling',
 ]
 
 
@@ -179,3 +180,6 @@ class ZZShiftTwoQubitMultilevel(Experiment):
     def zz_shift(self) -> float:
         """Return the average ZZ shift value across both qubits."""
         return np.mean(self.zz)
+
+
+ResidualZZCoupling = ZZShiftTwoQubitMultilevel

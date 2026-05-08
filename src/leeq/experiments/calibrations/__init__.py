@@ -5,6 +5,7 @@ from .rabi import *
 from .ramsey import *
 from .residual_zz import *
 from .resonator_spectroscopy import *
+from .notebook_demos import *
 from .state_discrimination import *
 from .transmon_tuneup import *
 from .two_tone_spectroscopy import *

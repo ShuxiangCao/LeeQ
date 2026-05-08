@@ -54,6 +54,11 @@ class HighLevelSimulationSetup(ExperimentalSetup):
         self._status.add_param("Sampling_Noise", True)
         self._status.set_param("High_Level_Simulation_Mode", True)
 
+    @property
+    def virtual_qubits(self) -> dict[int, VirtualTransmon]:
+        """Return the virtual qubits registered with this setup."""
+        return self._virtual_qubits
+
     def get_virtual_qubit(self, dut_qubit: TransmonElement) -> VirtualTransmon:
         """
         Get the virtual qubit for the given dut qubit.

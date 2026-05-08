@@ -25,6 +25,13 @@ class LeeQObject(LoggableObject):
         return self._name
 
     @property
+    def name(self):
+        """
+        Get the object name.
+        """
+        return self._name
+
+    @property
     def uuid(self):
         """
         Get the uuid of the object.

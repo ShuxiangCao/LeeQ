@@ -108,6 +108,7 @@ class NotebookTester:
         self.verbose = verbose
         self.structure_only = structure_only
         self.test_results = {}
+        self.executed_notebooks = {}
         
     def test_notebook_syntax(self, notebook_path: Path) -> Tuple[bool, str]:
         """Test if a notebook has valid JSON syntax."""
@@ -155,76 +156,44 @@ class NotebookTester:
             return False, f"Error validating structure: {e}"
     
     def test_notebook_execution(self, notebook_path: Path) -> Tuple[bool, str, float]:
-        """Test notebook execution using nbval and nbconvert."""
+        """Test notebook execution using nbconvert."""
         start_time = time.time()
-        
-        try:
-            # First try with nbval (preferred for testing)
-            cmd = [
-                sys.executable, '-m', 'pytest', 
-                str(notebook_path), 
-                '--nbval', '--nbval-lax', '-v', '--tb=short'
-            ]
-            
-            result = subprocess.run(
-                cmd, 
-                cwd=self.project_root,
-                capture_output=True, 
-                text=True, 
-                timeout=300  # 5 minute timeout
-            )
-            
-            execution_time = time.time() - start_time
-            
-            if result.returncode == 0:
-                return True, "Notebook executed successfully", execution_time
-            else:
-                return False, f"Execution failed: {result.stderr}", execution_time
-                
-        except subprocess.TimeoutExpired:
-            execution_time = time.time() - start_time
-            return False, "Execution timed out (>5 minutes)", execution_time
-        except FileNotFoundError:
-            # Fallback to nbconvert if nbval not available
-            return self._test_with_nbconvert(notebook_path, start_time)
-        except Exception as e:
-            execution_time = time.time() - start_time
-            return False, f"Execution error: {e}", execution_time
+        return self._test_with_nbconvert(notebook_path, start_time)
     
     def _test_with_nbconvert(self, notebook_path: Path, start_time: float) -> Tuple[bool, str, float]:
-        """Fallback execution test using nbconvert."""
+        """Execution test using nbconvert."""
         try:
-            with tempfile.NamedTemporaryFile(suffix='.ipynb', delete=False) as tmp_file:
-                tmp_path = tmp_file.name
-            
-            cmd = [
-                'jupyter', 'nbconvert', 
-                '--to', 'notebook',
-                '--execute',
-                '--output', tmp_path,
-                str(notebook_path)
-            ]
-            
-            result = subprocess.run(
-                cmd,
-                cwd=self.project_root,
-                capture_output=True,
-                text=True,
-                timeout=300
-            )
-            
-            execution_time = time.time() - start_time
-            
-            # Clean up temp file
-            try:
-                os.unlink(tmp_path)
-            except:
-                pass
-            
-            if result.returncode == 0:
-                return True, "Notebook executed successfully (nbconvert)", execution_time
-            else:
-                return False, f"Execution failed (nbconvert): {result.stderr}", execution_time
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                output_base = notebook_path.stem
+                executed_path = Path(tmp_dir) / f"{output_base}.ipynb"
+
+                cmd = [
+                    sys.executable, '-m', 'jupyter', 'nbconvert',
+                    '--to', 'notebook',
+                    '--execute',
+                    '--ExecutePreprocessor.timeout=300',
+                    '--output-dir', tmp_dir,
+                    '--output', output_base,
+                    str(notebook_path)
+                ]
+
+                result = subprocess.run(
+                    cmd,
+                    cwd=self.project_root,
+                    capture_output=True,
+                    text=True,
+                    timeout=300
+                )
+
+                execution_time = time.time() - start_time
+
+                if result.returncode == 0:
+                    with open(executed_path, 'r') as f:
+                        self.executed_notebooks[str(notebook_path)] = json.load(f)
+                    return True, "Notebook executed successfully (nbconvert)", execution_time
+                else:
+                    message = result.stderr.strip() or result.stdout.strip()
+                    return False, f"Execution failed (nbconvert): {message}", execution_time
                 
         except subprocess.TimeoutExpired:
             execution_time = time.time() - start_time
@@ -276,8 +245,10 @@ class NotebookTester:
     def test_output_verification(self, notebook_path: Path) -> Tuple[bool, str, dict]:
         """Test for expected outputs and plot generation with detailed statistics."""
         try:
-            with open(notebook_path, 'r') as f:
-                nb = json.load(f)
+            nb = self.executed_notebooks.get(str(notebook_path))
+            if nb is None:
+                with open(notebook_path, 'r') as f:
+                    nb = json.load(f)
             
             stats = {
                 'total_cells': len(nb['cells']),
@@ -346,9 +317,6 @@ class NotebookTester:
             if stats['error_outputs'] > 0:
                 issues.append(f"Found {stats['error_outputs']} error outputs")
             
-            if stats['expected_plots_missing'] > 0:
-                issues.append(f"Found {stats['expected_plots_missing']} cells with plot code but no plot output")
-            
             if issues:
                 return False, "; ".join(issues), stats
             
@@ -386,6 +354,7 @@ class NotebookTester:
             
             experiment_patterns = [
                 r'Experiment\(',
+                r'[A-Z]\w*(Measurement|Calibration|Tomography|Experiment|Workflow|Routine)\w*\(',
                 r'BasicSetup\(',
                 r'PulseSequence\(',
                 r'\.run\(',

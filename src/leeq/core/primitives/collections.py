@@ -55,6 +55,9 @@ class LogicalPrimitiveCollection(SharedParameterObject):
         Raises
             KeyError: If the logical primitive is not found.
         """
+        if item in self._parameters:
+            return self._parameters[item]
+
         if item not in self._primitives:
             msg = f"The logical primitive {item} is not found."
             logger.error(msg)

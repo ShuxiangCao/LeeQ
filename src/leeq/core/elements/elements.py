@@ -313,6 +313,12 @@ class Element(LeeQObject):
         """
         return self._lpb_collections[name]
 
+    def update_lpb_collection(self, name: str, parameters: dict):
+        """
+        Update a gate collection's parameters.
+        """
+        self.get_lpb_collection(name).update_parameters(**parameters)
+
     def get_measurement_primitive(self, name: str):
         """
         Get the measurement primitive with the specified name.
@@ -330,6 +336,12 @@ class Element(LeeQObject):
                 raise KeyError(f"Measurement primitive {name} not found.")
 
         return self._measurement_primitives[name]
+
+    def update_measurement_prim(self, name: str, parameters: dict):
+        """
+        Update a measurement primitive's parameters.
+        """
+        self.get_measurement_primitive(str(name)).update_parameters(**parameters)
 
     def get_c1(self, name: str):
         """

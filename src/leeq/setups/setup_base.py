@@ -33,6 +33,10 @@ class SetupStatusParameters(LeeQObject):
         self._channel_dict = {}
         self._channel_callbacks = {}
 
+    def __call__(self):
+        """Return self for older notebook examples that used setup.status()."""
+        return self
+
     def set_param(self, key: str, value: Any):
         """
         Same as set_parameter, for compatibility reasons.

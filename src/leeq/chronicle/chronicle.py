@@ -218,6 +218,35 @@ class Chronicle(Singleton):
         self._active_record_book = None
         self._record_tracking_stack = None
 
+    def stop_log(self):
+        """
+        End the current log.
+
+        This is an alias for :meth:`end_log` kept for notebook-facing examples
+        and older tutorial material.
+        """
+        self.end_log()
+
+    def get_log_dir(self):
+        """
+        Return the active record book path, or the configured base log path.
+        """
+        if self._active_record_book is not None:
+            return self._active_record_book.get_path().as_posix()
+        return pathlib.Path(self._config["log_path"]).as_posix()
+
+    def log_event(self, name: str, payload=None):
+        """
+        Record a lightweight named event in the active record book.
+        """
+        with self.new_record() as record:
+            if record is not None:
+                record.set_name(str(name))
+                record.record_metadata()
+                record.record_args([], {"payload": payload})
+                record.record_return_values(payload)
+        return payload
+
     def open_record_book(
             self, path: Optional[Union[pathlib.Path, str]] = None):
         """

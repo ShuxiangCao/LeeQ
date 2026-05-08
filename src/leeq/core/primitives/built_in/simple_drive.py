@@ -120,6 +120,8 @@ class SimpleDriveCollection(LogicalPrimitiveCollection):
         Raises
             KeyError: If the logical primitive is not found.
         """
+        aliases = {"X2P": "Xp", "X2M": "Xm", "Y2P": "Yp", "Y2M": "Ym"}
+        item = aliases.get(item, item)
 
         if item == "I":
             return self._primitives["drive"].clone_with_parameters(

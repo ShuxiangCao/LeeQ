@@ -31,6 +31,22 @@ class SharedParameterObject(LeeQObject):
         """
         elementwise_update_dict(self._parameters, kwargs)
 
+    def set_parameters(self, parameters: dict = None, **kwargs):
+        """
+        Compatibility wrapper for updating parameters from notebooks.
+        """
+        updates = {}
+        if parameters:
+            updates.update(parameters)
+        updates.update(kwargs)
+        self.update_parameters(**updates)
+
+    def __getitem__(self, item):
+        """
+        Return a parameter by key for dict-like notebook examples.
+        """
+        return self._parameters[item]
+
     def get_parameters(self):
         """
         Get the parameters of the object. The returned object is safe to modify.

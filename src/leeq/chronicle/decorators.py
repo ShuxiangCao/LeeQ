@@ -9,12 +9,15 @@ from leeq.utils import is_running_in_jupyter
 logger = setup_logging(__name__)
 
 
-@decorator.decorator
-def log_and_record(func, overwrite_func_name=None, *args, **kwargs):
+def log_and_record(func=None, overwrite_func_name=None, **event_kwargs):
     """
     Decorator function for the functions that want to be logged. The function must be a method of a LoggableObject.
     Using this decorator will record the object and modified attributes within this function call
     after the function execution.
+
+    When called with a non-callable first argument, this records a lightweight
+    notebook event. This keeps older tutorial notebooks executable while the
+    decorator behavior remains unchanged.
 
     Parameters:
         func (function): The function to be logged.
@@ -26,7 +29,36 @@ def log_and_record(func, overwrite_func_name=None, *args, **kwargs):
     Returns:
         Any: The return value of the function.
     """
-    return _log_and_record(func, args, kwargs, overwrite_func_name=overwrite_func_name)
+    if callable(func):
+        return _log_and_record_decorator(overwrite_func_name=overwrite_func_name)(func)
+
+    if func is None:
+        return _log_and_record_decorator(overwrite_func_name=overwrite_func_name)
+
+    payload = overwrite_func_name
+    if event_kwargs:
+        payload = event_kwargs if payload is None else {"payload": payload, **event_kwargs}
+    return record_event(str(func), payload)
+
+
+def _log_and_record_decorator(overwrite_func_name=None):
+    @decorator.decorator
+    def caller(func, *args, **kwargs):
+        return _log_and_record(func, args, kwargs, overwrite_func_name=overwrite_func_name)
+
+    return caller
+
+
+def record_event(name: str, payload=None):
+    """Record a lightweight Chronicle event for notebooks and scripts."""
+    chronicle = Chronicle()
+    with chronicle.new_record() as record:
+        if record is not None:
+            record.set_name(name)
+            record.record_metadata()
+            record.record_args([], {"payload": payload})
+            record.record_return_values(payload)
+    return payload
 
 
 @decorator.decorator

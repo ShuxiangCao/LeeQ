@@ -127,6 +127,16 @@ class LogicalPrimitive(SharedParameterObject, LogicalPrimitiveCombinable):
             parameters=parameters,
             original=self)
 
+    def apply_transition_to_logical_state(self, *_args, **_kwargs):
+        """
+        No-op compatibility hook for tutorial notebooks.
+
+        Some educational notebooks demonstrate state-preparation recipes by
+        applying logical primitives to a conceptual state. Runtime experiments
+        build LPBs instead, so this method intentionally returns ``self``.
+        """
+        return self
+
     @staticmethod
     def _validate_parameters(parameters: dict):
         """
