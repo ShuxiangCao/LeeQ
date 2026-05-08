@@ -277,6 +277,7 @@ class DispersiveReadoutSimulatorSyntheticData(DispersiveReadoutSimulator):
         num_levels: int = 4,
         use_kerr_nonlinearity: bool = False,
         kerr_coefficient: Optional[float] = None,
+        noise_std: float = 0,
     ):
         """
         Initialize dispersive readout simulator.
@@ -330,6 +331,7 @@ class DispersiveReadoutSimulatorSyntheticData(DispersiveReadoutSimulator):
         self.trunc = trunc
         self.width = width
         self.t1s = t1s
+        self.noise_std = noise_std
 
         # Store physics parameters
         self.use_physics_model = use_physics_model

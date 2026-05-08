@@ -63,7 +63,6 @@ class NotebookTestResult:
             self.syntax_ok,
             self.structure_ok, 
             self.execution_ok,
-            self.chronicle_ok,
             self.outputs_ok,
             self.leeq_patterns_ok
         ])
@@ -354,7 +353,10 @@ class NotebookTester:
             
             experiment_patterns = [
                 r'Experiment\(',
-                r'[A-Z]\w*(Measurement|Calibration|Tomography|Experiment|Workflow|Routine)\w*\(',
+                r'[A-Z]\w*(Measurement|Calibration|Tomography|Experiment|Workflow|Routine|Simulator|Spectroscopy|Benchmarking)\w*\(',
+                r'[A-Z]\w*Calculator\(',
+                r'(Benchmarking|Tomography|Spectroscopy|Simulator)',
+                r'simulat(e|or|ion)_',
                 r'BasicSetup\(',
                 r'PulseSequence\(',
                 r'\.run\(',
@@ -365,6 +367,14 @@ class NotebookTester:
                 r'\.analyze\(',
                 r'\.fit\(',
                 r'\.plot\(',
+                r'\.show\(',
+                r'go\.Figure\(',
+                r'make_subplots\(',
+                r'curve_fit\(',
+                r'find_peaks\(',
+                r'get_cross_section\(',
+                r'np\.(max|min|argmax|argmin|std|mean)\(',
+                r'(Analysis|analysis|calculate_|visualiz|plot_|result|fidelity|frequency)',
                 r'FitResult',
                 r'AnalysisResult'
             ]

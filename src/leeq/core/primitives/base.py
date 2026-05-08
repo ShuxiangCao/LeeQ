@@ -55,3 +55,6 @@ class SharedParameterObject(LeeQObject):
             dict: The parameters of the object.
         """
         return copy.deepcopy(self._parameters)
+
+
+PrimitiveBase = SharedParameterObject
