@@ -303,20 +303,26 @@ class TutorialValidator:
         }
         
         for pattern, expected_import in patterns_requiring_imports.items():
-            if pattern in code and expected_import not in code:
+            if self._code_uses_pattern(code, pattern) and expected_import not in code:
                 # Check if a similar import exists (flexible matching)
                 import_base = expected_import.split('import')[-1].strip().split('.')[0]
                 if f'import {import_base}' not in code and f'from {import_base}' not in code:
                     issues.append(f"Missing import for {pattern}: consider {expected_import}")
                     
         return issues
+
+    def _code_uses_pattern(self, code: str, pattern: str) -> bool:
+        """Return whether a code example uses a token or dotted alias."""
+        if pattern.endswith('.'):
+            return pattern in code
+        return re.search(rf'\b{re.escape(pattern)}\b', code) is not None
         
     def _check_code_patterns(self, code: str, example_type: str) -> List[str]:
         """Check for proper coding patterns based on example type."""
         issues = []
         
         if example_type == 'dut_creation':
-            if 'TransmonElement' in code:
+            if 'TransmonElement(' in code:
                 if 'name=' not in code:
                     issues.append("TransmonElement should include name parameter")
                 if 'parameters=' not in code:
