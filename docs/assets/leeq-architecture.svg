@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="440" viewBox="0 0 800 550" role="img" aria-labelledby="title description">
+  <title id="title">LeeQ architecture</title>
+  <desc id="description">Experiments flow through pulse blocks, compilation, simulation or hardware, analysis, and calibration tracking.</desc>
+
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#64748b"/>
+    </marker>
+    <style>
+      .box { fill: #ffffff; stroke: #94a3b8; stroke-width: 2; }
+      .accent { fill: #eff6ff; stroke: #2563eb; stroke-width: 2; }
+      .label { fill: #24292f; font-family: system-ui, sans-serif; font-size: 15px; font-weight: 500; text-anchor: middle; }
+      .line { fill: none; stroke: #64748b; stroke-width: 2; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect x="200" y="20" width="400" height="56" rx="10" class="accent"/>
+  <text x="400" y="55" class="label">Experiment &amp; Calibration Procedure</text>
+
+  <path d="M400 76 V108" class="line"/>
+  <rect x="200" y="112" width="400" height="56" rx="10" class="box"/>
+  <text x="400" y="147" class="label">Pulse Blocks &amp; Parameter Sweeps</text>
+
+  <path d="M400 168 V200" class="line"/>
+  <rect x="200" y="204" width="400" height="56" rx="10" class="box"/>
+  <text x="400" y="239" class="label">Compiler &amp; Execution</text>
+
+  <path d="M330 260 C330 285 200 280 200 304" class="line"/>
+  <path d="M470 260 C470 285 600 280 600 304" class="line"/>
+
+  <rect x="50" y="308" width="300" height="56" rx="10" class="box"/>
+  <text x="200" y="343" class="label">Simulation</text>
+
+  <rect x="450" y="308" width="300" height="56" rx="10" class="box"/>
+  <text x="600" y="343" class="label">Hardware</text>
+
+  <path d="M200 364 C200 392 330 384 330 408" class="line"/>
+  <path d="M600 364 C600 392 470 384 470 408" class="line"/>
+
+  <rect x="200" y="412" width="400" height="56" rx="10" class="box"/>
+  <text x="400" y="447" class="label">Analysis &amp; Inspection</text>
+
+  <path d="M400 468 V500" class="line"/>
+  <rect x="200" y="504" width="400" height="36" rx="10" class="accent"/>
+  <text x="400" y="528" class="label">Calibration State &amp; Chronicle</text>
+</svg>
