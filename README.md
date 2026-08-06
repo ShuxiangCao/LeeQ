@@ -6,6 +6,7 @@
 [![Documentation](https://github.com/ShuxiangCao/LeeQ/actions/workflows/docs.yml/badge.svg)](https://shuxiang.scao.me/LeeQ/)
 [![Docker](https://github.com/ShuxiangCao/LeeQ/actions/workflows/docker_image.yaml/badge.svg)](https://github.com/ShuxiangCao/LeeQ/pkgs/container/leeq)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
+[![Paper: Patterns](https://img.shields.io/badge/Paper-Patterns-0a7c86.svg)](https://doi.org/10.1016/j.patter.2025.101372)
 
 LeeQ is a Python framework for defining, executing, and analyzing pulse-level quantum experiments. It was built for superconducting-circuit research, where experiments must connect reusable pulse sequences, parameter sweeps, calibration state, hardware control, simulation, and scientific analysis.
 
