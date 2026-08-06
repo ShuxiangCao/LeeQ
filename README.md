@@ -14,7 +14,7 @@ Unlike a circuit-level SDK, LeeQ focuses on the laboratory workflow around the q
 
 <!-- Replace this static preview with a clean, animated recording when available. -->
 <p align="center">
-  <img src="docs/assets/leeq-calibration-workflow.gif" alt="LeeQ autonomous single-qubit calibration workflow" width="640">
+  <img src="docs/assets/leeq-calibration-demo.gif" alt="LeeQ autonomous single-qubit calibration workflow" width="640">
 </p>
 
 ## Why LeeQ?
