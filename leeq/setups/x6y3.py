@@ -6,6 +6,8 @@ qcal is an optional dependency, used only for its original envelope functions.
 
 import copy
 import hashlib
+import json
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -17,13 +19,20 @@ from leeq.core.primitives.built_in.simple_drive import SimpleDispersiveMeasureme
 from leeq.core.primitives.logical_primitives import LogicalPrimitiveBlockSerial
 
 
-def qcal_envelope(sampling_rate, width, source_env, envelope_kwargs, amp=1.0, phase=0.0):
-    """Evaluate qcal's envelope with LeeQ units (Msps/us); preserve its samples."""
+@lru_cache(maxsize=256)
+def _qcal_samples(sampling_rate, width, source_env, kwargs_json):
     from qcal.sequence.pulse_envelopes import pulse_envelopes
-
     samples = pulse_envelopes[source_env](
         length=width / 1e6, sample_rate=sampling_rate * 1e6,
-        **copy.deepcopy(envelope_kwargs))
+        **json.loads(kwargs_json))
+    samples.setflags(write=False)
+    return samples
+
+
+def qcal_envelope(sampling_rate, width, source_env, envelope_kwargs, amp=1.0, phase=0.0):
+    """Evaluate qcal's envelope with LeeQ units (Msps/us); preserve its samples."""
+    samples = _qcal_samples(sampling_rate, width, source_env,
+                           json.dumps(envelope_kwargs, sort_keys=True, allow_nan=False))
     return samples * amp * np.exp(1j * phase)
 
 
@@ -94,12 +103,16 @@ class X6Y3Calibration:
             'channel': 2 * qubit, 'phase_shift': _finite(radians, 'phase'),
             'transition_multiplier': {'f01': 1}})
 
-    def gate(self, qubit, name='X90', *, amplitude_scale=1.0):
+    def gate(self, qubit, name='X90', *, amplitude_scale=1.0,
+             frequency_offset_mhz=0.0, phase_offset_rad=0.0):
         self._check_qubit(qubit)
         if name not in ('X', 'X90'):
             raise ValueError('Only the independently calibrated GE X and X90 gates are supported')
         scale = _finite(amplitude_scale, 'amplitude scale', nonnegative=True)
         ge = self._config['single_qubit'][qubit]['GE']
+        frequency = _finite(ge['freq'] / 1e6 + _finite(frequency_offset_mhz, 'frequency offset'),
+                            'drive frequency', positive=True)
+        phase_offset = _finite(phase_offset_rad, 'phase offset')
         children = []
         for pulse in ge[name]['pulse']:
             if pulse['channel'] != f'Q{qubit}.qdrv':
@@ -116,9 +129,9 @@ class X6Y3Calibration:
             phase = _finite(kwargs.pop('phase', 0.0), 'drive phase')
             children.append(SimpleDrive(name=f'Q{qubit}.GE.{name}', parameters={
                 'channel': 2 * qubit, 'transition_name': 'f01',
-                'freq': _finite(ge['freq'], 'drive frequency', positive=True) / 1e6,
+                'freq': frequency,
                 'width': _finite(pulse['time'], 'drive duration', positive=True) * 1e6,
-                'amp': amplitude, 'phase': phase, 'shape': 'x6y3_qcal',
+                'amp': amplitude, 'phase': phase + phase_offset, 'shape': 'x6y3_qcal',
                 'source_env': pulse['env'], 'envelope_kwargs': kwargs}))
         if not any(isinstance(child, SimpleDrive) for child in children):
             raise ValueError('Gate contains no drive pulse')
@@ -157,7 +170,9 @@ class X6Y3Calibration:
         for operation in operations:
             if operation['gate'] in ('X90', 'X'):
                 children.append(self.gate(qubit, operation['gate'],
-                                          amplitude_scale=operation.get('amplitude_scale', 1.0)))
+                                          amplitude_scale=operation.get('amplitude_scale', 1.0),
+                                          frequency_offset_mhz=operation.get('frequency_offset_mhz', 0.0),
+                                          phase_offset_rad=operation.get('phase_offset_rad', 0.0)))
             elif operation['gate'] == 'Idle':
                 children.append(Delay(_finite(operation['time_us'], 'idle duration', nonnegative=True)))
             elif operation['gate'] == 'Rz':

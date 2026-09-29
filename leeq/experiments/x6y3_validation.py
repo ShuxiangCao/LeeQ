@@ -25,9 +25,11 @@ def qcal_reference(calibration, plan, point):
         if name in ('X90', 'X'):
             # Restore the source for each operation, so scale does not accumulate.
             config._parameters = calibration.snapshot
+            config._parameters['single_qubit'][q]['GE']['freq'] += op.get('frequency_offset_mhz', 0.0) * 1e6
             for pulse in config[f'single_qubit/{q}/GE/{name}/pulse']:
                 if pulse['env'] != 'virtualz':
                     pulse['kwargs']['amp'] *= op.get('amplitude_scale', 1.0)
+                    pulse['kwargs']['phase'] += op.get('phase_offset_rad', 0.0)
             gate = (X90 if name == 'X90' else X)(q)
         elif name == 'Idle':
             gate = Idle(q, duration=op['time_us'] / 1e6)

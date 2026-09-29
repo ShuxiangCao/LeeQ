@@ -128,6 +128,7 @@ def provenance(calibration, setup):
                               capture_output=True, text=True, check=False).stdout.strip()
     source_files = ('leeq/setups/x6y3.py', 'leeq/setups/huracan.py',
                     'leeq/setups/qubic_executable_setups.py', 'leeq/experiments/x6y3.py',
+                    'leeq/experiments/x6y3_tuneup.py',
                     'leeq/compiler/lbnl_qubic/circuit_list_compiler.py',
                     'leeq/compiler/lbnl_qubic/utils.py')
     source_hashes = {name: hashlib.sha256((repo / name).read_bytes()).hexdigest() for name in source_files}
