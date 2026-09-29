@@ -1,0 +1,139 @@
+# Q0/Q1 GE subset of the supplied X6Y3 calibration, for offline regression.
+single_qubit:
+  0:
+    GE:
+      freq: 5490403426.796941
+      X90:
+        pulse:
+        - channel: Q0.qdrv
+          env: virtualz
+          time: 0.0
+          kwargs:
+            phase: 0.0055315388
+        - channel: Q0.qdrv
+          env: FAST_DRAG
+          time: 3.5e-08
+          kwargs:
+            alpha: 1.0
+            amp: 0.08574811161864096
+            anh: -259564582.20936
+            phase: 0.0
+            N: 2
+            weights:
+            - 0.1
+            - 0.1
+        - channel: Q0.qdrv
+          env: virtualz
+          time: 0.0
+          kwargs:
+            phase: 0.0055315388
+      X:
+        pulse:
+        - channel: Q0.qdrv
+          env: FAST_DRAG
+          time: 7.0e-08
+          kwargs:
+            alpha: 1.0
+            amp: 0.10674013
+            anh: -260598161.96778
+            phase: 0.0
+            N: 2
+            weights:
+            - 0.1
+            - 0.1
+  1:
+    GE:
+      freq: 5377616996.639271
+      X90:
+        pulse:
+        - channel: Q1.qdrv
+          env: virtualz
+          time: 0.0
+          kwargs:
+            phase: -0.1020165
+        - channel: Q1.qdrv
+          env: FAST_DRAG
+          time: 3.5e-08
+          kwargs:
+            alpha: 1.0
+            amp: 0.0857822863959432
+            anh: -255186737.33568
+            phase: 0.0
+            N: 2
+            weights:
+            - 0.1
+            - 0.1
+        - channel: Q1.qdrv
+          env: virtualz
+          time: 0.0
+          kwargs:
+            phase: -0.1020165
+      X:
+        pulse:
+        - channel: Q1.qdrv
+          env: FAST_DRAG
+          time: 7.0e-08
+          kwargs:
+            alpha: 1.0
+            amp: 0.10118512
+            anh: -260598161.96778
+            phase: 0.0
+            N: 2
+            weights:
+            - 0.1
+            - 0.1
+readout:
+  0:
+    channel: 0
+    amp: 0.0975
+    freq: 6555006453.21587
+    time: 5.0e-07
+    env: cosine_square
+    kwargs:
+      ramp_fraction: 0.1
+    demod:
+      delay: 3.9857e-07
+      phase: -98.7618
+      time: 6.5667e-07
+      env: cosine_square
+      kwargs:
+        amp: 1.0
+        ramp_fraction: 0.1304348
+  1:
+    channel: 1
+    amp: 0.037944444
+    freq: 6559792422.19159
+    time: 6.5e-07
+    env: cosine_square
+    kwargs:
+      ramp_fraction: 0.1
+    demod:
+      delay: 4.5333e-07
+      phase: -137.69325
+      time: 7.5167e-07
+      env: cosine_square
+      kwargs:
+        amp: 1.0
+        ramp_fraction: 0.21869565
+  herald: true
+  esp:
+    enable: false
+reset:
+  passive:
+    enable: true
+    delay: 0.0005
+  active:
+    enable: false
+  unconditional:
+    enable: false
+hardware:
+  sample_rate:
+    ADC: 2000000000.0
+    DAC: 8000000000.0
+  interpolation_ratio:
+    qdrv: 4
+    rdrv: 16
+    rdlo: 4
+  readout_LO: null
+  qubit_LO: null
+initialize: null

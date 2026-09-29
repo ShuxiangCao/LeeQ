@@ -1,0 +1,77 @@
+{
+    "fpga_clk_freq": 500000000.0,
+    "Q0.qdrv": {
+        "core_ind": 0,
+        "elem_ind": 0,
+        "core_name": "qubit",
+        "env_mem_name": "qubit_qdrv_env0",
+        "freq_mem_name": "qubit_qdrv_freq0",
+        "elem_params": {
+            "interp_ratio": 4,
+            "samples_per_clk": 16
+        },
+        "elem_type": "rf"
+    },
+    "Q1.qdrv": {
+        "core_ind": 1,
+        "elem_ind": 0,
+        "core_name": "qubit",
+        "env_mem_name": "qubit_qdrv_env1",
+        "freq_mem_name": "qubit_qdrv_freq1",
+        "elem_params": {
+            "interp_ratio": 4,
+            "samples_per_clk": 16
+        },
+        "elem_type": "rf"
+    },
+    "Q0.rdrv": {
+        "core_ind": 0,
+        "elem_ind": 1,
+        "core_name": "qubit",
+        "env_mem_name": "qubit_rdrv_env0",
+        "freq_mem_name": "qubit_rdrv_freq0",
+        "elem_params": {
+            "interp_ratio": 16,
+            "samples_per_clk": 16
+        },
+        "elem_type": "rf"
+    },
+    "Q1.rdrv": {
+        "core_ind": 1,
+        "elem_ind": 1,
+        "core_name": "qubit",
+        "env_mem_name": "qubit_rdrv_env1",
+        "freq_mem_name": "qubit_rdrv_freq1",
+        "elem_params": {
+            "interp_ratio": 16,
+            "samples_per_clk": 16
+        },
+        "elem_type": "rf"
+    },
+    "Q0.rdlo": {
+        "core_ind": 0,
+        "elem_ind": 2,
+        "core_name": "qubit",
+        "env_mem_name": "qubit_rdlo_env0",
+        "freq_mem_name": "qubit_rdlo_freq0",
+        "elem_params": {
+            "interp_ratio": 4,
+            "samples_per_clk": 4
+        },
+        "acc_mem_name": "qubit_accbuf0",
+        "elem_type": "rf_mix"
+    },
+    "Q1.rdlo": {
+        "core_ind": 1,
+        "elem_ind": 2,
+        "core_name": "qubit",
+        "env_mem_name": "qubit_rdlo_env1",
+        "freq_mem_name": "qubit_rdlo_freq1",
+        "elem_params": {
+            "interp_ratio": 4,
+            "samples_per_clk": 4
+        },
+        "acc_mem_name": "qubit_accbuf1",
+        "elem_type": "rf_mix"
+    }
+}

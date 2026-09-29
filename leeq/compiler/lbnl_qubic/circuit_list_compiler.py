@@ -483,6 +483,11 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             last_compiled_value = self._lpb_uuid_to_parameter_last_compiled[lpb_id].copy(
             )
 
+            if parameters.get('demodulation') != last_compiled_value.get('demodulation'):
+                self._command_dirty = True
+                self._envelope_dirty = True
+                self._frequency_dirty = True
+
             if _parameter_diff('freq'):
                 self._frequency_dirty = True
                 del parameters['freq']
@@ -581,7 +586,7 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             qubic_pulse_dict = {
                 "name": "pulse",
                 "phase": phase_shift + parameters["phase"],
-                "freq": int(parameters['freq'] * 1e6),  # In Hz
+                "freq": parameters['freq'] * 1e6,  # In Hz; retain calibrated sub-Hz precision
                 "amp": parameters['amp'],
                 "twidth": twidth,  # In seconds
                 "env": env,
@@ -766,6 +771,35 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
             ],
         }
 
+        # Optional calibrated integration window. Units follow LeeQ: MHz/us
+        # and radians. The delay is relative to readout start, on rdlo only;
+        # delaying the whole qubit scope would also wait for rdrv to finish.
+        demodulation = modified_parameters.get('demodulation')
+        if demodulation is not None:
+            required = {'delay', 'width', 'phase', 'shape', 'freq', 'amp'}
+            if not isinstance(demodulation, dict) or not required <= demodulation.keys():
+                raise ValueError('demodulation requires delay, width, phase, shape, freq and amp')
+            for key in ('delay', 'width', 'phase', 'freq', 'amp'):
+                if not np.isfinite(demodulation[key]):
+                    raise ValueError(f'demodulation {key} must be finite')
+            if demodulation['delay'] < 0 or demodulation['width'] <= 0:
+                raise ValueError('demodulation delay must be nonnegative and width positive')
+            if not 0 <= demodulation['amp'] <= 1:
+                raise ValueError('demodulation amp must be between zero and one')
+            demod_func = self._get_envelope_function(demodulation['shape'])
+            demod_args = {key: demodulation[key]
+                          for key in inspect.signature(demod_func).parameters
+                          if key in demodulation and key not in ('amp', 'freq', 'phase')}
+            delay_between_drive_and_measure = {
+                'name': 'delay', 't': demodulation['delay'] / 1e6,
+                'scope': [primitive_scope + '.rdlo']}
+            demodulate_pulse = {
+                'name': 'pulse', 'dest': primitive_scope + '.rdlo',
+                'freq': demodulation['freq'] * 1e6, 'phase': demodulation['phase'],
+                'twidth': demodulation['width'] / 1e6, 'amp': demodulation['amp'],
+                'env': [{'env_func': get_qubic_envelope_name_from_leeq_name(demodulation['shape']),
+                         'paradict': demod_args}]}
+
         if primitive_scope in self._qubic_channel_to_lpb_uuid and self._qubic_channel_to_lpb_uuid[
                 primitive_scope] != lpb.uuid:
             msg = "Two measurement primitives exists for a same channel, which is not supported."
@@ -774,8 +808,10 @@ class QubiCCircuitListLPBCompiler(LPBCompiler):
 
         self._qubic_channel_to_lpb_uuid[primitive_scope] = lpb.uuid
 
-        return [drive_pulse, delay_between_drive_and_measure,
-                demodulate_pulse], {primitive_scope + ".rdrv"}
+        scope = {primitive_scope + '.rdrv'}
+        if demodulation is not None:
+            scope.add(primitive_scope + '.rdlo')
+        return [drive_pulse, delay_between_drive_and_measure, demodulate_pulse], scope
 
     @_compile_lpb.register
     def _(self, lpb: LogicalPrimitiveBlockSerial):
