@@ -158,12 +158,16 @@ def test_native_engine_raw_iq_and_persistence(calibration, setup, tmp_path):
     ExperimentManager().register_setup(setup)
     previous = setup.status.get_parameters()
     plan = readout_plan(shots=8, blocks=1)
+    expected_programs = [record['executable'].program_binaries
+                         for record in compile_plan(calibration, setup, plan)]
     arrays = [np.arange(8).reshape(8, 1) + 3j, -np.arange(8).reshape(8, 1) - 4j]
     runner = Mock(side_effect=[[{'Q0.rdlo': value}] for value in arrays])
     setup._runner = SimpleNamespace(run_circuit_batch=runner)
     result = acquire_plan(calibration, setup, plan, tmp_path / 'result')
     np.testing.assert_array_equal(result['iq'], np.stack(arrays)[:, :, 0])
     assert runner.call_count == 2
+    for call, expected in zip(runner.call_args_list, expected_programs):
+        assert call.kwargs['executables'][0].program_binaries == expected
     assert setup.status.get_parameters() == previous
     manifest = json.loads((result['output_dir'] / 'manifest.json').read_text())
     assert manifest['status'] == 'complete'
