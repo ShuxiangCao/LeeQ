@@ -29,3 +29,15 @@ Start with scales 0.98, 1, 1.02 and counts 0/4/8/12 for X90 or 0/2/4/6 for X. Na
 Without `--execute`, the command blocks networking and verifies the complete plan against independent qcal schedules and waveform/frequency memories. With `--execute`, it precompiles all points, submits native LeeQ LPBs, saves raw per-point IQ and provenance, and fits the result. Failed acquisitions are not retried automatically. Inspect saved data if fitting fails; do not repeat hardware shots merely to rerun analysis.
 
 No board-side install, firmware download, service restart, reboot or persistent RF reconfiguration is part of this workflow. The hardware path uses ordinary IQ acquisition, a 500 µs passive wait from the supplied configuration, and no heralding or active reset.
+
+## JupyterLab on this host
+
+JupyterLab is installed separately at `/local/data/projects/qubic_validation/artifacts/x6y3/jupyterlab-venv`; its `leeq-huracan` kernel uses `/local/data/projects/LeeQ/.venv/bin/python`. Start it with:
+
+```sh
+/local/data/projects/qubic_validation/artifacts/x6y3/jupyterlab-venv/bin/jupyter lab --no-browser --ip=127.0.0.1 --port=8888 --ServerApp.root_dir=/local/data/projects/LeeQ-lbnl-qubic
+```
+
+Open `notebooks/RealSystem/TuneUp_X6Y3_LeeQ.ipynb`, select **LeeQ — Huracan experiments**, and run setup. Choose `readout`, `ramsey`, `ramsey_three_stage`, or `pingpong` in the controls. Set `RUN_HARDWARE=True` only when you intend to acquire, then run the acquisition cell. Each execution saves a new timestamped directory under the harness's `artifacts/x6y3/jupyter-experiments`. The existing `127.0.0.1:9095` Huracan tunnel must remain available. Fresh readout references are retained per qubit in the current kernel.
+
+`notebooks/RealSystem/X6Y3_TuneUp_Inspection.ipynb` includes executed plots and tables from the paused 2026-09-29 session. It only reads saved data and has no acquisition cells. Q1's interrupted refinement is explicitly partial; neither amplitude candidate is independently validated. No further board experiments were run while preparing JupyterLab.
