@@ -1,6 +1,6 @@
 # X6Y3 Ramsey and ping-pong
 
-Use `notebooks/RealSystem/TuneUp_X6Y3_LeeQ.ipynb` for a staged workflow on the existing Huracan executable-RPC service. Hardware execution is disabled by default. The original X6Y3 YAML/ZIP remains the baseline; candidate settings are written to a separate host-side YAML only after validation.
+Use `notebooks/RealSystem/TuneUp_X6Y3_LeeQ.ipynb` for a staged workflow on the existing Huracan executable-RPC service. Run individual acquisition cells explicitly; each cell starts one experiment. There is no selector, dispatcher, or whole-workflow loop. The original X6Y3 YAML/ZIP remains the baseline; candidate settings are written to a separate host-side YAML only after validation.
 
 ## Ramsey
 
@@ -35,9 +35,9 @@ No board-side install, firmware download, service restart, reboot or persistent 
 JupyterLab is installed separately at `/local/data/projects/qubic_validation/artifacts/x6y3/jupyterlab-venv`; its `leeq-huracan` kernel uses `/local/data/projects/LeeQ/.venv/bin/python`. Start it with:
 
 ```sh
-/local/data/projects/qubic_validation/artifacts/x6y3/jupyterlab-venv/bin/jupyter lab --no-browser --ip=127.0.0.1 --port=8888 --ServerApp.root_dir=/local/data/projects/LeeQ-lbnl-qubic
+/local/data/projects/qubic_validation/artifacts/x6y3/jupyterlab-venv/bin/jupyter lab --config=/local/data/projects/qubic_validation/artifacts/x6y3/jupyterlab_config.py
 ```
 
-Open `notebooks/RealSystem/TuneUp_X6Y3_LeeQ.ipynb`, select **LeeQ — Huracan experiments**, and run setup. Choose `readout`, `ramsey`, `ramsey_three_stage`, or `pingpong` in the controls. Set `RUN_HARDWARE=True` only when you intend to acquire, then run the acquisition cell. Each execution saves a new timestamped directory under the harness's `artifacts/x6y3/jupyter-experiments`. The existing `127.0.0.1:9095` Huracan tunnel must remain available. Fresh readout references are retained per qubit in the current kernel.
+Open `notebooks/RealSystem/TuneUp_X6Y3_LeeQ.ipynb`, select **LeeQ — Huracan experiments**, and run setup. Like `TuneUpExample.ipynb`, each experiment has its own direct-call cell: readout, coarse Ramsey, medium Ramsey, fine Ramsey, X90 ping-pong, and X ping-pong. Parameters live in the call; analysis and plots follow each acquisition. Run accepted Ramsey center-update cells between scans. Each acquisition saves a new timestamped directory under `artifacts/x6y3/jupyter-experiments`. The existing `127.0.0.1:9095` Huracan tunnel must remain available. Experiment cells take shots when executed; there is no `RUN_HARDWARE` switch. No board experiments were run while revising this notebook.
 
 `notebooks/RealSystem/X6Y3_TuneUp_Inspection.ipynb` includes executed plots and tables from the paused 2026-09-29 session. It only reads saved data and has no acquisition cells. Q1's interrupted refinement is explicitly partial; neither amplitude candidate is independently validated. No further board experiments were run while preparing JupyterLab.
