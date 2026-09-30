@@ -1,5 +1,3 @@
-import functools
-
 from leeq.compiler.utils.pulse_shape_utils import PulseShapeFactory
 from leeq.compiler.utils.time_base import get_t_list
 
@@ -48,7 +46,6 @@ def wrap_envelope_leeq_function_to_qubic_format(pulse_shape_name: str):
 
     env_func = PulseShapeFactory().get_pulse_shape_function(pulse_shape_name)
 
-    @functools.wraps(env_func)
     def func(dt, **kwargs):
         """
         Evaluate the pulse shape function with the given parameters.
@@ -70,5 +67,11 @@ def wrap_envelope_leeq_function_to_qubic_format(pulse_shape_name: str):
         env = env_func(sampling_rate=sampling_rate, **kwargs)
 
         return t, env
+
+    # QubiC validates and invokes this adapter through its ``dt`` interface.
+    # functools.wraps would expose the wrapped LeeQ function's
+    # ``sampling_rate`` signature to inspect.signature(), causing current
+    # QubiC pulse-factory validation to reject the otherwise valid adapter.
+    func.__name__ = env_func.__name__
 
     return func

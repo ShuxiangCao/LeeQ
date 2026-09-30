@@ -367,6 +367,21 @@ class QubiCCircuitSetup(ExperimentalSetup):
         asm_prog = tc.run_assemble_stage(
             compiled_instructions, self._channel_configs)
 
+        # The pre-Executable QubiC toolchain used by the Oxford deployment
+        # returns one raw-ASM body per processor core.  Restore the core-keyed
+        # mapping expected by the deployed RPC server's load_circuit method.
+        if isinstance(asm_prog, list):
+            program_by_group = getattr(compiled_instructions, "program", None)
+            if not isinstance(program_by_group, dict) or len(asm_prog) != len(program_by_group):
+                raise RuntimeError(
+                    "Cannot correlate assembled Oxford circuits with processor cores"
+                )
+            core_indices = [
+                str(self._channel_configs[channel_group[0]].core_ind)
+                for channel_group in program_by_group
+            ]
+            asm_prog = dict(zip(core_indices, asm_prog))
+
         acquisition_type = self._status.get_parameters("Acquisition_Type")
         n_total_shots = self._status.get_parameters("Shot_Number")
 
